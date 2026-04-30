@@ -1,4 +1,4 @@
-export interface UpdateProductDto {
+export class UpdateProductDto {
   title?: string;
   price?: number;
 }
