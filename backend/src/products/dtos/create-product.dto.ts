@@ -1,24 +1,20 @@
 import {
-  IsInt,
   IsNotEmpty,
   IsNumber,
-  IsOptional,
-  IsPositive,
   IsString,
+  MaxLength,
+  Min,
+  MinLength,
 } from "class-validator";
 
 export class CreateProductDto {
-  @IsOptional()
-  @IsPositive()
-  @IsNotEmpty()
-  @IsInt()
-  id!: number;
-
+  @MaxLength(150)
+  @MinLength(2)
   @IsNotEmpty()
   @IsString()
   title!: string;
 
-  @IsPositive()
+  @Min(0)
   @IsNotEmpty()
   @IsNumber()
   price!: number;

@@ -9,14 +9,19 @@ import {
   ParseIntPipe,
   Post,
   Put,
-  ValidationPipe,
 } from "@nestjs/common";
 import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
 
+interface Product {
+  id: number;
+  title: string;
+  price: number;
+}
+
 @Controller("api/products")
 export class ProductsController {
-  private data: CreateProductDto[] = [
+  private data: Product[] = [
     { id: 1, title: "book1", price: 10 },
     { id: 2, title: "book2", price: 20 },
     { id: 3, title: "book3", price: 30 },
@@ -33,8 +38,8 @@ export class ProductsController {
   }
 
   @Get(":id")
-  getSingleProduct(@Param("id", ParseIntPipe) id: number): CreateProductDto {
-    const product = this.data.find((p: CreateProductDto) => {
+  getSingleProduct(@Param("id", ParseIntPipe) id: number): Product {
+    const product = this.data.find((p: Product) => {
       return p.id === id;
     });
     if (!product) {
@@ -45,9 +50,10 @@ export class ProductsController {
 
   @Post()
   createNewProduct(
-    @Body(new ValidationPipe()) body: CreateProductDto,
-  ): CreateProductDto {
-    const newProduct: CreateProductDto = {
+    @Body()
+    body: CreateProductDto,
+  ): Product {
+    const newProduct: Product = {
       id: this.data.length + 1,
       title: body.title,
       price: body.price,
@@ -59,9 +65,9 @@ export class ProductsController {
   @Put(":id")
   updateProduct(
     @Param("id", ParseIntPipe) id: number,
-    @Body(new ValidationPipe()) body: UpdateProductDto,
+    @Body() body: UpdateProductDto,
   ): UpdateProductDto {
-    const updateProduct = this.data.find((p: CreateProductDto) => {
+    const updateProduct = this.data.find((p: Product) => {
       return p.id === id;
     });
     if (!updateProduct) {
@@ -86,7 +92,7 @@ export class ProductsController {
 
   @Delete(":id")
   deleteProduct(@Param("id", ParseIntPipe) id: number) {
-    const deleteProduct = this.data.find((p: CreateProductDto) => {
+    const deleteProduct = this.data.find((p: Product) => {
       return p.id === id;
     });
     if (!deleteProduct) {
