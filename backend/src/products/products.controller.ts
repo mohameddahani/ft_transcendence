@@ -11,12 +11,12 @@ import {
   Put,
   ValidationPipe,
 } from "@nestjs/common";
-import { ProductDto } from "./dtos/create-product.dto";
+import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
 
 @Controller("api/products")
 export class ProductsController {
-  private data: ProductDto[] = [
+  private data: CreateProductDto[] = [
     { id: 1, title: "book1", price: 10 },
     { id: 2, title: "book2", price: 20 },
     { id: 3, title: "book3", price: 30 },
@@ -25,7 +25,7 @@ export class ProductsController {
   ];
 
   @Get()
-  getAllProducts(): ProductDto[] {
+  getAllProducts(): CreateProductDto[] {
     if (this.data.length <= 0) {
       throw new NotFoundException("no product to show");
     }
@@ -33,8 +33,8 @@ export class ProductsController {
   }
 
   @Get(":id")
-  getSingleProduct(@Param("id", ParseIntPipe) id: number): ProductDto {
-    const product = this.data.find((p: ProductDto) => {
+  getSingleProduct(@Param("id", ParseIntPipe) id: number): CreateProductDto {
+    const product = this.data.find((p: CreateProductDto) => {
       return p.id === id;
     });
     if (!product) {
@@ -44,8 +44,10 @@ export class ProductsController {
   }
 
   @Post()
-  createNewProduct(@Body(new ValidationPipe()) body: ProductDto): ProductDto {
-    const newProduct: ProductDto = {
+  createNewProduct(
+    @Body(new ValidationPipe()) body: CreateProductDto,
+  ): CreateProductDto {
+    const newProduct: CreateProductDto = {
       id: this.data.length + 1,
       title: body.title,
       price: body.price,
@@ -59,7 +61,7 @@ export class ProductsController {
     @Param("id", ParseIntPipe) id: number,
     @Body(new ValidationPipe()) body: UpdateProductDto,
   ): UpdateProductDto {
-    const updateProduct = this.data.find((p: ProductDto) => {
+    const updateProduct = this.data.find((p: CreateProductDto) => {
       return p.id === id;
     });
     if (!updateProduct) {
@@ -84,7 +86,7 @@ export class ProductsController {
 
   @Delete(":id")
   deleteProduct(@Param("id", ParseIntPipe) id: number) {
-    const deleteProduct = this.data.find((p: ProductDto) => {
+    const deleteProduct = this.data.find((p: CreateProductDto) => {
       return p.id === id;
     });
     if (!deleteProduct) {
