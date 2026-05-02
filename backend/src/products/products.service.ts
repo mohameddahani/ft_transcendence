@@ -1,10 +1,11 @@
 import {
   BadRequestException,
-  // Injectable,
+  Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
+import { UsersService } from "@/users/users.service";
 
 export interface Product {
   id: number;
@@ -12,7 +13,7 @@ export interface Product {
   price: number;
 }
 
-// @Injectable()
+@Injectable()
 export class ProductsService {
   private data: Product[] = [
     { id: 1, title: "book1", price: 10 },
@@ -22,11 +23,15 @@ export class ProductsService {
     { id: 5, title: "book5", price: 50 },
   ];
 
-  getAll(): CreateProductDto[] {
-    if (this.data.length <= 0) {
+  constructor(private readonly usersService: UsersService) {}
+
+  getAll() {
+    if (this.data.length <= 0 || this.usersService.getAll().length <= 0) {
       throw new NotFoundException("no product to show");
     }
-    return this.data;
+    const products = this.data;
+    const users = this.usersService.getAll();
+    return { products, users };
   }
 
   getOne(id: number): Product {
