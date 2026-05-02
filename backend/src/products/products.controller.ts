@@ -10,22 +10,21 @@ import {
 } from "@nestjs/common";
 import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
-import { ProductService } from "./product.service";
-import type { Product } from "./product.service";
+import { ProductsService } from "./products.service";
+import type { Product } from "./products.service";
 
 @Controller("api/products")
 export class ProductsController {
-  // ! Bad practice
-  private productService: ProductService = new ProductService();
+  constructor(private readonly productsService: ProductsService) {}
 
   @Get()
   getAllProducts(): CreateProductDto[] {
-    return this.productService.getAll();
+    return this.productsService.getAll();
   }
 
   @Get(":id")
   getSingleProduct(@Param("id", ParseIntPipe) id: number): Product {
-    return this.productService.getOne(id);
+    return this.productsService.getOne(id);
   }
 
   @Post()
@@ -33,7 +32,7 @@ export class ProductsController {
     @Body()
     body: CreateProductDto,
   ): Product {
-    return this.productService.createProduct(body);
+    return this.productsService.createProduct(body);
   }
 
   @Put(":id")
@@ -41,11 +40,11 @@ export class ProductsController {
     @Param("id", ParseIntPipe) id: number,
     @Body() body: UpdateProductDto,
   ): UpdateProductDto {
-    return this.productService.updateOne(id, body);
+    return this.productsService.updateOne(id, body);
   }
 
   @Delete(":id")
   deleteProduct(@Param("id", ParseIntPipe) id: number) {
-    this.productService.deleteOne(id);
+    this.productsService.deleteOne(id);
   }
 }

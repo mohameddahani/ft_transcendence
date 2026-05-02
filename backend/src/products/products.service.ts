@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  // Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
 
@@ -8,7 +12,8 @@ export interface Product {
   price: number;
 }
 
-export class ProductService {
+// @Injectable()
+export class ProductsService {
   private data: Product[] = [
     { id: 1, title: "book1", price: 10 },
     { id: 2, title: "book2", price: 20 },
