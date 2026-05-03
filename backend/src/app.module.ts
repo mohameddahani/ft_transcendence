@@ -2,6 +2,12 @@ import { Module } from "@nestjs/common";
 import { ProductsModule } from "./products/products.module";
 import { UsersModule } from "./users/users.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { Product } from "./products/product.entity";
+
+// todo @Entity → define table
+// todo forRoot → register table in DB
+// todo forFeature → make repository available
+// todo @InjectRepository → use repository
 
 @Module({
   imports: [
@@ -15,7 +21,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
       host: "localhost",
       database: "ft_transcendence",
       synchronize: true, // ! Only for development
-      entities: [],
+      entities: [Product],
     }),
   ],
   controllers: [],

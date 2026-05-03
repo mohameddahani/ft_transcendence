@@ -21,12 +21,15 @@ export class Product {
   @Column()
   price!: number;
 
-  @CreateDateColumn({ type: "timestamp", default: "CURRENT_TIMESTAMP(6)" }) // * store both date + time (2026-05-02 20:45:12)
+  @CreateDateColumn({
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP(6)",
+  }) // * store both date + time (2026-05-02 20:45:12)
   createdAt!: Date;
 
   @UpdateDateColumn({
     type: "timestamp",
-    default: "CURRENT_TIMESTAMP(6)",
+    default: () => "CURRENT_TIMESTAMP(6)",
     onUpdate: "CURRENT_TIMESTAMP(6)",
   })
   updatedAt!: Date;

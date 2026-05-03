@@ -11,7 +11,7 @@ import {
 import { CreateProductDto } from "./dtos/create-product.dto";
 import { UpdateProductDto } from "./dtos/update-product.dto";
 import { ProductsService } from "./products.service";
-import type { Product } from "./products.service";
+import { Product } from "./product.entity";
 
 @Controller("api/products")
 export class ProductsController {
@@ -23,7 +23,7 @@ export class ProductsController {
   }
 
   @Get(":id")
-  getSingleProduct(@Param("id", ParseIntPipe) id: number): Product {
+  getSingleProduct(@Param("id", ParseIntPipe) id: number): Promise<Product> {
     return this.productsService.getOne(id);
   }
 
@@ -31,20 +31,20 @@ export class ProductsController {
   createNewProduct(
     @Body()
     body: CreateProductDto,
-  ): Product {
+  ): Promise<Product> {
     return this.productsService.createProduct(body);
   }
 
   @Put(":id")
-  updateProduct(
+  async updateProduct(
     @Param("id", ParseIntPipe) id: number,
     @Body() body: UpdateProductDto,
-  ): UpdateProductDto {
-    return this.productsService.updateOne(id, body);
+  ): Promise<Product> {
+    return await this.productsService.updateOne(id, body);
   }
 
   @Delete(":id")
-  deleteProduct(@Param("id", ParseIntPipe) id: number) {
-    this.productsService.deleteOne(id);
+  async deleteProduct(@Param("id", ParseIntPipe) id: number) {
+    await this.productsService.deleteOne(id);
   }
 }

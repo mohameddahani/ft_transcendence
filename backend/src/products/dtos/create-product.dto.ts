@@ -14,6 +14,11 @@ export class CreateProductDto {
   @IsString()
   title!: string;
 
+  @MinLength(10)
+  @IsNotEmpty()
+  @IsString()
+  description!: string;
+
   @Min(0)
   @IsNotEmpty()
   @IsNumber()
