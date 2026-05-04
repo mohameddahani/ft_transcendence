@@ -5,6 +5,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Product } from "./products/product.entity";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { User } from "./users/register.entity";
+import { PrismaService } from "./prisma/prisma.service";
 
 // todo @Entity → define table
 // todo forRoot → register table in DB
@@ -40,6 +41,6 @@ import { User } from "./users/register.entity";
     }),
   ],
   controllers: [],
-  providers: [],
+  providers: [PrismaService],
 })
 export class AppModule {}

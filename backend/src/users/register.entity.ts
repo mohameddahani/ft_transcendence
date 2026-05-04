@@ -6,6 +6,12 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 
+// * Type of Users
+enum UserType {
+  ADMIN = "admin",
+  NORMAL_USER = "normal_user",
+}
+
 @Entity({ name: "users" })
 export class User {
   @PrimaryGeneratedColumn()
@@ -28,6 +34,12 @@ export class User {
 
   @Column({ unique: true })
   phoneNumber!: string;
+
+  @Column({ type: "enum", enum: UserType, default: UserType.NORMAL_USER })
+  userType!: UserType;
+
+  @Column({ default: false })
+  isAccountVerified!: boolean;
 
   @Column()
   termsAccepted!: boolean;
