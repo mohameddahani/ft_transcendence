@@ -19,7 +19,7 @@ export class ProductsService {
   async getAll(): Promise<Product[]> {
     const products = await this.productsRepository.find();
     if (products.length <= 0) {
-      throw new NotFoundException("no product to show");
+      throw new NotFoundException("no products to show");
     }
     return products;
   }

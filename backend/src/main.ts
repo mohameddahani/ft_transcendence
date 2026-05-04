@@ -17,7 +17,11 @@ async function bootstrap() {
   // * forbidNonWhitelisted is an option that makes the app throw an error if the request contains
   // * properties that are not allowed (i.e., not defined in the DTO). Useful for stricter validation.
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
 
   await app.listen(process.env.PORT ?? 3000);

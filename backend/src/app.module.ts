@@ -4,6 +4,7 @@ import { UsersModule } from "./users/users.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Product } from "./products/product.entity";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { User } from "./users/register.entity";
 
 // todo @Entity → define table
 // todo forRoot → register table in DB
@@ -33,7 +34,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
           host: config.get<string>("DB_HOST"),
           database: config.get<string>("DB_DATABASE_NAME"),
           synchronize: config.get<string>("NODE_ENV") === "development", // ! only for development mode (this condition will be true if i use env of development)
-          entities: [Product],
+          entities: [Product, User],
         };
       },
     }),
