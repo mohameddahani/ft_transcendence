@@ -1,7 +1,7 @@
 import { IsEmail, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class LoginUserDto {
+export class UpdateUserDto {
   // * Email
   @IsEmail()
   // trim spaces from start and end

@@ -1,57 +1,59 @@
-// import { Repository } from "typeorm";
-// import { User } from "./register.entity";
-// import { InjectRepository } from "@nestjs/typeorm";
-// import { BadRequestException, NotFoundException } from "@nestjs/common";
-// import { RegisterUserDto } from "./dtos/register-user.dto";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CreateUserDto } from './dtos/create-user.dto';
+import { PrismaService } from '@/prisma/prisma.service';
 
-// export class UsersService {
-//   constructor(
-//     @InjectRepository(User) private readonly usersRepository: Repository<User>,
-//   ) {}
+@Injectable()
+export class UsersService {
+  constructor(private readonly prisma: PrismaService) {}
 
-//   // * Register
-//   async register(data: RegisterUserDto): Promise<void> {
-//     const existingUser = await this.usersRepository.findOne({
-//       where: [
-//         { userName: data.userName },
-//         { email: data.email },
-//         { phoneNumber: data.phoneNumber },
-//       ],
-//     });
+  // * Register
+  async create(data: CreateUserDto) {
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { userName: data.userName },
+          { email: data.email },
+          { phoneNumber: data.phoneNumber },
+        ],
+      },
+    });
 
-//     if (existingUser) {
-//       if (existingUser.userName === data.userName) {
-//         throw new BadRequestException("Username already exists");
-//       }
+    if (existingUser) {
+      if (existingUser.userName === data.userName) {
+        throw new BadRequestException('Username already exists');
+      }
 
-//       if (existingUser.email === data.email) {
-//         throw new BadRequestException("Email already exists");
-//       }
+      if (existingUser.email === data.email) {
+        throw new BadRequestException('Email already exists');
+      }
 
-//       if (existingUser.phoneNumber === data.phoneNumber) {
-//         throw new BadRequestException("Phone number already exists");
-//       }
-//     }
+      if (existingUser.phoneNumber === data.phoneNumber) {
+        throw new BadRequestException('Phone number already exists');
+      }
+    }
 
-//     const newUser = this.usersRepository.create(data);
-//     await this.usersRepository.save(newUser);
-//   }
+    await this.prisma.user.create({ data });
+  }
 
-//   // * Get all users
-//   async getAll(): Promise<User[]> {
-//     const users = await this.usersRepository.find();
-//     if (users.length <= 0) {
-//       throw new NotFoundException("No Users To Show");
-//     }
-//     return users;
-//   }
+  // * Get all users
+  async findAll() {
+    const users = await this.prisma.user.findMany();
+    if (users.length <= 0) {
+      throw new NotFoundException('No Users To Show');
+    }
+    return users;
+  }
 
-//   // * Get one user
-//   async getOne(id: number): Promise<User> {
-//     const user = await this.usersRepository.findOneBy({ id });
-//     if (!user) {
-//       throw new NotFoundException("User Not Found");
-//     }
-//     return user;
-//   }
-// }
+  // * Get one user
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+    return user;
+  }
+}

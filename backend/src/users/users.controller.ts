@@ -1,39 +1,45 @@
 import {
-  // Body,
+  Body,
   Controller,
   Get,
-  // Param,
-  // ParseIntPipe,
-  // Post,
+  Param,
+  ParseIntPipe,
+  Post,
 } from '@nestjs/common';
-// import { UsersService } from "./users.service";
-// import { RegisterUserDto } from "./dtos/register-user.dto";
-// import { User } from "./register.entity";
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dtos/create-user.dto';
 
 @Controller('/api/users')
 export class UsersController {
-  // constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  @Get()
-  getAll() {
-    return 'hello from users';
+  // * Register
+  @Post()
+  create(@Body() body: CreateUserDto) {
+    return this.usersService.create(body);
   }
 
-  // // * Register
-  // @Post()
-  // registerUser(@Body() body: RegisterUserDto): Promise<void> {
-  //   return this.usersService.register(body);
+  // * Get all users
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
+  }
+
+  // * Get one user
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.findOne(id);
+  }
+
+  // * Update one user
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
+  //   return this.postsService.update(+id, updatePostDto);
   // }
 
-  // // * Get all users
-  // @Get()
-  // getAllUsers(): Promise<User[]> {
-  //   return this.usersService.getAll();
-  // }
-
-  // // * Get one user
-  // @Get(":id")
-  // getOneUser(@Param("id", ParseIntPipe) id: number): Promise<User> {
-  //   return this.usersService.getOne(id);
+  // * Delete one user
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.postsService.remove(+id);
   // }
 }
