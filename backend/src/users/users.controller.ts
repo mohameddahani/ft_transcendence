@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -38,8 +39,8 @@ export class UsersController {
   // }
 
   // * Delete one user
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.postsService.remove(+id);
-  // }
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.remove(id);
+  }
 }
