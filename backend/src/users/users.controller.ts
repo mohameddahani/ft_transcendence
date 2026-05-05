@@ -8,16 +8,23 @@ import {
   Post,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 
 @Controller('/api/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // * Register
-  @Post()
-  create(@Body() body: CreateUserDto) {
-    return this.usersService.create(body);
+  @Post('register')
+  register(@Body() body: RegisterUserDto) {
+    return this.usersService.register(body);
+  }
+
+  // * Login
+  @Post('login')
+  login(@Body() body: LoginUserDto) {
+    return this.usersService.login(body);
   }
 
   // * Get all users

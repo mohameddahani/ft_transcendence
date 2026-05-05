@@ -11,7 +11,7 @@ import {
 import { Transform } from 'class-transformer';
 import { IsValidPassword } from '@/utils/password.validator';
 
-export class CreateUserDto {
+export class RegisterUserDto {
   // * First Name
   @IsString()
   @MinLength(2)

@@ -1,7 +1,7 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-export class UpdateUserDto {
+export class LoginUserDto {
   // * Email
   @IsEmail()
   // trim spaces from start and end
@@ -11,6 +11,7 @@ export class UpdateUserDto {
   email!: string;
 
   // * Password
+  @IsNotEmpty()
   @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,

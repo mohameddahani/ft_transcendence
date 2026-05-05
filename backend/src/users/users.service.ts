@@ -3,15 +3,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto } from './dtos/create-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
+import * as bcrypt from 'bcryptjs';
+import { LoginUserDto } from './dtos/login-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Register
-  async create(data: CreateUserDto) {
+  async register(data: RegisterUserDto) {
+    // * Check if user already exist before register
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -36,7 +39,33 @@ export class UsersService {
       }
     }
 
+    // * Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(data.password, salt);
+
+    data.password = hashedPassword;
+
+    // todo: Generate JWT token
+    // * Add user to database
     await this.prisma.user.create({ data });
+  }
+
+  // * Login
+  async login(data: LoginUserDto) {
+    // * Check if user already exist by email before login
+    const user = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
+    if (!user) {
+      throw new BadRequestException('Invalid Email or Password');
+    }
+    // * Check the password is match
+    const passwordIsMatch = await bcrypt.compare(data.password, user.password);
+    if (!passwordIsMatch) {
+      throw new BadRequestException('Invalid Email or Password');
+    }
+
+    // todo: Generate JWT token
   }
 
   // * Get all users
