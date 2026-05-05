@@ -5,7 +5,7 @@ import {
   MaxLength,
   Min,
   MinLength,
-} from "class-validator";
+} from 'class-validator';
 
 export class CreateProductDto {
   @MaxLength(150)

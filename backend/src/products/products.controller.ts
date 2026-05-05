@@ -1,50 +1,55 @@
 import {
-  Body,
+  // Body,
   Controller,
-  Delete,
+  // Delete,
   Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Put,
-} from "@nestjs/common";
-import { CreateProductDto } from "./dtos/create-product.dto";
-import { UpdateProductDto } from "./dtos/update-product.dto";
-import { ProductsService } from "./products.service";
-import { Product } from "./product.entity";
+  // Param,
+  // ParseIntPipe,
+  // Post,
+  // Put,
+} from '@nestjs/common';
+// import { CreateProductDto } from "./dtos/create-product.dto";
+// import { UpdateProductDto } from "./dtos/update-product.dto";
+// import { ProductsService } from "./products.service";
+// import { Product } from "./product.entity";
 
-@Controller("api/products")
+@Controller('api/products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  // constructor(private readonly productsService: ProductsService) {}
 
   @Get()
-  getAllProducts() {
-    return this.productsService.getAll();
+  getAll() {
+    return 'Hello World from Products';
   }
 
-  @Get(":id")
-  getSingleProduct(@Param("id", ParseIntPipe) id: number): Promise<Product> {
-    return this.productsService.getOne(id);
-  }
+  // @Get()
+  // getAllProducts() {
+  //   return this.productsService.getAll();
+  // }
 
-  @Post()
-  createNewProduct(
-    @Body()
-    body: CreateProductDto,
-  ): Promise<Product> {
-    return this.productsService.createProduct(body);
-  }
+  // @Get(":id")
+  // getSingleProduct(@Param("id", ParseIntPipe) id: number): Promise<Product> {
+  //   return this.productsService.getOne(id);
+  // }
 
-  @Put(":id")
-  async updateProduct(
-    @Param("id", ParseIntPipe) id: number,
-    @Body() body: UpdateProductDto,
-  ): Promise<Product> {
-    return await this.productsService.updateOne(id, body);
-  }
+  // @Post()
+  // createNewProduct(
+  //   @Body()
+  //   body: CreateProductDto,
+  // ): Promise<Product> {
+  //   return this.productsService.createProduct(body);
+  // }
 
-  @Delete(":id")
-  async deleteProduct(@Param("id", ParseIntPipe) id: number) {
-    await this.productsService.deleteOne(id);
-  }
+  // @Put(":id")
+  // async updateProduct(
+  //   @Param("id", ParseIntPipe) id: number,
+  //   @Body() body: UpdateProductDto,
+  // ): Promise<Product> {
+  //   return await this.productsService.updateOne(id, body);
+  // }
+
+  // @Delete(":id")
+  // async deleteProduct(@Param("id", ParseIntPipe) id: number) {
+  //   await this.productsService.deleteOne(id);
+  // }
 }

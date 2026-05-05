@@ -1,52 +1,52 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
+// import {
+//   Column,
+//   CreateDateColumn,
+//   Entity,
+//   PrimaryGeneratedColumn,
+//   UpdateDateColumn,
+// } from "typeorm";
 
-// * Type of Users
-enum UserType {
-  ADMIN = "admin",
-  NORMAL_USER = "normal_user",
-}
+// // * Type of Users
+// enum UserType {
+//   ADMIN = "admin",
+//   NORMAL_USER = "normal_user",
+// }
 
-@Entity({ name: "users" })
-export class User {
-  @PrimaryGeneratedColumn()
-  id!: number;
+// @Entity({ name: "users" })
+// export class User {
+//   @PrimaryGeneratedColumn()
+//   id!: number;
 
-  @Column()
-  firstName!: string;
+//   @Column()
+//   firstName!: string;
 
-  @Column()
-  lastName!: string;
+//   @Column()
+//   lastName!: string;
 
-  @Column({ unique: true })
-  userName!: string;
+//   @Column({ unique: true })
+//   userName!: string;
 
-  @Column({ unique: true })
-  email!: string;
+//   @Column({ unique: true })
+//   email!: string;
 
-  @Column()
-  password!: string;
+//   @Column()
+//   password!: string;
 
-  @Column({ unique: true })
-  phoneNumber!: string;
+//   @Column({ unique: true })
+//   phoneNumber!: string;
 
-  @Column({ type: "enum", enum: UserType, default: UserType.NORMAL_USER })
-  userType!: UserType;
+//   @Column({ type: "enum", enum: UserType, default: UserType.NORMAL_USER })
+//   userType!: UserType;
 
-  @Column({ default: false })
-  isAccountVerified!: boolean;
+//   @Column({ default: false })
+//   isAccountVerified!: boolean;
 
-  @Column()
-  termsAccepted!: boolean;
+//   @Column()
+//   termsAccepted!: boolean;
 
-  @CreateDateColumn()
-  createdAt!: Date;
+//   @CreateDateColumn()
+//   createdAt!: Date;
 
-  @UpdateDateColumn()
-  updatedAt!: Date;
-}
+//   @UpdateDateColumn()
+//   updatedAt!: Date;
+// }

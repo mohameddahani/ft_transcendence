@@ -3,8 +3,8 @@
 import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
-} from "class-validator";
-import PasswordValidator from "password-validator";
+} from 'class-validator';
+import PasswordValidator from 'password-validator';
 
 export const passwordSchema = new PasswordValidator();
 
@@ -32,13 +32,13 @@ passwordSchema
   .not()
   .spaces();
 
-@ValidatorConstraint({ name: "passwordSchema", async: false })
+@ValidatorConstraint({ name: 'passwordSchema', async: false })
 export class IsValidPassword implements ValidatorConstraintInterface {
   validate(value: string): boolean {
     return passwordSchema.validate(value) as boolean;
   }
 
   defaultMessage(): string {
-    return "Password must be 8-64 chars, include uppercase, lowercase, number, symbol, and no spaces";
+    return 'Password must be 8-64 chars, include uppercase, lowercase, number, symbol, and no spaces';
   }
 }

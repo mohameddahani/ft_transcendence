@@ -7,9 +7,9 @@ import {
   IsBoolean,
   IsPhoneNumber,
   Validate,
-} from "class-validator";
-import { Transform } from "class-transformer";
-import { IsValidPassword } from "@/utils/password.validator";
+} from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsValidPassword } from '@/utils/password.validator';
 
 export class RegisterUserDto {
   // * First Name
@@ -25,11 +25,11 @@ export class RegisterUserDto {
   // ? +: One or more of the allowed characters
   // ? $: End of the string
   @Matches(/^[a-zA-Z\- ]+$/, {
-    message: "First name can only contain letters, spaces, and hyphens",
+    message: 'First name can only contain letters, spaces, and hyphens',
   })
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === "string" ? value.trim() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   firstName!: string;
 
@@ -38,11 +38,11 @@ export class RegisterUserDto {
   @MinLength(2)
   @MaxLength(30)
   @Matches(/^[a-zA-Z\- ]+$/, {
-    message: "Last name can only contain letters, spaces, and hyphens",
+    message: 'Last name can only contain letters, spaces, and hyphens',
   })
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === "string" ? value.trim() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   lastName!: string;
 
@@ -52,11 +52,11 @@ export class RegisterUserDto {
   @MaxLength(20)
   @Matches(/^[a-z0-9_]+$/, {
     message:
-      "Username can only contain lowercase letters, numbers, and underscores",
+      'Username can only contain lowercase letters, numbers, and underscores',
   })
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === "string" ? value.trim() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   userName!: string;
 
@@ -64,7 +64,7 @@ export class RegisterUserDto {
   @IsEmail()
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === "string" ? value.trim() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   email!: string;
 
@@ -72,7 +72,7 @@ export class RegisterUserDto {
   @IsString()
   @Validate(IsValidPassword)
   @Transform(({ value }): string =>
-    typeof value === "string" ? value.trim() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
   password!: string;
 
@@ -83,7 +83,7 @@ export class RegisterUserDto {
   // ? g → global (all matches)
   // it removes ALL spaces anywhere in the string
   @Transform(({ value }): string =>
-    typeof value === "string" ? value?.replace(/\s+/g, "") : value,
+    typeof value === 'string' ? value?.replace(/\s+/g, '') : value,
   )
   phoneNumber!: string;
 
