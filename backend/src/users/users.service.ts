@@ -1,16 +1,21 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { LoginUserDto } from './dtos/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
+import { JWTPayload } from '@/utils/types';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   // * Register
   async register(data: RegisterUserDto) {
@@ -27,15 +32,15 @@ export class UsersService {
 
     if (existingUser) {
       if (existingUser.userName === data.userName) {
-        throw new BadRequestException('Username already exists');
+        throw new UnauthorizedException('Username already exists');
       }
 
       if (existingUser.email === data.email) {
-        throw new BadRequestException('Email already exists');
+        throw new UnauthorizedException('Email already exists');
       }
 
       if (existingUser.phoneNumber === data.phoneNumber) {
-        throw new BadRequestException('Phone number already exists');
+        throw new UnauthorizedException('Phone number already exists');
       }
     }
 
@@ -45,9 +50,13 @@ export class UsersService {
 
     data.password = hashedPassword;
 
-    // todo: Generate JWT token
     // * Add user to database
-    await this.prisma.user.create({ data });
+    const newUser = await this.prisma.user.create({ data });
+
+    // * Generate JWT
+    const payload: JWTPayload = { id: newUser.id, userType: newUser.userType };
+    const accessToken = await this.jwtService.signAsync(payload);
+    return { accessToken };
   }
 
   // * Login
@@ -57,15 +66,18 @@ export class UsersService {
       where: { email: data.email },
     });
     if (!user) {
-      throw new BadRequestException('Invalid Email or Password');
+      throw new UnauthorizedException('Invalid Email or Password');
     }
     // * Check the password is match
     const passwordIsMatch = await bcrypt.compare(data.password, user.password);
     if (!passwordIsMatch) {
-      throw new BadRequestException('Invalid Email or Password');
+      throw new UnauthorizedException('Invalid Email or Password');
     }
 
-    // todo: Generate JWT token
+    // * Generate JWT
+    const payload: JWTPayload = { id: user.id, userType: user.userType };
+    const accessToken = await this.jwtService.signAsync(payload);
+    return { accessToken };
   }
 
   // * Get all users

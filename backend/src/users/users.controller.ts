@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Post,
@@ -23,6 +25,7 @@ export class UsersController {
 
   // * Login
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   login(@Body() body: LoginUserDto) {
     return this.usersService.login(body);
   }
