@@ -16,6 +16,7 @@ import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from '@/decorators/current-user.decorator';
 import type { JWTPayload } from '@/utils/types';
+import { AuthRolesGuard } from './guards/auth.roles.guard';
 
 @Controller('/api/users')
 export class UsersController {
@@ -45,7 +46,7 @@ export class UsersController {
 
   // * Get all users
   @Get()
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AuthRolesGuard)
   findAll() {
     return this.usersService.findAll();
   }
