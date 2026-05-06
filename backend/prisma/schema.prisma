@@ -13,11 +13,13 @@ datasource db {
   provider = "postgresql"
 }
 
+// * this enum had type of user 
 enum UserType {
   admin
   normal_user
 }
 
+// * Table of users
 model User {
   id                 Int      @id @default(autoincrement())
   firstName          String

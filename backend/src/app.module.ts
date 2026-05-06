@@ -7,8 +7,6 @@ import { StringValue } from 'ms';
 
 @Module({
   imports: [
-    UsersModule,
-    PrismaModule,
     // * if you want to use a .env file to manage environment variables, use ConfigModule.forRoot()
     // * isGlobal: true → makes ConfigModule available globally across the whole application (no need to import in other modules)
     // * envFilePath: path of .env file
@@ -29,6 +27,9 @@ import { StringValue } from 'ms';
         },
       }),
     }),
+    UsersModule,
+    // * import prisma module to access prisma from any where in our app
+    PrismaModule,
   ],
   controllers: [],
 })

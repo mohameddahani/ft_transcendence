@@ -80,6 +80,11 @@ export class UsersService {
     return { accessToken };
   }
 
+  // * Get current user
+  async findMe(id: number) {
+    return this.findOne(id);
+  }
+
   // * Get all users
   async findAll() {
     const users = await this.prisma.user.findMany();
