@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import type { JWTPayload } from '@/utils/types';
 import { AuthRolesGuard } from './guards/auth.roles.guard';
 import { Roles } from '@/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
+import { UpdateUserDto } from './dtos/update-user.dto';
 
 @Controller('/api/users')
 export class UsersController {
@@ -46,6 +48,15 @@ export class UsersController {
     return this.usersService.findMe(userPayload.id);
   }
 
+  // * Update data of user
+  @Patch('edit-profile')
+  @UseGuards(AuthGuard)
+  update(@CurrentUser() userPayload: JWTPayload, @Body() body: UpdateUserDto) {
+    return this.usersService.update(userPayload.id, body);
+  }
+
+  // ! All this routes is Access only by Admin
+
   // * Get all users
   @Get()
   // * Check if user has valid token and is a admin not normal user
@@ -63,12 +74,6 @@ export class UsersController {
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
-
-  // * Update one user
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-  //   return this.postsService.update(+id, updatePostDto);
-  // }
 
   // * Delete one user
   @Delete(':id')

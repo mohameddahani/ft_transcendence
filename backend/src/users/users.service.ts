@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { LoginUserDto } from './dtos/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JWTPayload } from '@/utils/types';
+import { UpdateUserDto } from './dtos/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -46,9 +48,7 @@ export class UsersService {
 
     // * Hash the password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(data.password, salt);
-
-    data.password = hashedPassword;
+    data.password = await bcrypt.hash(data.password, salt);
 
     // * Add user to database
     const newUser = await this.prisma.user.create({ data });
@@ -83,6 +83,56 @@ export class UsersService {
   // * Get current user
   async findMe(id: number) {
     return this.findOne(id);
+  }
+
+  // * Update data of user
+  async update(id: number, data: UpdateUserDto) {
+    // * Check if we have user already in DB
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Check if user update the username: (we need to check if username is unique)
+    const existingData = await this.prisma.user.findFirst({
+      where: {
+        AND: [
+          { id: { not: id } }, // exclude current user
+          {
+            OR: [
+              { userName: data.userName },
+              { email: data.email },
+              { phoneNumber: data.phoneNumber },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.userName === data.userName) {
+        // * 409 = duplicate data
+        throw new ConflictException('Username already exists');
+      }
+
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if user update the password: (we need to hash it)
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+
+    // * Save new data to user
+    await this.prisma.user.update({ where: { id }, data });
   }
 
   // * Get all users
