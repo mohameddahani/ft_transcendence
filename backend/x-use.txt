@@ -1,0 +1,13 @@
+Login
+  ↓
+Server creates:
+  - Access Token (15m)
+  - Refresh Token (7d)
+  ↓
+Client uses access token
+  ↓
+Access token expires
+  ↓
+Client sends refresh token
+  ↓
+Server generates new access token

@@ -17,6 +17,8 @@ import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from '@/decorators/current-user.decorator';
 import type { JWTPayload } from '@/utils/types';
 import { AuthRolesGuard } from './guards/auth.roles.guard';
+import { Roles } from '@/decorators/user-role.decorator';
+import { UserType } from '@/generated/prisma/enums';
 
 @Controller('/api/users')
 export class UsersController {
@@ -47,6 +49,7 @@ export class UsersController {
   // * Get all users
   @Get()
   @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles(UserType.admin)
   findAll() {
     return this.usersService.findAll();
   }
