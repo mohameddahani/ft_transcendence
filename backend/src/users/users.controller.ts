@@ -48,7 +48,9 @@ export class UsersController {
 
   // * Get all users
   @Get()
+  // * Check if user has valid token and is a admin not normal user
   @UseGuards(AuthGuard, AuthRolesGuard)
+  // * Set admin roles in this route
   @Roles(UserType.admin)
   findAll() {
     return this.usersService.findAll();
@@ -56,7 +58,8 @@ export class UsersController {
 
   // * Get one user
   @Get(':id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles(UserType.admin)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
@@ -69,6 +72,8 @@ export class UsersController {
 
   // * Delete one user
   @Delete(':id')
+  @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles(UserType.admin)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }
