@@ -12,6 +12,8 @@ import { JwtService } from '@nestjs/jwt';
 import { JWTPayload } from '@/utils/types';
 import { UpdateUserDto } from './dtos/update-user.dto';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -55,8 +57,12 @@ export class UsersService {
 
     // * Generate JWT
     const payload: JWTPayload = { id: newUser.id, userType: newUser.userType };
+
     const accessToken = await this.jwtService.signAsync(payload);
-    return { accessToken };
+    // * Exclude Some Fields
+    const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
+
+    return { newUser: safeUser, accessToken };
   }
 
   // * Login
@@ -77,12 +83,22 @@ export class UsersService {
     // * Generate JWT
     const payload: JWTPayload = { id: user.id, userType: user.userType };
     const accessToken = await this.jwtService.signAsync(payload);
-    return { accessToken };
+
+    // * Exclude Some Fields
+    const { id, password, createdAt, updatedAt, ...safeUser } = user;
+
+    return { user: safeUser, accessToken };
   }
 
   // * Get current user
   async findMe(id: number) {
-    return this.findOne(id);
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+    // * Exclude Some Fields
+    const { id: userId, password, createdAt, updatedAt, ...safeUser } = user;
+    return safeUser;
   }
 
   // * Update data of user
@@ -141,7 +157,11 @@ export class UsersService {
     if (users.length <= 0) {
       throw new NotFoundException('No Users To Show');
     }
-    return users;
+
+    // * Exclude Some Fields
+    const safeUsers = users.map(({ password, ...user }) => user);
+
+    return safeUsers;
   }
 
   // * Get one user
@@ -150,7 +170,10 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User Not Found');
     }
-    return user;
+
+    // * Exclude Some Fields
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 
   // * Delete one user

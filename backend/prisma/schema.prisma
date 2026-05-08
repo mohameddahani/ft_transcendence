@@ -19,6 +19,14 @@ enum UserType {
   normal_user
 }
 
+// * this enum had Account Status
+enum AccountStatus {
+  active
+  inactive
+  pending
+  banned
+}
+
 // * Table of users
 model User {
   id                 Int      @id @default(autoincrement())
@@ -30,6 +38,7 @@ model User {
   phoneNumber        String   @unique
   userType           UserType @default(normal_user)
   isAccountVerified  Boolean  @default(false)
+  accountStatus      AccountStatus @default(inactive)
   termsAccepted      Boolean
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
