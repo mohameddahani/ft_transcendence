@@ -90,8 +90,11 @@ export class UsersService {
   }
 
   // * Get all users
-  async findAll() {
-    const users = await this.prisma.user.findMany();
+  async findAll(page: number, limit: number) {
+    const users = await this.prisma.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
     if (users.length <= 0) {
       throw new NotFoundException('No Users To Show');
     }

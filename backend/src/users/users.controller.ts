@@ -6,9 +6,11 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -63,8 +65,11 @@ export class UsersController {
   @UseGuards(AuthGuard, AuthRolesGuard)
   // * Set admin roles in this route
   @Roles(UserType.admin)
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.usersService.findAll(page, limit);
   }
 
   // * Get one user
