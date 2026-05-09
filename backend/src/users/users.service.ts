@@ -29,7 +29,7 @@ export class UsersService {
   }
 
   // * Get current user
-  async findMe(id: number) {
+  async findMe(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User Not Found');
@@ -40,7 +40,7 @@ export class UsersService {
   }
 
   // * Update data of user
-  async update(id: number, data: UpdateUserDto) {
+  async update(id: string, data: UpdateUserDto) {
     // * Check if we have user already in DB
     const user = await this.findOne(id);
     if (!user) {
@@ -103,7 +103,7 @@ export class UsersService {
   }
 
   // * Get one user
-  async findOne(id: number) {
+  async findOne(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User Not Found');
@@ -115,7 +115,7 @@ export class UsersService {
   }
 
   // * Delete one user
-  async remove(id: number) {
+  async remove(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('User Not Found');

@@ -33,7 +33,7 @@ export class AuthGuard implements CanActivate {
         const payload: JWTPayload = await this.jwtService.verifyAsync(token, {
           secret: this.config.getOrThrow<string>('JWT_SECRET'),
         });
-        // * add header (user) after checking the token
+        // * adding a property to the request object (user) after checking the token
         request['user'] = payload;
       } catch {
         throw new UnauthorizedException('Access Denied, Invalid Token');

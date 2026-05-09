@@ -29,7 +29,7 @@ enum AccountStatus {
 
 // * Table of users
 model User {
-  id                Int           @id @default(autoincrement())
+  id                String        @id @default(uuid())
   firstName         String
   lastName          String
   userName          String        @unique

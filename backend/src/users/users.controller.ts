@@ -6,7 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -71,7 +71,7 @@ export class UsersController {
   @Get(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles(UserType.admin)
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
 
@@ -79,7 +79,7 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles(UserType.admin)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
   }
 }
