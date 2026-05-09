@@ -4,9 +4,9 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider      = "prisma-client"
-  output        = "../src/generated/prisma"
-  moduleFormat  = "cjs"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -29,19 +29,19 @@ enum AccountStatus {
 
 // * Table of users
 model User {
-  id                 Int      @id @default(autoincrement())
-  firstName          String
-  lastName           String
-  userName           String   @unique
-  email              String   @unique
-  password           String
-  phoneNumber        String   @unique
-  userType           UserType @default(normal_user)
-  isAccountVerified  Boolean  @default(false)
-  accountStatus      AccountStatus @default(inactive)
-  termsAccepted      Boolean
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                Int           @id @default(autoincrement())
+  firstName         String
+  lastName          String
+  userName          String        @unique
+  email             String        @unique
+  password          String
+  phoneNumber       String        @unique
+  userType          UserType      @default(normal_user)
+  isAccountVerified Boolean       @default(false)
+  accountStatus     AccountStatus @default(inactive)
+  termsAccepted     Boolean
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@map("users")
 }
