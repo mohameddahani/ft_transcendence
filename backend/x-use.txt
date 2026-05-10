@@ -11,3 +11,7 @@ Access token expires
 Client sends refresh token
   ↓
 Server generates new access token
+
+
+
+USE cloudinary TO STORE IMAGES OUTSIDE OF SERVER

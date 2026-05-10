@@ -89,6 +89,21 @@ export class UsersService {
     await this.prisma.user.update({ where: { id }, data });
   }
 
+  async uploadProfileImage(id: string, filename: string) {
+    // * Check if we have user already in DB
+    const user = await this.findOne(id);
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Set new image name in DB
+    user.profileImage = filename;
+
+    // * Save new data to user
+    await this.prisma.user.update({ where: { id }, data: user });
+  }
+
+  // ! All this routes is Access only by Admin
   // * Get all users
   async findAll(page: number, limit: number) {
     const users = await this.prisma.user.findMany({
