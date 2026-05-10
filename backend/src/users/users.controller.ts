@@ -12,6 +12,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -28,6 +29,9 @@ import { UserType } from '@/generated/prisma/enums';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import type { Response } from 'express';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 @Controller('/api/users')
 export class UsersController {
@@ -63,7 +67,7 @@ export class UsersController {
   }
 
   // * Upload profile image
-  @Post('upload-profile-image')
+  @Post('profile-image')
 
   // * Interceptors: are NestJS classes that run BEFORE and AFTER the route handler.
   //   They can transform requests, handle files, logging, or modify responses.
@@ -135,11 +139,26 @@ export class UsersController {
     return this.usersService.uploadProfileImage(userPayload.id, file.filename);
   }
 
-  // // * Remove profile image
-  // @Post('remove-profile-image')
-  // removeProfileImage(@CurrentUser() userPayload: JWTPayload) {
-  //   return this.usersService.removeProfileImage(userPayload.id);
-  // }
+  // * Remove profile image
+  @Delete('profile-image')
+  @UseGuards(AuthGuard)
+  removeProfileImage(@CurrentUser() userPayload: JWTPayload) {
+    return this.usersService.removeProfileImage(userPayload.id);
+  }
+
+  // * Get image
+  @Get('profile-image/:image')
+  @UseGuards(AuthGuard)
+  findImage(@Param('image') image: string, @Res() res: Response) {
+    // * Check if image is already exist
+    const imagePath = join(process.cwd(), 'images/users/profile', image);
+    if (!existsSync(imagePath)) {
+      throw new BadRequestException('There is No Profile Image In DataBase');
+    }
+
+    // * Send file to client
+    return res.sendFile(imagePath);
+  }
 
   // ! All this routes is Access only by Admin
 

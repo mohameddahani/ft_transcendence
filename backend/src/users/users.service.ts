@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,6 +10,9 @@ import * as bcrypt from 'bcryptjs';
 import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { AuthProvider } from './providers/auth.provider';
+import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
+import { join } from 'path';
+import { existsSync, unlinkSync } from 'fs';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -42,10 +46,7 @@ export class UsersService {
   // * Update data of user
   async update(id: string, data: UpdateUserDto) {
     // * Check if we have user already in DB
-    const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException('User Not Found');
-    }
+    await this.findOne(id);
 
     // * Check if user update the username: (we need to check if username is unique)
     const existingData = await this.prisma.user.findFirst({
@@ -89,18 +90,74 @@ export class UsersService {
     await this.prisma.user.update({ where: { id }, data });
   }
 
+  // * Upload profile image
   async uploadProfileImage(id: string, filename: string) {
     // * Check if we have user already in DB
     const user = await this.findOne(id);
-    if (!user) {
-      throw new NotFoundException('User Not Found');
+
+    // * Remove old image
+    if (user.profileImage !== DEFAULT_PROFILE_IMAGE) {
+      // * Create path of image
+      const oldImagePath = join(
+        process.cwd(),
+        `./images/users/profile/${user.profileImage}`,
+      );
+
+      // * Check if image already in server
+      if (!existsSync(oldImagePath)) {
+        throw new BadRequestException('There is No Profile Image In DataBase');
+      }
+
+      // * Remove image
+      unlinkSync(oldImagePath);
     }
 
     // * Set new image name in DB
-    user.profileImage = filename;
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        profileImage: filename,
+      },
+    });
+  }
 
-    // * Save new data to user
-    await this.prisma.user.update({ where: { id }, data: user });
+  // * Remove profile image
+  async removeProfileImage(id: string) {
+    // * Check if we have user already in DB
+    const user = await this.findOne(id);
+
+    // * Check user if already set image
+    if (user.profileImage === DEFAULT_PROFILE_IMAGE) {
+      throw new BadRequestException('There is No Profile Image');
+    }
+
+    // * Create path of image
+    const imagePath = join(
+      process.cwd(),
+      `./images/users/profile/${user.profileImage}`,
+    );
+
+    // * Check if image already in server
+    if (!existsSync(imagePath)) {
+      throw new BadRequestException('There is No Profile Image In DataBase');
+    }
+
+    // * Remove image
+    unlinkSync(imagePath);
+
+    // * Update data of user
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        profileImage: DEFAULT_PROFILE_IMAGE,
+      },
+    });
+  }
+
+  // * Get image
+  async findImage(id: string) {
+    // * Check if we have user already in DB
+    await this.findOne(id);
   }
 
   // ! All this routes is Access only by Admin
@@ -110,7 +167,7 @@ export class UsersService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (users.length <= 0) {
+    if (users.length == 0) {
       throw new NotFoundException('No Users To Show');
     }
 
@@ -134,10 +191,9 @@ export class UsersService {
 
   // * Delete one user
   async remove(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User Not Found');
-    }
+    // * Check if we have user already in DB
+    await this.findOne(id);
+
     await this.prisma.user.delete({ where: { id } });
   }
 }
