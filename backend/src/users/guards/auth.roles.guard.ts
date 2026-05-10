@@ -1,3 +1,4 @@
+import { Roles } from '@/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
 import { JWTPayload } from '@/utils/types';
 import {
@@ -24,7 +25,7 @@ export class AuthRolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
   canActivate(context: ExecutionContext) {
     // * Get roles from @Roles() decorator metadata
-    const roles: UserType[] = this.reflector.getAllAndOverride('roles', [
+    const roles: UserType[] = this.reflector.getAllAndOverride(Roles, [
       context.getHandler(),
       context.getClass(),
     ]);

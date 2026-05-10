@@ -37,6 +37,7 @@ model User {
   password          String
   phoneNumber       String        @unique
   userType          UserType      @default(normal_user)
+  profileImage      String        @unique @default("defaultProfileImage.jpg")
   isAccountVerified Boolean       @default(false)
   accountStatus     AccountStatus @default(inactive)
   termsAccepted     Boolean
