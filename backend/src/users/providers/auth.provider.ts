@@ -63,8 +63,8 @@ export class AuthProvider {
 
     // * Generate JWT
     const payload: JWTPayload = { id: newUser.id, userType: newUser.userType };
-
     const accessToken = await this.jwtService.signAsync(payload);
+
     // * Exclude Some Fields
     const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
 
@@ -96,6 +96,17 @@ export class AuthProvider {
     }
 
     if (user.accountStatus === AccountStatus.inactive) {
+      // * Send Email verification to new user if he try to login without activating his account
+      try {
+        // * Generate JWT
+        const payload: JWTPayload = { id: user.id, userType: user.userType };
+        const accessToken = await this.jwtService.signAsync(payload);
+
+        // * Send email of verification to user
+        await this.emailService.sendVerificationEmail(user.email, accessToken);
+      } catch {
+        throw new RequestTimeoutException('Failed to send verification email');
+      }
       throw new UnauthorizedException(
         'Your account is inactive. Please activate your account through the email we sent.',
       );
