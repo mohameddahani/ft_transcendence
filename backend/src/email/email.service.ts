@@ -11,13 +11,13 @@ export class EmailService {
   private readonly resend: Resend;
   constructor(private readonly config: ConfigService) {
     // * Config Resend service
-    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
+    this.resend = new Resend(this.config.getOrThrow<string>('RESEND_API_KEY'));
   }
 
   // * Send verification email
   async sendVerificationEmail(email: string, token: string) {
     // * Create link
-    const link = `http://localhost:3000/auth/verify?token=${token}`;
+    const link = `http://localhost:3000/api/users/auth/activate?token=${token}`;
 
     // * Send Email
     await this.resend.emails.send({
@@ -30,7 +30,7 @@ export class EmailService {
 
   // * Send reset password email
   async sendResetPasswordEmail(email: string, token: string) {
-    const link = `http://localhost:3000/auth/reset-password?token=${token}`;
+    const link = `http://localhost:3000/api/users/auth/reset-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',

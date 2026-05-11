@@ -1,5 +1,6 @@
 import {
   Injectable,
+  NotFoundException,
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -11,6 +12,11 @@ import { LoginUserDto } from '../dtos/login-user.dto';
 import { AccountStatus } from '@/generated/prisma/enums';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '@/email/email.service';
+import { ConfigService } from '@nestjs/config';
+import {
+  accountActivatedTemplate,
+  accountAlreadyActivatedTemplate,
+} from '@/utils/email-templates';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -19,6 +25,7 @@ export class AuthProvider {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly config: ConfigService,
   ) {}
   // * Register
   async register(data: RegisterUserDto) {
@@ -65,7 +72,7 @@ export class AuthProvider {
     try {
       await this.emailService.sendVerificationEmail(newUser.email, accessToken);
     } catch {
-      throw new RequestTimeoutException();
+      throw new RequestTimeoutException('Failed to send verification email');
     }
 
     return { newUser: safeUser, accessToken };
@@ -114,5 +121,41 @@ export class AuthProvider {
     const { id, password, createdAt, updatedAt, ...safeUser } = user;
 
     return { user: safeUser, accessToken };
+  }
+
+  // * Activate user account
+  async activateAccount(token: string) {
+    // * Check if token is valid
+    let payload: JWTPayload;
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Access Denied, Invalid Token');
+    }
+
+    // * Check if we have user already in DB
+    const id = payload.id;
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Check if user already active his account
+    if (user.accountStatus === AccountStatus.active) {
+      return accountAlreadyActivatedTemplate();
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        accountStatus: AccountStatus.active,
+      },
+    });
+
+    return accountActivatedTemplate();
   }
 }

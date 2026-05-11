@@ -50,6 +50,12 @@ export class UsersController {
     return this.usersService.login(body);
   }
 
+  // * Activate user account
+  @Get('auth/activate')
+  activateAccount(@Query('token') token: string) {
+    return this.usersService.activateAccount(token);
+  }
+
   // * Get current user
   @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.

@@ -32,6 +32,11 @@ export class UsersService {
     return this.authProvider.login(data);
   }
 
+  // * Activate user account
+  async activateAccount(token: string) {
+    return this.authProvider.activateAccount(token);
+  }
+
   // * Get current user
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
