@@ -144,9 +144,12 @@ export class AuthProvider {
       throw new NotFoundException('User Not Found');
     }
 
+    // * Get Domain
+    const domain = this.config.getOrThrow<string>('DOMAIN');
+
     // * Check if user already active his account
     if (user.accountStatus === AccountStatus.active) {
-      return accountAlreadyActivatedTemplate();
+      return accountAlreadyActivatedTemplate(domain);
     }
 
     await this.prisma.user.update({
@@ -156,6 +159,6 @@ export class AuthProvider {
       },
     });
 
-    return accountActivatedTemplate();
+    return accountActivatedTemplate(domain);
   }
 }

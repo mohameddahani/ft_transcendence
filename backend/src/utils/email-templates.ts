@@ -581,7 +581,7 @@ export function resetPasswordTemplate(link: string): string {
 </html>`;
 }
 
-export function accountActivatedTemplate(): string {
+export function accountActivatedTemplate(domain: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -635,7 +635,7 @@ export function accountActivatedTemplate(): string {
           <!-- BUTTON -->
           <tr>
             <td align="center" style="padding-bottom:50px;">
-              <a href="http://localhost:3000/api/login"
+              <a href="${domain}/api/login"
                  style="
                    display:inline-block;
                    padding:14px 36px;
@@ -666,7 +666,7 @@ export function accountActivatedTemplate(): string {
 </html>`;
 }
 
-export function accountAlreadyActivatedTemplate(): string {
+export function accountAlreadyActivatedTemplate(domain: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -720,7 +720,7 @@ export function accountAlreadyActivatedTemplate(): string {
           <!-- BUTTON -->
           <tr>
             <td align="center" style="padding-bottom:50px;">
-              <a href="http://localhost:3000/api/login"
+              <a href="${domain}/api/login"
                  style="
                    display:inline-block;
                    padding:14px 36px;
