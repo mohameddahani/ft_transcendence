@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  RequestTimeoutException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -6,6 +10,7 @@ import { JWTPayload } from '@/utils/types';
 import { LoginUserDto } from '../dtos/login-user.dto';
 import { AccountStatus } from '@/generated/prisma/enums';
 import { JwtService } from '@nestjs/jwt';
+import { EmailService } from '@/email/email.service';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -13,6 +18,7 @@ export class AuthProvider {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
   // * Register
   async register(data: RegisterUserDto) {
@@ -54,6 +60,13 @@ export class AuthProvider {
     const accessToken = await this.jwtService.signAsync(payload);
     // * Exclude Some Fields
     const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
+
+    // * Send Email verification to new user
+    try {
+      await this.emailService.sendVerificationEmail(newUser.email, accessToken);
+    } catch {
+      throw new RequestTimeoutException();
+    }
 
     return { newUser: safeUser, accessToken };
   }
