@@ -60,6 +60,7 @@ export class UsersController {
 
   // * Forgot password
   @Post('auth/forgot-password')
+  @HttpCode(HttpStatus.OK) // * set default status code
   forgotPassword(@Body() email: ForgotPasswordUserDto) {
     return this.usersService.forgotPassword(email.email);
   }

@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,6 +25,25 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // * Swagger
+  // ? Swagger is a tool that automatically creates API documentation + testing UI for your backend.
+
+  // * Get domain of server
+  const domain = new ConfigService().getOrThrow<string>('DOMAIN');
+
+  const swagger = new DocumentBuilder()
+    .setTitle('ft_transcendence')
+    .setDescription(
+      'ft_transcendence — Final 42 Common Core project: a full-stack web app built as a team. From learning basics to building real-world systems, this project represents the end of the journey and the start of professional growth, combining creativity, scalability, and modern technologies.',
+    )
+    .addServer(domain)
+    .setTermsOfService(`${domain}/terms`)
+    .setLicense('ft_transcendence License', `${domain}/license`)
+    .setVersion('1.0')
+    .build(); // * Config of document
+  const documentation = SwaggerModule.createDocument(app, swagger); // * create document
+  SwaggerModule.setup('swagger', app, documentation); // * setup documentation on domain/swagger
 
   await app.listen(process.env.PORT ?? 3000);
 }
