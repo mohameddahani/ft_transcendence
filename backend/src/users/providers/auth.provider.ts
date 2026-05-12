@@ -172,4 +172,61 @@ export class AuthProvider {
 
     return accountActivatedTemplate(domain);
   }
+
+  // * Forgot password
+  async forgotPassword(email: string) {
+    // * Check if user already exist by email before login
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid Email');
+    }
+
+    // * Send Email of reset password to user
+    try {
+      // * Generate JWT
+      const payload: JWTPayload = { id: user.id, userType: user.userType };
+      const accessToken = await this.jwtService.signAsync(payload);
+
+      // * Send email
+      await this.emailService.sendResetPasswordEmail(email, accessToken);
+    } catch {
+      throw new RequestTimeoutException('Failed to send reset password email');
+    }
+  }
+
+  // * Reset password
+  async resetPassword(token: string, password: string) {
+    // * Check if token is valid
+    let payload: JWTPayload;
+    try {
+      payload = await this.jwtService.verifyAsync(token, {
+        secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      });
+    } catch {
+      throw new UnauthorizedException('Access Denied, Invalid Token');
+    }
+
+    // * Check if we have user already in DB
+    const id = payload.id;
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Hash new Password
+    const salt = await bcrypt.genSalt(10);
+    const newPassword = await bcrypt.hash(password, salt);
+
+    // * Save new password
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        password: newPassword,
+      },
+    });
+  }
 }

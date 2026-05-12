@@ -1,3 +1,9 @@
+#########################
+##                     ##
+## YOU SHOULD HIDE API ##
+##                     ##
+#########################
+
 Login
   ↓
 Server creates:
@@ -15,3 +21,214 @@ Server generates new access token
 
 
 USE cloudinary TO STORE IMAGES OUTSIDE OF SERVER
+
+
+
+
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    SECURE JWT AUTH SYSTEM (NESTJS GUIDE)                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ACCESS TOKEN (SHORT LIFE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose:
+- Authenticate user quickly
+- Expire fast if stolen
+
+Example:
+
+    jwt.sign(payload, {
+        expiresIn: '10m'
+    })
+
+Best Practice:
+✓ Store in HttpOnly cookie
+✓ Secure=true
+✓ SameSite=strict
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. REFRESH TOKEN (LONGER LIFE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Purpose:
+- Generate new access tokens safely
+
+Generate:
+
+    const refreshToken = jwt.sign(payload, {
+        expiresIn: '7d'
+    });
+
+Hash before database storage:
+
+    const hash = await argon2.hash(refreshToken);
+
+Store:
+
+    {
+        userId,
+        tokenHash: hash
+    }
+
+Never store raw refresh token.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. SESSION BINDING (DEVICE PROTECTION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Store:
+
+    {
+        sessionId,
+        userId,
+        ip,
+        userAgent,
+        deviceFingerprint
+    }
+
+Validation:
+
+    if (
+        session.ip !== req.ip ||
+        session.userAgent !== req.headers['user-agent']
+    ) {
+        throw new UnauthorizedException();
+    }
+
+Result:
+If friend copies token → blocked.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. ROTATE REFRESH TOKENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Flow:
+
+Login:
+    refresh_1
+
+Refresh:
+    refresh_1 → invalidate
+    issue refresh_2
+
+If attacker later uses refresh_1:
+→ Security breach detected
+→ Revoke all sessions
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. SUSPICIOUS LOGIN DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Example:
+
+10:00  Morocco
+10:05  Germany
+
+Impossible travel detected.
+
+Action:
+
+    revokeSession();
+    forceRelogin();
+    alertUser();
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. SECURE COOKIE SETTINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Example:
+
+    res.cookie('access_token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict'
+    });
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. DATABASE SESSION TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+sessions
+--------
+id
+userId
+refreshHash
+ip
+userAgent
+fingerprint
+createdAt
+expiresAt
+revoked
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. OPTIONAL MFA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For critical actions:
+
+✓ Password change
+✓ Delete account
+✓ Payment actions
+
+Require:
+
+- OTP email
+- Authenticator app
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. PRODUCTION FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LOGIN
+ ↓
+Create session
+ ↓
+Issue access + refresh cookies
+ ↓
+Request protected route
+ ↓
+Validate access token
+ ↓
+Expired?
+ ↓ yes
+Validate refresh session
+ ↓
+Rotate refresh token
+ ↓
+Issue new access token
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL SECURITY CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Short-lived access token
+✓ Refresh token rotation
+✓ Hash refresh token
+✓ HttpOnly cookies
+✓ Device/session binding
+✓ IP/User-Agent verification
+✓ Suspicious activity detection
+✓ HTTPS only
+✓ MFA for sensitive actions
+✓ Session revoke support
+
+
+This architecture is production-grade and used by large systems like:
+- Google
+- GitHub
+- Stripe
+
+If implemented correctly in NestJS, your auth system will be highly secure.

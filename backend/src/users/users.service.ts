@@ -37,6 +37,16 @@ export class UsersService {
     return this.authProvider.activateAccount(token);
   }
 
+  // * Forgot password
+  async forgotPassword(email: string) {
+    return this.authProvider.forgotPassword(email);
+  }
+
+  // * Reset password
+  resetPassword(token: string, password: string) {
+    return this.authProvider.resetPassword(token, password);
+  }
+
   // * Get current user
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });

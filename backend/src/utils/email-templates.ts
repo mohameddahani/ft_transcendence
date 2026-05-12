@@ -472,7 +472,7 @@ export function resetPasswordTemplate(link: string): string {
                                   text-decoration:none;
                                   letter-spacing:0.01em;
                                   white-space:nowrap;
-                                ">Reset My Password &rarr;</a>
+                                ">Reset My Password</a>
                               </td>
                             </tr>
                           </table>

@@ -32,6 +32,8 @@ import { diskStorage } from 'multer';
 import type { Response } from 'express';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { ForgotPasswordUserDto } from './dtos/forgot-passworf-user.dto';
+import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 
 @Controller('/api/users')
 export class UsersController {
@@ -54,6 +56,21 @@ export class UsersController {
   @Get('auth/activate')
   activateAccount(@Query('token') token: string) {
     return this.usersService.activateAccount(token);
+  }
+
+  // * Forgot password
+  @Post('auth/forgot-password')
+  forgotPassword(@Body() email: ForgotPasswordUserDto) {
+    return this.usersService.forgotPassword(email.email);
+  }
+
+  // * Reset password
+  @Post('auth/reset-password')
+  resetPassword(
+    @Query('token') token: string,
+    @Body() password: ResetPasswordUserDto,
+  ) {
+    return this.usersService.resetPassword(token, password.password);
   }
 
   // * Get current user
