@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,6 +26,13 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // * Helmet
+  // ? helmet is a security middleware for NestJS / Express.js that automatically adds secure HTTP headers to your server responses.
+  // ? middleware is code that runs before your route handler.
+  app.use(helmet());
+
+  // todo: Cors
 
   // * Swagger
   // ? Swagger is a tool that automatically creates API documentation + testing UI for your backend.
