@@ -34,6 +34,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { ForgotPasswordUserDto } from './dtos/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('/api/users')
 export class UsersController {
@@ -41,6 +42,7 @@ export class UsersController {
 
   // * Register
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 600_000 } }) // * Set Rate Limiting (5 req / 10 min)
   register(@Body() body: RegisterUserDto) {
     return this.usersService.register(body);
   }
@@ -48,12 +50,14 @@ export class UsersController {
   // * Login
   @Post('login')
   @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   login(@Body() body: LoginUserDto) {
     return this.usersService.login(body);
   }
 
   // * Activate user account
   @Get('auth/activate')
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
   activateAccount(@Query('token') token: string) {
     return this.usersService.activateAccount(token);
   }
@@ -61,12 +65,14 @@ export class UsersController {
   // * Forgot password
   @Post('auth/forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
   forgotPassword(@Body() email: ForgotPasswordUserDto) {
     return this.usersService.forgotPassword(email.email);
   }
 
   // * Reset password
   @Post('auth/reset-password')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
   resetPassword(
     @Query('token') token: string,
     @Body() password: ResetPasswordUserDto,
@@ -78,6 +84,7 @@ export class UsersController {
   @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
   @UseGuards(AuthGuard)
+  @SkipThrottle() // * Skip Rate Limiting
   // * @CurrentUser(): this is Custom parameter decorator
   findMe(@CurrentUser() userPayload: JWTPayload) {
     return this.usersService.findMe(userPayload.id);
@@ -86,6 +93,7 @@ export class UsersController {
   // * Update data of user
   @Patch('edit-profile')
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(@CurrentUser() userPayload: JWTPayload, @Body() body: UpdateUserDto) {
     return this.usersService.update(userPayload.id, body);
   }
@@ -148,6 +156,7 @@ export class UsersController {
 
   // * UseGuards: applies authentication/authorization guards to protect the route
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   uploadProfileImage(
     // * @UploadedFile: extracts the uploaded file from the request
     @UploadedFile() file: Express.Multer.File,
@@ -166,6 +175,7 @@ export class UsersController {
   // * Remove profile image
   @Delete('profile-image')
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   removeProfileImage(@CurrentUser() userPayload: JWTPayload) {
     return this.usersService.removeProfileImage(userPayload.id);
   }
@@ -173,6 +183,7 @@ export class UsersController {
   // * Get image
   @Get('profile-image/:image')
   @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 300, ttl: 60_000 } })
   findImage(@Param('image') image: string, @Res() res: Response) {
     // * Check if image is already exist
     const imagePath = join(process.cwd(), 'images/users/profile', image);
@@ -192,6 +203,7 @@ export class UsersController {
   @UseGuards(AuthGuard, AuthRolesGuard)
   // * Set admin roles in this route
   @Roles([UserType.admin])
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
@@ -203,6 +215,7 @@ export class UsersController {
   @Get(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles([UserType.admin])
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
   }
@@ -211,6 +224,7 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles([UserType.admin])
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
   }

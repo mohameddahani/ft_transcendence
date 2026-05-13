@@ -4,6 +4,8 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
 import { StringValue } from 'ms';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -27,10 +29,25 @@ import { StringValue } from 'ms';
         },
       }),
     }),
+
+    // * Rate Limiting
+    ThrottlerModule.forRoot([
+      // * Config
+      {
+        ttl: 60_000,
+        limit: 100, // global default (public routes)
+      },
+    ]),
+
     UsersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
   ],
-  controllers: [],
+
+  providers: [
+    // * Provider of Rate Limiting
+    // * Applied globally
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}
