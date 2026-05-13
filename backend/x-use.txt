@@ -232,3 +232,367 @@ This architecture is production-grade and used by large systems like:
 - Stripe
 
 If implemented correctly in NestJS, your auth system will be highly secure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NESTJS SERVER SECURITY CHECKLIST
+================================
+
+This file documents essential security practices for a NestJS backend.
+
+------------------------------------------------------------
+1. INPUT VALIDATION
+------------------------------------------------------------
+
+Install:
+npm install class-validator class-transformer
+
+Enable globally:
+
+app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+);
+
+DTO example:
+
+export class RegisterDto {
+  @IsEmail()
+  email: string;
+
+  @MinLength(8)
+  password: string;
+}
+
+Why:
+- Blocks invalid input
+- Removes unexpected fields
+- Prevents malicious payloads
+
+------------------------------------------------------------
+2. HASH PASSWORDS
+------------------------------------------------------------
+
+Install:
+npm install bcrypt
+
+Hash:
+
+const hashed = await bcrypt.hash(password, 12);
+
+Compare:
+
+await bcrypt.compare(password, user.password);
+
+Never store plain text passwords.
+
+------------------------------------------------------------
+3. RATE LIMITING
+------------------------------------------------------------
+
+Install:
+npm install @nestjs/throttler
+
+Setup:
+
+ThrottlerModule.forRoot([
+  {
+    ttl: 60000,
+    limit: 10,
+  },
+])
+
+Enable guard globally:
+
+providers: [
+  {
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+  },
+]
+
+Per route:
+
+@Throttle({ default: { limit: 5, ttl: 60000 } })
+
+Protect:
+- login
+- register
+- forgot-password
+- reset-password
+
+------------------------------------------------------------
+4. SECURE JWT
+------------------------------------------------------------
+
+Generate secret:
+
+openssl rand -base64 64
+
+Use:
+
+secret: config.get('JWT_SECRET')
+
+Expiry:
+
+expiresIn: '15m'
+
+Never hardcode secrets.
+
+------------------------------------------------------------
+5. ENVIRONMENT VARIABLES
+------------------------------------------------------------
+
+Use ConfigModule
+
+.env
+
+JWT_SECRET=...
+DATABASE_URL=...
+
+Add .env to .gitignore
+
+------------------------------------------------------------
+6. HELMET SECURITY HEADERS
+------------------------------------------------------------
+
+Install:
+npm install helmet
+
+Enable:
+
+app.use(helmet());
+
+Protects against:
+- Clickjacking
+- MIME sniffing
+- Some XSS attacks
+
+------------------------------------------------------------
+7. CORS
+------------------------------------------------------------
+
+Bad:
+
+app.enableCors();
+
+Good:
+
+app.enableCors({
+  origin: ['http://localhost:3000'],
+  credentials: true,
+});
+
+Only allow trusted frontend origins.
+
+------------------------------------------------------------
+8. SQL INJECTION PROTECTION
+------------------------------------------------------------
+
+Safe with Prisma:
+
+prisma.user.findUnique()
+
+Unsafe:
+
+$queryRawUnsafe(...)
+
+Never build raw SQL from user input.
+
+------------------------------------------------------------
+9. FILE UPLOAD SECURITY
+------------------------------------------------------------
+
+Validate:
+- file type
+- file size
+- file extension
+
+Example:
+
+if (file.mimetype.startsWith('image/')) {
+  cb(null, true);
+}
+
+Set limits:
+
+limits: { fileSize: 5 * 1024 * 1024 }
+
+Generate safe filename:
+
+cb(null, `${Date.now()}${extname(file.originalname)}`);
+
+------------------------------------------------------------
+10. XSS SANITIZATION
+------------------------------------------------------------
+
+Escape user-generated HTML.
+
+Avoid:
+
+dangerouslySetInnerHTML
+
+Unless sanitized first.
+
+------------------------------------------------------------
+11. HTTPS
+------------------------------------------------------------
+
+Use:
+- Cloudflare
+- Nginx
+- Let's Encrypt
+
+Without HTTPS:
+- JWT theft possible
+- Password interception possible
+
+------------------------------------------------------------
+12. EMAIL VERIFICATION
+------------------------------------------------------------
+
+Flow:
+- user registers
+- send token
+- user clicks activation link
+- activate account
+
+Prevents fake accounts.
+
+------------------------------------------------------------
+13. PASSWORD RESET TOKENS
+------------------------------------------------------------
+
+Use JWT:
+
+expiresIn: '15m'
+
+Reset route:
+
+@Post('auth/reset-password')
+
+Never allow permanent reset links.
+
+------------------------------------------------------------
+14. PREVENT USER ENUMERATION
+------------------------------------------------------------
+
+Bad:
+
+"Email not found"
+
+Good:
+
+"If account exists, reset email sent"
+
+Prevents discovering registered users.
+
+------------------------------------------------------------
+15. AUTHORIZATION
+------------------------------------------------------------
+
+Use guards:
+
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
+
+Authentication checks identity.
+Authorization checks permissions.
+
+------------------------------------------------------------
+16. LOGGING
+------------------------------------------------------------
+
+Track:
+- failed login attempts
+- spam activity
+- upload failures
+
+Tools:
+- Nest Logger
+- Sentry
+
+------------------------------------------------------------
+17. HIDE STACK TRACES
+------------------------------------------------------------
+
+Never expose:
+
+Database stack traces
+Internal file paths
+
+Use production exception filters.
+
+------------------------------------------------------------
+18. UPDATE DEPENDENCIES
+------------------------------------------------------------
+
+Commands:
+
+npm audit
+npm outdated
+
+Fix vulnerabilities regularly.
+
+------------------------------------------------------------
+19. DATABASE LEAST PRIVILEGE
+------------------------------------------------------------
+
+Avoid using DB superuser.
+
+Create limited DB user.
+
+Limits damage if compromised.
+
+------------------------------------------------------------
+20. SECURE COOKIES
+------------------------------------------------------------
+
+Use:
+
+httpOnly: true
+secure: true
+sameSite: 'strict'
+
+Protects against token theft.
+
+------------------------------------------------------------
+21. BACKUPS
+------------------------------------------------------------
+
+Create:
+- daily backups
+- tested restore process
+
+Security includes disaster recovery.
+
+------------------------------------------------------------
+BEST ORDER TO IMPLEMENT
+------------------------------------------------------------
+
+1. Validation
+2. bcrypt
+3. JWT expiry
+4. Rate limiting
+5. Helmet
+6. CORS
+7. Email verification
+8. Password reset expiry
+9. Role guards
+10. Upload validation
+
+If all are implemented, your NestJS backend is production-grade secure for most real-world apps.

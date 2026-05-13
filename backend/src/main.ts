@@ -32,6 +32,7 @@ async function bootstrap() {
   // * Get domain of server
   const domain = new ConfigService().getOrThrow<string>('DOMAIN');
 
+  // * Config of document
   const swagger = new DocumentBuilder()
     .setTitle('ft_transcendence')
     .setDescription(
@@ -40,8 +41,10 @@ async function bootstrap() {
     .addServer(domain)
     .setTermsOfService(`${domain}/terms`)
     .setLicense('ft_transcendence License', `${domain}/license`)
+    .addSecurity('bearer', { type: 'http', scheme: 'bearer' })
+    .addBearerAuth()
     .setVersion('1.0')
-    .build(); // * Config of document
+    .build();
   const documentation = SwaggerModule.createDocument(app, swagger); // * create document
   SwaggerModule.setup('swagger', app, documentation); // * setup documentation on domain/swagger
 
