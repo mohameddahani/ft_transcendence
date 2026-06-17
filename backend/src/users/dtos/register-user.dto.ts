@@ -53,7 +53,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.toUpperCase() : value,
   )
-  @IsEnum(Gender as object)
+  @IsEnum(Gender)
   gender!: Gender;
 
   // * Birth Date
