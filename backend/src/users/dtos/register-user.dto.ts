@@ -7,9 +7,12 @@ import {
   IsBoolean,
   IsPhoneNumber,
   Validate,
+  IsEnum,
+  IsDate,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { IsValidPassword } from '@/utils/password.validator';
+import { Gender } from '@/generated/prisma/enums';
 
 export class RegisterUserDto {
   // * First Name
@@ -45,6 +48,18 @@ export class RegisterUserDto {
     typeof value === 'string' ? value.trim() : value,
   )
   lastName!: string;
+
+  // * Gender
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.toUpperCase() : value,
+  )
+  @IsEnum(Gender as object)
+  gender!: Gender;
+
+  // * Birth Date
+  @Type(() => Date)
+  @IsDate()
+  birthDate!: Date;
 
   // * Username
   @IsString()
@@ -86,6 +101,15 @@ export class RegisterUserDto {
     typeof value === 'string' ? value?.replace(/\s+/g, '') : value,
   )
   phoneNumber!: string;
+
+  // * Company Name
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  companyName!: string;
 
   // * Terms acceptance
   @IsBoolean()

@@ -89,13 +89,13 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (user.accountStatus === AccountStatus.pending) {
+    if (user.accountStatus === AccountStatus.PENDING) {
       throw new UnauthorizedException(
         'Your account is pending verification. Please verify your email to continue.',
       );
     }
 
-    if (user.accountStatus === AccountStatus.inactive) {
+    if (user.accountStatus === AccountStatus.INACTIVE) {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate JWT
@@ -112,7 +112,7 @@ export class AuthProvider {
       );
     }
 
-    if (user.accountStatus === AccountStatus.banned) {
+    if (user.accountStatus === AccountStatus.BANNED) {
       throw new UnauthorizedException(
         'Your account has been suspended. Please contact support for assistance.',
       );
@@ -159,14 +159,14 @@ export class AuthProvider {
     const domain = this.config.getOrThrow<string>('DOMAIN');
 
     // * Check if user already active his account
-    if (user.accountStatus === AccountStatus.active) {
+    if (user.accountStatus === AccountStatus.ACTIVE) {
       return accountAlreadyActivatedTemplate(domain);
     }
 
     await this.prisma.user.update({
       where: { id },
       data: {
-        accountStatus: AccountStatus.active,
+        accountStatus: AccountStatus.ACTIVE,
       },
     });
 
