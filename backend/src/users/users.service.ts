@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -13,6 +14,8 @@ import { AuthProvider } from './providers/auth.provider';
 import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
+import { AddMemeberDto } from './dtos/add-member.dto';
+import { AddPlanDto } from './dtos/add-plan.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -175,7 +178,75 @@ export class UsersService {
     await this.findOne(id);
   }
 
-  // ! All this routes is Access only by Admin
+  // * Active Subscription
+  async activeSubscription(adminId: string, plan: string) {
+    // * Check if admin is has already a subscription
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId: adminId,
+      },
+    });
+    if (subscription) {
+      const currentPlan = await this.prisma.plan.findFirst({
+        where: {
+          name: plan,
+        },
+      });
+      if (currentPlan) {
+        throw new UnauthorizedException(
+          'You don’t have an active subscription. Upgrade your plan to continue.',
+        );
+      }
+    }
+
+    // * Active or upgrade a plan
+  }
+
+  // * Add Member by Admin
+  async addMember(adminId: string, data: AddMemeberDto) {
+    // * Check if admin is has already a subscription
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId: adminId,
+      },
+    });
+    if (!subscription) {
+      throw new UnauthorizedException(
+        'You don’t have an active subscription. Upgrade your plan to continue.',
+      );
+    }
+
+    // * Check if member already exist
+    const existingMember = await this.prisma.member.findFirst({
+      where: {
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+      },
+    });
+    if (existingMember) {
+      throw new UnauthorizedException('Member already exists');
+    }
+
+    // * Add members to database
+    await this.prisma.member.create({
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        userName: data.userName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+        emergencyContact: data.emergencyContact,
+        status: data.status,
+        endDate: data.endDate,
+        admin: { connect: { id: adminId } },
+      },
+    });
+  }
+
+  // ! All this routes is Access only by Owner
   // * Get all users
   async findAll(page: number, limit: number) {
     const users = await this.prisma.user.findMany({
@@ -210,5 +281,22 @@ export class UsersService {
     await this.findOne(id);
 
     await this.prisma.user.delete({ where: { id } });
+  }
+
+  // * Add Plan by Owner
+  async addPlan(data: AddPlanDto) {
+    // * Check if plan already exist
+    const existingPlan = await this.prisma.plan.findFirst({
+      where: {
+        name: data.name,
+      },
+    });
+
+    if (existingPlan) {
+      throw new UnauthorizedException('Username already exists');
+    }
+
+    // * Add plan to database
+    await this.prisma.plan.create({ data });
   }
 }

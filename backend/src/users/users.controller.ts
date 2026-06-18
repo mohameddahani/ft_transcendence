@@ -35,6 +35,8 @@ import { existsSync } from 'fs';
 import { ForgotPasswordUserDto } from './dtos/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { AddMemeberDto } from './dtos/add-member.dto';
+import { AddPlanDto } from './dtos/add-plan.dto';
 
 @Controller('/api/users')
 export class UsersController {
@@ -195,14 +197,36 @@ export class UsersController {
     return res.sendFile(imagePath);
   }
 
-  // ! All this routes is Access only by Admin
+  // * Active Subscription
+  @Post('active-subscription')
+  @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  activeSubscription(
+    @Query('plan') plan: string,
+    @CurrentUser() userPayload: JWTPayload,
+  ) {
+    return this.usersService.activeSubscription(userPayload.id, plan);
+  }
+
+  // * Add Member by User
+  @Post('add-member')
+  @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  addMember(
+    @Body() body: AddMemeberDto,
+    @CurrentUser() userPayload: JWTPayload,
+  ) {
+    return this.usersService.addMember(userPayload.id, body);
+  }
+
+  // ! All this routes is Access only by Owner
 
   // * Get all users
   @Get()
-  // * Check if user has valid token and is a admin not normal user
+  // * Check if user has valid token and is a owner not normal user
   @UseGuards(AuthGuard, AuthRolesGuard)
-  // * Set admin roles in this route
-  @Roles([UserType.ADMIN])
+  // * Set owner roles in this route
+  @Roles([UserType.OWNER])
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
@@ -214,7 +238,7 @@ export class UsersController {
   // * Get one user
   @Get(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.ADMIN])
+  @Roles([UserType.OWNER])
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
@@ -223,9 +247,18 @@ export class UsersController {
   // * Delete one user
   @Delete(':id')
   @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.ADMIN])
+  @Roles([UserType.OWNER])
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
+  }
+
+  // * Add Plan
+  @Post('add-plan')
+  @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles([UserType.OWNER])
+  // @Throttle({ default: { limit: 3, ttl: 600_000 } })
+  addPlan(@Body() body: AddPlanDto) {
+    return this.usersService.addPlan(body);
   }
 }

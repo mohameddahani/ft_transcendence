@@ -1,0 +1,414 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider     = "prisma-client"
+    output       = "../src/generated/prisma"
+    moduleFormat = "cjs"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums — true closed domain vocabulary only.
+// Anything that should change without a deploy
+// (plans, limits, pricing) lives in tables below,
+// never in an enum.
+// ─────────────────────────────────────────────
+
+enum Gender {
+    MALE
+    FEMALE
+}
+
+enum TenantStatus {
+    ACTIVE
+    SUSPENDED
+    CANCELLED
+}
+
+enum UserRole {
+    OWNER
+    ADMIN
+    STAFF
+}
+
+enum AccountStatus {
+    ACTIVE
+    INACTIVE
+    PENDING
+    SUSPENDED
+}
+
+enum SubscriptionStatus {
+    TRIALING
+    ACTIVE
+    PAST_DUE
+    CANCELED
+    EXPIRED
+}
+
+enum BillingProvider {
+    STRIPE
+    PAYPAL
+    MANUAL
+}
+
+enum InvoiceStatus {
+    PAID
+    UNPAID
+    OVERDUE
+    VOID
+}
+
+enum MemberStatus {
+    ACTIVE
+    EXPIRED
+    FROZEN
+    CANCELLED
+}
+
+enum MembershipDuration {
+    MONTHLY
+    QUARTERLY
+    SEMI_ANNUAL
+    ANNUAL
+    CUSTOM
+}
+
+enum PaymentStatus {
+    PAID
+    PARTIAL
+    UNPAID
+    OVERDUE
+}
+
+enum NotificationType {
+    PAYMENT_REMINDER
+    MEMBERSHIP_EXPIRATION
+    CUSTOM
+}
+
+enum NotificationChannel {
+    EMAIL
+    SMS
+    PUSH
+}
+
+// ─────────────────────────────────────────────
+// Tenant — the gym. The root of multi-tenancy.
+// Every tenant-owned table below carries a
+// tenantId and should be filtered by it on
+// every query (enforce via Prisma client
+// extension + Postgres RLS as a second layer).
+// ─────────────────────────────────────────────
+
+model Tenant {
+    id     String       @id @default(uuid())
+    name   String
+    slug   String       @unique
+    status TenantStatus @default(ACTIVE)
+
+    users           User[]
+    members         Member[]
+    membershipPlans MembershipPlan[]
+    subscription    Subscription?
+    paymentMethods  PaymentMethod[]
+    auditLogs       AuditLog[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@map("tenants")
+}
+
+// ─────────────────────────────────────────────
+// Staff accounts. People who log in and manage
+// a gym. Distinct from Member, who is the gym's
+// own customer.
+// ─────────────────────────────────────────────
+
+model User {
+    id       String @id @default(uuid())
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    firstName String
+    lastName  String
+    gender    Gender
+    birthDate DateTime
+
+    email       String
+    userName    String
+    password    String
+    phoneNumber String
+
+    profileImage      String        @default("default-image.jpg")
+    role              UserRole      @default(ADMIN)
+    isAccountVerified Boolean       @default(false)
+    status            AccountStatus @default(PENDING)
+    termsAccepted     Boolean
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    // Uniqueness is scoped to the tenant, not global —
+    // two different gyms can both have an admin named "ahmed".
+    @@unique([tenantId, email])
+    @@unique([tenantId, userName])
+    @@index([tenantId])
+    @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Plan catalog — shared across all tenants, not
+// owned by any single one. Editing limits or
+// adding a new plan is a data change, not a
+// code deploy.
+// ─────────────────────────────────────────────
+
+model Plan {
+    id           String   @id @default(uuid())
+    key          String   @unique // e.g. "free", "basic", "pro", "enterprise"
+    name         String
+    description  String?
+    priceMonthly Decimal  @db.Decimal(10, 2)
+    priceYearly  Decimal? @db.Decimal(10, 2)
+    isActive     Boolean  @default(true)
+    isPublic     Boolean  @default(true) // hide custom/negotiated plans from a pricing page
+    sortOrder    Int      @default(0)
+
+    limits        PlanLimit[]
+    subscriptions Subscription[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("plans")
+}
+
+model PlanLimit {
+    id     String @id @default(uuid())
+    planId String
+    plan   Plan   @relation(fields: [planId], references: [id])
+
+    key   String // e.g. "max_members", "max_admins", "max_membership_plans", "max_storage_mb"
+    value Int
+
+    @@unique([planId, key])
+    @@map("plan_limits")
+}
+
+// ─────────────────────────────────────────────
+// Billing — provider-agnostic so Stripe, PayPal,
+// or a manual/invoice-based flow all fit the same
+// shape.
+// ─────────────────────────────────────────────
+
+model Subscription {
+    id       String @id @default(uuid())
+    tenantId String @unique
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    planId String
+    plan   Plan   @relation(fields: [planId], references: [id])
+
+    status          SubscriptionStatus @default(TRIALING)
+    billingProvider BillingProvider    @default(MANUAL)
+
+    externalCustomerId     String?
+    externalSubscriptionId String?
+
+    currentPeriodStart DateTime  @default(now())
+    currentPeriodEnd   DateTime
+    cancelAtPeriodEnd  Boolean   @default(false)
+    trialEndsAt        DateTime?
+
+    invoices Invoice[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([planId])
+    @@index([status])
+    @@map("subscriptions")
+}
+
+model Invoice {
+    id             String       @id @default(uuid())
+    tenantId       String
+    subscriptionId String
+    subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+    amount            Decimal       @db.Decimal(10, 2)
+    currency          String        @default("USD")
+    status            InvoiceStatus @default(UNPAID)
+    externalInvoiceId String?       @unique
+
+    issuedAt DateTime  @default(now())
+    dueDate  DateTime
+    paidAt   DateTime?
+
+    @@index([tenantId])
+    @@map("invoices")
+}
+
+model PaymentMethod {
+    id       String @id @default(uuid())
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    provider   BillingProvider
+    externalId String
+    brand      String?
+    last4      String?
+    isDefault  Boolean         @default(false)
+
+    createdAt DateTime @default(now())
+
+    @@index([tenantId])
+    @@map("payment_methods")
+}
+
+// Idempotency / at-least-once delivery handling for
+// Stripe/PayPal webhooks. Without this, a retried
+// webhook gets processed twice.
+model WebhookEvent {
+    id              String          @id @default(uuid())
+    provider        BillingProvider
+    eventType       String
+    externalEventId String          @unique
+    payload         Json
+    processedAt     DateTime?
+    createdAt       DateTime        @default(now())
+
+    @@map("webhook_events")
+}
+
+// ─────────────────────────────────────────────
+// The gym's own customers and their membership
+// data. Everything scoped to tenantId, not to
+// the staff member who happened to create it.
+// ─────────────────────────────────────────────
+
+model Member {
+    id       String @id @default(uuid())
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    firstName String
+    lastName  String
+    gender    Gender
+    birthDate DateTime
+
+    userName String
+    email    String
+    password String?
+
+    phoneNumber      String
+    photo            String       @default("default-member-image.jpg")
+    address          String
+    emergencyContact String
+    status           MemberStatus @default(ACTIVE)
+
+    membershipId String?
+    membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
+
+    startDate DateTime @default(now())
+    endDate   DateTime
+
+    payments      Payment[]
+    notifications Notification[]
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    @@unique([tenantId, userName])
+    @@index([tenantId, status])
+    @@index([tenantId])
+    @@map("members")
+}
+
+model MembershipPlan {
+    id       String @id @default(uuid())
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    name        String
+    duration    MembershipDuration @default(MONTHLY)
+    price       Decimal            @db.Decimal(10, 2)
+    description String?
+    isActive    Boolean            @default(true)
+
+    members Member[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([tenantId])
+    @@map("membership_plans")
+}
+
+model Payment {
+    id       String @id @default(uuid())
+    memberId String
+    member   Member @relation(fields: [memberId], references: [id])
+
+    amount     Decimal       @db.Decimal(10, 2)
+    paidAmount Decimal       @db.Decimal(10, 2)
+    dueDate    DateTime
+    paidAt     DateTime?
+    status     PaymentStatus @default(UNPAID)
+    note       String?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([memberId])
+    @@map("payments")
+}
+
+model Notification {
+    id       String @id @default(uuid())
+    memberId String
+    member   Member @relation(fields: [memberId], references: [id])
+
+    type      NotificationType
+    channel   NotificationChannel @default(EMAIL)
+    message   String
+    sentAt    DateTime?
+    delivered Boolean             @default(false)
+
+    createdAt DateTime @default(now())
+
+    @@index([memberId])
+    @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// Audit log — one generic table for "who did what"
+// across the system, rather than a bespoke log
+// per entity.
+// ─────────────────────────────────────────────
+
+model AuditLog {
+    id       String @id @default(uuid())
+    tenantId String
+    tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+    actorId    String? // nullable: system-initiated actions have no human actor
+    action     String
+    entityType String
+    entityId   String
+    metadata   Json?
+
+    createdAt DateTime @default(now())
+
+    @@index([tenantId, createdAt])
+    @@map("audit_logs")
+}

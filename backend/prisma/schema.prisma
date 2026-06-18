@@ -41,14 +41,6 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
-// * this enum had Plan Type
-enum PlanType {
-  FREE
-  BASIC
-  PRO
-  ENTERPRISE
-}
-
 // * this enum had Memeber Status
 enum MemberStatus {
   ACTIVE
@@ -107,6 +99,25 @@ model User {
   @@map("users")
 }
 
+// * Table of Plan
+model Plan {
+  id String @id @default(uuid())
+
+  name String @unique // BASIC, PRO, ENTERPRISE
+
+  price      Decimal @db.Decimal(10, 2)
+  maxMembers Int
+
+  isActive Boolean @default(true)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("plans")
+}
+
 // * Table of Subscription
 model Subscription {
   id String @id @default(uuid())
@@ -114,7 +125,9 @@ model Subscription {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
-  planType  PlanType           @default(FREE)
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
   status    SubscriptionStatus @default(ACTIVE)
   startedAt DateTime           @default(now())
   expiresAt DateTime
@@ -144,6 +157,7 @@ model Member {
   photo            String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
+  userType         UserType     @default(USER)
   status           MemberStatus
 
   membershipId String

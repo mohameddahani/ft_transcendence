@@ -41,7 +41,7 @@ export class AuthRolesGuard implements CanActivate {
 
     // * Check if user's role is in the allowed roles
     if (!user || !roles.includes(user.userType)) {
-      throw new ForbiddenException('Access Denied, Admins Only');
+      throw new ForbiddenException('Access Denied, Owner Only');
     }
     return true;
   }
