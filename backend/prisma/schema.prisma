@@ -107,10 +107,11 @@ model Plan {
 
   price      Decimal @db.Decimal(10, 2)
   maxMembers Int
+  duration   Int
 
   isActive Boolean @default(true)
 
-  subscriptions Subscription[]
+  subscriptions    Subscription[] @relation("planId")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -126,7 +127,7 @@ model Subscription {
   user   User   @relation(fields: [userId], references: [id])
 
   planId String
-  plan   Plan   @relation(fields: [planId], references: [id])
+  plan   Plan   @relation("planId", fields: [planId], references: [id])
 
   status    SubscriptionStatus @default(ACTIVE)
   startedAt DateTime           @default(now())
@@ -162,6 +163,9 @@ model Member {
 
   membershipId String
   membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
+
+  // membershipId String
+  // membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
 
   startDate     DateTime       @default(now())
   endDate       DateTime

@@ -16,6 +16,8 @@ import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
 import { AddMemeberDto } from './dtos/add-member.dto';
 import { AddPlanDto } from './dtos/add-plan.dto';
+import { generateUsername } from '@/utils/generate-username';
+import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -72,22 +74,13 @@ export class UsersService {
         AND: [
           { id: { not: id } }, // exclude current user
           {
-            OR: [
-              { userName: data.userName },
-              { email: data.email },
-              { phoneNumber: data.phoneNumber },
-            ],
+            OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
           },
         ],
       },
     });
 
     if (existingData) {
-      if (existingData.userName === data.userName) {
-        // * 409 = duplicate data
-        throw new ConflictException('Username already exists');
-      }
-
       if (existingData.email === data.email) {
         // * 409 = duplicate data
         throw new ConflictException('Email already exists');
@@ -179,27 +172,61 @@ export class UsersService {
   }
 
   // * Active Subscription
-  async activeSubscription(adminId: string, plan: string) {
+  async activeSubscription(data: ActiveSubscriptionDto) {
+    // * Check if admin is already exist
+    const user = await this.prisma.user.findFirst({
+      where: {
+        userName: data.userName,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Check if plan is already exist
+    const newPlan = await this.prisma.plan.findFirst({
+      where: {
+        name: data.plan,
+      },
+    });
+    if (!newPlan) {
+      throw new NotFoundException('Plan Not Found');
+    }
+
     // * Check if admin is has already a subscription
     const subscription = await this.prisma.subscription.findFirst({
       where: {
-        userId: adminId,
+        userId: user.id,
       },
     });
-    if (subscription) {
-      const currentPlan = await this.prisma.plan.findFirst({
-        where: {
-          name: plan,
+    // * No subscription
+    if (!subscription) {
+      // * Create date of expiration
+      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+      expiresAt.setDate((expiresAt.getDate() + newPlan.duration) as number); // 19 + 30 => July 19th
+      return this.prisma.subscription.create({
+        data: {
+          name: newPlan.name,
+          userId: user.id,
+          planId: newPlan.id,
+          expiresAt: expiresAt,
+          amount: newPlan.price,
         },
       });
-      if (currentPlan) {
-        throw new UnauthorizedException(
-          'You don’t have an active subscription. Upgrade your plan to continue.',
-        );
-      }
     }
 
-    // * Active or upgrade a plan
+    // * Already same plan
+    if (subscription.planId === newPlan.id) {
+      throw new ConflictException('You already have this subscription');
+    }
+
+    // * Upgrade / change plan
+    return this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        planId: newPlan.id,
+      },
+    });
   }
 
   // * Add Member by Admin
@@ -227,6 +254,22 @@ export class UsersService {
       throw new UnauthorizedException('Member already exists');
     }
 
+    // * Genarate a userName
+    let userName: string;
+    while (true) {
+      userName = generateUsername(data.firstName, data.lastName);
+
+      // * Check if username already exist before register
+      const existingUserName = await this.prisma.user.findUnique({
+        where: {
+          userName: userName,
+        },
+      });
+      if (!existingUserName) {
+        break;
+      }
+    }
+
     // * Add members to database
     await this.prisma.member.create({
       data: {
@@ -234,7 +277,7 @@ export class UsersService {
         lastName: data.lastName,
         gender: data.gender,
         birthDate: data.birthDate,
-        userName: data.userName,
+        userName: userName,
         email: data.email,
         phoneNumber: data.phoneNumber,
         address: data.address,
@@ -242,6 +285,7 @@ export class UsersService {
         status: data.status,
         endDate: data.endDate,
         admin: { connect: { id: adminId } },
+        membership: { connect: { id: 'adminId' } },
       },
     });
   }
@@ -252,6 +296,13 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        subscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
     });
     if (users.length == 0) {
       throw new NotFoundException('No Users To Show');
@@ -270,9 +321,20 @@ export class UsersService {
       throw new NotFoundException('User Not Found');
     }
 
+    // * Get subscription of user
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { userId: id },
+      include: {
+        plan: true,
+      },
+    });
+
     // * Exclude Some Fields
     const { password, ...safeUser } = user;
-    return safeUser;
+    return {
+      ...safeUser,
+      subscription,
+    };
   }
 
   // * Delete one user

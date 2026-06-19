@@ -17,6 +17,7 @@ import {
   accountActivatedTemplate,
   accountAlreadyActivatedTemplate,
 } from '@/utils/email-templates';
+import { generateUsername } from '@/utils/generate-username';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -32,19 +33,11 @@ export class AuthProvider {
     // * Check if user already exist before register
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        OR: [
-          { userName: data.userName },
-          { email: data.email },
-          { phoneNumber: data.phoneNumber },
-        ],
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
       },
     });
 
     if (existingUser) {
-      if (existingUser.userName === data.userName) {
-        throw new UnauthorizedException('Username already exists');
-      }
-
       if (existingUser.email === data.email) {
         throw new UnauthorizedException('Email already exists');
       }
@@ -54,19 +47,48 @@ export class AuthProvider {
       }
     }
 
+    // * Genarate a userName
+    let userName: string;
+    while (true) {
+      userName = generateUsername(data.firstName, data.lastName);
+
+      // * Check if username already exist before register
+      const existingUserName = await this.prisma.user.findUnique({
+        where: {
+          userName: userName,
+        },
+      });
+      if (!existingUserName) {
+        break;
+      }
+    }
+
     // * Hash the password
     const salt = await bcrypt.genSalt(10);
     data.password = await bcrypt.hash(data.password, salt);
 
     // * Add user to database
-    const newUser = await this.prisma.user.create({ data });
+    const newUser = await this.prisma.user.create({
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        userName: userName,
+        email: data.email,
+        password: data.password,
+        phoneNumber: data.phoneNumber,
+        companyName: data.companyName,
+        termsAccepted: data.termsAccepted,
+      },
+    });
 
     // * Generate JWT
     const payload: JWTPayload = { id: newUser.id, userType: newUser.userType };
     const accessToken = await this.jwtService.signAsync(payload);
 
     // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
+    // const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
 
     // * Send Email verification to new user
     try {
@@ -75,7 +97,9 @@ export class AuthProvider {
       throw new RequestTimeoutException('Failed to send verification email');
     }
 
-    return { newUser: safeUser, accessToken };
+    return {
+      message: 'Please activate your account through the email we sent.',
+    };
   }
 
   // * Login

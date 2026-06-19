@@ -37,6 +37,8 @@ import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { AddMemeberDto } from './dtos/add-member.dto';
 import { AddPlanDto } from './dtos/add-plan.dto';
+import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
+import { AddMemebershipPlanDto } from './dtos/add-membership-plan.dto';
 
 @Controller('/api/users')
 export class UsersController {
@@ -197,15 +199,17 @@ export class UsersController {
     return res.sendFile(imagePath);
   }
 
-  // * Active Subscription
-  @Post('active-subscription')
+  // * Add Membership
+  @Post('add-membership')
   @UseGuards(AuthGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  activeSubscription(
-    @Query('plan') plan: string,
+  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  addMembershipPlan(
+    @Body() body: AddMemebershipPlanDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
-    return this.usersService.activeSubscription(userPayload.id, plan);
+    // ! Add memeberShip duration to model Subscription
+    // ! Think about how to let admin create a membership
+    return this.usersService.addMembershipPlan(userPayload.id, body);
   }
 
   // * Add Member by User
@@ -257,8 +261,17 @@ export class UsersController {
   @Post('add-plan')
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles([UserType.OWNER])
-  // @Throttle({ default: { limit: 3, ttl: 600_000 } })
+  @Throttle({ default: { limit: 3, ttl: 600_000 } })
   addPlan(@Body() body: AddPlanDto) {
     return this.usersService.addPlan(body);
+  }
+
+  // * Active Subscription
+  @Post('active-subscription')
+  @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles([UserType.OWNER])
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  activeSubscription(@Body() body: ActiveSubscriptionDto) {
+    return this.usersService.activeSubscription(body);
   }
 }

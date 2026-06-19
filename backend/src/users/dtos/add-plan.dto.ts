@@ -27,4 +27,9 @@ export class AddPlanDto {
   @IsNumber()
   @IsPositive()
   maxMembers!: number;
+
+  // * Duration
+  @IsNumber()
+  @IsPositive()
+  duration!: number;
 }

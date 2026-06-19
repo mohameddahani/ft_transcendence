@@ -58,20 +58,6 @@ export class AddMemeberDto {
   @IsDate()
   birthDate!: Date;
 
-  // * Username
-  @IsString()
-  @MinLength(3)
-  @MaxLength(20)
-  @Matches(/^[a-z0-9_]+$/, {
-    message:
-      'Username can only contain lowercase letters, numbers, and underscores',
-  })
-  // trim spaces from start and end
-  @Transform(({ value }): string =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  userName!: string;
-
   // * Email
   @IsEmail()
   // trim spaces from start and end
