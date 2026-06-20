@@ -8,7 +8,7 @@ import {
 import { Transform } from 'class-transformer';
 
 export class AddPlanDto {
-  // * Name
+  // * Plan Name
   @IsString()
   @MinLength(2)
   @MaxLength(30)
@@ -16,7 +16,7 @@ export class AddPlanDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
-  name!: string;
+  planName!: string;
 
   // * Price
   @IsNumber()
@@ -31,5 +31,5 @@ export class AddPlanDto {
   // * Duration
   @IsNumber()
   @IsPositive()
-  duration!: number;
+  durationDays!: number;
 }

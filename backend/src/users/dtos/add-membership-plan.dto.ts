@@ -1,7 +1,5 @@
-import { MembershipDuration } from '@/generated/prisma/enums';
 import { Transform } from 'class-transformer';
 import {
-  IsEnum,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -11,12 +9,20 @@ import {
 } from 'class-validator';
 
 export class AddMemebershipPlanDto {
-  // * Duration
+  // * Plan Name
+  @IsString()
+  @MinLength(2)
+  @MaxLength(30)
+  // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === 'string' ? value.toUpperCase() : value,
+    typeof value === 'string' ? value.trim() : value,
   )
-  @IsEnum(MembershipDuration)
-  duration!: MembershipDuration;
+  planName!: string;
+
+  // * Duration
+  @IsNumber()
+  @IsPositive()
+  durationDays!: number;
 
   // * Price
   @IsNumber()

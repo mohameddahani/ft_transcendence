@@ -186,7 +186,7 @@ export class UsersService {
     // * Check if plan is already exist
     const newPlan = await this.prisma.plan.findFirst({
       where: {
-        name: data.plan,
+        planName: data.plan,
       },
     });
     if (!newPlan) {
@@ -203,10 +203,9 @@ export class UsersService {
     if (!subscription) {
       // * Create date of expiration
       const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate((expiresAt.getDate() + newPlan.duration) as number); // 19 + 30 => July 19th
+      expiresAt.setDate((expiresAt.getDate() + newPlan.durationDays) as number); // 19 + 30 => July 19th
       return this.prisma.subscription.create({
         data: {
-          name: newPlan.name,
           userId: user.id,
           planId: newPlan.id,
           expiresAt: expiresAt,
@@ -350,7 +349,7 @@ export class UsersService {
     // * Check if plan already exist
     const existingPlan = await this.prisma.plan.findFirst({
       where: {
-        name: data.name,
+        planName: data.planName,
       },
     });
 

@@ -209,7 +209,7 @@ export class UsersController {
   ) {
     // ! Add memeberShip duration to model Subscription
     // ! Think about how to let admin create a membership
-    return this.usersService.addMembershipPlan(userPayload.id, body);
+    // return this.usersService.addMembershipPlan(userPayload.id, body);
   }
 
   // * Add Member by User

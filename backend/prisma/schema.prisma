@@ -49,15 +49,6 @@ enum MemberStatus {
   CANCELLED
 }
 
-// * this enum had Membership Duration
-enum MembershipDuration {
-  MONTHLY
-  QUARTERLY
-  SEMI_ANNUAL
-  ANNUAL
-  CUSTOM
-}
-
 // * this enum had Payment Status
 enum PaymentStatus {
   PAID
@@ -103,15 +94,15 @@ model User {
 model Plan {
   id String @id @default(uuid())
 
-  name String @unique // BASIC, PRO, ENTERPRISE
+  planName String @unique // BASIC, PRO, ENTERPRISE
 
-  price      Decimal @db.Decimal(10, 2)
-  maxMembers Int
-  duration   Int
+  price        Decimal @db.Decimal(10, 2)
+  maxMembers   Int
+  durationDays Int
 
   isActive Boolean @default(true)
 
-  subscriptions    Subscription[] @relation("planId")
+  subscriptions Subscription[] @relation("planId")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -152,9 +143,9 @@ model Member {
   gender           Gender
   birthDate        DateTime
   userName         String       @unique
-  email            String
+  email            String       @unique
   password         String?
-  phoneNumber      String
+  phoneNumber      String       @unique
   photo            String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
@@ -163,9 +154,6 @@ model Member {
 
   membershipId String
   membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
-
-  // membershipId String
-  // membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
 
   startDate     DateTime       @default(now())
   endDate       DateTime
@@ -184,12 +172,13 @@ model MembershipPlan {
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  duration    MembershipDuration @default(MONTHLY)
-  price       Decimal            @db.Decimal(10, 2)
-  description String?
-  members     Member[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  planName     String   @unique
+  durationDays Int
+  price        Decimal  @db.Decimal(10, 2)
+  description  String?
+  members      Member[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("membershipPlans")
 }
