@@ -200,7 +200,7 @@ export class UsersController {
   }
 
   // * Add Membership
-  @Post('add-membership')
+  @Post('add-membership-plan')
   @UseGuards(AuthGuard)
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
   addMembershipPlan(
@@ -209,7 +209,7 @@ export class UsersController {
   ) {
     // ! Add memeberShip duration to model Subscription
     // ! Think about how to let admin create a membership
-    // return this.usersService.addMembershipPlan(userPayload.id, body);
+    return this.usersService.addMembershipPlan(userPayload.id, body);
   }
 
   // * Add Member by User

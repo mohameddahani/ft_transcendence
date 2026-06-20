@@ -18,6 +18,7 @@ import { AddMemeberDto } from './dtos/add-member.dto';
 import { AddPlanDto } from './dtos/add-plan.dto';
 import { generateUsername } from '@/utils/generate-username';
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
+import { AddMemebershipPlanDto } from './dtos/add-membership-plan.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -228,7 +229,32 @@ export class UsersService {
     });
   }
 
+  async addMembershipPlan(adminId: string, data: AddMemebershipPlanDto) {
+    // * Check if membership plan already exist
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        AND: [{ adminId: adminId }, { planName: data.planName }],
+      },
+    });
+
+    if (membershipPlan) {
+      throw new UnauthorizedException('Membership Plan already exists');
+    }
+
+    // * Add membership plan to database
+    await this.prisma.membershipPlan.create({
+      data: {
+        planName: data.planName,
+        durationDays: data.durationDays,
+        price: data.price,
+        description: data.description,
+        admin: { connect: { id: adminId } },
+      },
+    });
+  }
+
   // * Add Member by Admin
+  // async addMember(adminId: string, data: AddMemeberDto, membershipId: string) {
   async addMember(adminId: string, data: AddMemeberDto) {
     // * Check if admin is has already a subscription
     const subscription = await this.prisma.subscription.findFirst({
@@ -245,12 +271,17 @@ export class UsersService {
     // * Check if member already exist
     const existingMember = await this.prisma.member.findFirst({
       where: {
-        email: data.email,
-        phoneNumber: data.phoneNumber,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
       },
     });
     if (existingMember) {
-      throw new UnauthorizedException('Member already exists');
+      if (existingMember.email === data.email) {
+        throw new UnauthorizedException('Email already exists');
+      }
+
+      if (existingMember.phoneNumber === data.phoneNumber) {
+        throw new UnauthorizedException('Phone number already exists');
+      }
     }
 
     // * Genarate a userName
@@ -284,7 +315,9 @@ export class UsersService {
         status: data.status,
         endDate: data.endDate,
         admin: { connect: { id: adminId } },
-        membership: { connect: { id: 'adminId' } },
+        membership: {
+          connect: { id: 'aa3b2806-5cba-413e-800c-a77d1ff9b8b22' },
+        }, // ! Here Please
       },
     });
   }
