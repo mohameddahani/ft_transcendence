@@ -6,6 +6,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { StringValue } from 'ms';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { MembershipPlanModule } from './membership-plans/membership-plans.module';
+import { MembersModule } from './members/members.module';
+import { PlansModule } from './plans/plans.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -42,6 +46,10 @@ import { APP_GUARD } from '@nestjs/core';
     UsersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
+    MembershipPlanModule,
+    MembersModule,
+    PlansModule,
+    SubscriptionsModule,
   ],
 
   providers: [

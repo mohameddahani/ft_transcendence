@@ -3,7 +3,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -14,11 +13,6 @@ import { AuthProvider } from './providers/auth.provider';
 import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
-import { AddMemeberDto } from './dtos/add-member.dto';
-import { AddPlanDto } from './dtos/add-plan.dto';
-import { generateUsername } from '@/utils/generate-username';
-import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
-import { AddMemebershipPlanDto } from './dtos/add-membership-plan.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -172,165 +166,6 @@ export class UsersService {
     await this.findOne(id);
   }
 
-  // * Active Subscription
-  async activeSubscription(data: ActiveSubscriptionDto) {
-    // * Check if admin is already exist
-    const user = await this.prisma.user.findFirst({
-      where: {
-        userName: data.userName,
-      },
-    });
-    if (!user) {
-      throw new NotFoundException('User Not Found');
-    }
-
-    // * Check if plan is already exist
-    const newPlan = await this.prisma.plan.findFirst({
-      where: {
-        planName: data.plan,
-      },
-    });
-    if (!newPlan) {
-      throw new NotFoundException('Plan Not Found');
-    }
-
-    // * Check if admin is has already a subscription
-    const subscription = await this.prisma.subscription.findFirst({
-      where: {
-        userId: user.id,
-      },
-    });
-    // * No subscription
-    if (!subscription) {
-      // * Create date of expiration
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate((expiresAt.getDate() + newPlan.durationDays) as number); // 19 + 30 => July 19th
-      return this.prisma.subscription.create({
-        data: {
-          userId: user.id,
-          planId: newPlan.id,
-          expiresAt: expiresAt,
-          amount: newPlan.price,
-        },
-      });
-    }
-
-    // * Already same plan
-    if (subscription.planId === newPlan.id) {
-      throw new ConflictException('You already have this subscription');
-    }
-
-    // * Upgrade / change plan
-    return this.prisma.subscription.update({
-      where: { id: subscription.id },
-      data: {
-        planId: newPlan.id,
-      },
-    });
-  }
-
-  async addMembershipPlan(adminId: string, data: AddMemebershipPlanDto) {
-    // * Check if membership plan already exist
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
-      where: {
-        AND: [{ adminId: adminId }, { planName: data.planName }],
-      },
-    });
-
-    if (membershipPlan) {
-      throw new UnauthorizedException('Membership Plan already exists');
-    }
-
-    // * Add membership plan to database
-    await this.prisma.membershipPlan.create({
-      data: {
-        planName: data.planName,
-        durationDays: data.durationDays,
-        price: data.price,
-        description: data.description,
-        admin: { connect: { id: adminId } },
-      },
-    });
-  }
-
-  // * Add Member by Admin
-  async addMember(adminId: string, data: AddMemeberDto) {
-    // * Check if admin is has already a subscription
-    const subscription = await this.prisma.subscription.findFirst({
-      where: {
-        userId: adminId,
-      },
-    });
-    if (!subscription) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    }
-
-    // * Check if the user has this plan
-    const plans = await this.prisma.membershipPlan.findUnique({
-      where: {
-        id: data.membershipId,
-      },
-    });
-    if (!plans) {
-      throw new NotFoundException('There is No Plan, Please Add a Plan');
-    }
-
-    // * Check if member already exist
-    const existingMember = await this.prisma.member.findFirst({
-      where: {
-        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
-      },
-    });
-    if (existingMember) {
-      if (existingMember.email === data.email) {
-        throw new UnauthorizedException('Email already exists');
-      }
-
-      if (existingMember.phoneNumber === data.phoneNumber) {
-        throw new UnauthorizedException('Phone number already exists');
-      }
-    }
-
-    // * Genarate a userName
-    let userName: string;
-    while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
-
-      // * Check if username already exist before register
-      const existingUserName = await this.prisma.user.findUnique({
-        where: {
-          userName: userName,
-        },
-      });
-      if (!existingUserName) {
-        break;
-      }
-    }
-
-    // * Add members to database
-    await this.prisma.member.create({
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        birthDate: data.birthDate,
-        userName: userName,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        emergencyContact: data.emergencyContact,
-        status: data.status,
-        endDate: data.endDate,
-        admin: { connect: { id: adminId } },
-        membership: {
-          connect: { id: data.membershipId },
-        },
-      },
-    });
-  }
-
   // ! All this routes is Access only by Owner
   // * Get all users
   async findAll(page: number, limit: number) {
@@ -384,22 +219,5 @@ export class UsersService {
     await this.findOne(id);
 
     await this.prisma.user.delete({ where: { id } });
-  }
-
-  // * Add Plan by Owner
-  async addPlan(data: AddPlanDto) {
-    // * Check if plan already exist
-    const existingPlan = await this.prisma.plan.findFirst({
-      where: {
-        planName: data.planName,
-      },
-    });
-
-    if (existingPlan) {
-      throw new UnauthorizedException('Username already exists');
-    }
-
-    // * Add plan to database
-    await this.prisma.plan.create({ data });
   }
 }

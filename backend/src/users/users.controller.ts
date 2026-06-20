@@ -35,10 +35,6 @@ import { existsSync } from 'fs';
 import { ForgotPasswordUserDto } from './dtos/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { AddMemeberDto } from './dtos/add-member.dto';
-import { AddPlanDto } from './dtos/add-plan.dto';
-import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
-import { AddMemebershipPlanDto } from './dtos/add-membership-plan.dto';
 
 @Controller('/api/users')
 export class UsersController {
@@ -199,42 +195,6 @@ export class UsersController {
     return res.sendFile(imagePath);
   }
 
-  // * Add Membership
-  @Post('add-membership-plan')
-  @UseGuards(AuthGuard)
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
-  addMembershipPlan(
-    @Body() body: AddMemebershipPlanDto,
-    @CurrentUser() userPayload: JWTPayload,
-  ) {
-    return this.usersService.addMembershipPlan(userPayload.id, body);
-  }
-
-  // ! Upgrade a membership-plan of member
-  // ! Upgrade a plan
-
-  // ! Update membership-plan
-  // ! Update plan
-  // ! update member
-
-  // ! GET all members / One member
-  // ! GET all membership-plan / One membership-plan
-  // ! GET all plan / One plan
-  // ! GET all subscription / One subscription
-  // ! GET all payment / One payment
-  // ! GET all notification / One notification
-
-  // * Add Member by User
-  @Post('add-member')
-  @UseGuards(AuthGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  addMember(
-    @Body() body: AddMemeberDto,
-    @CurrentUser() userPayload: JWTPayload,
-  ) {
-    return this.usersService.addMember(userPayload.id, body);
-  }
-
   // ! All this routes is Access only by Owner
 
   // * Get all users
@@ -267,23 +227,5 @@ export class UsersController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.remove(id);
-  }
-
-  // * Add Plan
-  @Post('add-plan')
-  @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 3, ttl: 600_000 } })
-  addPlan(@Body() body: AddPlanDto) {
-    return this.usersService.addPlan(body);
-  }
-
-  // * Active Subscription
-  @Post('active-subscription')
-  @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  activeSubscription(@Body() body: ActiveSubscriptionDto) {
-    return this.usersService.activeSubscription(body);
   }
 }
