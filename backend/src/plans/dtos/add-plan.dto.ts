@@ -1,5 +1,6 @@
 import {
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
   MaxLength,
@@ -18,18 +19,15 @@ export class AddPlanDto {
   )
   planName!: string;
 
-  // * Price
-  @IsNumber()
-  @IsPositive()
-  price!: number;
-
   // * Max Members
   @IsNumber()
   @IsPositive()
   maxMembers!: number;
 
-  // * Duration
-  @IsNumber()
-  @IsPositive()
-  durationDays!: number;
+  // * Description
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  description!: string;
 }

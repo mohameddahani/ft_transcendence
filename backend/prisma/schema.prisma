@@ -96,9 +96,9 @@ model Plan {
 
   planName String @unique // BASIC, PRO, ENTERPRISE
 
-  price        Decimal @db.Decimal(10, 2)
-  maxMembers   Int
-  durationDays Int
+  maxMembers  Int
+  description String?
+  durations   PlanDuration[]
 
   isActive Boolean @default(true)
 
@@ -108,6 +108,20 @@ model Plan {
   updatedAt DateTime @updatedAt
 
   @@map("plans")
+}
+
+// * Table of Plan Duration
+model PlanDuration {
+  id String @id @default(uuid())
+
+  durationDays Int
+  price        Decimal @db.Decimal(10, 2)
+
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // * Table of Subscription
@@ -165,22 +179,35 @@ model Member {
   @@map("members")
 }
 
-// * Table of Membership Plain
+// * Table of Membership Plan
 model MembershipPlan {
   id String @id @default(uuid())
 
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  planName     String   @unique
-  durationDays Int
-  price        Decimal  @db.Decimal(10, 2)
-  description  String?
-  members      Member[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  planName                String                   @unique
+  description             String?
+  membershipPlanDurations MembershipPlanDuration[]
+  members                 Member[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
   @@map("membershipPlans")
+}
+
+// * Table of Membership plan Duration
+model MembershipPlanDuration {
+  id String @id @default(uuid())
+
+  durationDays Int
+  price        Decimal @db.Decimal(10, 2)
+
+  membershipPlanId String
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // * Table of Membership Plain

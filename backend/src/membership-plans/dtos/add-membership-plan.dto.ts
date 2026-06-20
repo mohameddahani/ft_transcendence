@@ -1,12 +1,5 @@
 import { Transform } from 'class-transformer';
-import {
-  IsNumber,
-  IsOptional,
-  IsPositive,
-  IsString,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class AddMemebershipPlanDto {
   // * Plan Name
@@ -18,16 +11,6 @@ export class AddMemebershipPlanDto {
     typeof value === 'string' ? value.trim() : value,
   )
   planName!: string;
-
-  // * Duration
-  @IsNumber()
-  @IsPositive()
-  durationDays!: number;
-
-  // * Price
-  @IsNumber()
-  @IsPositive()
-  price!: number;
 
   // * Description
   @IsOptional()
