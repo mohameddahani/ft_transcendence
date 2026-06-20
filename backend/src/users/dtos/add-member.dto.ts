@@ -105,6 +105,10 @@ export class AddMemeberDto {
   @IsEnum(MemberStatus)
   status!: MemberStatus;
 
+  // * Membership id
+  @IsString()
+  membershipId!: string;
+
   // * End Date
   @Type(() => Date)
   @IsDate()

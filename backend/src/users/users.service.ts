@@ -254,7 +254,6 @@ export class UsersService {
   }
 
   // * Add Member by Admin
-  // async addMember(adminId: string, data: AddMemeberDto, membershipId: string) {
   async addMember(adminId: string, data: AddMemeberDto) {
     // * Check if admin is has already a subscription
     const subscription = await this.prisma.subscription.findFirst({
@@ -266,6 +265,16 @@ export class UsersService {
       throw new UnauthorizedException(
         'You don’t have an active subscription. Upgrade your plan to continue.',
       );
+    }
+
+    // * Check if the user has this plan
+    const plans = await this.prisma.membershipPlan.findUnique({
+      where: {
+        id: data.membershipId,
+      },
+    });
+    if (!plans) {
+      throw new NotFoundException('There is No Plan, Please Add a Plan');
     }
 
     // * Check if member already exist
@@ -316,8 +325,8 @@ export class UsersService {
         endDate: data.endDate,
         admin: { connect: { id: adminId } },
         membership: {
-          connect: { id: 'aa3b2806-5cba-413e-800c-a77d1ff9b8b22' },
-        }, // ! Here Please
+          connect: { id: data.membershipId },
+        },
       },
     });
   }
