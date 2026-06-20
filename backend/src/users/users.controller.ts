@@ -207,10 +207,22 @@ export class UsersController {
     @Body() body: AddMemebershipPlanDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
-    // ! Add memeberShip duration to model Subscription
-    // ! Think about how to let admin create a membership
     return this.usersService.addMembershipPlan(userPayload.id, body);
   }
+
+  // ! Upgrade a membership-plan of member
+  // ! Upgrade a plan
+
+  // ! Update membership-plan
+  // ! Update plan
+  // ! update member
+
+  // ! GET all members / One member
+  // ! GET all membership-plan / One membership-plan
+  // ! GET all plan / One plan
+  // ! GET all subscription / One subscription
+  // ! GET all payment / One payment
+  // ! GET all notification / One notification
 
   // * Add Member by User
   @Post('add-member')
