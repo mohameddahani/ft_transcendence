@@ -23,8 +23,6 @@ export class MembershipPlanService {
     await this.prisma.membershipPlan.create({
       data: {
         planName: data.planName,
-        durationDays: data.durationDays,
-        price: data.price,
         description: data.description,
         admin: { connect: { id: adminId } },
       },

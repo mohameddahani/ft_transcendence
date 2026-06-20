@@ -42,13 +42,14 @@ export class SubscriptionsService {
     if (!subscription) {
       // * Create date of expiration
       const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate((expiresAt.getDate() + newPlan.durationDays) as number); // 19 + 30 => July 19th
+      // expiresAt.setDate((expiresAt.getDate() + newPlan.durationDays) as number); // 19 + 30 => July 19th
       return this.prisma.subscription.create({
         data: {
           userId: user.id,
           planId: newPlan.id,
           expiresAt: expiresAt,
-          amount: newPlan.price,
+          amount: 10,
+          // amount: newPlan.price,
         },
       });
     }

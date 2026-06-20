@@ -1,6 +1,10 @@
-import { IsNumber, IsPositive } from 'class-validator';
+import { IsNumber, IsPositive, IsString } from 'class-validator';
 
 export class AddPlanDurationDto {
+  // * PlanId
+  @IsString()
+  planId!: string;
+
   // * Duration
   @IsNumber()
   @IsPositive()

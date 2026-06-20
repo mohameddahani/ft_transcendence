@@ -96,7 +96,7 @@ model Plan {
 
   planName String @unique // BASIC, PRO, ENTERPRISE
 
-  maxMembers  Int
+  maxMembers  Int // 100
   description String?
   durations   PlanDuration[]
 
@@ -122,6 +122,8 @@ model PlanDuration {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("planDurations")
 }
 
 // * Table of Subscription
@@ -208,6 +210,8 @@ model MembershipPlanDuration {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("membershipPlanDurations")
 }
 
 // * Table of Membership Plain

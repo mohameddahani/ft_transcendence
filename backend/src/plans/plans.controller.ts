@@ -6,6 +6,7 @@ import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { PlansService } from './plans.service';
+import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 
 @Controller('/api/plans')
 export class PlansController {
@@ -18,5 +19,14 @@ export class PlansController {
   @Throttle({ default: { limit: 3, ttl: 600_000 } })
   addPlan(@Body() body: AddPlanDto) {
     return this.plansService.addPlan(body);
+  }
+
+  // * Add Plan Duration
+  @Post('durations')
+  @UseGuards(AuthGuard, AuthRolesGuard)
+  @Roles([UserType.OWNER])
+  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  addPlanDuration(@Body() body: AddPlanDurationDto) {
+    return this.plansService.addPlanDuration(body);
   }
 }
