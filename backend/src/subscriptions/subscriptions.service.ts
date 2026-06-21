@@ -25,11 +25,22 @@ export class SubscriptionsService {
     // * Check if plan is already exist
     const newPlan = await this.prisma.plan.findFirst({
       where: {
-        planName: data.plan,
+        id: data.planId,
       },
     });
     if (!newPlan) {
       throw new NotFoundException('Plan Not Found');
+    }
+
+    // * Check if duration is already exist for this plan
+    const duration = await this.prisma.planDuration.findFirst({
+      where: {
+        id: data.durationId,
+        planId: data.planId,
+      },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration does not exist for this plan');
     }
 
     // * Check if admin is has already a subscription
@@ -42,14 +53,13 @@ export class SubscriptionsService {
     if (!subscription) {
       // * Create date of expiration
       const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      // expiresAt.setDate((expiresAt.getDate() + newPlan.durationDays) as number); // 19 + 30 => July 19th
+      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
       return this.prisma.subscription.create({
         data: {
-          userId: user.id,
-          planId: newPlan.id,
+          user: { connect: { id: user.id } },
+          plan: { connect: { id: newPlan.id } },
           expiresAt: expiresAt,
-          amount: 10,
-          // amount: newPlan.price,
+          amount: duration.price,
         },
       });
     }
