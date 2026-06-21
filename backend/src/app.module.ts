@@ -10,6 +10,8 @@ import { MembershipPlanModule } from './membership-plans/membership-plans.module
 import { MembersModule } from './members/members.module';
 import { PlansModule } from './plans/plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SubscriptionCron } from './cron/subscription.cron';
 
 @Module({
   imports: [
@@ -43,6 +45,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
       },
     ]),
 
+    // * Task scheduling (Cron)
+    ScheduleModule.forRoot(),
+
     UsersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
@@ -56,6 +61,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     // * Provider of Rate Limiting
     // * Applied globally
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+
+    // * Cron
+    SubscriptionCron,
   ],
 })
 export class AppModule {}

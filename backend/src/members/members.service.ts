@@ -20,6 +20,9 @@ export class MembersService {
       where: {
         userId: adminId,
         status: SubscriptionStatus.ACTIVE,
+        expiresAt: {
+          gt: new Date(), // * check if subscription is expired
+        },
       },
       include: {
         plan: true,
