@@ -54,6 +54,12 @@ export class PlansService {
     }
 
     // * Add plan duration to database
-    await this.prisma.planDuration.create({ data });
+    await this.prisma.planDuration.create({
+      data: {
+        durationDays: data.durationDays,
+        price: data.price,
+        plan: { connect: { id: data.planId } },
+      },
+    });
   }
 }

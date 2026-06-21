@@ -169,7 +169,7 @@ model Member {
   status           MemberStatus
 
   membershipId String
-  membership   MembershipPlan? @relation(fields: [membershipId], references: [id])
+  membership   MembershipPlan @relation(fields: [membershipId], references: [id])
 
   startDate     DateTime       @default(now())
   endDate       DateTime

@@ -16,7 +16,7 @@ export class PlansController {
   @Post()
   @UseGuards(AuthGuard, AuthRolesGuard)
   @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 3, ttl: 600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 600_000 } })
   addPlan(@Body() body: AddPlanDto) {
     return this.plansService.addPlan(body);
   }
