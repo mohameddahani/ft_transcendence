@@ -2,10 +2,12 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { AddMemeberDto } from '@/members/dtos/add-member.dto';
 import { generateUsername } from '@/utils/generate-username';
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { SubscriptionStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class MembersService {
@@ -17,6 +19,10 @@ export class MembersService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: adminId,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      include: {
+        plan: true,
       },
     });
     if (!subscription) {
@@ -25,13 +31,26 @@ export class MembersService {
       );
     }
 
+    // * Check if admin has place for new member
+    // * Count Members
+    const membersCount = await this.prisma.member.count({
+      where: {
+        adminId,
+      },
+    });
+    if (membersCount >= subscription.plan.maxMembers) {
+      throw new ForbiddenException(
+        `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
+      );
+    }
+
     // * Check if the admin has this membership plan
-    const plans = await this.prisma.membershipPlan.findUnique({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         id: data.membershipPlanId,
       },
     });
-    if (!plans) {
+    if (!membershipPlan) {
       throw new NotFoundException('There is No Plan, Please Add a Plan');
     }
 
