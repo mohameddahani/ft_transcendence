@@ -9,7 +9,7 @@ import {
   IsDate,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { Gender, MemberStatus } from '@/generated/prisma/enums';
+import { Gender } from '@/generated/prisma/enums';
 
 export class AddMemeberDto {
   // * First Name
@@ -98,19 +98,7 @@ export class AddMemeberDto {
   )
   emergencyContact!: string;
 
-  // * Status
-  @Transform(({ value }): string =>
-    typeof value === 'string' ? value.toUpperCase() : value,
-  )
-  @IsEnum(MemberStatus)
-  status!: MemberStatus;
-
   // * Membership id
   @IsString()
   membershipId!: string;
-
-  // * End Date
-  @Type(() => Date)
-  @IsDate()
-  endDate!: Date;
 }

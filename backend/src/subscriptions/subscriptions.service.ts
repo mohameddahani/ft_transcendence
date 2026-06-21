@@ -58,6 +58,7 @@ export class SubscriptionsService {
         data: {
           user: { connect: { id: user.id } },
           plan: { connect: { id: newPlan.id } },
+          planDuration: { connect: { id: duration.id } },
           expiresAt: expiresAt,
           amount: duration.price,
         },

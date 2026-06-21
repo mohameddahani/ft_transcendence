@@ -5,6 +5,7 @@ import type { JWTPayload } from '@/utils/types';
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MembershipPlanService } from './membership-plans.service';
+import { AddMemebershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 
 @Controller('/api/membership-plans')
 export class MembershipPlanController {
@@ -19,5 +20,13 @@ export class MembershipPlanController {
     @CurrentUser() userPayload: JWTPayload,
   ) {
     return this.membershipPlanService.addMembershipPlan(userPayload.id, body);
+  }
+
+  // * Add Membership Duration
+  @Post('durations')
+  @UseGuards(AuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  addMembershipPlanDuration(@Body() body: AddMemebershipPlanDurationDto) {
+    return this.membershipPlanService.addMembershipPlanDuration(body);
   }
 }

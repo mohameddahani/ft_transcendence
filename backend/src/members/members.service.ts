@@ -25,7 +25,7 @@ export class MembersService {
       );
     }
 
-    // * Check if the user has this plan
+    // * Check if the admin has this plan
     const plans = await this.prisma.membershipPlan.findUnique({
       where: {
         id: data.membershipId,
@@ -38,6 +38,7 @@ export class MembersService {
     // * Check if member already exist
     const existingMember = await this.prisma.member.findFirst({
       where: {
+        adminId: adminId,
         OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
       },
     });
@@ -57,7 +58,7 @@ export class MembersService {
       userName = generateUsername(data.firstName, data.lastName);
 
       // * Check if username already exist before register
-      const existingUserName = await this.prisma.user.findUnique({
+      const existingUserName = await this.prisma.member.findUnique({
         where: {
           userName: userName,
         },
@@ -70,6 +71,7 @@ export class MembersService {
     // * Add members to database
     await this.prisma.member.create({
       data: {
+        admin: { connect: { id: adminId } },
         firstName: data.firstName,
         lastName: data.lastName,
         gender: data.gender,
@@ -79,12 +81,11 @@ export class MembersService {
         phoneNumber: data.phoneNumber,
         address: data.address,
         emergencyContact: data.emergencyContact,
-        status: data.status,
-        endDate: data.endDate,
-        admin: { connect: { id: adminId } },
         membership: {
           connect: { id: data.membershipId },
         },
+        membershipPlanDuration: { connect: { id: '' } }, // ! ADD ID HERE
+        // endDate: data.endDate,
       },
     });
   }

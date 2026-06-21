@@ -120,6 +120,8 @@ model PlanDuration {
   planId String
   plan   Plan   @relation(fields: [planId], references: [id])
 
+  subscriptions Subscription[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -135,6 +137,9 @@ model Subscription {
 
   planId String
   plan   Plan   @relation("planId", fields: [planId], references: [id])
+
+  planDurationId String
+  planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
 
   status    SubscriptionStatus @default(ACTIVE)
   startedAt DateTime           @default(now())
@@ -159,17 +164,20 @@ model Member {
   gender           Gender
   birthDate        DateTime
   userName         String       @unique
-  email            String       @unique
+  email            String
   password         String?
-  phoneNumber      String       @unique
+  phoneNumber      String
   photo            String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
   userType         UserType     @default(USER)
-  status           MemberStatus
+  status           MemberStatus @default(ACTIVE)
 
-  membershipId String
-  membership   MembershipPlan @relation(fields: [membershipId], references: [id])
+  membershipPlanId String
+  membership       MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  membershipPlanDurationId String
+  membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
   startDate     DateTime       @default(now())
   endDate       DateTime
@@ -188,7 +196,7 @@ model MembershipPlan {
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  planName                String                   @unique
+  planName                String
   description             String?
   membershipPlanDurations MembershipPlanDuration[]
   members                 Member[]
@@ -207,6 +215,8 @@ model MembershipPlanDuration {
 
   membershipPlanId String
   membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  members Member[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
