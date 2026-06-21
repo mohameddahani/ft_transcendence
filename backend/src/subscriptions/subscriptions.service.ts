@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,6 +31,19 @@ export class SubscriptionsService {
     });
     if (!newPlan) {
       throw new NotFoundException('Plan Not Found');
+    }
+
+    // * check if user try to do downground and he has already users more that plan
+    // * Count Members
+    const membersCount = await this.prisma.member.count({
+      where: {
+        adminId: user.id,
+      },
+    });
+    if (membersCount >= newPlan.maxMembers) {
+      throw new ForbiddenException(
+        `Plan downgrade is not allowed. You currently have ${membersCount} members, but the selected plan supports a maximum of ${newPlan.maxMembers} members.`,
+      );
     }
 
     // * Check if duration is already exist for this plan
