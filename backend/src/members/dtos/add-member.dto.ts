@@ -98,7 +98,11 @@ export class AddMemeberDto {
   )
   emergencyContact!: string;
 
-  // * Membership id
+  // * Membership plan id
   @IsString()
-  membershipId!: string;
+  membershipPlanId!: string;
+
+  // * DurationId
+  @IsString()
+  durationId!: string;
 }

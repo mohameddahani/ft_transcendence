@@ -180,7 +180,7 @@ model Member {
   membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
   startDate     DateTime       @default(now())
-  endDate       DateTime
+  expiresAt     DateTime
   payments      Payment[]
   notifications Notification[]
   createdAt     DateTime       @default(now())

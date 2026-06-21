@@ -25,14 +25,25 @@ export class MembersService {
       );
     }
 
-    // * Check if the admin has this plan
+    // * Check if the admin has this membership plan
     const plans = await this.prisma.membershipPlan.findUnique({
       where: {
-        id: data.membershipId,
+        id: data.membershipPlanId,
       },
     });
     if (!plans) {
       throw new NotFoundException('There is No Plan, Please Add a Plan');
+    }
+
+    // * Check if duration is already exist for this membership plan
+    const duration = await this.prisma.membershipPlanDuration.findFirst({
+      where: {
+        id: data.durationId,
+        membershipPlanId: data.membershipPlanId,
+      },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration does not exist for this plan');
     }
 
     // * Check if member already exist
@@ -69,6 +80,8 @@ export class MembersService {
     }
 
     // * Add members to database
+    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
     await this.prisma.member.create({
       data: {
         admin: { connect: { id: adminId } },
@@ -82,10 +95,10 @@ export class MembersService {
         address: data.address,
         emergencyContact: data.emergencyContact,
         membership: {
-          connect: { id: data.membershipId },
+          connect: { id: data.membershipPlanId },
         },
-        membershipPlanDuration: { connect: { id: '' } }, // ! ADD ID HERE
-        // endDate: data.endDate,
+        membershipPlanDuration: { connect: { id: duration.id } },
+        expiresAt: expiresAt,
       },
     });
   }
