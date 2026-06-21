@@ -21,7 +21,7 @@ export class PlansService {
     });
 
     if (existingPlan) {
-      throw new UnauthorizedException('Username already exists');
+      throw new UnauthorizedException('Plan Name already exists');
     }
 
     // * Add plan to database

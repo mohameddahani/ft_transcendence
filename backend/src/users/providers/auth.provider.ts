@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   RequestTimeoutException,
@@ -45,6 +46,13 @@ export class AuthProvider {
       if (existingUser.phoneNumber === data.phoneNumber) {
         throw new UnauthorizedException('Phone number already exists');
       }
+    }
+
+    // * Check if user accept the terms
+    if (!data.termsAccepted) {
+      throw new BadRequestException(
+        'You must accept the Terms and Conditions to create an account.',
+      );
     }
 
     // * Genarate a userName
