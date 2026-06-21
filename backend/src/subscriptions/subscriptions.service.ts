@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { PrismaService } from '@/prisma/prisma.service';
+import { SubscriptionStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class SubscriptionsService {
@@ -61,6 +62,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,
+        status: SubscriptionStatus.ACTIVE,
       },
     });
     // * No subscription
