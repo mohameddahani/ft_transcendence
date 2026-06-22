@@ -2,22 +2,58 @@ import { CurrentUser } from '@/decorators/current-user.decorator';
 import { AddMemeberDto } from '@/members/dtos/add-member.dto';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import type { JWTPayload } from '@/utils/types';
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MembersService } from './members.service';
+import { UserType } from '@/generated/prisma/enums';
+import { Roles } from '@/decorators/user-role.decorator';
+import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 
 @Controller('/api/members')
+// * Make Authorazation Golbal on this route
+@UseGuards(AuthGuard, AuthRolesGuard)
+@Roles([UserType.ADMIN])
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   // * Add Member by User
   @Post()
-  @UseGuards(AuthGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   addMember(
     @Body() body: AddMemeberDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
     return this.membersService.addMember(userPayload.id, body);
+  }
+
+  // * Get all Members
+  @Get()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAll(
+    @CurrentUser() userPayload: JWTPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.membersService.findAll(userPayload.id, page, limit);
+  }
+
+  // * Get one member
+  @Get(':id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  findOne(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.findOne(userPayload.id, id);
   }
 }

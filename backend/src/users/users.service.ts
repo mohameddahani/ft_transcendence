@@ -14,7 +14,6 @@ import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
 export class UsersService {
   constructor(
@@ -49,13 +48,31 @@ export class UsersService {
 
   // * Get current user
   async findMe(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        userType: true,
+        profileImage: true,
+        isAccountVerified: true,
+        accountStatus: true,
+        termsAccepted: true,
+        subscription: true,
+      },
+    });
+
     if (!user) {
       throw new NotFoundException('User Not Found');
     }
-    // * Exclude Some Fields
-    const { id: userId, password, createdAt, updatedAt, ...safeUser } = user;
-    return safeUser;
+
+    return user;
   }
 
   // * Update data of user
@@ -172,7 +189,24 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       skip: (page - 1) * limit,
       take: limit,
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        userType: true,
+        profileImage: true,
+        isAccountVerified: true,
+        accountStatus: true,
+        termsAccepted: true,
+        createdAt: true,
+        updatedAt: true,
+
         subscription: {
           include: {
             plan: true,
@@ -180,37 +214,49 @@ export class UsersService {
         },
       },
     });
-    if (users.length == 0) {
+
+    if (users.length === 0) {
       throw new NotFoundException('No Users To Show');
     }
 
-    // * Exclude Some Fields
-    const safeUsers = users.map(({ password, ...user }) => user);
-
-    return safeUsers;
+    return users;
   }
 
   // * Get one user
   async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        userType: true,
+        profileImage: true,
+        isAccountVerified: true,
+        accountStatus: true,
+        termsAccepted: true,
+        createdAt: true,
+        updatedAt: true,
+
+        subscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
+    });
+
     if (!user) {
       throw new NotFoundException('User Not Found');
     }
 
-    // * Get subscription of user
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { userId: id },
-      include: {
-        plan: true,
-      },
-    });
-
-    // * Exclude Some Fields
-    const { password, ...safeUser } = user;
-    return {
-      ...safeUser,
-      subscription,
-    };
+    return user;
   }
 
   // * Delete one user

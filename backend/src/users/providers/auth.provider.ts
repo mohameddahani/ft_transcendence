@@ -95,9 +95,6 @@ export class AuthProvider {
     const payload: JWTPayload = { id: newUser.id, userType: newUser.userType };
     const accessToken = await this.jwtService.signAsync(payload);
 
-    // * Exclude Some Fields
-    // const { id, password, createdAt, updatedAt, ...safeUser } = newUser;
-
     // * Send Email verification to new user
     try {
       await this.emailService.sendVerificationEmail(newUser.email, accessToken);

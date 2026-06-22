@@ -124,4 +124,89 @@ export class MembersService {
       },
     });
   }
+
+  // * Get all Members
+  async findAll(adminId: string, page: number, limit: number) {
+    const members = await this.prisma.member.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        adminId: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        photo: true,
+        address: true,
+        emergencyContact: true,
+        userType: true,
+        status: true,
+        membershipPlanId: true,
+        membershipPlanDurationId: true,
+        startDate: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+
+        membership: true,
+        membershipPlanDuration: true,
+        payments: true,
+        notifications: true,
+      },
+    });
+    if (members.length === 0) {
+      throw new NotFoundException('No Members To Show');
+    }
+
+    return members;
+  }
+
+  // * Get one Member
+  async findOne(adminId: string, memberId: string) {
+    const member = await this.prisma.member.findUnique({
+      where: {
+        adminId,
+        id: memberId,
+      },
+      select: {
+        id: true,
+        adminId: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        photo: true,
+        address: true,
+        emergencyContact: true,
+        userType: true,
+        status: true,
+        membershipPlanId: true,
+        membershipPlanDurationId: true,
+        startDate: true,
+        expiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+
+        membership: true,
+        membershipPlanDuration: true,
+        payments: true,
+        notifications: true,
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('No Member To Show');
+    }
+
+    return member;
+  }
 }

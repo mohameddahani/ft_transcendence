@@ -17,6 +17,9 @@
 // ! track plan of member (ui ux of member not admin)
 // ! add profile image of member (ui ux of member not admin)
 
+// ! Logic code of payment
+// ! Logic code of notifications
+
 // todo: check admin of gym when he try to add members has more palace depend on his plan or subscription
 // todo: Check Down grade of plans of admin of gym by number of members
 
