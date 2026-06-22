@@ -12,6 +12,8 @@ import { PlansModule } from './plans/plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './cron/subscription.cron';
+import { MembershipPlanCron } from './cron/membership-plan.cron';
+import { PaymentCron } from './cron/payment.cron';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { SubscriptionCron } from './cron/subscription.cron';
 
     // * Cron
     SubscriptionCron,
+    MembershipPlanCron,
+    PaymentCron,
   ],
 })
 export class AppModule {}

@@ -2,12 +2,13 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { AddMemeberDto } from '@/members/dtos/add-member.dto';
 import { generateUsername } from '@/utils/generate-username';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { PaymentStatus, SubscriptionStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class MembersService {
@@ -104,7 +105,7 @@ export class MembersService {
     // * Add members to database
     const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
     expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-    await this.prisma.member.create({
+    const member = await this.prisma.member.create({
       data: {
         admin: { connect: { id: adminId } },
         firstName: data.firstName,
@@ -121,6 +122,24 @@ export class MembersService {
         },
         membershipPlanDuration: { connect: { id: duration.id } },
         expiresAt: expiresAt,
+      },
+      include: {
+        membershipPlanDuration: true,
+      },
+    });
+    if (!member) {
+      throw new BadRequestException('Somthing Went Wrong');
+    }
+
+    // * Add Payment of Member
+    await this.prisma.payment.create({
+      data: {
+        member: { connect: { id: member.id } },
+        amount: member.membershipPlanDuration.price,
+        paidAt: member.startDate,
+        dueDate: member.expiresAt,
+        status: PaymentStatus.PAID,
+        note: data.note,
       },
     });
   }

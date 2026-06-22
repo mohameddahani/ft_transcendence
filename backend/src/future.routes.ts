@@ -9,6 +9,10 @@
 // ! Delete plan
 // ! Delete member
 
+// ! Ban any user by owner or make him pending
+// ! Cancel the subscription by owner
+// ! Ban or Frozen a member by admin
+
 // * GET all members / One member
 // * GET all membership-plan / One membership-plan
 // * GET all plan / One plan

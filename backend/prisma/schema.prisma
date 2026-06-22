@@ -46,13 +46,12 @@ enum MemberStatus {
   ACTIVE
   EXPIRED
   FROZEN
-  CANCELLED
+  BANNED
 }
 
 // * this enum had Payment Status
 enum PaymentStatus {
   PAID
-  PARTIAL
   UNPAID
   OVERDUE
 }
@@ -231,14 +230,13 @@ model Payment {
   memberId String
   member   Member @relation(fields: [memberId], references: [id])
 
-  amount     Decimal       @db.Decimal(10, 2)
-  paidAmount Decimal       @db.Decimal(10, 2)
-  dueDate    DateTime
-  paidAt     DateTime
-  status     PaymentStatus
-  note       String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  amount    Decimal       @db.Decimal(10, 2)
+  paidAt    DateTime
+  dueDate   DateTime
+  status    PaymentStatus @default(UNPAID)
+  note      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@map("payments")
 }

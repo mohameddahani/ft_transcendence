@@ -7,6 +7,7 @@ import {
   IsPhoneNumber,
   IsEnum,
   IsDate,
+  IsOptional,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
@@ -105,4 +106,12 @@ export class AddMemeberDto {
   // * DurationId
   @IsString()
   durationId!: string;
+
+  // ! This for payment
+  // * Note
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  note!: string;
 }
