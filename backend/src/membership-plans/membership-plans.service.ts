@@ -104,7 +104,7 @@ export class MembershipPlanService {
       },
     });
     if (!membershipPlan) {
-      throw new NotFoundException('No Member To Show');
+      throw new NotFoundException('No Membership To Show');
     }
 
     return membershipPlan;

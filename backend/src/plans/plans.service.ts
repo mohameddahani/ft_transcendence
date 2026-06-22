@@ -62,4 +62,39 @@ export class PlansService {
       },
     });
   }
+
+  // * Get all Plans
+  async findAll(page: number, limit: number) {
+    const plan = await this.prisma.plan.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        durations: true,
+        // subscriptions: true,
+      },
+    });
+    if (plan.length === 0) {
+      throw new NotFoundException('No Plan To Show');
+    }
+
+    return plan;
+  }
+
+  // * Get one Plan
+  async findOne(planId: string) {
+    const plan = await this.prisma.plan.findUnique({
+      where: {
+        id: planId,
+      },
+      include: {
+        durations: true,
+        // subscriptions: true,
+      },
+    });
+    if (!plan) {
+      throw new NotFoundException('No Plan To Show');
+    }
+
+    return plan;
+  }
 }
