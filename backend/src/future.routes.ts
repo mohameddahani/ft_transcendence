@@ -1,14 +1,18 @@
-// ! Upgrade a membership-plan of member
-// ! Upgrade a plan
+// * Upgrade a membership-plan of member
+// * Upgrade a plan
 
 // ! Update membership-plan
 // ! Update plan
 // ! update member
 
-// ! GET all members / One member
-// ! GET all membership-plan / One membership-plan
-// ! GET all plan / One plan
-// ! GET all subscription / One subscription
+// ! Delete membership-plan
+// ! Delete plan
+// ! Delete member
+
+// * GET all members / One member
+// * GET all membership-plan / One membership-plan
+// * GET all plan / One plan
+// * GET all subscription / One subscription
 // ! GET all payment / One payment
 // ! GET all notification / One notification
 
@@ -20,8 +24,8 @@
 // ! Logic code of payment
 // ! Logic code of notifications
 
-// todo: check admin of gym when he try to add members has more palace depend on his plan or subscription
-// todo: Check Down grade of plans of admin of gym by number of members
+// * check admin of gym when he try to add members has more palace depend on his plan or subscription
+// * Check Down grade of plans of admin of gym by number of members
 
 // Common Types
 // Type	Meaning
