@@ -72,4 +72,41 @@ export class MembershipPlanService {
       },
     });
   }
+
+  // * Get all membership Plans
+  async findAll(adminId: string, page: number, limit: number) {
+    const membershipPlan = await this.prisma.membershipPlan.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (membershipPlan.length === 0) {
+      throw new NotFoundException('No Membersship Plan To Show');
+    }
+
+    return membershipPlan;
+  }
+
+  // * Get one membership Plan
+  async findOne(adminId: string, membershipPlanId: string) {
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('No Member To Show');
+    }
+
+    return membershipPlan;
+  }
 }
