@@ -65,7 +65,7 @@ export class PlansService {
 
   // * Get all Plans
   async findAll(page: number, limit: number) {
-    const plan = await this.prisma.plan.findMany({
+    const plans = await this.prisma.plan.findMany({
       skip: (page - 1) * limit,
       take: limit,
       include: {
@@ -73,11 +73,11 @@ export class PlansService {
         // subscriptions: true,
       },
     });
-    if (plan.length === 0) {
+    if (plans.length === 0) {
       throw new NotFoundException('No Plan To Show');
     }
 
-    return plan;
+    return plans;
   }
 
   // * Get one Plan

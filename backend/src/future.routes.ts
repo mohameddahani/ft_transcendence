@@ -50,3 +50,11 @@
 // git commit -m "refactor: move duration validation to service layer"
 
 // git commit -m "chore: regenerate Prisma client"
+
+// find . \
+//   -type f \
+//   -not -path "*/node_modules/*" \
+//   -not -path "*/dist/*" \
+//   -not -path "*/build/*" \
+//   -not -path "*/generated/*" \
+//   -exec cat {} + | wc -l

@@ -94,4 +94,39 @@ export class SubscriptionsService {
       },
     });
   }
+
+  // * Get all Subscriptions
+  async findAll(page: number, limit: number) {
+    const subscriptions = await this.prisma.subscription.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        plan: true,
+        planDuration: true,
+      },
+    });
+    if (subscriptions.length === 0) {
+      throw new NotFoundException('No subscriptions To Show');
+    }
+
+    return subscriptions;
+  }
+
+  // * Get one Subscription
+  async findOne(subscriptionId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        id: subscriptionId,
+      },
+      include: {
+        plan: true,
+        planDuration: true,
+      },
+    });
+    if (!subscription) {
+      throw new NotFoundException('No subscription To Show');
+    }
+
+    return subscription;
+  }
 }
