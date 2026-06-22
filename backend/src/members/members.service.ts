@@ -170,7 +170,7 @@ export class MembersService {
 
   // * Get one Member
   async findOne(adminId: string, memberId: string) {
-    const member = await this.prisma.member.findUnique({
+    const member = await this.prisma.member.findFirst({
       where: {
         adminId,
         id: memberId,
