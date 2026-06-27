@@ -135,6 +135,7 @@ export class MembersService {
     await this.prisma.payment.create({
       data: {
         member: { connect: { id: member.id } },
+        adminId: adminId,
         amount: member.membershipPlanDuration.price,
         paidAt: member.startDate,
         dueDate: member.expiresAt,
@@ -227,5 +228,25 @@ export class MembersService {
     }
 
     return member;
+  }
+
+  // * Delete one Member
+  async remove(adminId: string, memberId: string) {
+    const member = await this.prisma.member.findFirst({
+      where: {
+        adminId,
+        id: memberId,
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found!');
+    }
+
+    await this.prisma.member.delete({
+      where: {
+        adminId,
+        id: memberId,
+      },
+    });
   }
 }

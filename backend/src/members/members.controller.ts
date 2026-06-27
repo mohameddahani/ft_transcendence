@@ -5,6 +5,7 @@ import type { JWTPayload } from '@/utils/types';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -55,5 +56,15 @@ export class MembersController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.membersService.findOne(userPayload.id, id);
+  }
+
+  // * Delete one member
+  @Delete(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  remove(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.remove(userPayload.id, id);
   }
 }

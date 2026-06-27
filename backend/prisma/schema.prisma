@@ -228,8 +228,9 @@ model Payment {
   id String @id @default(uuid())
 
   memberId String
-  member   Member @relation(fields: [memberId], references: [id])
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
+  adminId   String
   amount    Decimal       @db.Decimal(10, 2)
   paidAt    DateTime
   dueDate   DateTime
