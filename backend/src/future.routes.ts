@@ -7,7 +7,7 @@
 
 // ! Delete membership-plan
 // ! Delete plan
-// ! Delete member
+// * Delete member
 
 // ! Ban any user by owner or make him pending
 // ! Cancel the subscription by owner

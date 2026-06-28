@@ -204,13 +204,13 @@ export class MembersService {
         membershipPlanDurationId: true,
         startDate: true,
         expiresAt: true,
+        notifications: true,
         createdAt: true,
         updatedAt: true,
 
         membership: true,
         membershipPlanDuration: true,
         payments: true,
-        notifications: true,
       },
     });
     if (!member) {

@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './cron/subscription.cron';
 import { MembershipPlanCron } from './cron/membership-plan.cron';
 import { PaymentCron } from './cron/payment.cron';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PaymentCron } from './cron/payment.cron';
     MembersModule,
     PlansModule,
     SubscriptionsModule,
+    PaymentsModule,
   ],
 
   providers: [
