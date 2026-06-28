@@ -13,6 +13,9 @@ export class MembershipPlanService {
 
   // * Add Membership plan
   async addMembershipPlan(adminId: string, data: AddMemebershipPlanDto) {
+    // * Check if admin has subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     // * Check if membership plan already exist
     const membershipPlan = await this.prisma.membershipPlan.findFirst({
       where: {
@@ -35,7 +38,13 @@ export class MembershipPlanService {
   }
 
   // * Add Membership Duration
-  async addMembershipPlanDuration(data: AddMemebershipPlanDurationDto) {
+  async addMembershipPlanDuration(
+    adminId: string,
+    data: AddMemebershipPlanDurationDto,
+  ) {
+    // * Check if admin has subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     // * Check if membership exist
     const membership = await this.prisma.membershipPlan.findUnique({
       where: {
@@ -108,5 +117,18 @@ export class MembershipPlanService {
     }
 
     return membershipPlan;
+  }
+
+  // ! Private Attributes
+  // * Check if admin has subscription
+  private async checkIfAdminHasSubscription(adminId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { userId: adminId },
+    });
+    if (!subscription) {
+      throw new UnauthorizedException(
+        'You don’t have an active subscription. Upgrade your plan to continue.',
+      );
+    }
   }
 }

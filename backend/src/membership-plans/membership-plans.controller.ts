@@ -40,8 +40,14 @@ export class MembershipPlanController {
   // * Add Membership Duration
   @Post('durations')
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
-  addMembershipPlanDuration(@Body() body: AddMemebershipPlanDurationDto) {
-    return this.membershipPlanService.addMembershipPlanDuration(body);
+  addMembershipPlanDuration(
+    @CurrentUser() userPayload: JWTPayload,
+    @Body() body: AddMemebershipPlanDurationDto,
+  ) {
+    return this.membershipPlanService.addMembershipPlanDuration(
+      userPayload.id,
+      body,
+    );
   }
 
   // * Get all membership Plan
