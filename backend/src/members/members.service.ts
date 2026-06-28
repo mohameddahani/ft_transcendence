@@ -17,23 +17,7 @@ export class MembersService {
   // * Add Member by Admin
   async addMember(adminId: string, data: AddMemeberDto) {
     // * Check if admin is has already a subscription
-    const subscription = await this.prisma.subscription.findFirst({
-      where: {
-        userId: adminId,
-        status: SubscriptionStatus.ACTIVE,
-        expiresAt: {
-          gt: new Date(), // * check if subscription is expired
-        },
-      },
-      include: {
-        plan: true,
-      },
-    });
-    if (!subscription) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    }
+    const subscription = await this.checkIfAdminHasSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -147,6 +131,9 @@ export class MembersService {
 
   // * Get all Members
   async findAll(adminId: string, page: number, limit: number) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     const members = await this.prisma.member.findMany({
       where: {
         adminId,
@@ -190,6 +177,9 @@ export class MembersService {
 
   // * Get one Member
   async findOne(adminId: string, memberId: string) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     const member = await this.prisma.member.findFirst({
       where: {
         adminId,
@@ -232,6 +222,9 @@ export class MembersService {
 
   // * Delete one Member
   async remove(adminId: string, memberId: string) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     const member = await this.prisma.member.findFirst({
       where: {
         adminId,
@@ -248,5 +241,21 @@ export class MembersService {
         id: memberId,
       },
     });
+  }
+
+  // ! Private Attributes
+  // * Check if admin has subscription
+  private async checkIfAdminHasSubscription(adminId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
+      include: { plan: true },
+    });
+    if (!subscription) {
+      throw new UnauthorizedException(
+        'You don’t have an active subscription. Upgrade your plan to continue.',
+      );
+    }
+
+    return subscription;
   }
 }

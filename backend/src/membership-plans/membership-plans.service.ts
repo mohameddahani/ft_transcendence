@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AddMemebershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
+import { SubscriptionStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class MembershipPlanService {
@@ -123,7 +124,7 @@ export class MembershipPlanService {
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findUnique({
-      where: { userId: adminId },
+      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
     });
     if (!subscription) {
       throw new UnauthorizedException(
