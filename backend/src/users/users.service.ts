@@ -173,12 +173,6 @@ export class UsersService {
     });
   }
 
-  // * Get image
-  async findImage(id: string) {
-    // * Check if we have user already in DB
-    await this.findOne(id);
-  }
-
   // ! All this routes is Access only by Owner
   // * Get all users
   async findAll(page: number, limit: number) {
