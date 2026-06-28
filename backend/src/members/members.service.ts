@@ -3,12 +3,14 @@ import { AddMemeberDto } from '@/members/dtos/add-member.dto';
 import { generateUsername } from '@/utils/generate-username';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { PaymentStatus, SubscriptionStatus } from '@/generated/prisma/enums';
+import { UpdateMemberDto } from './dtos/update-member.dto';
 
 @Injectable()
 export class MembersService {
@@ -36,6 +38,7 @@ export class MembersService {
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         id: data.membershipPlanId,
+        adminId: adminId,
       },
     });
     if (!membershipPlan) {
@@ -46,7 +49,7 @@ export class MembersService {
     const duration = await this.prisma.membershipPlanDuration.findFirst({
       where: {
         id: data.durationId,
-        membershipPlanId: data.membershipPlanId,
+        membershipPlan: { adminId: adminId },
       },
     });
     if (!duration) {
@@ -126,6 +129,44 @@ export class MembersService {
         status: PaymentStatus.PAID,
         note: data.note,
       },
+    });
+  }
+
+  // * Update data of member
+  async update(adminId: string, memberId: string, data: UpdateMemberDto) {
+    // * Check if we have member already in DB
+    await this.findOne(adminId, memberId);
+
+    // * Check if member update
+    const existingData = await this.prisma.member.findFirst({
+      where: {
+        id: {
+          not: memberId,
+        },
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Save new data to member
+    await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data,
     });
   }
 
@@ -214,7 +255,7 @@ export class MembersService {
       },
     });
     if (!member) {
-      throw new NotFoundException('No Member To Show');
+      throw new NotFoundException('Member Not Found');
     }
 
     return member;

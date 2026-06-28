@@ -51,7 +51,9 @@ export class SubscriptionsService {
     const duration = await this.prisma.planDuration.findFirst({
       where: {
         id: data.durationId,
-        planId: data.planId,
+        plan: {
+          id: data.planId,
+        },
       },
     });
     if (!duration) {

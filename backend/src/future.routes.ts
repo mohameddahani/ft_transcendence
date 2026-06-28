@@ -3,7 +3,7 @@
 
 // ! Update membership-plan
 // ! Update plan
-// ! update member
+// * update member
 
 // ! Delete membership-plan
 // ! Delete plan
@@ -17,7 +17,7 @@
 // * GET all membership-plan / One membership-plan
 // * GET all plan / One plan
 // * GET all subscription / One subscription
-// ! GET all payment / One payment
+// * GET all payment / One payment
 // ! GET all notification / One notification
 
 // ! Login of member

@@ -83,12 +83,8 @@ export class UsersService {
     // * Check if user update the username: (we need to check if username is unique)
     const existingData = await this.prisma.user.findFirst({
       where: {
-        AND: [
-          { id: { not: id } }, // exclude current user
-          {
-            OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
-          },
-        ],
+        id: { not: id }, // exclude current user
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
       },
     });
 

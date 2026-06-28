@@ -10,6 +10,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -19,6 +20,7 @@ import { MembersService } from './members.service';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/decorators/user-role.decorator';
 import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
+import { UpdateMemberDto } from './dtos/update-member.dto';
 
 @Controller('/api/members')
 // * Make Authorazation Golbal on this route
@@ -35,6 +37,17 @@ export class MembersController {
     @CurrentUser() userPayload: JWTPayload,
   ) {
     return this.membersService.addMember(userPayload.id, body);
+  }
+
+  // * Update data of Member
+  @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateMemberDto,
+  ) {
+    return this.membersService.update(userPayload.id, id, body);
   }
 
   // * Get all Members
