@@ -12,6 +12,7 @@
 // ! Ban any user by owner or make him pending
 // ! Cancel the subscription by owner
 // ! Ban or Frozen a member by admin
+// ! Disactive a plan by Owner
 
 // * GET all members / One member
 // * GET all membership-plan / One membership-plan

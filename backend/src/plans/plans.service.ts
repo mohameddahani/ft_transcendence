@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -6,6 +7,8 @@ import {
 import { AddPlanDto } from './dtos/add-plan.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
+import { UpdatePlanDto } from './dtos/update-plan.dto';
+import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 
 @Injectable()
 export class PlansService {
@@ -31,27 +34,14 @@ export class PlansService {
   // * Add Plan Duration by Owner
   async addPlanDuration(data: AddPlanDurationDto) {
     // * Check if plan exist
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: data.planId },
-    });
-    if (!plan) {
-      throw new NotFoundException('Plan Not Found');
-    }
+    await this.findOne(data.planId);
 
-    // * Check if plan duration already exist
-    const existingPlanDuration = await this.prisma.planDuration.findFirst({
-      where: {
-        AND: [
-          { planId: data.planId },
-          { durationDays: data.durationDays },
-          { price: data.price },
-        ],
-      },
-    });
-
-    if (existingPlanDuration) {
-      throw new UnauthorizedException('Plan Duration already exists');
-    }
+    // * Check if plan duration is duplicate
+    await this.checkIfDurationIsDuplicateInPlan(
+      data.planId,
+      data.durationDays,
+      data.price,
+    );
 
     // * Add plan duration to database
     await this.prisma.planDuration.create({
@@ -60,6 +50,101 @@ export class PlansService {
         price: data.price,
         plan: { connect: { id: data.planId } },
       },
+    });
+  }
+
+  // * Update a Plan
+  async update(id: string, data: UpdatePlanDto) {
+    // * Check if this plan already exist
+    await this.findOne(id);
+
+    // * Check data if already exist in DB
+    const existingData = await this.prisma.plan.findFirst({
+      where: {
+        id: {
+          not: id,
+        },
+        planName: data.planName,
+      },
+    });
+    if (existingData) {
+      // * 409 = duplicate data
+      throw new ConflictException('Plan Name already exists');
+    }
+
+    // * Update data
+    await this.prisma.plan.update({
+      where: {
+        id: id,
+      },
+      data,
+    });
+  }
+
+  // * Update a Plan Duration
+  async updatePlanDuration(id: string, data: UpdatePlanDurationDto) {
+    // * Check if this plan duration already exist
+    const duration = await this.prisma.planDuration.findUnique({
+      where: { id: id },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration Plan Not Found!');
+    }
+
+    // * Check duration if already exist in this plan
+    await this.checkIfDurationAlreadyExistInPlan(duration.id, data.planId);
+
+    // * check if Duration is Duplicate in Plan
+    if (data.durationDays !== undefined && data.price !== undefined) {
+      const existingPlanDuration = await this.prisma.planDuration.findFirst({
+        where: {
+          AND: [
+            { planId: data.planId },
+            { durationDays: data.durationDays },
+            { price: data.price },
+          ],
+        },
+      });
+
+      if (existingPlanDuration) {
+        throw new UnauthorizedException('Plan Duration is Duplicate');
+      }
+    } else if (data.price !== undefined) {
+      const existingPlanDuration = await this.prisma.planDuration.findFirst({
+        where: {
+          AND: [
+            { planId: data.planId },
+            { durationDays: duration.durationDays },
+            { price: data.price },
+          ],
+        },
+      });
+
+      if (existingPlanDuration) {
+        throw new UnauthorizedException('Plan Duration is Duplicate');
+      }
+    } else if (data.durationDays !== undefined) {
+      const existingPlanDuration = await this.prisma.planDuration.findFirst({
+        where: {
+          AND: [
+            { planId: data.planId },
+            { durationDays: data.durationDays },
+            { price: duration.price },
+          ],
+        },
+      });
+
+      if (existingPlanDuration) {
+        throw new UnauthorizedException('Plan Duration is Duplicate');
+      }
+    }
+
+    // * Update data
+    await this.prisma.planDuration.update({
+      where: {
+        id: id,
+      },
+      data,
     });
   }
 
@@ -92,9 +177,49 @@ export class PlansService {
       },
     });
     if (!plan) {
-      throw new NotFoundException('No Plan To Show');
+      throw new NotFoundException('Plan Not Found!');
     }
 
     return plan;
+  }
+
+  // ! Private
+  // * check if Duration is Duplicate in Plan
+  private async checkIfDurationIsDuplicateInPlan(
+    planId: string,
+    durationDays: number,
+    price: number,
+  ) {
+    // * Check if plan duration already exist
+    const existingPlanDuration = await this.prisma.planDuration.findFirst({
+      where: {
+        AND: [
+          { planId: planId },
+          { durationDays: durationDays },
+          { price: price },
+        ],
+      },
+    });
+
+    if (existingPlanDuration) {
+      throw new UnauthorizedException('Plan Duration is Duplicate');
+    }
+  }
+
+  // * check if Duration is exist in Plan
+  private async checkIfDurationAlreadyExistInPlan(
+    durationId: string,
+    planId: string,
+  ) {
+    // * Check if plan duration already exist
+    const existingPlanDuration = await this.prisma.planDuration.findFirst({
+      where: {
+        AND: [{ planId: planId }, { id: durationId }],
+      },
+    });
+
+    if (existingPlanDuration) {
+      throw new UnauthorizedException('Plan Duration already exists');
+    }
   }
 }

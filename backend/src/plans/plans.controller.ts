@@ -10,6 +10,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -17,6 +18,8 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { PlansService } from './plans.service';
 import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
+import { UpdatePlanDto } from './dtos/update-plan.dto';
+import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 
 @Controller('/api/plans')
 // * Make Authorazation Golbal on this route
@@ -37,6 +40,23 @@ export class PlansController {
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
   addPlanDuration(@Body() body: AddPlanDurationDto) {
     return this.plansService.addPlanDuration(body);
+  }
+
+  // * Update a Plan
+  @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdatePlanDto) {
+    return this.plansService.update(id, body);
+  }
+
+  // * Update a Plan Duration
+  @Patch('durations/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  updatePlanDuration(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdatePlanDurationDto,
+  ) {
+    return this.plansService.updatePlanDuration(id, body);
   }
 
   // * Get all Plan
