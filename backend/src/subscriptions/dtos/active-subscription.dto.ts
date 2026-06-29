@@ -1,13 +1,13 @@
 import { Transform } from 'class-transformer';
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 export class ActiveSubscriptionDto {
   // * PlanId
-  @IsString()
+  @IsUUID()
   planId!: string;
 
   // * DurationId
-  @IsString()
+  @IsUUID()
   durationId!: string;
 
   // * Username

@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsDate,
   IsOptional,
+  IsUUID,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
@@ -100,14 +101,14 @@ export class AddMemeberDto {
   emergencyContact!: string;
 
   // * Membership plan id
-  @IsString()
+  @IsUUID()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
   membershipPlanId!: string;
 
   // * DurationId
-  @IsString()
+  @IsUUID()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )

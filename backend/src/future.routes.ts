@@ -1,8 +1,8 @@
 // * Upgrade a membership-plan of member
 // * Upgrade a plan
 
-// ! Update membership-plan
-// ! Update plan
+// ! Update membership-plan (should membership update to or not)
+// ! Update plan (should subscription update to or not)
 // * update member
 
 // ! Delete membership-plan
