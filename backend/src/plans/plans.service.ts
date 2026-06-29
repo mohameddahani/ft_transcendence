@@ -214,12 +214,15 @@ export class PlansService {
     // * Check if plan duration already exist
     const existingPlanDuration = await this.prisma.planDuration.findFirst({
       where: {
-        AND: [{ planId: planId }, { id: durationId }],
+        planId: planId,
+        id: durationId,
       },
     });
 
-    if (existingPlanDuration) {
-      throw new UnauthorizedException('Plan Duration already exists');
+    if (!existingPlanDuration) {
+      throw new UnauthorizedException(
+        'Plan Duration is Not exists in This Plan',
+      );
     }
   }
 }
