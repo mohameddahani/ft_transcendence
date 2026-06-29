@@ -1,4 +1,4 @@
-// ! Upgrade a membership-plan of member
+// * Upgrade a membership-plan of member
 // * Upgrade a plan
 
 // ! Update membership-plan

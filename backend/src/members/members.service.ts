@@ -34,27 +34,12 @@ export class MembersService {
       );
     }
 
-    // * Check if the admin has this membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findUnique({
-      where: {
-        id: data.membershipPlanId,
-        adminId: adminId,
-      },
-    });
-    if (!membershipPlan) {
-      throw new NotFoundException('There is No Plan, Please Add a Plan');
-    }
-
-    // * Check if duration is already exist for this membership plan
-    const duration = await this.prisma.membershipPlanDuration.findFirst({
-      where: {
-        id: data.durationId,
-        membershipPlan: { adminId: adminId },
-      },
-    });
-    if (!duration) {
-      throw new NotFoundException('Duration does not exist for this plan');
-    }
+    // * Check if Admin Has Membership Plan With Duration
+    const duration = await this.checkIfAdminHasMembershipPlanWithDuration(
+      adminId,
+      data.membershipPlanId,
+      data.durationId,
+    );
 
     // * Check if member already exist
     const existingMember = await this.prisma.member.findFirst({
@@ -160,14 +145,74 @@ export class MembersService {
       }
     }
 
-    // * Save new data to member
-    await this.prisma.member.update({
-      where: {
-        id: memberId,
-        adminId: adminId,
-      },
-      data,
-    });
+    // * check if the admin update the membership plan
+    if (data.membershipPlanId && data.durationId) {
+      // * Check if Admin Has Membership Plan With Duration
+      const duration = await this.checkIfAdminHasMembershipPlanWithDuration(
+        adminId,
+        data.membershipPlanId,
+        data.durationId,
+      );
+
+      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+
+      // * Save new data to member
+      const updatedMember = await this.prisma.member.update({
+        where: {
+          id: memberId,
+          adminId: adminId,
+        },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          gender: data.gender,
+          birthDate: data.birthDate,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          emergencyContact: data.emergencyContact,
+          membership: {
+            connect: { id: data.membershipPlanId },
+          },
+          membershipPlanDuration: { connect: { id: duration.id } },
+          startDate: new Date(),
+          expiresAt: expiresAt,
+        },
+        include: {
+          membershipPlanDuration: true,
+        },
+      });
+
+      // * Add New Payment for Updated Member
+      await this.prisma.payment.create({
+        data: {
+          member: { connect: { id: updatedMember.id } },
+          adminId: adminId,
+          amount: updatedMember.membershipPlanDuration.price,
+          paidAt: updatedMember.startDate,
+          dueDate: updatedMember.expiresAt,
+          status: PaymentStatus.PAID,
+          note: data.note,
+        },
+      });
+    } else if (
+      (data.membershipPlanId && !data.durationId) ||
+      (!data.membershipPlanId && data.durationId)
+    ) {
+      throw new BadRequestException(
+        'membership plan and duration must be provided together.',
+      );
+    } else {
+      // * Save new data to member
+      await this.prisma.member.update({
+        where: {
+          id: memberId,
+          adminId: adminId,
+        },
+        data,
+      });
+    }
   }
 
   // * Get all Members
@@ -298,5 +343,37 @@ export class MembersService {
     }
 
     return subscription;
+  }
+
+  // * Check if Admin Has Membership Plan With Duration
+  private async checkIfAdminHasMembershipPlanWithDuration(
+    adminId: string,
+    membershipPlanId: string,
+    durationId: string,
+  ) {
+    // * Check if the admin has this membership plan
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId: adminId,
+        id: membershipPlanId,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('There is No Plan, Please Add a Plan');
+    }
+
+    // * Check if duration is already exist for this membership plan
+    const duration = await this.prisma.membershipPlanDuration.findFirst({
+      where: {
+        id: durationId,
+        membershipPlan: { adminId: adminId },
+        membershipPlanId: membershipPlan.id,
+      },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration does not exist for this plan');
+    }
+
+    return duration;
   }
 }

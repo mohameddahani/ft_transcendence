@@ -101,10 +101,16 @@ export class AddMemeberDto {
 
   // * Membership plan id
   @IsString()
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   membershipPlanId!: string;
 
   // * DurationId
   @IsString()
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   durationId!: string;
 
   // ! This for payment
