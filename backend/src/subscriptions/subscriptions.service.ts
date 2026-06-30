@@ -50,10 +50,8 @@ export class SubscriptionsService {
     // * Check if duration is already exist for this plan
     const duration = await this.prisma.planDuration.findFirst({
       where: {
-        id: data.durationId,
-        plan: {
-          id: data.planId,
-        },
+        id: data.planDurationId,
+        planId: data.planId,
       },
     });
     if (!duration) {
@@ -67,32 +65,40 @@ export class SubscriptionsService {
         status: SubscriptionStatus.ACTIVE,
       },
     });
-    // * No subscription
-    if (!subscription) {
-      // * Create date of expiration
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-      return this.prisma.subscription.create({
+    // * Has already subscription
+    // Create date of expiration
+    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+    if (subscription) {
+      // * Already same plan
+      if (
+        subscription.planId === newPlan.id &&
+        subscription.planDurationId === duration.id
+      ) {
+        throw new ConflictException('You already have this subscription');
+      }
+
+      // * Upgrade / change plan
+      return this.prisma.subscription.update({
+        where: { id: subscription.id },
         data: {
-          user: { connect: { id: user.id } },
           plan: { connect: { id: newPlan.id } },
           planDuration: { connect: { id: duration.id } },
+          startedAt: new Date(),
           expiresAt: expiresAt,
           amount: duration.price,
         },
       });
     }
 
-    // * Already same plan
-    if (subscription.planId === newPlan.id) {
-      throw new ConflictException('You already have this subscription');
-    }
-
-    // * Upgrade / change plan
-    return this.prisma.subscription.update({
-      where: { id: subscription.id },
+    // *  No subscription
+    return this.prisma.subscription.create({
       data: {
-        planId: newPlan.id,
+        user: { connect: { id: user.id } },
+        plan: { connect: { id: newPlan.id } },
+        planDuration: { connect: { id: duration.id } },
+        expiresAt: expiresAt,
+        amount: duration.price,
       },
     });
   }

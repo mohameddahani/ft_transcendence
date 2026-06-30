@@ -8,7 +8,7 @@ export class ActiveSubscriptionDto {
 
   // * DurationId
   @IsUUID()
-  durationId!: string;
+  planDurationId!: string;
 
   // * Username
   @IsString()
