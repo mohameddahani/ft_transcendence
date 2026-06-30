@@ -13,7 +13,7 @@ import {
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
 
-export class AddMemeberDto {
+export class AddMemberDto {
   // * First Name
   @IsString()
   @MinLength(2)

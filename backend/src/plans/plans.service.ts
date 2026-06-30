@@ -59,17 +59,19 @@ export class PlansService {
     await this.findOne(id);
 
     // * Check data if already exist in DB
-    const existingData = await this.prisma.plan.findFirst({
-      where: {
-        id: {
-          not: id,
+    if (data.planName !== undefined) {
+      const existingData = await this.prisma.plan.findFirst({
+        where: {
+          id: {
+            not: id,
+          },
+          planName: data.planName,
         },
-        planName: data.planName,
-      },
-    });
-    if (existingData) {
-      // * 409 = duplicate data
-      throw new ConflictException('Plan Name already exists');
+      });
+      if (existingData) {
+        // * 409 = duplicate data
+        throw new ConflictException('Plan Name already exists');
+      }
     }
 
     // * Update data

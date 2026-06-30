@@ -1,5 +1,5 @@
 import { CurrentUser } from '@/decorators/current-user.decorator';
-import { AddMemebershipPlanDto } from '@/membership-plans/dtos/add-membership-plan.dto';
+import { AddMembershipPlanDto } from '@/membership-plans/dtos/add-membership-plan.dto';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import type { JWTPayload } from '@/utils/types';
 import {
@@ -9,16 +9,18 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MembershipPlanService } from './membership-plans.service';
-import { AddMemebershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
+import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/decorators/user-role.decorator';
+import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 
 @Controller('/api/membership-plans')
 // * Make Authorazation Golbal on this route
@@ -31,7 +33,7 @@ export class MembershipPlanController {
   @Post()
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
   addMembershipPlan(
-    @Body() body: AddMemebershipPlanDto,
+    @Body() body: AddMembershipPlanDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
     return this.membershipPlanService.addMembershipPlan(userPayload.id, body);
@@ -42,12 +44,23 @@ export class MembershipPlanController {
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
   addMembershipPlanDuration(
     @CurrentUser() userPayload: JWTPayload,
-    @Body() body: AddMemebershipPlanDurationDto,
+    @Body() body: AddMembershipPlanDurationDto,
   ) {
     return this.membershipPlanService.addMembershipPlanDuration(
       userPayload.id,
       body,
     );
+  }
+
+  // * Update Membership Plan
+  @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateMembershipPlanDto,
+  ) {
+    return this.membershipPlanService.update(userPayload.id, id, body);
   }
 
   // * Get all membership Plan

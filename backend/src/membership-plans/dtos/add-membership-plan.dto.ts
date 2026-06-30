@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-export class AddMemebershipPlanDto {
+export class AddMembershipPlanDto {
   // * Plan Name
   @IsString()
   @MinLength(2)

@@ -1,19 +1,21 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { AddMemebershipPlanDto } from '@/membership-plans/dtos/add-membership-plan.dto';
+import { AddMembershipPlanDto } from '@/membership-plans/dtos/add-membership-plan.dto';
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AddMemebershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
+import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 
 @Injectable()
 export class MembershipPlanService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Add Membership plan
-  async addMembershipPlan(adminId: string, data: AddMemebershipPlanDto) {
+  async addMembershipPlan(adminId: string, data: AddMembershipPlanDto) {
     // * Check if admin has subscription
     await this.checkIfAdminHasSubscription(adminId);
 
@@ -41,7 +43,7 @@ export class MembershipPlanService {
   // * Add Membership Duration
   async addMembershipPlanDuration(
     adminId: string,
-    data: AddMemebershipPlanDurationDto,
+    data: AddMembershipPlanDurationDto,
   ) {
     // * Check if admin has subscription
     await this.checkIfAdminHasSubscription(adminId);
@@ -83,6 +85,39 @@ export class MembershipPlanService {
     });
   }
 
+  // * Update Membership Plan
+  async update(adminId: string, id: string, data: UpdateMembershipPlanDto) {
+    // * Check if this membership plan already exist
+    await this.findOne(adminId, id);
+
+    // * Check data if already exist in DB
+    if (data.planName !== undefined) {
+      const existingData = await this.prisma.membershipPlan.findFirst({
+        where: {
+          id: {
+            not: id,
+          },
+          adminId: adminId,
+          planName: data.planName,
+        },
+      });
+      if (existingData) {
+        console.log(data.planName);
+        // * 409 = duplicate data
+        throw new ConflictException('Membership Plan Name already exists');
+      }
+    }
+
+    // * Update data
+    await this.prisma.membershipPlan.update({
+      where: {
+        id: id,
+        adminId: adminId,
+      },
+      data,
+    });
+  }
+
   // * Get all membership Plans
   async findAll(adminId: string, page: number, limit: number) {
     const membershipPlan = await this.prisma.membershipPlan.findMany({
@@ -114,7 +149,7 @@ export class MembershipPlanService {
       },
     });
     if (!membershipPlan) {
-      throw new NotFoundException('No Membership To Show');
+      throw new NotFoundException('Membership Plan Not Found!');
     }
 
     return membershipPlan;

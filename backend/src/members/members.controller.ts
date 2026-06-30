@@ -1,5 +1,5 @@
 import { CurrentUser } from '@/decorators/current-user.decorator';
-import { AddMemeberDto } from '@/members/dtos/add-member.dto';
+import { AddMemberDto } from '@/members/dtos/add-member.dto';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import type { JWTPayload } from '@/utils/types';
 import {
@@ -33,7 +33,7 @@ export class MembersController {
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   addMember(
-    @Body() body: AddMemeberDto,
+    @Body() body: AddMemberDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
     return this.membersService.addMember(userPayload.id, body);

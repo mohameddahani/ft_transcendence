@@ -13,7 +13,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// * this enum had Gender of Memeber
+// * this enum had Gender of Member
 enum Gender {
   MALE
   FEMALE
@@ -41,7 +41,7 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
-// * this enum had Memeber Status
+// * this enum had Member Status
 enum MemberStatus {
   ACTIVE
   EXPIRED

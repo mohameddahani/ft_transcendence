@@ -1,5 +1,5 @@
 import { PrismaService } from '@/prisma/prisma.service';
-import { AddMemeberDto } from '@/members/dtos/add-member.dto';
+import { AddMemberDto } from '@/members/dtos/add-member.dto';
 import { generateUsername } from '@/utils/generate-username';
 import {
   BadRequestException,
@@ -17,7 +17,7 @@ export class MembersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Add Member by Admin
-  async addMember(adminId: string, data: AddMemeberDto) {
+  async addMember(adminId: string, data: AddMemberDto) {
     // * Check if admin is has already a subscription
     const subscription = await this.checkIfAdminHasSubscription(adminId);
 

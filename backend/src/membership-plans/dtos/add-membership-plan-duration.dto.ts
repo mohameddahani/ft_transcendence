@@ -1,6 +1,6 @@
 import { IsNumber, IsPositive, IsUUID } from 'class-validator';
 
-export class AddMemebershipPlanDurationDto {
+export class AddMembershipPlanDurationDto {
   // * MembershipId
   @IsUUID()
   membershipPlanId!: string;
