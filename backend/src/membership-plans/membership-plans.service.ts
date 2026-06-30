@@ -9,6 +9,7 @@ import {
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { SubscriptionStatus } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
+import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
 
 @Injectable()
 export class MembershipPlanService {
@@ -102,7 +103,6 @@ export class MembershipPlanService {
         },
       });
       if (existingData) {
-        console.log(data.planName);
         // * 409 = duplicate data
         throw new ConflictException('Membership Plan Name already exists');
       }
@@ -113,6 +113,86 @@ export class MembershipPlanService {
       where: {
         id: id,
         adminId: adminId,
+      },
+      data,
+    });
+  }
+
+  // * Update a Membership Plan Duration
+  async updateMembershipPlanDuration(
+    adminId: string,
+    id: string,
+    data: UpdateMembershipPlanDurationDto,
+  ) {
+    // * Check the membership plan if already exist
+    const membershipPlan = await this.findOne(adminId, data.membershipPlanId);
+
+    // * Check duration if already exist in this membership plan
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
+      where: { id: id, membershipPlanId: membershipPlan.id },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration Membership Plan Not Found!');
+    }
+
+    // * check if Duration is Duplicate in Plan
+    if (data.durationDays !== undefined && data.price !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findFirst({
+          where: {
+            AND: [
+              { membershipPlanId: data.membershipPlanId },
+              { durationDays: data.durationDays },
+              { price: data.price },
+            ],
+          },
+        });
+
+      if (existingMembershipPlanDuration) {
+        throw new UnauthorizedException(
+          'Membership Plan Duration is Duplicate',
+        );
+      }
+    } else if (data.price !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findFirst({
+          where: {
+            AND: [
+              { membershipPlanId: data.membershipPlanId },
+              { durationDays: duration.durationDays },
+              { price: data.price },
+            ],
+          },
+        });
+
+      if (existingMembershipPlanDuration) {
+        throw new UnauthorizedException(
+          'Membership Plan Duration is Duplicate',
+        );
+      }
+    } else if (data.durationDays !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findFirst({
+          where: {
+            AND: [
+              { membershipPlanId: data.membershipPlanId },
+              { durationDays: data.durationDays },
+              { price: duration.price },
+            ],
+          },
+        });
+
+      if (existingMembershipPlanDuration) {
+        throw new UnauthorizedException(
+          'Membership Plan Duration is Duplicate',
+        );
+      }
+    }
+
+    // * Update data
+    await this.prisma.membershipPlanDuration.update({
+      where: {
+        id: id,
       },
       data,
     });

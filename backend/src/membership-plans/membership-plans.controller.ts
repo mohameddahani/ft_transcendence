@@ -21,6 +21,7 @@ import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/decorators/user-role.decorator';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
+import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
 
 @Controller('/api/membership-plans')
 // * Make Authorazation Golbal on this route
@@ -61,6 +62,21 @@ export class MembershipPlanController {
     @Body() body: UpdateMembershipPlanDto,
   ) {
     return this.membershipPlanService.update(userPayload.id, id, body);
+  }
+
+  // * Update a Membership Plan Duration
+  @Patch('durations/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  updateMembershipPlanDuration(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateMembershipPlanDurationDto,
+  ) {
+    return this.membershipPlanService.updateMembershipPlanDuration(
+      userPayload.id,
+      id,
+      body,
+    );
   }
 
   // * Get all membership Plan
