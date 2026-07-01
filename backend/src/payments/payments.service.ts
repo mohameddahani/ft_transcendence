@@ -1,4 +1,8 @@
-import { SubscriptionStatus, UserType } from '@/generated/prisma/enums';
+import {
+  MembershipStatus,
+  SubscriptionStatus,
+  UserType,
+} from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma/prisma.service';
 import {
   Injectable,
@@ -35,22 +39,29 @@ export class PaymentsService {
               id: true,
               firstName: true,
               lastName: true,
+              gender: true,
+              birthDate: true,
               userName: true,
               email: true,
               phoneNumber: true,
               photo: true,
-              startDate: true,
-              expiresAt: true,
-
-              membership: true,
-              membershipPlanDuration: true,
+              address: true,
+              emergencyContact: true,
+              userType: true,
+              status: true,
+              memberships: true,
+              payments: true,
+              notifications: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           amount: true,
           paidAt: true,
           dueDate: true,
           status: true,
-          note: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
       if (!payments) {
@@ -60,7 +71,7 @@ export class PaymentsService {
       return payments;
     } else {
       // * Check if member has membership plan
-      const member = await this.checkIfMemberHasMembershipPlan(userId);
+      const member = await this.checkIfMemberHasMembership(userId);
 
       return member.payments;
     }
@@ -85,22 +96,29 @@ export class PaymentsService {
               id: true,
               firstName: true,
               lastName: true,
+              gender: true,
+              birthDate: true,
               userName: true,
               email: true,
               phoneNumber: true,
               photo: true,
-              startDate: true,
-              expiresAt: true,
-
-              membership: true,
-              membershipPlanDuration: true,
+              address: true,
+              emergencyContact: true,
+              userType: true,
+              status: true,
+              memberships: true,
+              payments: true,
+              notifications: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           amount: true,
           paidAt: true,
           dueDate: true,
           status: true,
-          note: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
       if (!payment) {
@@ -110,7 +128,7 @@ export class PaymentsService {
       return payment;
     } else {
       // * Check if member has membership plan
-      await this.checkIfMemberHasMembershipPlan(userId);
+      await this.checkIfMemberHasMembership(userId);
 
       const payment = await this.prisma.payment.findFirst({
         where: {
@@ -165,8 +183,8 @@ export class PaymentsService {
     return subscription;
   }
 
-  // * Check if member has membership plan
-  private async checkIfMemberHasMembershipPlan(memberId: string) {
+  // * Check if member has membership
+  private async checkIfMemberHasMembership(memberId: string) {
     // * Check if member already exist
     const member = await this.prisma.member.findUnique({
       where: { id: memberId },
@@ -178,12 +196,16 @@ export class PaymentsService {
       throw new NotFoundException('Member Not Found !');
     }
 
-    const membershipPlan = await this.prisma.membershipPlan.findUnique({
-      where: { id: member.membershipPlanId },
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        memberId: member.id,
+        adminId: member.adminId,
+        status: MembershipStatus.ACTIVE,
+      },
     });
-    if (!membershipPlan) {
+    if (!membership) {
       throw new UnauthorizedException(
-        'You don’t have an membership Plan. Upgrade your plan to continue.',
+        'You don’t have an membership. Upgrade your plan to continue.',
       );
     }
 

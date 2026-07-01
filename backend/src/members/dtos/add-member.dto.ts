@@ -7,7 +7,6 @@ import {
   IsPhoneNumber,
   IsEnum,
   IsDate,
-  IsOptional,
   IsUUID,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
@@ -100,25 +99,11 @@ export class AddMemberDto {
   )
   emergencyContact!: string;
 
-  // * Membership plan id
+  // * Membership PlanId
   @IsUUID()
-  @Transform(({ value }): string =>
-    typeof value === 'string' ? value.trim() : value,
-  )
   membershipPlanId!: string;
 
-  // * DurationId
+  // * Membership Plan DurationId
   @IsUUID()
-  @Transform(({ value }): string =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  durationId!: string;
-
-  // ! This for payment
-  // * Note
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(200)
-  note!: string;
+  membershipPlanDurationId!: string;
 }

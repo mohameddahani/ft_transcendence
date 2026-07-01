@@ -1,21 +1,21 @@
-import { MemberStatus } from '@/generated/prisma/enums';
+import { MembershipStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
-export class MembershipPlanCron {
+export class MembershipCron {
   constructor(private readonly prisma: PrismaService) {}
 
   @Cron(CronExpression.EVERY_HOUR)
   async expireMembershipPlans() {
-    await this.prisma.member.updateMany({
+    await this.prisma.membership.updateMany({
       where: {
-        status: MemberStatus.ACTIVE,
+        status: MembershipStatus.ACTIVE,
         expiresAt: {
           lte: new Date(),
         },
       },
       data: {
-        status: MemberStatus.EXPIRED,
+        status: MembershipStatus.EXPIRED,
       },
     });
   }

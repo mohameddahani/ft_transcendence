@@ -5,6 +5,7 @@ import type { JWTPayload } from '@/utils/types';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -15,20 +16,23 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { MembershipPlanService } from './membership-plans.service';
+import { MembershipPlansService } from './membership-plans.service';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/decorators/user-role.decorator';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
+import { DeleteMembershipPlanDurationDto } from './dtos/delete-membership-plan-duration.dto';
 
 @Controller('/api/membership-plans')
 // * Make Authorazation Golbal on this route
 @UseGuards(AuthGuard, AuthRolesGuard)
 @Roles([UserType.ADMIN])
 export class MembershipPlanController {
-  constructor(private readonly membershipPlanService: MembershipPlanService) {}
+  constructor(
+    private readonly membershipPlansService: MembershipPlansService,
+  ) {}
 
   // * Add Membership plan
   @Post()
@@ -37,7 +41,7 @@ export class MembershipPlanController {
     @Body() body: AddMembershipPlanDto,
     @CurrentUser() userPayload: JWTPayload,
   ) {
-    return this.membershipPlanService.addMembershipPlan(userPayload.id, body);
+    return this.membershipPlansService.addMembershipPlan(userPayload.id, body);
   }
 
   // * Add Membership Duration
@@ -47,7 +51,7 @@ export class MembershipPlanController {
     @CurrentUser() userPayload: JWTPayload,
     @Body() body: AddMembershipPlanDurationDto,
   ) {
-    return this.membershipPlanService.addMembershipPlanDuration(
+    return this.membershipPlansService.addMembershipPlanDuration(
       userPayload.id,
       body,
     );
@@ -61,7 +65,7 @@ export class MembershipPlanController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateMembershipPlanDto,
   ) {
-    return this.membershipPlanService.update(userPayload.id, id, body);
+    return this.membershipPlansService.update(userPayload.id, id, body);
   }
 
   // * Update a Membership Plan Duration
@@ -72,10 +76,35 @@ export class MembershipPlanController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateMembershipPlanDurationDto,
   ) {
-    return this.membershipPlanService.updateMembershipPlanDuration(
+    return this.membershipPlansService.updateMembershipPlanDuration(
       userPayload.id,
       id,
       body,
+    );
+  }
+
+  // * Delete Membership Plan
+  @Delete(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  remove(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membershipPlansService.remove(userPayload.id, id);
+  }
+
+  // * Delete Membership Plan Duration
+  @Delete('durations/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  removeMembershipPlanDuration(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DeleteMembershipPlanDurationDto,
+  ) {
+    return this.membershipPlansService.removeMembershipPlanDuration(
+      userPayload.id,
+      id,
+      body.membershipPlanId,
     );
   }
 
@@ -87,7 +116,7 @@ export class MembershipPlanController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.membershipPlanService.findAll(userPayload.id, page, limit);
+    return this.membershipPlansService.findAll(userPayload.id, page, limit);
   }
 
   // * Get one membership Plan
@@ -97,6 +126,6 @@ export class MembershipPlanController {
     @CurrentUser() userPayload: JWTPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membershipPlanService.findOne(userPayload.id, id);
+    return this.membershipPlansService.findOne(userPayload.id, id);
   }
 }

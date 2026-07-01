@@ -44,9 +44,15 @@ enum SubscriptionStatus {
 // * this enum had Member Status
 enum MemberStatus {
   ACTIVE
-  EXPIRED
   FROZEN
   BANNED
+}
+
+// * this enum had Member Status
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }
 
 // * this enum had Payment Status
@@ -65,26 +71,30 @@ enum NotificationType {
 
 // * Table of users
 model User {
-  id                String           @id @default(uuid())
+  id                String        @id @default(uuid())
   firstName         String
   lastName          String
   gender            Gender
   birthDate         DateTime
-  userName          String           @unique
-  email             String           @unique
+  userName          String        @unique
+  email             String        @unique
   password          String
-  phoneNumber       String           @unique
+  phoneNumber       String        @unique
   companyName       String
-  userType          UserType         @default(ADMIN)
+  userType          UserType      @default(ADMIN)
   subscription      Subscription?
-  profileImage      String           @default("default-image.jpg")
-  isAccountVerified Boolean          @default(false)
-  accountStatus     AccountStatus    @default(INACTIVE)
+  profileImage      String        @default("default-image.jpg")
+  isAccountVerified Boolean       @default(false)
+  accountStatus     AccountStatus @default(INACTIVE)
   termsAccepted     Boolean
-  members           Member[]
-  membershipPlans   MembershipPlan[]
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+
+  members         Member[]
+  memberships     Membership[]
+  membershipPlans MembershipPlan[]
+  payments        Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -101,7 +111,7 @@ model Plan {
 
   isActive Boolean @default(true)
 
-  subscriptions Subscription[] @relation("planId")
+  subscriptions Subscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,7 +145,7 @@ model Subscription {
   user   User   @relation(fields: [userId], references: [id])
 
   planId String
-  plan   Plan   @relation("planId", fields: [planId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
 
   planDurationId String
   planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
@@ -172,20 +182,40 @@ model Member {
   userType         UserType     @default(USER)
   status           MemberStatus @default(ACTIVE)
 
+  memberships   Membership[]
+  payments      Payment[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("members")
+}
+
+// * Table of Membership Plan
+model Membership {
+  id String @id @default(uuid())
+
+  adminId String
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id])
+
   membershipPlanId String
-  membership       MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
 
   membershipPlanDurationId String
   membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
-  startDate     DateTime       @default(now())
-  expiresAt     DateTime
-  payments      Payment[]
-  notifications Notification[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  status    MembershipStatus @default(ACTIVE)
+  startDate DateTime         @default(now())
+  expiresAt DateTime
 
-  @@map("members")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("memberships")
 }
 
 // * Table of Membership Plan
@@ -195,12 +225,14 @@ model MembershipPlan {
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  planName                String
-  description             String?
+  planName    String
+  description String?
+
   membershipPlanDurations MembershipPlanDuration[]
-  members                 Member[]
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  memberships             Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("membershipPlans")
 }
@@ -213,9 +245,9 @@ model MembershipPlanDuration {
   price        Decimal @db.Decimal(10, 2)
 
   membershipPlanId String
-  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Cascade)
 
-  members Member[]
+  memberships Membership[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,12 +262,13 @@ model Payment {
   memberId String
   member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
-  adminId   String
+  adminId String
+  admin   User   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
   amount    Decimal       @db.Decimal(10, 2)
   paidAt    DateTime
   dueDate   DateTime
   status    PaymentStatus @default(UNPAID)
-  note      String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 

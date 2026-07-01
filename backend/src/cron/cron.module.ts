@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { SubscriptionCron } from './subscription.cron';
-import { MembershipPlanCron } from './membership-plan.cron';
+import { MembershipCron } from './membership.cron';
 import { PaymentCron } from './payment.cron';
 
 @Module({
   controllers: [],
-  providers: [SubscriptionCron, MembershipPlanCron, PaymentCron],
+  providers: [SubscriptionCron, MembershipCron, PaymentCron],
   imports: [],
   exports: [],
 })

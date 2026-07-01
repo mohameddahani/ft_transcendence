@@ -12,7 +12,7 @@ import { PlansModule } from './plans/plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './cron/subscription.cron';
-import { MembershipPlanCron } from './cron/membership-plan.cron';
+import { MembershipCron } from './cron/membership.cron';
 import { PaymentCron } from './cron/payment.cron';
 import { PaymentsModule } from './payments/payments.module';
 
@@ -68,7 +68,7 @@ import { PaymentsModule } from './payments/payments.module';
 
     // * Cron
     SubscriptionCron,
-    MembershipPlanCron,
+    MembershipCron,
     PaymentCron,
   ],
 })

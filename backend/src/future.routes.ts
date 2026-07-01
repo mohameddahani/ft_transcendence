@@ -1,4 +1,5 @@
 // ! Remove Check if element is exist befor do an action and use try catch
+// ! Test to remove an Admin
 
 // * Upgrade a membership-plan of member
 // * Upgrade a plan
@@ -65,3 +66,24 @@
 //   -not -path "*/build/*" \
 //   -not -path "*/generated/*" \
 //   -exec cat {} + | wc -l
+
+// | Prisma Function       | Returns if Nothing Found | Throws Prisma Error?    | Should Use `try...catch`? | Notes                                                  |
+// | --------------------- | ------------------------ | ----------------------- | ------------------------- | ------------------------------------------------------ |
+// | `findUnique()`        | `null`                   | ❌ (not for "not found") | ❌ Usually No              | Check `if (!result)` yourself.                         |
+// | `findUniqueOrThrow()` | —                        | ✅ `P2025`               | ✅ Yes                     | Throws if record doesn't exist.                        |
+// | `findFirst()`         | `null`                   | ❌ (not for "not found") | ❌ Usually No              | Check `if (!result)` yourself.                         |
+// | `findFirstOrThrow()`  | —                        | ✅ `P2025`               | ✅ Yes                     | Throws if record doesn't exist.                        |
+// | `findMany()`          | `[]`                     | ❌                       | ❌ No                      | Empty array is normal.                                 |
+// | `count()`             | `0`                      | ❌                       | ❌ No                      | Zero is normal.                                        |
+// | `aggregate()`         | Depends                  | ❌                       | ❌ No                      | No "not found" error.                                  |
+// | `groupBy()`           | `[]`                     | ❌                       | ❌ No                      | Empty array is normal.                                 |
+// | `create()`            | —                        | ✅ Yes                   | ✅ Yes                     | Can throw `P2002` (unique constraint), FK errors, etc. |
+// | `createMany()`        | `{ count }`              | ✅ Yes                   | ✅ Yes                     | Can throw DB errors.                                   |
+// | `update()`            | —                        | ✅ `P2025` + others      | ✅ Yes                     | Throws if record doesn't exist.                        |
+// | `updateMany()`        | `{ count }`              | ❌                       | ❌ Usually No              | `count` may be `0`.                                    |
+// | `upsert()`            | Record                   | ✅ Yes                   | ✅ Yes                     | Can throw DB errors.                                   |
+// | `delete()`            | —                        | ✅ `P2025`, `P2003`      | ✅ Yes                     | Throws if record doesn't exist or FK constraint fails. |
+// | `deleteMany()`        | `{ count }`              | ❌                       | ❌ Usually No              | `count` may be `0`.                                    |
+// | `$transaction()`      | Depends                  | ✅ Yes                   | ✅ Yes                     | Whole transaction can fail.                            |
+// | `$queryRaw()`         | Depends                  | ✅ Yes                   | ✅ Yes                     | Raw SQL can fail.                                      |
+// | `$executeRaw()`       | Number                   | ✅ Yes                   | ✅ Yes                     | Raw SQL can fail.                                      |
