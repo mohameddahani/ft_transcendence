@@ -23,6 +23,7 @@
 // * GET all subscription / One subscription
 // * GET all payment / One payment
 // ! GET all notification / One notification
+// ! GET all membership / One membership
 
 // ! Login of member
 // ! change password of member
