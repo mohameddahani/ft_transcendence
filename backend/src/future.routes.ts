@@ -1,3 +1,5 @@
+// ! Remove Check if element is exist befor do an action and use try catch
+
 // * Upgrade a membership-plan of member
 // * Upgrade a plan
 

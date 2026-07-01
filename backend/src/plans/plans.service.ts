@@ -9,6 +9,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class PlansService {
@@ -148,6 +149,30 @@ export class PlansService {
       },
       data,
     });
+  }
+
+  // * Delete Plan
+  async remove(id: string) {
+    try {
+      await this.prisma.plan.delete({ where: { id: id } });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        throw new NotFoundException('Plan Not Found!');
+      }
+    }
+  }
+
+  // * Delete Plan Duration
+  async removePlanDuration(id: string, planId: string) {
+    try {
+      await this.prisma.planDuration.delete({
+        where: { id: id, planId: planId },
+      });
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        throw new NotFoundException('Plan Duration Not Found!');
+      }
+    }
   }
 
   // * Get all Plans

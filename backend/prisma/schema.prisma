@@ -117,7 +117,7 @@ model PlanDuration {
   price        Decimal @db.Decimal(10, 2)
 
   planId String
-  plan   Plan   @relation(fields: [planId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   subscriptions Subscription[]
 
