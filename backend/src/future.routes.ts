@@ -1,5 +1,5 @@
-// ! Remove Check if element is exist befor do an action and use try catch
-// ! Test to remove an Admin
+// * Remove Check if element is exist befor do an action and use try catch
+// * Test to remove an Admin
 
 // * Upgrade a membership-plan of member
 // * Upgrade a plan
@@ -8,22 +8,23 @@
 // * Update plan (should subscription update to or not)
 // * update member
 
-// ! Delete membership-plan
-// ! Delete plan
+// * Delete membership-plan
+// * Delete plan
 // * Delete member
 
 // ! Ban any user by owner or make him pending
 // ! Cancel the subscription by owner or disactive
 // ! Ban or Frozen a member by admin
 // ! Disactive a plan by Owner
+// ! Disactive a membership plan by Admin
 
 // * GET all members / One member
 // * GET all membership-plan / One membership-plan
 // * GET all plan / One plan
 // * GET all subscription / One subscription
 // * GET all payment / One payment
+// * GET all membership / One membership
 // ! GET all notification / One notification
-// ! GET all membership / One membership
 
 // ! Login of member
 // ! change password of member
@@ -93,14 +94,3 @@
 // ! TESTS
 // ! Delete user (admin)
 // ! Update user (user)
-
-// ! Update plan (owner)
-// ! Delete plan (owner)
-
-// ! Update membership plan (admin)
-// ! Delete membership plan (admin)
-
-// ! Update member (admin)
-// ! Delete member (admin)
-
-// ! Delete payment (admin)
