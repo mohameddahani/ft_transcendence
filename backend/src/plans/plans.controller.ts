@@ -6,7 +6,6 @@ import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -21,7 +20,6 @@ import { PlansService } from './plans.service';
 import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
-import { DeletePlanDurationDto } from './dtos/delete-plan-duration.dto';
 
 @Controller('/api/plans')
 // * Make Authorazation Golbal on this route
@@ -59,23 +57,6 @@ export class PlansController {
     @Body() body: UpdatePlanDurationDto,
   ) {
     return this.plansService.updatePlanDuration(id, body);
-  }
-
-  // * Delete Plan
-  @Delete(':id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.plansService.remove(id);
-  }
-
-  // * Delete Plan Duration
-  @Delete('durations/:id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  removePlanDuration(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: DeletePlanDurationDto,
-  ) {
-    return this.plansService.removePlanDuration(id, body.planId);
   }
 
   // * Get all Plan

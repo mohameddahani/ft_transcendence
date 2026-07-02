@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,7 +10,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
+import { SubscriptionStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class PlansService {
@@ -57,7 +58,25 @@ export class PlansService {
   // * Update a Plan
   async update(id: string, data: UpdatePlanDto) {
     // * Check if this plan already exist
-    await this.findOne(id);
+    const plan = await this.findOne(id);
+
+    // * Check if status of plan will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any admin use this plan before desactive it
+        const NumAdmins = await this.prisma.subscription.count({
+          where: {
+            planId: plan.id,
+            status: SubscriptionStatus.ACTIVE,
+          },
+        });
+        if (NumAdmins > 0) {
+          throw new BadRequestException(
+            `The Are ${NumAdmins} Admin Use This Plan`,
+          );
+        }
+      }
+    }
 
     // * Check data if already exist in DB
     if (data.planName !== undefined) {
@@ -149,30 +168,6 @@ export class PlansService {
       },
       data,
     });
-  }
-
-  // * Delete Plan
-  async remove(id: string) {
-    try {
-      await this.prisma.plan.delete({ where: { id: id } });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('Plan Not Found!');
-      }
-    }
-  }
-
-  // * Delete Plan Duration
-  async removePlanDuration(id: string, planId: string) {
-    try {
-      await this.prisma.planDuration.delete({
-        where: { id: id, planId: planId },
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('Plan Duration Not Found!');
-      }
-    }
   }
 
   // * Get all Plans
