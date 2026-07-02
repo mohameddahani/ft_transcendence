@@ -127,7 +127,7 @@ model PlanDuration {
   price        Decimal @db.Decimal(10, 2)
 
   planId String
-  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id])
 
   subscriptions Subscription[]
 
@@ -245,7 +245,7 @@ model MembershipPlanDuration {
   price        Decimal @db.Decimal(10, 2)
 
   membershipPlanId String
-  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id], onDelete: Cascade)
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
 
   memberships Membership[]
 
@@ -260,10 +260,10 @@ model Payment {
   id String @id @default(uuid())
 
   memberId String
-  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  member   Member @relation(fields: [memberId], references: [id])
 
   adminId String
-  admin   User   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin   User   @relation(fields: [adminId], references: [id])
 
   amount    Decimal       @db.Decimal(10, 2)
   paidAt    DateTime

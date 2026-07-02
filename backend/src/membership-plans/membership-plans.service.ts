@@ -10,7 +10,6 @@ import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duratio
 import { SubscriptionStatus } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class MembershipPlansService {
@@ -203,43 +202,6 @@ export class MembershipPlansService {
       },
       data,
     });
-  }
-
-  // * Delete Membership Plan
-  async remove(adminId: string, id: string) {
-    // * Check if this plan use it
-    try {
-      await this.prisma.membershipPlan.delete({
-        where: { id: id, adminId: adminId },
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        console.log(error);
-        throw new NotFoundException('Membership Plan Not Found!');
-      }
-    }
-  }
-
-  // * Delete Membership Plan Duration
-  async removeMembershipPlanDuration(
-    adminId: string,
-    id: string,
-    membershipPlanId: string,
-  ) {
-    // * Check if admin has this membership plan
-    await this.findOne(adminId, membershipPlanId);
-    try {
-      await this.prisma.membershipPlanDuration.delete({
-        where: {
-          id: id,
-          membershipPlanId: membershipPlanId,
-        },
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('Membership Plan Duration Not Found!');
-      }
-    }
   }
 
   // * Get all membership Plans

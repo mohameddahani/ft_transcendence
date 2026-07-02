@@ -5,7 +5,6 @@ import type { JWTPayload } from '@/utils/types';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -23,7 +22,6 @@ import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/decorators/user-role.decorator';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
-import { DeleteMembershipPlanDurationDto } from './dtos/delete-membership-plan-duration.dto';
 
 @Controller('/api/membership-plans')
 // * Make Authorazation Golbal on this route
@@ -80,31 +78,6 @@ export class MembershipPlanController {
       userPayload.id,
       id,
       body,
-    );
-  }
-
-  // * Delete Membership Plan
-  @Delete(':id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  remove(
-    @CurrentUser() userPayload: JWTPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.membershipPlansService.remove(userPayload.id, id);
-  }
-
-  // * Delete Membership Plan Duration
-  @Delete('durations/:id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  removeMembershipPlanDuration(
-    @CurrentUser() userPayload: JWTPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: DeleteMembershipPlanDurationDto,
-  ) {
-    return this.membershipPlansService.removeMembershipPlanDuration(
-      userPayload.id,
-      id,
-      body.membershipPlanId,
     );
   }
 
