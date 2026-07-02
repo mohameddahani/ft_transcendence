@@ -220,12 +220,12 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  // * Delete one user
-  @Delete(':id')
-  @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.remove(id);
-  }
+  // // * Delete one user
+  // @Delete(':id')
+  // @UseGuards(AuthGuard, AuthRolesGuard)
+  // @Roles([UserType.OWNER])
+  // @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  // remove(@Param('id', ParseUUIDPipe) id: string) {
+  //   return this.usersService.remove(id);
+  // }
 }

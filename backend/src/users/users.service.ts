@@ -13,7 +13,6 @@ import { AuthProvider } from './providers/auth.provider';
 import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class UsersService {
@@ -250,14 +249,14 @@ export class UsersService {
     return user;
   }
 
-  // * Delete one user
-  async remove(id: string) {
-    try {
-      await this.prisma.user.delete({ where: { id } });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('User Not Found');
-      }
-    }
-  }
+  // // * Delete one user
+  // async remove(id: string) {
+  //   try {
+  //     await this.prisma.user.delete({ where: { id } });
+  //   } catch (error) {
+  //     if (error instanceof PrismaClientKnownRequestError) {
+  //       throw new NotFoundException('User Not Found');
+  //     }
+  //   }
+  // }
 }
