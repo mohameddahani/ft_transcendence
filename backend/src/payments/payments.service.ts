@@ -9,7 +9,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class PaymentsService {
@@ -142,24 +141,6 @@ export class PaymentsService {
       }
 
       return payment;
-    }
-  }
-
-  // * Delete one payment
-  async remove(adminId: string, id: string) {
-    // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
-    try {
-      await this.prisma.payment.delete({
-        where: {
-          id: id,
-          adminId: adminId,
-        },
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('Payment Not Found!');
-      }
     }
   }
 

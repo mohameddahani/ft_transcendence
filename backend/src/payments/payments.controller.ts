@@ -4,7 +4,6 @@ import { AuthGuard } from '@/users/guards/auth.guard';
 import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import {
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -53,16 +52,5 @@ export class PaymentsController {
       userPayload.userType,
       id,
     );
-  }
-
-  // * Delete one payment
-  @Delete(':id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  @Roles([UserType.ADMIN])
-  remove(
-    @CurrentUser() userPayload: JWTPayload,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.paymentsService.remove(userPayload.id, id);
   }
 }
