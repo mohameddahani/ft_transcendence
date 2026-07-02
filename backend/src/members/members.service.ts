@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { PaymentStatus, SubscriptionStatus } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 
 @Injectable()
 export class MembersService {
@@ -308,25 +307,6 @@ export class MembersService {
     }
 
     return member;
-  }
-
-  // * Delete one Member
-  async remove(adminId: string, memberId: string) {
-    // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
-
-    try {
-      await this.prisma.member.delete({
-        where: {
-          adminId,
-          id: memberId,
-        },
-      });
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
-        throw new NotFoundException('Member Not Found!');
-      }
-    }
   }
 
   // ! Private Attributes
