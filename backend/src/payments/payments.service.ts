@@ -170,7 +170,7 @@ export class PaymentsService {
       where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
       include: { plan: true },
     });
-    if (!subscription) {
+    if (!subscription || !subscription.plan.isActive) {
       throw new UnauthorizedException(
         'You don’t have an active subscription. Upgrade your plan to continue.',
       );

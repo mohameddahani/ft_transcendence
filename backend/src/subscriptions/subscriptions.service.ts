@@ -65,10 +65,12 @@ export class SubscriptionsService {
         status: SubscriptionStatus.ACTIVE,
       },
     });
-    // * Has already subscription
-    // Create date of expiration
+
+    // * Create date of expiration
     const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
     expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+
+    // * Has already subscription
     if (subscription) {
       // * Already same plan
       if (
@@ -84,6 +86,7 @@ export class SubscriptionsService {
         data: {
           plan: { connect: { id: newPlan.id } },
           planDuration: { connect: { id: duration.id } },
+          status: SubscriptionStatus.ACTIVE,
           startedAt: new Date(),
           expiresAt: expiresAt,
           amount: duration.price,
