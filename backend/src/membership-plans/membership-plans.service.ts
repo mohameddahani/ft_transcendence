@@ -1,13 +1,14 @@
 import { PrismaService } from '@/prisma/prisma.service';
 import { AddMembershipPlanDto } from '@/membership-plans/dtos/add-membership-plan.dto';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
-import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { MembershipStatus, SubscriptionStatus } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
 
@@ -92,7 +93,7 @@ export class MembershipPlansService {
     await this.checkIfAdminHasSubscription(adminId);
 
     // * Check if this membership plan already exist
-    await this.findOne(adminId, id);
+    const membershipPlan = await this.findOne(adminId, id);
 
     // * Check data if already exist in DB
     if (data.planName !== undefined) {
@@ -108,6 +109,25 @@ export class MembershipPlansService {
       if (existingData) {
         // * 409 = duplicate data
         throw new ConflictException('Membership Plan Name already exists');
+      }
+    }
+
+    // * Check if status of membership plan will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any member use this membership plan before desactive it
+        const NumMembers = await this.prisma.membership.count({
+          where: {
+            adminId: adminId,
+            membershipPlanId: membershipPlan.id,
+            status: MembershipStatus.ACTIVE,
+          },
+        });
+        if (NumMembers > 0) {
+          throw new BadRequestException(
+            `The Are ${NumMembers} Member Use This Membership Plan`,
+          );
+        }
       }
     }
 

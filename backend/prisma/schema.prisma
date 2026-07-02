@@ -107,10 +107,10 @@ model Plan {
 
   maxMembers  Int // 100
   description String?
-  durations   PlanDuration[]
 
   isActive Boolean @default(true)
 
+  durations     PlanDuration[]
   subscriptions Subscription[]
 
   createdAt DateTime @default(now())
@@ -227,6 +227,7 @@ model MembershipPlan {
 
   planName    String
   description String?
+  isActive    Boolean @default(true)
 
   membershipPlanDurations MembershipPlanDuration[]
   memberships             Membership[]
