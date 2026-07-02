@@ -359,7 +359,9 @@ export class MembersService {
       },
     });
     if (!membershipPlan) {
-      throw new NotFoundException('There is No Plan, Please Add a Plan');
+      throw new NotFoundException(
+        'There is No Membership Plan, Please Add a Membership Plan',
+      );
     }
 
     // * Check if duration is already exist for this membership plan

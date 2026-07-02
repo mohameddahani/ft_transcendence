@@ -13,7 +13,7 @@
 // * Delete member
 
 // ! Ban any user by owner or make him pending
-// ! Cancel the subscription by owner
+// ! Cancel the subscription by owner or disactive
 // ! Ban or Frozen a member by admin
 // ! Disactive a plan by Owner
 
@@ -87,4 +87,20 @@
 // | `deleteMany()`        | `{ count }`              | ❌                       | ❌ Usually No              | `count` may be `0`.                                    |
 // | `$transaction()`      | Depends                  | ✅ Yes                   | ✅ Yes                     | Whole transaction can fail.                            |
 // | `$queryRaw()`         | Depends                  | ✅ Yes                   | ✅ Yes                     | Raw SQL can fail.                                      |
-// | `$executeRaw()`       | Number                   | ✅ Yes                   | ✅ Yes                     | Raw SQL can fail.                                      |
+// | `$executeRaw()`       | Number                   | ✅ Yes                   | ✅ Yes                     | Raw SQL can fail.
+//
+
+// ! TESTS
+// ! Delete user (admin)
+// ! Update user (user)
+
+// ! Update plan (owner)
+// ! Delete plan (owner)
+
+// ! Update membership plan (admin)
+// ! Delete membership plan (admin)
+
+// ! Update member (admin)
+// ! Delete member (admin)
+
+// ! Delete payment (admin)
