@@ -1,26 +1,175 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* DARK MODE (class-based) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================
+   DESIGN TOKENS (THEME)
+   ========================= */
+@theme {
+  /* Primary */
+  --color-primary: #3525cd;
+  --color-primary-container: #4f46e5;
+  --color-primary-fixed: #e2dfff;
+  --color-primary-fixed-dim: #c3c0ff;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #dad7ff;
+  --color-on-primary-fixed: #0f0069;
+  --color-on-primary-fixed-variant: #3323cc;
+  --color-inverse-primary: #c3c0ff;
+
+  /* Secondary */
+  --color-secondary: #416900;
+  --color-secondary-container: #acf847;
+  --color-secondary-fixed: #acf847;
+  --color-secondary-fixed-dim: #91db2a;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #457000;
+  --color-on-secondary-fixed: #102000;
+  --color-on-secondary-fixed-variant: #304f00;
+
+  /* Tertiary */
+  --color-tertiary: #5c01c9;
+  --color-tertiary-container: #7534e1;
+  --color-tertiary-fixed: #ebddff;
+  --color-tertiary-fixed-dim: #d3bbff;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #e4d4ff;
+  --color-on-tertiary-fixed: #250059;
+  --color-on-tertiary-fixed-variant: #5b00c5;
+
+  /* Surface / Background */
+  --color-background: #f8f9fb;
+  --color-surface: #f8f9fb;
+  --color-surface-variant: #e1e2e4;
+  --color-surface-dim: #d9dadc;
+  --color-surface-bright: #f8f9fb;
+
+  --color-surface-container: #edeef0;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container-high: #e7e8ea;
+  --color-surface-container-highest: #e1e2e4;
+  --color-surface-container-lowest: #ffffff;
+
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #464555;
+  --color-on-background: #191c1e;
+
+  /* Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  /* Outline */
+  --color-outline: #777587;
+  --color-outline-variant: #c7c4d8;
+
+  /* Inverse */
+  --color-inverse-surface: #2e3132;
+  --color-inverse-on-surface: #f0f1f3;
+
+  /* Tint */
+  --color-surface-tint: #4d44e3;
+
+  /* Radius system */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-full: 9999px;
+
+  /* Spacing system */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-gutter: 24px;
+  --spacing-container-max: 1440px;
+
+  /* Typography */
+  --font-headline: var(--font-headline);
+  --font-body: var(--font-body);
+  --font-label: var(--font-body);
+
+  --text-body-sm: 14px;
+  --text-body-md: 16px;
+  --text-body-lg: 18px;
+
+  --text-label-sm: 12px;
+  --text-label-md: 14px;
+
+  --text-headline-md: 24px;
+  --text-headline-lg: 32px;
+  --text-headline-lg-mobile: 24px;
+  --text-display-lg: 48px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* =========================
+    DARK MODE OVERRIDES
+   ========================= */
+.dark {
+  --color-background: #0b0f14;
+  --color-surface: #0f141b;
+  --color-surface-variant: #1a1f2a;
+
+  --color-on-surface: #f0f1f3;
+  --color-on-background: #f0f1f3;
+  --color-on-surface-variant: #c7c4d8;
+
+  --color-surface-container: #141a22;
+  --color-surface-container-low: #10161e;
+  --color-surface-container-high: #1a2230;
+  --color-surface-container-highest: #202a3a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* =========================
+    CUSTOM COMPONENTS
+   ========================= */
+@layer components {
+  /* Material Icons */
+  .material-symbols-outlined {
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Glass Card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Button Primary */
+  .btn-primary {
+    background: linear-gradient(135deg, #3525cd 0%, #7534e1 100%);
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 20px rgba(53, 37, 205, 0.3);
+    transform: translateY(-1px);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #3525cd 0%, #7534e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
