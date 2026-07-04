@@ -16,6 +16,7 @@ import { MembershipCron } from './cron/membership.cron';
 import { PaymentCron } from './cron/payment.cron';
 import { PaymentsModule } from './payments/payments.module';
 import { MembershipsModule } from './memberships/memberships.module';
+import { OwnersModule } from './owners/owners.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { MembershipsModule } from './memberships/memberships.module';
     ScheduleModule.forRoot(),
 
     UsersModule,
+    OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
     MembershipPlanModule,

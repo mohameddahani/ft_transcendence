@@ -7,8 +7,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
-  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -23,9 +21,6 @@ import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from '@/decorators/current-user.decorator';
 import type { JWTPayload } from '@/utils/types';
-import { AuthRolesGuard } from './guards/auth.roles.guard';
-import { Roles } from '@/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -194,38 +189,4 @@ export class UsersController {
     // * Send file to client
     return res.sendFile(imagePath);
   }
-
-  // ! All this routes is Access only by Owner
-
-  // * Get all users
-  @Get()
-  // * Check if user has valid token and is a owner not normal user
-  @UseGuards(AuthGuard, AuthRolesGuard)
-  // * Set owner roles in this route
-  @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findAll(
-    @Query('page', ParseIntPipe) page: number,
-    @Query('limit', ParseIntPipe) limit: number,
-  ) {
-    return this.usersService.findAll(page, limit);
-  }
-
-  // * Get one user
-  @Get(':id')
-  @UseGuards(AuthGuard, AuthRolesGuard)
-  @Roles([UserType.OWNER])
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
-  }
-
-  // // * Delete one user
-  // @Delete(':id')
-  // @UseGuards(AuthGuard, AuthRolesGuard)
-  // @Roles([UserType.OWNER])
-  // @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  // remove(@Param('id', ParseUUIDPipe) id: string) {
-  //   return this.usersService.remove(id);
-  // }
 }

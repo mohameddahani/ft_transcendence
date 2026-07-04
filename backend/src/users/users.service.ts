@@ -13,6 +13,7 @@ import { AuthProvider } from './providers/auth.provider';
 import { DEFAULT_PROFILE_IMAGE } from '@/utils/constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
+import { UserType } from '@/generated/prisma/enums';
 
 @Injectable()
 export class UsersService {
@@ -173,49 +174,14 @@ export class UsersService {
     });
   }
 
-  // ! All this routes is Access only by Owner
-  // * Get all users
-  async findAll(page: number, limit: number) {
-    const users = await this.prisma.user.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        userType: true,
-        profileImage: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
-
-        subscription: {
-          include: {
-            plan: true,
-          },
-        },
-      },
-    });
-
-    if (users.length === 0) {
-      throw new NotFoundException('No Users To Show');
-    }
-
-    return users;
-  }
-
+  // ! Private Attributes
   // * Get one user
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: {
+        id,
+        userType: { notIn: [UserType.OWNER, UserType.USER] },
+      },
       select: {
         id: true,
         firstName: true,
@@ -248,15 +214,4 @@ export class UsersService {
 
     return user;
   }
-
-  // // * Delete one user
-  // async remove(id: string) {
-  //   try {
-  //     await this.prisma.user.delete({ where: { id } });
-  //   } catch (error) {
-  //     if (error instanceof PrismaClientKnownRequestError) {
-  //       throw new NotFoundException('User Not Found');
-  //     }
-  //   }
-  // }
 }
