@@ -120,7 +120,7 @@ export class AuthProvider {
     // * Check status of account
     if (user.accountStatus === AccountStatus.PENDING) {
       throw new UnauthorizedException(
-        'Your account is pending verification. Please verify your email to continue.',
+        'Your account is pending verification. Please contact support for assistance.',
       );
     }
 

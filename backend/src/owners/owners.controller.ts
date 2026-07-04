@@ -8,6 +8,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -23,7 +24,7 @@ export class OwnersController {
   constructor(private readonly ownersService: OwnersService) {}
 
   // * Get all users
-  @Get()
+  @Get('users')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
@@ -33,9 +34,31 @@ export class OwnersController {
   }
 
   // * Get one user
-  @Get(':id')
+  @Get('users/:id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.findOne(id);
+  }
+
+  // ! Change Status Account
+  // * Active a User
+  @Patch('users/active/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  ActiveUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ownersService.ActiveUser(id);
+  }
+
+  // * Pending a User
+  @Patch('users/pending/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  pendingUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ownersService.pendingUser(id);
+  }
+
+  // * Banned a User
+  @Patch('users/banned/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  bannedUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ownersService.bannedUser(id);
   }
 }
