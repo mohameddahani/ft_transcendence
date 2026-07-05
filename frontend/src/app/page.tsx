@@ -21,6 +21,7 @@ import Header from "@/components/header/Header";
 import Hero from "@/components/hero/Hero";
 import TrustStrip from "@/components/trust-strip/TrustStrip";
 import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
+import Carousel from "@/components/carousel/Carousel";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -36,10 +37,11 @@ export default function Home() {
       {/* Top Navigation Bar */}
       <Header isDark={isDark} toggleTheme={toggleTheme} />
 
-     <div className="container mx-auto px-3">
+     <div className="container mx-auto px-5 max-w-4xl">
        {/* Hero */}
        <Hero />
      </div>
+       <Carousel/>
     </div>
   );
 }

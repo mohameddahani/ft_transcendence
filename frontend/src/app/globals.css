@@ -33,6 +33,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-secondary-green: var(--secondary-green);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -50,7 +51,7 @@
 
 :root {
   --primary: #4f46e5;
-  /* --secondary: #84cc16; */
+  --secondary-green: #84cc16;
   --tertiary: #6d28d9;
   --neutrale: #f8f9fb;
 
@@ -137,14 +138,13 @@
   }
 }
 
-
 .btn-primary-gradient {
   background: linear-gradient(135deg, var(--primary) 0%, #7534e1 100%);
   background-size: 150% 150%;
   background-position: 0% 0%;
   position: relative;
   overflow: hidden;
-  transition: 
+  transition:
     transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     background-position 0.5s ease;
@@ -153,7 +153,7 @@
 .btn-primary-gradient:hover {
   transform: translateY(-2px);
   background-position: 100% 100%;
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(117, 52, 225, 0.35),
     0 2px 6px rgba(0, 0, 0, 0.1);
 }
@@ -165,7 +165,7 @@
 
 /* Optional shine sweep */
 .btn-primary-gradient::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -75%;

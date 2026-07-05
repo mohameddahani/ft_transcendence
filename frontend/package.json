@@ -14,6 +14,8 @@
     "@tailwindcss/forms": "^0.5.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "embla-carousel-auto-scroll": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.23.0",
     "next": "16.2.6",
     "react": "19.2.4",
