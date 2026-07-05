@@ -1,15 +1,11 @@
 import type { Metadata } from "next";
-import { Sora, Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const sora = Sora({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: "--font-headline",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +21,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${jakarta.variable} h-full antialiased`}
+      className={cn(
+        "h-full",
+        "antialiased",
+        outfit.variable,
+        "font-sans"
+      )}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

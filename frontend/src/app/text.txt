@@ -1,0 +1,649 @@
+
+      Hero Section
+      <Hero />
+
+      {/* Trust Strip */}
+      <TrustStrip />
+
+      {/* Feature Highlights */}
+      <FeatureHighlights />
+
+      {/* Gym Type Swiper */}
+      <section className="bg-surface-container py-3xl overflow-hidden">
+        <div className="max-w-container-max mx-auto px-lg mb-xl">
+          <h2 className="font-headline-lg text-headline-lg text-center">
+            Built for every movement
+          </h2>
+        </div>
+        <div className="flex gap-lg px-lg overflow-x-auto no-scrollbar pb-lg snap-x">
+          <div className="min-w-[320px] aspect-[4/5] relative rounded-2xl overflow-hidden snap-center group shadow-md">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{
+                backgroundImage:
+                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAEGSjo54WF5GmaQ52gMJU2a9bHmV-7XKqXjLADyZDfYhXV66tWjfsUGjwXaeIdN8UlLeeH0zs-ogW_S2j04x1tgcUQKwn-UQOslJCI01nIwqsj6gl6fOAeZJjS98qJbV_ZupC3k7WtudZjVt2WvPWievvXSAQY6nAPu0tHdortYDetUKNccVS1hF4C25l5LZWJjlHU_dDfH5PoJr-P8TjSeb0os06ZvH6vl82boKeSbnXXHidElfi9')",
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+            <div className="absolute bottom-lg left-lg text-white">
+              <h3 className="font-headline-md text-headline-md">
+                High-Performance Gyms
+              </h3>
+              <p className="font-body-sm text-body-sm opacity-80">
+                Full-scale equipment management
+              </p>
+            </div>
+          </div>
+          <div className="min-w-[320px] aspect-[4/5] relative rounded-2xl overflow-hidden snap-center group shadow-md">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{
+                backgroundImage:
+                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuB5P3EGbH1B99kc9zUpRNpi0MXXyTBoaLndBGIfmK5WYT8VKIYkYDz_ZtyTUyU5EsM7bqUP5zNt5Ya2XaE5uszTj-r1HwdtistszGsHVkMIXnDf9Fjqrn9DpdUnIZZGdnKMOucJq0ictGT_tT2ARhVqC3vv5EX-AWVddwTWp-5Tz3uPvDtSoJekIbmjyTjo1HA4O7emaDf14EZRAqsFbuq7vWVcP8zctp2poQwcXimk5X5Qlq0uvbtd')",
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+            <div className="absolute bottom-lg left-lg text-white">
+              <h3 className="font-headline-md text-headline-md">
+                Yoga &amp; Pilates
+              </h3>
+              <p className="font-body-sm text-body-sm opacity-80">
+                Class scheduling &amp; mat bookings
+              </p>
+            </div>
+          </div>
+          <div className="min-w-[320px] aspect-[4/5] relative rounded-2xl overflow-hidden snap-center group shadow-md">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{
+                backgroundImage:
+                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuB0ReUcxuZu5Br6eTw3xf3Zdz2vqsSWyxn8ZhfTf7Yn3hQohUFTFD6WTCykNfpZDwitqATIqWtDwZFEmMLMzNZGh9450EvPgGv8gcuM_cVmNASvr5Aje4cPSlrtrv3Ik7JcQBU4dAzb480Ee5ZxEcNReIia4xCUYNlcvZRgcRSJCbKm5PYJGax3soHrdT_Rom7KgFLiplBqD94EtiWKjl8OIouRsO3Txf06OhyVF6J2CzbpSUVt85ka')",
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+            <div className="absolute bottom-lg left-lg text-white">
+              <h3 className="font-headline-md text-headline-md">
+                Martial Arts
+              </h3>
+              <p className="font-body-sm text-body-sm opacity-80">
+                Belt tracking &amp; grading levels
+              </p>
+            </div>
+          </div>
+          <div className="min-w-[320px] aspect-[4/5] relative rounded-2xl overflow-hidden snap-center group shadow-md">
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+              style={{
+                backgroundImage:
+                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBYmxkxqDZUwtaCuR8dgS6kLyYEZV7Uj5HA9XYotf4iWCK9mdBhuuRSlLAiXKyNJWLXb5GhjxHxOKG7slY2EqYHV6MVCDGTtUbfXbaoT09ZI2SJP0AyfJHZ1TFWybBBg2tRrWS9Mdo6VEV9BsO7p-X_BphqbkbHLeF30SXpNYTOZ9dpeIYJ3asfPLXntbjPGUcWgvo3xhIOdLR33ynwRLd6uR8P-KNpjfExPt8w5sxGB4CVQARFLGqO')",
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+            <div className="absolute bottom-lg left-lg text-white">
+              <h3 className="font-headline-md text-headline-md">
+                CrossFit Boxes
+              </h3>
+              <p className="font-body-sm text-body-sm opacity-80">
+                WOD tracking &amp; community leaderboards
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Grid */}
+      <section className="py-3xl bg-surface">
+        <div className="max-w-container-max mx-auto px-lg">
+          <div className="text-center mb-2xl">
+            <h2 className="font-headline-lg text-headline-lg mb-md">
+              Everything you need to scale
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl mx-auto">
+              Consolidate your tech stack into one powerful, high-performance
+              platform designed for growth.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-lg">
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <Users className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Member Management
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Profile tracking, attendance, and member engagement tools.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <IdCard className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Dynamic Plans
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Create flexible membership tiers with ease.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <Banknote className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Global Payments
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Secure, automated recurring billing across all regions.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <MessageCircle className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                WhatsApp Integration
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Direct member communication where they already are.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <LayoutDashboard className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Unified Dashboard
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                KPI tracking and real-time business health metrics.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <Bot className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                AI Assistant
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Predictive analytics and automated insights for owners.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <LogIn className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Member Portal
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Self-service dashboard for memberships and bookings.
+              </p>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
+              <LineChart className="w-8 h-8 text-primary mb-md group-hover:scale-110 transition-transform" />
+              <h4 className="font-label-md text-label-md mb-sm">
+                Advanced Reports
+              </h4>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Exportable, drill-down data for financial planning.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof / Testimonials */}
+      <section className="py-3xl bg-surface-container-lowest">
+        <div className="max-w-container-max mx-auto px-lg">
+          <h2 className="font-headline-lg text-headline-lg text-center mb-2xl">
+            Loved by gym owners everywhere
+          </h2>
+          <div className="grid md:grid-cols-2 gap-xl">
+            <div className="p-2xl rounded-3xl bg-surface-container-low border border-outline-variant flex flex-col items-center text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt="Gym Owner testimonial"
+                className="w-20 h-20 rounded-full mb-lg object-cover shadow-md"
+                src="https://lh3.googleusercontent.com/aida/AP1WRLugvH9qsBHqQLAJt0Em4p4jPv6gOSUtl2FWUHLTrco9Bdp-6EIxXrFeXVNRyCumzYjaRoRZnaD3rcTLHe8MqFxpimyYMzBrf2VsGVkR51MitClqbiNGBrRTXPXTqLs9Y6NJp7tWwOA1QfHHZ7JS2xOFhEF2paaCyFSvoibaQCo1T4oHJ9GaoWsC46Zrb4oJ3exgnmhr0kTNncMPbTKhyeA9-Qmfr5M5w7ti8erwJHmffspJorsDtd7yi-E"
+              />
+              <p className="font-body-lg text-body-lg italic text-on-surface mb-lg">
+                "GymFlow completely transformed how we handle memberships. We've
+                seen a 30% reduction in late payments thanks to the WhatsApp
+                automation."
+              </p>
+              <div className="font-label-md text-label-md text-primary">
+                Marcus Thompson
+              </div>
+              <div className="font-body-sm text-body-sm text-on-surface-variant">
+                Owner, Iron Peak Fitness
+              </div>
+            </div>
+            <div className="p-2xl rounded-3xl bg-surface-container-low border border-outline-variant flex flex-col items-center text-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt="Studio Owner testimonial"
+                className="w-20 h-20 rounded-full mb-lg object-cover shadow-md"
+                src="https://lh3.googleusercontent.com/aida/AP1WRLtTHq1KINTcghNJ-G02itnRHC1v77OjmYRS8ynY05QsaX9PmRqJM4xetU5wBuAm8pNuAF3G7_tTsLJ6gNuS_qUj9ZupQG-UTdPnJ4e7wOOYf-vOACc_Okw9LUSsQAsXHABIjfnljPlf8nByIKei_snjCGznuz5k3dKWNNj8xGfvz9DfqDZ1BE2UZmexPYnEihi0S6JB3HN2RbpD5ELvCXQVACvEVj1zwigK9ZD_vOQwha-VxadH877OgCA"
+              />
+              <p className="font-body-lg text-body-lg italic text-on-surface mb-lg">
+                "The AI insights are a game changer. I can now predict member
+                churn weeks in advance and take action before it happens."
+              </p>
+              <div className="font-label-md text-label-md text-primary">
+                Elena Rodriguez
+              </div>
+              <div className="font-body-sm text-body-sm text-on-surface-variant">
+                Director, ZenFlow Studios
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-3xl bg-surface" id="pricing">
+        <div className="max-w-container-max mx-auto px-lg">
+          <div className="text-center mb-2xl">
+            <h2 className="font-headline-lg text-headline-lg mb-md">
+              Simple, transparent pricing
+            </h2>
+            <div className="flex items-center justify-center gap-md mt-lg">
+              <span className="font-label-md text-label-md">Monthly</span>
+              <button
+                onClick={() => setIsAnnual(!isAnnual)}
+                className="w-12 h-6 bg-primary rounded-full relative p-xs"
+                aria-label="Toggle Billing Cycle"
+              >
+                <div
+                  className={`w-4 h-4 bg-white rounded-full transition-all ${isAnnual ? "translate-x-6" : "translate-x-0"}`}
+                ></div>
+              </button>
+              <span className="font-label-md text-label-md">
+                Annual{" "}
+                <span className="text-secondary text-[10px] uppercase ml-xs font-bold">
+                  20% Off
+                </span>
+              </span>
+            </div>
+          </div>
+          <div className="grid md:grid-cols-3 gap-lg max-w-5xl mx-auto">
+            {/* Basic */}
+            <div className="p-xl rounded-2xl bg-surface-container-lowest border border-outline-variant flex flex-col h-full">
+              <h3 className="font-label-md text-label-md text-on-surface-variant mb-sm">
+                Starter
+              </h3>
+              <div className="mb-lg">
+                <span className="font-display-lg text-[40px]">
+                  ${isAnnual ? "39" : "49"}
+                </span>
+                <span className="text-on-surface-variant">/mo</span>
+              </div>
+              <ul className="space-y-md mb-2xl flex-grow">
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" /> Up to
+                  100 members
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" /> Basic
+                  reporting
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" /> Email
+                  support
+                </li>
+              </ul>
+              <button className="w-full py-md rounded-lg border border-primary text-primary font-label-md hover:bg-primary/5 transition-colors">
+                Choose Starter
+              </button>
+            </div>
+            {/* Growth */}
+            <div className="p-xl rounded-2xl bg-primary text-white flex flex-col h-full relative overflow-hidden scale-105 shadow-2xl z-10">
+              <div className="absolute top-4 right-4 bg-secondary-container text-on-secondary-container font-label-sm text-[10px] px-sm py-xs rounded uppercase font-bold">
+                Most Popular
+              </div>
+              <h3 className="font-label-md text-label-md mb-sm opacity-80">
+                Growth
+              </h3>
+              <div className="mb-lg">
+                <span className="font-display-lg text-[40px]">
+                  ${isAnnual ? "119" : "149"}
+                </span>
+                <span className="opacity-80">/mo</span>
+              </div>
+              <ul className="space-y-md mb-2xl flex-grow">
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 flex-shrink-0" /> Unlimited members
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 flex-shrink-0" /> Full WhatsApp
+                  automation
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 flex-shrink-0" /> AI Assistant tools
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 flex-shrink-0" /> Priority chat
+                  support
+                </li>
+              </ul>
+              <button className="w-full py-md rounded-lg bg-white text-primary font-label-md hover:shadow-inner transition-all">
+                Choose Growth
+              </button>
+            </div>
+            {/* Enterprise */}
+            <div className="p-xl rounded-2xl bg-surface-container-lowest border border-outline-variant flex flex-col h-full">
+              <h3 className="font-label-md text-label-md text-on-surface-variant mb-sm">
+                Enterprise
+              </h3>
+              <div className="mb-lg">
+                <span className="font-display-lg text-[40px]">Custom</span>
+              </div>
+              <ul className="space-y-md mb-2xl flex-grow">
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" />{" "}
+                  Multiple locations
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" />{" "}
+                  Dedicated account manager
+                </li>
+                <li className="flex items-center gap-sm font-body-sm">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" />{" "}
+                  Custom API integrations
+                </li>
+              </ul>
+              <button className="w-full py-md rounded-lg border border-primary text-primary font-label-md hover:bg-primary/5 transition-colors">
+                Contact Sales
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-3xl bg-surface-container-low" id="faq">
+        <div className="max-w-3xl mx-auto px-lg">
+          <h2 className="font-headline-lg text-headline-lg text-center mb-2xl">
+            Frequently Asked Questions
+          </h2>
+          <div className="space-y-md">
+            <details
+              className="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant group cursor-pointer"
+              open
+            >
+              <summary className="flex justify-between items-center font-label-md text-label-md list-none">
+                <span>How easy is it to migrate from my current software?</span>
+                <ChevronDown className="w-6 h-6 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-md font-body-sm text-body-sm text-on-surface-variant">
+                We handle the entire data migration for you. Our team will
+                import your member records, payment history, and plans within 24
+                hours of onboarding.
+              </p>
+            </details>
+            <details className="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant group cursor-pointer">
+              <summary className="flex justify-between items-center font-label-md text-label-md list-none">
+                <span>Can I manage multiple gym locations?</span>
+                <ChevronDown className="w-6 h-6 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-md font-body-sm text-body-sm text-on-surface-variant">
+                Yes, GymFlow Enterprise is built specifically for franchises and
+                multi-location groups, providing a global view of all your
+                centers.
+              </p>
+            </details>
+            <details className="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant group cursor-pointer">
+              <summary className="flex justify-between items-center font-label-md text-label-md list-none">
+                <span>Do I need to buy any special hardware?</span>
+                <ChevronDown className="w-6 h-6 transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="mt-md font-body-sm text-body-sm text-on-surface-variant">
+                No special hardware is required. GymFlow runs on any tablet,
+                computer, or smartphone. We also support standard QR and RFID
+                scanners.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="py-3xl bg-surface">
+        <div className="max-w-container-max mx-auto px-lg grid lg:grid-cols-2 gap-2xl">
+          <div>
+            <h2 className="font-headline-lg text-headline-lg mb-lg">
+              Let's get your gym flowing
+            </h2>
+            <form className="space-y-md" onSubmit={(e) => e.preventDefault()}>
+              <div className="grid grid-cols-2 gap-md">
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  className="p-md rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none w-full"
+                />
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  className="p-md rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none w-full"
+                />
+              </div>
+              <input
+                type="email"
+                placeholder="Work Email"
+                className="p-md rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none w-full"
+              />
+              <textarea
+                rows={4}
+                placeholder="Tell us about your gym"
+                className="p-md rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none w-full"
+              ></textarea>
+              <button className="btn-primary text-white px-2xl py-md rounded-lg font-label-md w-full shadow-lg">
+                Send Message
+              </button>
+            </form>
+          </div>
+          <div className="flex flex-col gap-lg">
+            <div className="p-2xl rounded-3xl bg-green-50 border border-green-200 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white mb-lg shadow-lg">
+                <MessageSquare className="w-8 h-8" />
+              </div>
+              <h3 className="font-headline-md text-headline-md text-green-900 mb-md">
+                Prefer WhatsApp?
+              </h3>
+              <p className="font-body-md text-body-md text-green-800 mb-xl">
+                Chat with us directly to get your gym activated instantly. Our
+                agents are standing by.
+              </p>
+              <button className="bg-green-500 hover:bg-green-600 text-white px-2xl py-md rounded-full font-label-md flex items-center gap-sm transition-all shadow-md">
+                <MessageSquare className="w-5 h-5" />
+                Chat on WhatsApp
+              </button>
+            </div>
+            <div className="p-lg rounded-2xl bg-surface-container-low border border-outline-variant flex items-center gap-md">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary flex-shrink-0">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-label-sm text-label-sm uppercase opacity-60">
+                  Support
+                </div>
+                <div className="font-body-md text-body-md">
+                  support@gymflow.saas
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-3xl px-lg">
+        <div className="max-w-container-max mx-auto bg-primary rounded-3xl p-3xl text-center text-white relative overflow-hidden">
+          <div className="relative z-10">
+            <h2 className="font-headline-lg text-headline-lg mb-lg">
+              Ready to transform your gym?
+            </h2>
+            <p className="font-body-lg text-body-lg mb-2xl opacity-80 max-w-2xl mx-auto">
+              Join the hundreds of high-performance fitness centers already
+              using GymFlow to power their business.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-md justify-center">
+              <button className="bg-white text-primary px-3xl py-md rounded-full font-label-md text-label-md shadow-2xl hover:scale-105 transition-transform">
+                Start Free Trial
+              </button>
+              <button className="bg-transparent border border-white/30 text-white px-3xl py-md rounded-full font-label-md text-label-md hover:bg-white/10 transition-colors">
+                Talk to Sales
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-surface-container-low py-3xl border-t border-outline-variant">
+        <div className="max-w-container-max mx-auto px-lg grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2xl mb-2xl">
+          <div className="col-span-2 lg:col-span-2">
+            <div className="font-headline-md text-headline-md font-bold text-on-surface mb-lg">
+              GymFlow
+            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xs mb-lg">
+              The {"world's"} most advanced management platform for elite
+              fitness and wellness businesses.
+            </p>
+            <div className="flex gap-md">
+              <Link
+                href="#"
+                className="w-10 h-10 rounded-full bg-surface-container-lowest border border-outline-variant flex items-center justify-center hover:text-primary transition-colors text-on-surface-variant"
+              >
+                <Globe className="w-5 h-5" />
+              </Link>
+              <Link
+                href="#"
+                className="w-10 h-10 rounded-full bg-surface-container-lowest border border-outline-variant flex items-center justify-center hover:text-primary transition-colors text-on-surface-variant"
+              >
+                <Users className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+          <div>
+            <h5 className="font-label-md text-label-md mb-lg">Product</h5>
+            <ul className="space-y-sm">
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Member Portal
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Mobile App
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h5 className="font-label-md text-label-md mb-lg">Company</h5>
+            <ul className="space-y-sm">
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h5 className="font-label-md text-label-md mb-lg">Support</h5>
+            <ul className="space-y-sm">
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="#"
+                  className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                >
+                  API Status
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-container-max mx-auto px-lg flex flex-col md:flex-row justify-between items-center gap-md border-t border-outline-variant pt-lg">
+          <span className="font-body-sm text-body-sm text-on-surface-variant opacity-60">
+            © 2024 GymFlow SaaS. All rights reserved.
+          </span>
+          <div className="flex gap-lg">
+            <Link
+              href="#"
+              className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+            >
+              Cookies
+            </Link>
+            <Link
+              href="#"
+              className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+            >
+              Security
+            </Link>
+          </div>
+        </div>
+      </footer>
+
+      {/* Floating WhatsApp Button */}
+      <div className="fixed bottom-lg right-lg z-[100] group flex items-center">
+        <div className="bg-surface-container-lowest shadow-xl border border-outline-variant px-md py-sm rounded-lg mr-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-label-sm text-label-sm whitespace-nowrap">
+          Chat with us to get started
+        </div>
+        <button className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 active:scale-95 transition-all animate-bounce hover:animate-none">
+          <MessageSquare className="w-8 h-8" />
+        </button>
+      </div>
