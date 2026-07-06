@@ -23,6 +23,7 @@ import TrustStrip from "@/components/trust-strip/TrustStrip";
 import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
 import Carousel from "@/components/carousel/Carousel";
 import GridItems from "@/components/grid-items/GridItems";
+import Testimonials from "@/components/testimonials/Testimonials";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -49,6 +50,9 @@ export default function Home() {
 
         {/* Grid Items */}
         <GridItems />
+
+        {/* Testimonials */}
+        <Testimonials />
       </div>
     </div>
   );
