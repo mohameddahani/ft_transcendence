@@ -18,13 +18,13 @@ const FeatureHighlights = () => {
           <ul className="flex flex-col justify-between gap-y-4">
             <li className="flex gap-sm items-start gap-x-2">
               <CircleCheck className="text-primary" />
-              <span className="font-body-md text-body-md text-on-surface">
+              <span className="font-medium">
                 Automated attendance logging
               </span>
             </li>
             <li className="flex gap-sm items-start gap-x-2">
               <CircleCheck className="text-primary" />
-              <span className="font-body-md text-body-md text-on-surface">
+              <span className="font-medium">
                 Smart capacity alerts
               </span>
             </li>

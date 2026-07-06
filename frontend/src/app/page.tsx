@@ -22,6 +22,7 @@ import Hero from "@/components/hero/Hero";
 import TrustStrip from "@/components/trust-strip/TrustStrip";
 import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
 import Carousel from "@/components/carousel/Carousel";
+import GridItems from "@/components/grid-items/GridItems";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -42,11 +43,12 @@ export default function Home() {
         <Hero />
       </div>
       <Carousel />
-      <div
-       className="container mx-auto px-5"
-       >
+      <div className="container mx-auto px-5">
         {/* Feature Highlights */}
         <FeatureHighlights />
+
+        {/* Grid Items */}
+        <GridItems />
       </div>
     </div>
   );
