@@ -1,4 +1,4 @@
-import { Check, MessageSquareText } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 
 const FeatureHighlights = () => {
   return (
@@ -12,18 +12,18 @@ const FeatureHighlights = () => {
           <h2 className="text-4xl font-semibold">Run your gym on autopilot</h2>
           <p className="my-4 leading-relaxed text-lg font-light">
             Stop wasting hours on manual spreadsheets. Our intelligent system
-            handles check-ins, attendance tracking, and capacity management
+            handles Circle-ins, attendance tracking, and capacity management
             automatically.
           </p>
           <ul className="flex flex-col justify-between gap-y-4">
             <li className="flex gap-sm items-start gap-x-2">
-              <Check className="text-primary" />
+              <CircleCheck className="text-primary" />
               <span className="font-body-md text-body-md text-on-surface">
                 Automated attendance logging
               </span>
             </li>
             <li className="flex gap-sm items-start gap-x-2">
-              <Check className="text-primary" />
+              <CircleCheck className="text-primary" />
               <span className="font-body-md text-body-md text-on-surface">
                 Smart capacity alerts
               </span>
@@ -55,8 +55,10 @@ const FeatureHighlights = () => {
             instantly.
           </p>
           <div className="bg-secondary p-7 rounded-xl flex gap-4 items-center">
-            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white">
-              <MessageSquareText />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white">
+              {/* <MessageSquareText /> */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/whatsapp.svg" alt="" />
             </div>
             <div>
               <div className="text-md font-semibold">WhatsApp Automation</div>

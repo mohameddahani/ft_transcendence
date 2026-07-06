@@ -33,7 +33,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen transition-all">
+    <div className="min-h-screen transition-all">
       {/* Top Navigation Bar */}
       <Header isDark={isDark} toggleTheme={toggleTheme} />
 
