@@ -152,7 +152,7 @@ export default function Carousel() {
                 key={`${slide.title}-${i}`}
                 className="relative flex-none px-3 basis-[85%] md:basis-[60%] lg:basis-[45%] xl:basis-[35%]"
               >
-                <div className="group relative h-100 w-full overflow-hidden rounded-3xl shadow-xl transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 sm:h-120">
+                <div className="group relative h-100 w-full overflow-hidden rounded-3xl transition-all duration-500 hover:scale-95 hover:-translate-y-1 sm:h-120">
                   {/* The Parallax Image */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

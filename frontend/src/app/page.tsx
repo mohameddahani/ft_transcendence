@@ -37,11 +37,17 @@ export default function Home() {
       {/* Top Navigation Bar */}
       <Header isDark={isDark} toggleTheme={toggleTheme} />
 
-     <div className="container mx-auto px-5 max-w-4xl">
-       {/* Hero */}
-       <Hero />
-     </div>
-       <Carousel/>
+      <div className="container mx-auto px-5">
+        {/* Hero */}
+        <Hero />
+      </div>
+      <Carousel />
+      <div
+       className="container mx-auto px-5"
+       >
+        {/* Feature Highlights */}
+        <FeatureHighlights />
+      </div>
     </div>
   );
 }
