@@ -35,6 +35,13 @@ export class SubscriptionsService {
       throw new NotFoundException('Plan Not Found');
     }
 
+    // * Check if plan is active
+    if (!newPlan.isActive) {
+      throw new ConflictException(
+        'The selected plan is no longer available. Please choose another active plan.',
+      );
+    }
+
     // * check if user try to do downground and he has already users more that plan
     // * Count Members
     const membersCount = await this.prisma.member.count({
