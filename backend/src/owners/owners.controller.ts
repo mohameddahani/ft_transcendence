@@ -55,10 +55,10 @@ export class OwnersController {
     return this.ownersService.pendingUser(id);
   }
 
-  // * Banned a User
-  @Patch('users/banned/:id')
+  // * Ban a User
+  @Patch('users/ban/:id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
-  bannedUser(@Param('id', ParseUUIDPipe) id: string) {
-    return this.ownersService.bannedUser(id);
+  banUser(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ownersService.banUser(id);
   }
 }

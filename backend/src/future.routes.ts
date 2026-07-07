@@ -14,7 +14,7 @@
 
 // * Ban any user by owner or make him pending
 // * Cancel the subscription by owner or disactive
-// ! Ban or Frozen a member by admin
+// * Ban or Frozen a member by admin
 // * Disactive a plan by Owner
 // * Disactive a membership plan by Admin
 

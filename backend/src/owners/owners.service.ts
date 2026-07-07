@@ -138,8 +138,8 @@ export class OwnersService {
     });
   }
 
-  // * Banned a User
-  async bannedUser(id: string) {
+  // * Ban a User
+  async banUser(id: string) {
     // * Check if User already exist
     const user = await this.findOne(id);
 

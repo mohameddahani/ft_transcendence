@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  MemberStatus,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
@@ -248,6 +249,71 @@ export class MembersService {
         'membership plan and duration must be provided together.',
       );
     }
+  }
+
+  // * Active a Member
+  async activeMember(adminId: string, memberId: string) {
+    // * Check member is exist
+    const member = await this.findOne(adminId, memberId);
+    if (member.status === MemberStatus.ACTIVE) {
+      throw new ConflictException('The Member is already Active!');
+    }
+
+    await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        status: MemberStatus.ACTIVE,
+      },
+    });
+  }
+
+  // * Freeze a Member
+  async freezeMember(adminId: string, memberId: string) {
+    // * Check member exists
+    const member = await this.findOne(adminId, memberId);
+
+    if (member.status === MemberStatus.FROZEN) {
+      throw new ConflictException('The member is already frozen.');
+    }
+
+    if (member.status === MemberStatus.BANNED) {
+      throw new ConflictException(
+        'A banned member cannot be frozen. Active the member first.',
+      );
+    }
+
+    await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        status: MemberStatus.FROZEN,
+      },
+    });
+  }
+
+  // * Ban a Member
+  async banMember(adminId: string, memberId: string) {
+    // * Check member exists
+    const member = await this.findOne(adminId, memberId);
+
+    if (member.status === MemberStatus.BANNED) {
+      throw new ConflictException('The member is already banned.');
+    }
+
+    await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        status: MemberStatus.BANNED,
+      },
+    });
   }
 
   // * Get all Members

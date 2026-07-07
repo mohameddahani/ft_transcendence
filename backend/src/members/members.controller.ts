@@ -49,6 +49,36 @@ export class MembersController {
     return this.membersService.update(userPayload.id, id, body);
   }
 
+  // * Active a Member
+  @Patch('active/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  activeMember(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.activeMember(userPayload.id, id);
+  }
+
+  // * Freeze a Member
+  @Patch('freeze/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  freezeMember(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.freezeMember(userPayload.id, id);
+  }
+
+  // * Ban a Member
+  @Patch('ban/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  banMember(
+    @CurrentUser() userPayload: JWTPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.banMember(userPayload.id, id);
+  }
+
   // * Get all Members
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
