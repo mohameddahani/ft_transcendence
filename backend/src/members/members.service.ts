@@ -188,11 +188,19 @@ export class MembersService {
     // * check if the admin update the membership plan
     if (data.membershipPlanId && data.membershipPlanDurationId) {
       // * Check if Admin Has Membership Plan With Duration
-      const { duration } = await this.checkIfAdminHasMembershipPlanWithDuration(
-        adminId,
-        data.membershipPlanId,
-        data.membershipPlanDurationId,
-      );
+      const { duration, membershipPlan } =
+        await this.checkIfAdminHasMembershipPlanWithDuration(
+          adminId,
+          data.membershipPlanId,
+          data.membershipPlanDurationId,
+        );
+
+      // * Check if memberhsip Plan is active
+      if (!membershipPlan.isActive) {
+        throw new ConflictException(
+          'The selected membership plan is no longer available. Please choose another active membership plan.',
+        );
+      }
 
       // * Check Membership Before update
       const membership = await this.prisma.membership.findFirst({
