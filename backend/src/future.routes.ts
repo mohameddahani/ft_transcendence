@@ -16,7 +16,7 @@
 // * Cancel the subscription by owner or disactive
 // ! Ban or Frozen a member by admin
 // * Disactive a plan by Owner
-// ! Disactive a membership plan by Admin
+// * Disactive a membership plan by Admin
 
 // * GET all members / One member
 // * GET all membership-plan / One membership-plan
