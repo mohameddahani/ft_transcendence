@@ -1,6 +1,6 @@
 import { Roles } from '@/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
-import { AddPlanDto } from '@/plans/dtos/add-plan.dto';
+import { AddPlanDto } from './dtos/add-plan.dto';
 import { AuthGuard } from '@/users/guards/auth.guard';
 import { AuthRolesGuard } from '@/users/guards/auth.roles.guard';
 import {
