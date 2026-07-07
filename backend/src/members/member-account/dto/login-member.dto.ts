@@ -1,18 +1,16 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class LoginMemberDto {
-  // * Email
-  @IsEmail()
-  // trim spaces from start and end
+  // * User Name
+  @IsNotEmpty()
+  @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
-  email!: string;
+  userName!: string;
 
   // * Password
-  @IsNotEmpty()
-  @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
