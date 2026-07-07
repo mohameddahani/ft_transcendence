@@ -117,7 +117,7 @@ const Pricing = () => {
                   <li key={featureIndex} className="flex items-center gap-4">
                     <Check
                       className={cn(
-                        "h-5 w-5 flex-shrink-0",
+                        "h-5 w-5 shrink-0",
                         plan.isPopular ? "text-white" : "text-primary"
                       )}
                     />
