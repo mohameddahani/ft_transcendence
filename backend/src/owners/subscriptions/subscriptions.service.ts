@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -6,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { PrismaService } from '@/prisma/prisma.service';
-import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { SubscriptionStatus, UserType } from '@/generated/prisma/enums';
 
 @Injectable()
 export class SubscriptionsService {
@@ -62,7 +63,6 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,
-        status: SubscriptionStatus.ACTIVE,
       },
     });
 
@@ -75,7 +75,8 @@ export class SubscriptionsService {
       // * Already same plan
       if (
         subscription.planId === newPlan.id &&
-        subscription.planDurationId === duration.id
+        subscription.planDurationId === duration.id &&
+        subscription.status === SubscriptionStatus.ACTIVE
       ) {
         throw new ConflictException('You already have this subscription');
       }
@@ -102,6 +103,45 @@ export class SubscriptionsService {
         planDuration: { connect: { id: duration.id } },
         expiresAt: expiresAt,
         amount: duration.price,
+      },
+    });
+  }
+
+  // * Cancel Subscription
+  async cancelSubscription(userId: string) {
+    // * Chek if user all ready exist
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+        userType: { notIn: [UserType.OWNER, UserType.USER] },
+      },
+      include: {
+        subscription: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
+
+    // * Check if Subscription is exist befor update it
+    // * Check if user has a subscription
+    if (!user.subscription) {
+      throw new NotFoundException('No subscription was found for this user.');
+    }
+
+    // * Check the subscription is Active
+    if (user.subscription.status !== SubscriptionStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Only active subscriptions can be cancelled.',
+      );
+    }
+
+    await this.prisma.subscription.update({
+      where: {
+        id: user.subscription.id,
+      },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
       },
     });
   }

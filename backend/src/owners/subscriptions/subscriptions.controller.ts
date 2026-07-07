@@ -9,6 +9,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -16,6 +17,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { SubscriptionsService } from './subscriptions.service';
+import { CancelSubscriptionDto } from './dtos/cancel-subscription.dto';
 
 @Controller('/api/subscriptions')
 // * Make Authorazation Golbal on this route
@@ -29,6 +31,13 @@ export class SubscriptionsController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   activeSubscription(@Body() body: ActiveSubscriptionDto) {
     return this.subscriptionsService.activeSubscription(body);
+  }
+
+  // * Cancel Subscription
+  @Patch()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  cancelSubscription(@Body() body: CancelSubscriptionDto) {
+    return this.subscriptionsService.cancelSubscription(body.userId);
   }
 
   // * Get all Subscriptions
