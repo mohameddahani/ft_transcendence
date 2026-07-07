@@ -17,7 +17,7 @@ const GridItems = () => {
           <h2 className="text-4xl font-semibold">
             Everything you need to scale
           </h2>
-          <p className="my-4 leading-relaxed text-lg font-light">
+          <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Consolidate your tech stack into one powerful, high-performance
             platform designed for growth.
           </p>

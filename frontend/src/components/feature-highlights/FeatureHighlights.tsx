@@ -10,7 +10,7 @@ const FeatureHighlights = () => {
             EFFORTLESS OPERATIONS
           </span>
           <h2 className="text-4xl font-semibold">Run your gym on autopilot</h2>
-          <p className="my-4 leading-relaxed text-lg font-light">
+          <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Stop wasting hours on manual spreadsheets. Our intelligent system
             handles Circle-ins, attendance tracking, and capacity management
             automatically.
@@ -49,7 +49,7 @@ const FeatureHighlights = () => {
           <h2 className="text-4xl font-semibold">
             Never chase a payment again
           </h2>
-          <p className="my-4 leading-relaxed text-lg font-light">
+          <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Set up recurring billing and let GymFlow do the rest. Our integrated
             WhatsApp automation sends friendly reminders for failed payments
             instantly.
@@ -85,7 +85,7 @@ const FeatureHighlights = () => {
             AI ANALYTICS
           </span>
           <h2 className="text-4xl font-semibold">Ask your gym anything</h2>
-          <p className="my-4 leading-relaxed text-lg font-light">
+          <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Our AI Assistant analyzes your data in real-time. Just ask {'"'}Who
             is at risk of churning?{'"'} or {'"'}What{"'"}s my busiest hour?
             {'"'} and get instant answers.

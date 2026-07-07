@@ -24,6 +24,7 @@ import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights
 import Carousel from "@/components/carousel/Carousel";
 import GridItems from "@/components/grid-items/GridItems";
 import Testimonials from "@/components/testimonials/Testimonials";
+import Pricing from "@/components/pricing/Pricing";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -53,6 +54,9 @@ export default function Home() {
 
         {/* Testimonials */}
         <Testimonials />
+
+        {/* Pricing */}
+        <Pricing />
       </div>
     </div>
   );

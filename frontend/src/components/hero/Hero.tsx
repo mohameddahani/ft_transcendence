@@ -70,7 +70,7 @@ const Hero = () => {
         Run your gym on{" "}
         <span className="gradient-text text-primary">autopilot</span>
       </h1>
-      <p className="mx-auto text-center max-w-2xl text-lg font-light mb-10">
+      <p className="mx-auto text-center max-w-2xl text-lg font-light mb-10 text-muted-foreground">
         The premium management platform for elite fitness centers. Automate
         memberships, payments, and insights in one unified dashboard.
       </p>

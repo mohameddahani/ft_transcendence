@@ -54,7 +54,7 @@ const Testimonials = () => {
                         className="w-20 h-20 rounded-full mb-6 object-cover shadow-md"
                         src="https://github.com/mohameddahani.png"
                       />
-                      <p className="italic mb-8 leading-relaxed font-medium">
+                      <p className="italic mb-8 leading-relaxed font-medium text-base text-muted-foreground">
                         {'"'}GymFlow completely transformed how we handle
                         memberships. We{"'"}ve seen a 30% reduction in late
                         payments thanks to the WhatsApp automation.{'"'}
