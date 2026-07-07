@@ -17,6 +17,7 @@ import { PaymentCron } from './cron/payment.cron';
 import { PaymentsModule } from './payments/payments.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { OwnersModule } from './owners/owners.module';
+import { MemberAccount } from './members/member-account/member-account.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { OwnersModule } from './owners/owners.module';
     SubscriptionsModule,
     PaymentsModule,
     MembershipsModule,
+    MemberAccount,
   ],
 
   providers: [
