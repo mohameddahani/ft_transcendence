@@ -38,7 +38,7 @@ async function bootstrap() {
   // ? Swagger is a tool that automatically creates API documentation + testing UI for your backend.
 
   // * Get domain of server
-  const domain = new ConfigService().getOrThrow<string>('DOMAIN');
+  const domain = new ConfigService().getOrThrow<string>('FRONTEND_URL');
 
   // * Config of document
   const swagger = new DocumentBuilder()
