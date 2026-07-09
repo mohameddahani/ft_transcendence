@@ -1,4 +1,12 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -23,12 +31,12 @@ export class AuthController {
     return this.authService.login(body);
   }
 
-  // // * Activate user account
-  // @Get('activate')
-  // @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  // activateAccount(@Query('token') token: string) {
-  //   return this.authService.activateAccount(token);
-  // }
+  // * Activate user account
+  @Get('activate')
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  activateAccount(@Query('token') token: string) {
+    return this.authService.activateAccount(token);
+  }
 
   // // * Forgot password
   // @Post('forgot-password')
