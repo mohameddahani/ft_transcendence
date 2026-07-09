@@ -14,7 +14,7 @@ import {
 import { PaymentsService } from './payments.service';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
-import type { JWTPayload } from '@/utils/types';
+import type { JWTPayload } from '@/core/types/jwt-payload.type';
 
 @Controller('/api/payments')
 // * Make Authorazation Golbal on this route

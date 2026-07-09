@@ -1,7 +1,7 @@
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { AddMemberDto } from './dtos/add-member.dto';
 import { AuthGuard } from '@/core/guards/auth.guard';
-import type { JWTPayload } from '@/utils/types';
+import type { JWTPayload } from '@/core/types/jwt-payload.type';
 import {
   Body,
   Controller,

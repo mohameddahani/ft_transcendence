@@ -20,7 +20,7 @@ import { RegisterUserDto } from './dtos/register-user.dto';
 import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
-import type { JWTPayload } from '@/utils/types';
+import type { JWTPayload } from '@/core/types/jwt-payload.type';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';

@@ -1,6 +1,6 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AddMemberDto } from './dtos/add-member.dto';
-import { generateUsername } from '@/utils/generate-username';
+import { generateUsername } from '@/core/utils/generate-username';
 import {
   BadRequestException,
   ConflictException,

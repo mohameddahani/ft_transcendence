@@ -1,4 +1,4 @@
-import { JWTPayload } from '@/utils/types';
+import { JWTPayload } from '@/core/types/jwt-payload.type';
 import {
   CanActivate,
   ExecutionContext,

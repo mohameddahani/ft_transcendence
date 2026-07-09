@@ -8,17 +8,17 @@ import {
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { JWTPayload } from '@/utils/types';
+import { JWTPayload } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from '../dtos/login-user.dto';
 import { AccountStatus } from '@/generated/prisma/enums';
 import { JwtService } from '@nestjs/jwt';
-import { EmailService } from '@/infrastructure/mail/email.service';
+import { EmailService } from '@/infrastructure/email/email.service';
 import { ConfigService } from '@nestjs/config';
 import {
   accountActivatedTemplate,
   accountAlreadyActivatedTemplate,
-} from '@/utils/email-templates';
-import { generateUsername } from '@/utils/generate-username';
+} from '@/infrastructure/email/templates';
+import { generateUsername } from '@/core/utils/generate-username';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()

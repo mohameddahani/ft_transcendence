@@ -1,6 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
-import { JWTPayload } from '@/utils/types';
+import { JWTPayload } from '@/core/types/jwt-payload.type';
 
 // * Create a Custom Parameter decorator
 // * data is optional metadata passed when using the decorator (e.g. @CurrentUser('id'))

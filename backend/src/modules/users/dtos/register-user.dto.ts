@@ -11,7 +11,7 @@ import {
   IsDate,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { IsValidPassword } from '@/utils/password.validator';
+import { IsValidPassword } from '@/core/utils/password.validator';
 import { Gender } from '@/generated/prisma/enums';
 
 export class RegisterUserDto {

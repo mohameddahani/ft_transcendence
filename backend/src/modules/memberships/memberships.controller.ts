@@ -10,7 +10,7 @@ import {
 import { MembershipsService } from './memberships.service';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
-import type { JWTPayload } from '@/utils/types';
+import type { JWTPayload } from '@/core/types/jwt-payload.type';
 import { AuthGuard } from '@/core/guards/auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { UserType } from '@/generated/prisma/enums';

@@ -1,6 +1,6 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
-import { JWTPayload } from '@/utils/types';
+import { JWTPayload } from '@/core/types/jwt-payload.type';
 import {
   CanActivate,
   ExecutionContext,
