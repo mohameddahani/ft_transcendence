@@ -5,11 +5,11 @@ import {
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterUserDto } from '../dtos/register-user.dto';
+import { RegisterUserDto } from './dto/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JWTPayload } from '@/core/types/jwt-payload.type';
-import { LoginUserDto } from '../dtos/login-user.dto';
+import { LoginUserDto } from './dto/login-user.dto';
 import { AccountStatus } from '@/generated/prisma/enums';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '@/infrastructure/email/email.service';

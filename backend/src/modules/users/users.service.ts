@@ -4,12 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { LoginUserDto } from './dtos/login-user.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { AuthProvider } from './providers/auth.provider';
 import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
@@ -17,35 +14,7 @@ import { UserType } from '@/generated/prisma/enums';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly authProvider: AuthProvider,
-  ) {}
-
-  // * Register
-  async register(data: RegisterUserDto) {
-    return this.authProvider.register(data);
-  }
-
-  // * Login
-  async login(data: LoginUserDto) {
-    return this.authProvider.login(data);
-  }
-
-  // * Activate user account
-  async activateAccount(token: string) {
-    return this.authProvider.activateAccount(token);
-  }
-
-  // * Forgot password
-  async forgotPassword(email: string) {
-    return this.authProvider.forgotPassword(email);
-  }
-
-  // * Reset password
-  resetPassword(token: string, password: string) {
-    return this.authProvider.resetPassword(token, password);
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   // * Get current user
   async findMe(id: string) {

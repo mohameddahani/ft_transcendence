@@ -4,20 +4,15 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   Patch,
   Post,
-  Query,
   Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { RegisterUserDto } from './dtos/register-user.dto';
-import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import type { JWTPayload } from '@/core/types/jwt-payload.type';
@@ -27,53 +22,11 @@ import { diskStorage } from 'multer';
 import type { Response } from 'express';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { ForgotPasswordUserDto } from './dtos/forgot-passworf-user.dto';
-import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 
 @Controller('/api/users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  // * Register
-  @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 600_000 } }) // * Set Rate Limiting (5 req / 10 min)
-  register(@Body() body: RegisterUserDto) {
-    return this.usersService.register(body);
-  }
-
-  // * Login
-  @Post('login')
-  @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  login(@Body() body: LoginUserDto) {
-    return this.usersService.login(body);
-  }
-
-  // * Activate user account
-  @Get('auth/activate')
-  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@Query('token') token: string) {
-    return this.usersService.activateAccount(token);
-  }
-
-  // * Forgot password
-  @Post('auth/forgot-password')
-  @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
-  forgotPassword(@Body() email: ForgotPasswordUserDto) {
-    return this.usersService.forgotPassword(email.email);
-  }
-
-  // * Reset password
-  @Post('auth/reset-password')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  resetPassword(
-    @Query('token') token: string,
-    @Body() password: ResetPasswordUserDto,
-  ) {
-    return this.usersService.resetPassword(token, password.password);
-  }
 
   // * Get current user
   @Get('me')
