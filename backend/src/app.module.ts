@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './infrastructure/database/prisma.module';
-import { JwtModule } from '@nestjs/jwt';
-import { StringValue } from 'ms';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { MembershipPlanModule } from './modules/membership-plans/membership-plans.module';
@@ -31,16 +29,16 @@ import { MemberAccount } from './modules/members/member-account/member-account.m
 
     // * Config the JWT
     // * Use registerAsync to get dynamic data from .env
-    JwtModule.registerAsync({
-      global: true,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        signOptions: {
-          expiresIn: config.getOrThrow<StringValue>('JWT_ACCESS_EXPIRES_IN'),
-        },
-      }),
-    }),
+    // JwtModule.registerAsync({
+    //   global: true,
+    //   inject: [ConfigService],
+    //   useFactory: (config: ConfigService) => ({
+    //     secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+    //     signOptions: {
+    //       expiresIn: config.getOrThrow<StringValue>('JWT_ACCESS_EXPIRES_IN'),
+    //     },
+    //   }),
+    // }),
 
     // * Rate Limiting
     ThrottlerModule.forRoot([
