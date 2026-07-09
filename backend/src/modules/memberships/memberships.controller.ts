@@ -12,7 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import type { JWTPayload } from '@/utils/types';
 import { AuthGuard } from '@/core/guards/auth.guard';
-import { AuthRolesGuard } from '@/core/guards/auth.roles.guard';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 

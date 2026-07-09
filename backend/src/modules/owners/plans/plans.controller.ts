@@ -2,7 +2,7 @@ import { Roles } from '@/core/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
 import { AddPlanDto } from './dtos/add-plan.dto';
 import { AuthGuard } from '@/core/guards/auth.guard';
-import { AuthRolesGuard } from '@/core/guards/auth.roles.guard';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Body,
   Controller,

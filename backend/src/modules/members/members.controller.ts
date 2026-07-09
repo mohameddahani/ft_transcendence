@@ -18,7 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import { MembersService } from './members.service';
 import { UserType } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { AuthRolesGuard } from '@/core/guards/auth.roles.guard';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 
 @Controller('/api/members')
