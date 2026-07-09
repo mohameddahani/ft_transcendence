@@ -1,4 +1,4 @@
-import { JWTPayload } from '@/core/types/jwt-payload.type';
+import { JwtPayload } from '@/core/types/jwt-payload.type';
 import {
   CanActivate,
   ExecutionContext,
@@ -30,7 +30,7 @@ export class AuthGuard implements CanActivate {
     if (token && type === 'Bearer') {
       try {
         // * Check if token is valid
-        const payload: JWTPayload = await this.jwtService.verifyAsync(token, {
+        const payload: JwtPayload = await this.jwtService.verifyAsync(token, {
           secret: this.config.getOrThrow<string>('JWT_SECRET'),
         });
         // * adding a property to the request object (user) after checking the token

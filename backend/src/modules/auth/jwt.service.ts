@@ -1,19 +1,23 @@
-import { UserType } from '@/generated/prisma/enums';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { JwtTokenType } from '@/core/enums/jwt-token-type.enum';
+import { JwtPayload } from '@/core/types/jwt-payload.type';
+import { Injectable } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
+import { JwtProvider } from './jwt.provider';
 
 @Injectable()
 export class CustomJwtService {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly config: ConfigService,
+    private readonly jwtProvider: JwtProvider,
   ) {}
 
   // * Generate Access Token
-  generateAccessToken(payload: any) {
+  generateAccessToken(payload: JwtPayload) {
     // * Get Secret key and expiresIn
-    const { secret, expiresIn } = this.getSecret('ADMIN');
+    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
+      payload.userType,
+      JwtTokenType.ACCESS,
+    );
 
     // * Generate The Token
     return this.jwtService.sign(payload, {
@@ -22,36 +26,48 @@ export class CustomJwtService {
     });
   }
 
-  // ! Private
-  // * Get Secret Key and expiresIn fom envirement
-  private getSecret(role: UserType) {
-    switch (role) {
-      case UserType.OWNER:
-        return {
-          secret: this.config.getOrThrow<string>('JWT_OWNER_ACCESS_SECRET'),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_OWNER_ACCESS_EXPIRES_IN',
-          ),
-        };
+  // * Generate Refresh Token
+  generateRefreshToken(payload: JwtPayload) {
+    // * Get Secret key and expiresIn
+    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
+      payload.userType,
+      JwtTokenType.REFRESH,
+    );
 
-      case UserType.ADMIN:
-        return {
-          secret: this.config.getOrThrow<string>('JWT_ADMIN_ACCESS_SECRET'),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_ADMIN_ACCESS_EXPIRES_IN',
-          ),
-        };
+    // * Generate The Token
+    return this.jwtService.sign(payload, {
+      secret,
+      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
+    });
+  }
 
-      case UserType.USER:
-        return {
-          secret: this.config.getOrThrow<string>('JWT_MEMBER_ACCESS_SECRET'),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_ACCESS_EXPIRES_IN',
-          ),
-        };
+  // * Generate Email Verification Token
+  generateEmailVerificationToken(payload: JwtPayload) {
+    // * Get Secret key and expiresIn
+    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
+      payload.userType,
+      JwtTokenType.EMAIL_VERIFICATION,
+    );
 
-      default:
-        throw new UnauthorizedException('Invalid role');
-    }
+    // * Generate The Token
+    return this.jwtService.sign(payload, {
+      secret,
+      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
+    });
+  }
+
+  // * Generate Password Reset Token
+  generatePasswordResetToken(payload: JwtPayload) {
+    // * Get Secret key and expiresIn
+    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
+      payload.userType,
+      JwtTokenType.PASSWORD_RESET,
+    );
+
+    // * Generate The Token
+    return this.jwtService.sign(payload, {
+      secret,
+      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
+    });
   }
 }

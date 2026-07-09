@@ -1,18 +1,8 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
-import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -33,28 +23,28 @@ export class AuthController {
     return this.authService.login(body);
   }
 
-  // * Activate user account
-  @Get('activate')
-  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@Query('token') token: string) {
-    return this.authService.activateAccount(token);
-  }
+  // // * Activate user account
+  // @Get('activate')
+  // @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  // activateAccount(@Query('token') token: string) {
+  //   return this.authService.activateAccount(token);
+  // }
 
-  // * Forgot password
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
-  forgotPassword(@Body() email: ForgotPasswordUserDto) {
-    return this.authService.forgotPassword(email.email);
-  }
+  // // * Forgot password
+  // @Post('forgot-password')
+  // @HttpCode(HttpStatus.OK) // * set default status code
+  // @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  // forgotPassword(@Body() email: ForgotPasswordUserDto) {
+  //   return this.authService.forgotPassword(email.email);
+  // }
 
-  // * Reset password
-  @Post('reset-password')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  resetPassword(
-    @Query('token') token: string,
-    @Body() password: ResetPasswordUserDto,
-  ) {
-    return this.authService.resetPassword(token, password.password);
-  }
+  // // * Reset password
+  // @Post('reset-password')
+  // @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  // resetPassword(
+  //   @Query('token') token: string,
+  //   @Body() password: ResetPasswordUserDto,
+  // ) {
+  //   return this.authService.resetPassword(token, password.password);
+  // }
 }

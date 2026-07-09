@@ -1,6 +1,6 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { UserType } from '@/generated/prisma/enums';
-import { JWTPayload } from '@/core/types/jwt-payload.type';
+import { JwtPayload } from '@/core/types/jwt-payload.type';
 import {
   CanActivate,
   ExecutionContext,
@@ -37,7 +37,7 @@ export class AuthRolesGuard implements CanActivate {
 
     // * Get user from request (set by AuthGuard)
     const request: Request = context.switchToHttp().getRequest();
-    const user = request['user'] as JWTPayload;
+    const user = request['user'] as JwtPayload;
 
     // * Check if user's role is in the allowed roles
     if (!user || !roles.includes(user.userType)) {

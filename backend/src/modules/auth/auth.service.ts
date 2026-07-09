@@ -17,18 +17,18 @@ export class AuthService {
     return this.authProvider.login(data);
   }
 
-  // * Activate user account
-  activateAccount(token: string) {
-    return this.authProvider.activateAccount(token);
-  }
+  // // * Activate user account
+  // activateAccount(token: string) {
+  //   return this.authProvider.activateAccount(token);
+  // }
 
-  // * Forgot password
-  forgotPassword(email: string) {
-    return this.authProvider.forgotPassword(email);
-  }
+  // // * Forgot password
+  // forgotPassword(email: string) {
+  //   return this.authProvider.forgotPassword(email);
+  // }
 
-  // * Reset password
-  resetPassword(token: string, password: string) {
-    return this.authProvider.resetPassword(token, password);
-  }
+  // // * Reset password
+  // resetPassword(token: string, password: string) {
+  //   return this.authProvider.resetPassword(token, password);
+  // }
 }

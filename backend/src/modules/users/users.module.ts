@@ -1,13 +1,11 @@
-import { Module } from '@nestjs/common';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-import { AuthProvider } from './providers/auth.provider';
-import { EmailModule } from '@/infrastructure/email/email.module';
+// import { Module } from '@nestjs/common';
+// import { UsersController } from './users.controller';
+// import { UsersService } from './users.service';
 
-@Module({
-  controllers: [UsersController],
-  providers: [UsersService, AuthProvider],
-  imports: [EmailModule],
-  exports: [],
-})
-export class UsersModule {}
+// @Module({
+//   controllers: [UsersController],
+//   providers: [UsersService],
+//   imports: [],
+//   exports: [],
+// })
+// export class UsersModule {}

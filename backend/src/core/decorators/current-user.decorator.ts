@@ -1,13 +1,13 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
-import { JWTPayload } from '@/core/types/jwt-payload.type';
+import { JwtPayload } from '@/core/types/jwt-payload.type';
 
 // * Create a Custom Parameter decorator
 // * data is optional metadata passed when using the decorator (e.g. @CurrentUser('id'))
 // * context is the ExecutionContext that gives access to the current request, response, and handler execution details
 export const CurrentUser = createParamDecorator(
-  (data: unknown, context: ExecutionContext): JWTPayload => {
+  (data: unknown, context: ExecutionContext): JwtPayload => {
     const request: Request = context.switchToHttp().getRequest();
-    return request['user'] as JWTPayload;
+    return request['user'] as JwtPayload;
   },
 );

@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './modules/users/users.module';
+// import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { MembershipPlanModule } from './modules/membership-plans/membership-plans.module';
-import { MembersModule } from './modules/members/members.module';
-import { PlansModule } from './modules/owners/plans/plans.module';
-import { SubscriptionsModule } from './modules/owners/subscriptions/subscriptions.module';
+// import { MembershipPlanModule } from './modules/membership-plans/membership-plans.module';
+// import { MembersModule } from './modules/members/members.module';
+// import { PlansModule } from './modules/owners/plans/plans.module';
+// import { SubscriptionsModule } from './modules/owners/subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './jobs/subscription.cron';
 import { MembershipCron } from './jobs/membership.cron';
 import { PaymentCron } from './jobs/payment.cron';
-import { PaymentsModule } from './modules/payments/payments.module';
-import { MembershipsModule } from './modules/memberships/memberships.module';
-import { OwnersModule } from './modules/owners/owners.module';
-import { MemberAccount } from './modules/members/member-account/member-account.module';
+// import { PaymentsModule } from './modules/payments/payments.module';
+// import { MembershipsModule } from './modules/memberships/memberships.module';
+// import { OwnersModule } from './modules/owners/owners.module';
+// import { MemberAccount } from './modules/members/member-account/member-account.module';
 
 @Module({
   imports: [
@@ -52,17 +52,17 @@ import { MemberAccount } from './modules/members/member-account/member-account.m
     // * Task scheduling (Cron)
     ScheduleModule.forRoot(),
 
-    UsersModule,
-    OwnersModule,
+    // UsersModule,
+    // OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
-    MembershipPlanModule,
-    MembersModule,
-    PlansModule,
-    SubscriptionsModule,
-    PaymentsModule,
-    MembershipsModule,
-    MemberAccount,
+    // MembershipPlanModule,
+    // MembersModule,
+    // PlansModule,
+    // SubscriptionsModule,
+    // PaymentsModule,
+    // MembershipsModule,
+    // MemberAccount,
   ],
 
   providers: [
