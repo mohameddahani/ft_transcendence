@@ -12,6 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './jobs/subscription.cron';
 import { MembershipCron } from './jobs/membership.cron';
 import { PaymentCron } from './jobs/payment.cron';
+import { AuthModule } from './modules/auth/auth.module';
 // import { PaymentsModule } from './modules/payments/payments.module';
 // import { MembershipsModule } from './modules/memberships/memberships.module';
 // import { OwnersModule } from './modules/owners/owners.module';
@@ -52,6 +53,7 @@ import { PaymentCron } from './jobs/payment.cron';
     // * Task scheduling (Cron)
     ScheduleModule.forRoot(),
 
+    AuthModule,
     // UsersModule,
     // OwnersModule,
     // * import prisma module to access prisma from any where in our app

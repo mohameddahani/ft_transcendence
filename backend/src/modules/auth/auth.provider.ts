@@ -12,7 +12,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { AccountStatus } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
-import { CustomJwtService } from './jwt.service';
+import { CustomJwtService } from './jwt/jwt.service';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()

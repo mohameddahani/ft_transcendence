@@ -4,12 +4,12 @@ import { AuthService } from './auth.service';
 import { AuthProvider } from './auth.provider';
 import { PassportModule } from '@nestjs/passport';
 import { EmailModule } from '@/infrastructure/email/email.module';
-import { CustomJwtService } from './jwt.service';
+import { CustomJwtModule } from './jwt/jwt.module';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthProvider, CustomJwtService],
-  imports: [PassportModule, EmailModule],
+  providers: [AuthService, AuthProvider],
+  imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],
 })
 export class AuthModule {}
