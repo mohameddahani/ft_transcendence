@@ -1,4 +1,4 @@
-export function verificationTemplate(link: string): string {
+export function verificationEmailTemplate(link: string): string {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -281,7 +281,7 @@ export function verificationTemplate(link: string): string {
 </html>`;
 }
 
-export function resetPasswordTemplate(link: string): string {
+export function resetPasswordEmailTemplate(link: string): string {
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>

@@ -5,12 +5,15 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { EmailVerificationAuthGuard } from './guards/email-verification-auth.guard';
+import type { JwtPayload } from '@/core/types/jwt-payload.type';
+import { CurrentUser } from '@/core/decorators/current-user.decorator';
 
 @Controller('api/auth')
 export class AuthController {
@@ -32,10 +35,11 @@ export class AuthController {
   }
 
   // * Activate user account
-  @Get('activate')
+  @Get('email-verification')
+  @UseGuards(EmailVerificationAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@Query('token') token: string) {
-    return this.authService.activateAccount(token);
+  activateAccount(@CurrentUser() userPayload: JwtPayload) {
+    return this.authService.activateAccount(userPayload);
   }
 
   // // * Forgot password

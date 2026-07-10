@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Resend } from 'resend';
 
-import { verificationTemplate, resetPasswordTemplate } from './templates';
+import {
+  verificationEmailTemplate,
+  resetPasswordEmailTemplate,
+} from './templates';
 
 import { RESEND } from './email.provider';
 import { ConfigService } from '@nestjs/config';
@@ -20,7 +23,7 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string) {
-    const link = `${this.frontendUrl}/auth/verify?token=${token}`;
+    const link = `${this.frontendUrl}/api/auth/email-verification?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -29,12 +32,12 @@ export class EmailService {
 
       subject: 'Activate your account',
 
-      html: verificationTemplate(link),
+      html: verificationEmailTemplate(link),
     });
   }
 
   async sendResetPasswordEmail(email: string, token: string) {
-    const link = `${this.frontendUrl}/auth/reset-password?token=${token}`;
+    const link = `${this.frontendUrl}/api/auth/reset-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -43,7 +46,7 @@ export class EmailService {
 
       subject: 'Reset your password',
 
-      html: resetPasswordTemplate(link),
+      html: resetPasswordEmailTemplate(link),
     });
   }
 }

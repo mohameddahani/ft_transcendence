@@ -5,10 +5,11 @@ import { AuthProvider } from './auth.provider';
 import { PassportModule } from '@nestjs/passport';
 import { EmailModule } from '@/infrastructure/email/email.module';
 import { CustomJwtModule } from './jwt/jwt.module';
+import { EmailVerificationStrategy } from './strategies/email-verification.strategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthProvider],
+  providers: [AuthService, AuthProvider, EmailVerificationStrategy],
   imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],
 })

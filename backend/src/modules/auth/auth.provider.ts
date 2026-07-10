@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,6 +14,11 @@ import { AccountStatus } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
+import {
+  accountActivatedTemplate,
+  accountAlreadyActivatedTemplate,
+} from '@/infrastructure/email/templates';
+import { ConfigService } from '@nestjs/config';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -21,6 +27,7 @@ export class AuthProvider {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly customJwtService: CustomJwtService,
+    private readonly config: ConfigService,
   ) {}
   // * Register
   async register(data: RegisterUserDto) {
@@ -170,44 +177,34 @@ export class AuthProvider {
     return { user: safeUser, AccessToken };
   }
 
-  // // * Activate user account
-  // async activateAccount(token: string) {
-  //   // * Check if token is valid
-  //   let payload: JwtPayload;
-  //   try {
-  //     payload = await this.jwtService.verifyAsync(token, {
-  //       secret: this.config.getOrThrow<string>('JWT_SECRET'),
-  //     });
-  //   } catch {
-  //     throw new UnauthorizedException('Access Denied, Invalid Token');
-  //   }
+  // * Activate user account
+  async activateAccount(userPayload: JwtPayload) {
+    // * Check if we have user already in DB
+    const id = userPayload.id;
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
 
-  //   // * Check if we have user already in DB
-  //   const id = payload.id;
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { id },
-  //   });
-  //   if (!user) {
-  //     throw new NotFoundException('User Not Found');
-  //   }
+    // * Get Domain
+    const domain = this.config.getOrThrow<string>('FRONTEND_URL');
 
-  //   // * Get Domain
-  //   const domain = this.config.getOrThrow<string>('FRONTEND_URL');
+    // * Check if user already active his account
+    if (user.accountStatus === AccountStatus.ACTIVE) {
+      return accountAlreadyActivatedTemplate(domain);
+    }
 
-  //   // * Check if user already active his account
-  //   if (user.accountStatus === AccountStatus.ACTIVE) {
-  //     return accountAlreadyActivatedTemplate(domain);
-  //   }
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        accountStatus: AccountStatus.ACTIVE,
+      },
+    });
 
-  //   await this.prisma.user.update({
-  //     where: { id },
-  //     data: {
-  //       accountStatus: AccountStatus.ACTIVE,
-  //     },
-  //   });
-
-  //   return accountActivatedTemplate(domain);
-  // }
+    return accountActivatedTemplate(domain);
+  }
 
   // // * Forgot password
   // async forgotPassword(email: string) {

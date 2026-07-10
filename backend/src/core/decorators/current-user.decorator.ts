@@ -8,6 +8,6 @@ import { JwtPayload } from '@/core/types/jwt-payload.type';
 export const CurrentUser = createParamDecorator(
   (data: unknown, context: ExecutionContext): JwtPayload => {
     const request: Request = context.switchToHttp().getRequest();
-    return request['user'] as JwtPayload;
+    return request.user as JwtPayload;
   },
 );
