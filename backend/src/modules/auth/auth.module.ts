@@ -6,10 +6,16 @@ import { PassportModule } from '@nestjs/passport';
 import { EmailModule } from '@/infrastructure/email/email.module';
 import { CustomJwtModule } from './jwt/jwt.module';
 import { EmailVerificationStrategy } from './strategies/email-verification.strategy';
+import { PasswordResetStrategy } from './strategies/password-reset.strategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, AuthProvider, EmailVerificationStrategy],
+  providers: [
+    AuthService,
+    AuthProvider,
+    EmailVerificationStrategy,
+    PasswordResetStrategy,
+  ],
   imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],
 })

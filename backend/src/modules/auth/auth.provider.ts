@@ -230,37 +230,29 @@ export class AuthProvider {
     }
   }
 
-  // // * Reset password
-  // async resetPassword(token: string, password: string) {
-  //   // * Check if token is valid
-  //   let payload: JwtPayload;
-  //   try {
-  //     payload = await this.jwtService.verifyAsync(token, {
-  //       secret: this.config.getOrThrow<string>('JWT_SECRET'),
-  //     });
-  //   } catch {
-  //     throw new UnauthorizedException('Access Denied, Invalid Token');
-  //   }
+  // * Password reset
+  async passwordReset(userPayload: JwtPayload, password: string) {
+    // * Check if we have user already in DB
+    const id = userPayload.id;
 
-  //   // * Check if we have user already in DB
-  //   const id = payload.id;
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { id },
-  //   });
-  //   if (!user) {
-  //     throw new NotFoundException('User Not Found');
-  //   }
+    // * Check if user already exist
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException('User Not Found');
+    }
 
-  //   // * Hash new Password
-  //   const salt = await bcrypt.genSalt(10);
-  //   const newPassword = await bcrypt.hash(password, salt);
+    // * Hash new Password
+    const salt = await bcrypt.genSalt(10);
+    const newPassword = await bcrypt.hash(password, salt);
 
-  //   // * Save new password
-  //   await this.prisma.user.update({
-  //     where: { id },
-  //     data: {
-  //       password: newPassword,
-  //     },
-  //   });
-  // }
+    // * Save new password
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        password: newPassword,
+      },
+    });
+  }
 }

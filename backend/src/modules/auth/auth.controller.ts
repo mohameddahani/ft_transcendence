@@ -15,6 +15,8 @@ import { EmailVerificationAuthGuard } from './guards/email-verification-auth.gua
 import type { JwtPayload } from '@/core/types/jwt-payload.type';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
+import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
+import { PasswordResetAuthGuard } from './guards/password-reset-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -51,13 +53,14 @@ export class AuthController {
     return this.authService.forgotPassword(email.email);
   }
 
-  // // * Reset password
-  // @Post('reset-password')
-  // @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  // resetPassword(
-  //   @Query('token') token: string,
-  //   @Body() password: ResetPasswordUserDto,
-  // ) {
-  //   return this.authService.resetPassword(token, password.password);
-  // }
+  // * Password reset
+  @Post('password-reset')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @UseGuards(PasswordResetAuthGuard)
+  resetPassword(
+    @Body() password: ResetPasswordUserDto,
+    @CurrentUser() userPayload: JwtPayload,
+  ) {
+    return this.authService.passwordReset(userPayload, password.password);
+  }
 }

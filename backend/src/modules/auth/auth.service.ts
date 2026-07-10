@@ -28,8 +28,8 @@ export class AuthService {
     return this.authProvider.forgotPassword(email);
   }
 
-  // // * Reset password
-  // resetPassword(token: string, password: string) {
-  //   return this.authProvider.resetPassword(token, password);
-  // }
+  // * Password reset
+  passwordReset(userPayload: JwtPayload, password: string) {
+    return this.authProvider.passwordReset(userPayload, password);
+  }
 }
