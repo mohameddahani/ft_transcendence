@@ -14,6 +14,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { EmailVerificationAuthGuard } from './guards/email-verification-auth.guard';
 import type { JwtPayload } from '@/core/types/jwt-payload.type';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
+import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -42,13 +43,13 @@ export class AuthController {
     return this.authService.activateAccount(userPayload);
   }
 
-  // // * Forgot password
-  // @Post('forgot-password')
-  // @HttpCode(HttpStatus.OK) // * set default status code
-  // @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
-  // forgotPassword(@Body() email: ForgotPasswordUserDto) {
-  //   return this.authService.forgotPassword(email.email);
-  // }
+  // * Forgot password
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  forgotPassword(@Body() email: ForgotPasswordUserDto) {
+    return this.authService.forgotPassword(email.email);
+  }
 
   // // * Reset password
   // @Post('reset-password')

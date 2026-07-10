@@ -23,10 +23,10 @@ export class AuthService {
     return this.authProvider.activateAccount(userPayload);
   }
 
-  // // * Forgot password
-  // forgotPassword(email: string) {
-  //   return this.authProvider.forgotPassword(email);
-  // }
+  // * Forgot password
+  forgotPassword(email: string) {
+    return this.authProvider.forgotPassword(email);
+  }
 
   // // * Reset password
   // resetPassword(token: string, password: string) {

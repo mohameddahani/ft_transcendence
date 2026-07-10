@@ -206,28 +206,29 @@ export class AuthProvider {
     return accountActivatedTemplate(domain);
   }
 
-  // // * Forgot password
-  // async forgotPassword(email: string) {
-  //   // * Check if user already exist by email before login
-  //   const user = await this.prisma.user.findUnique({
-  //     where: { email },
-  //   });
-  //   if (!user) {
-  //     throw new UnauthorizedException('Invalid Email');
-  //   }
+  // * Forgot password
+  async forgotPassword(email: string) {
+    // * Check if user already exist by email before login
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Invalid Email');
+    }
 
-  //   // * Send Email of reset password to user
-  //   try {
-  //     // * Generate JWT
-  //     const payload: JwtPayload = { id: user.id, userType: user.userType };
-  //     const accessToken = await this.jwtService.signAsync(payload);
+    // * Send Email of reset password to user
+    try {
+      // * Generate JWT
+      const payload: JwtPayload = { id: user.id, userType: user.userType };
+      const passwordResetToken =
+        this.customJwtService.generatePasswordResetToken(payload);
 
-  //     // * Send email
-  //     await this.emailService.sendResetPasswordEmail(email, accessToken);
-  //   } catch {
-  //     throw new RequestTimeoutException('Failed to send reset password email');
-  //   }
-  // }
+      // * Send email
+      await this.emailService.sendResetPasswordEmail(email, passwordResetToken);
+    } catch {
+      throw new RequestTimeoutException('Failed to send reset password email');
+    }
+  }
 
   // // * Reset password
   // async resetPassword(token: string, password: string) {
