@@ -612,3 +612,142 @@ If all are implemented, your NestJS backend is production-grade secure for most 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Here is a clean TXT documentation you can copy directly into a security-authentication.txt file.
+
+### security-authentication.txt
+
+Production Ready
+
+BEST PRACTICE FOR ACCESS TOKEN & REFRESH TOKEN SECURITY
+
+Project: GymFlow SaaS (NestJS + Next.js)
+
+### 1. Authentication Architecture
+
+The application uses two different JWT tokens:
+
+| Token         | Purpose                    |
+| ------------- | -------------------------- |
+| Access Token  | Access protected APIs      |
+| Refresh Token | Generate new Access Tokens |
+
+### 2. Token Lifetimes
+
+Reason:
+
+* Access tokens are short-lived to reduce damage if stolen.
+
+* Refresh tokens are long-lived to avoid forcing users to login frequently.
+
+### 3. Where to Store Tokens
+
+### Access Token — Store in Browser Memory ONLY
+
+DO NOT store access tokens in:
+
+* localStorage ❌
+
+* sessionStorage ❌
+
+* normal cookies ❌
+
+Why?
+
+JavaScript can read localStorage and sessionStorage. If an XSS vulnerability exists, a malicious script can steal the token.
+
+### Refresh Token — Store in HttpOnly Secure Cookie
+
+| Option             | Protection                          |
+| ------------------ | ----------------------------------- |
+| httpOnly           | JavaScript cannot access the cookie |
+| secure             | Cookie is sent only over HTTPS      |
+| sameSite: 'strict' | Protects against CSRF attacks       |
+
+### 4. Database Storage
+
+### Never store refresh tokens as plain text
+
+### Store only a hashed version
+
+Use bcrypt to hash the refresh token before saving it.
+
+### 5. Refresh Token Rotation
+
+Every time a refresh token is used:
+
+* Verify the current refresh token.
+
+* Generate a new access token.
+
+* Generate a new refresh token.
+
+* Replace the old refresh token hash in the database.
+
+* Invalidate the old refresh token.
+
+Flow:
+
+If a hacker tries to reuse Token A, the request is rejected.
+
+### 6. Frontend Authentication Flow
+
+### Login
+
+Server returns:
+
+Server also sets:
+
+### Protected Request
+
+### When Access Token Expires
+
+Server responds:
+
+Frontend automatically calls:
+
+The browser sends the HttpOnly refresh cookie automatically.
+
+Server returns a new access token.
+
+### 7. Recommended Environment Variables
+
+### 8. Security Checklist
+
+| Protection                        | Status |
+| --------------------------------- | ------ |
+| Access token stored in memory     | ✅      |
+| Refresh token in HttpOnly cookie  | ✅      |
+| Secure cookie (HTTPS only)        | ✅      |
+| SameSite=Strict                   | ✅      |
+| Refresh token hashed in database  | ✅      |
+| Refresh token rotation            | ✅      |
+| Short access token lifetime       | ✅      |
+| Separate secrets per account type | ✅      |
+| HTTPS enabled                     | ✅      |
+
+### 9. Final Recommended Setup for GymFlow
+
+This is the recommended production-grade approach for modern NestJS and Next.js applications.
+
+It minimizes token theft risk while providing a smooth user experience.
+
+You can now copy everything above into security-authentication.txt.

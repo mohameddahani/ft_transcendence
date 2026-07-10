@@ -88,10 +88,11 @@ model User {
   accountStatus     AccountStatus @default(INACTIVE)
   termsAccepted     Boolean
 
-  members         Member[]
-  memberships     Membership[]
-  membershipPlans MembershipPlan[]
-  payments        Payment[]
+  members           Member[]
+  memberships       Membership[]
+  membershipPlans   MembershipPlan[]
+  payments          Payment[]
+  userRefreshTokens UserRefreshToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -182,9 +183,10 @@ model Member {
   userType         UserType     @default(USER)
   status           MemberStatus @default(ACTIVE)
 
-  memberships   Membership[]
-  payments      Payment[]
-  notifications Notification[]
+  memberships         Membership[]
+  payments            Payment[]
+  notifications       Notification[]
+  memberRefreshTokens MemberRefreshToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -256,7 +258,7 @@ model MembershipPlanDuration {
   @@map("membershipPlanDurations")
 }
 
-// * Table of Membership Plain
+// * Table of Membership Plan
 model Payment {
   id String @id @default(uuid())
 
@@ -276,7 +278,7 @@ model Payment {
   @@map("payments")
 }
 
-// * Table of Membership Plain
+// * Table of Notifications
 model Notification {
   id String @id @default(uuid())
 
@@ -289,4 +291,44 @@ model Notification {
   delivered Boolean          @default(false)
 
   @@map("notifications")
+}
+
+// * Table of User Refresh Token
+model UserRefreshToken {
+  id String @id @default(uuid())
+
+  hash String
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  ip        String?
+  userAgent String?
+  device    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// * Table of Member Refresh Token
+model MemberRefreshToken {
+  id String @id @default(uuid())
+
+  hash String
+
+  memberId String
+  user     Member @relation(fields: [memberId], references: [id])
+
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  ip        String?
+  userAgent String?
+  device    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

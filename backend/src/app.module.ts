@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-// import { UsersModule } from './modules/users/users.module';
+import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -54,7 +54,7 @@ import { AuthModule } from './modules/auth/auth.module';
     ScheduleModule.forRoot(),
 
     AuthModule,
-    // UsersModule,
+    UsersModule,
     // OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
