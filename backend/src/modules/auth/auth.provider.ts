@@ -205,7 +205,7 @@ export class AuthProvider {
     // * Exclude Some Fields
     const { id, password, createdAt, updatedAt, ...safeUser } = user;
 
-    return { user: safeUser, accessToken, refreshTokenHash, refreshExpiresIn };
+    return { user: safeUser, accessToken, refreshToken, refreshExpiresIn };
   }
 
   // * Refresh

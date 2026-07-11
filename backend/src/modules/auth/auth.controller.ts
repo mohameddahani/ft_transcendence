@@ -22,6 +22,7 @@ import { PasswordResetAuthGuard } from './guards/password-reset-auth.guard';
 import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
+import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -44,11 +45,11 @@ export class AuthController {
     // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { user, accessToken, refreshTokenHash, refreshExpiresIn } =
+    const { user, accessToken, refreshToken, refreshExpiresIn } =
       await this.authService.login(request, body);
 
     // * Store the refresh token in a secure HttpOnly cookie
-    response.cookie('refresh_token', refreshTokenHash, {
+    response.cookie('refresh_token', refreshToken, {
       httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
       secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
       sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
@@ -60,9 +61,10 @@ export class AuthController {
   }
 
   // * Refresh
-  @Post('refresh')
+  @Post('refresh/admin')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(AdminRefreshTokenAuthGuard)
   refresh(@GetCookies('refresh_token') refreshToken: string) {
     return this.authService.refresh(refreshToken);
   }
