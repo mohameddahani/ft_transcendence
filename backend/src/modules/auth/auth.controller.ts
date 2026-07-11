@@ -14,8 +14,11 @@ import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { EmailVerificationAuthGuard } from './guards/email-verification-auth.guard';
-import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { CurrentUser } from '@/core/decorators/current-user.decorator';
+import type {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from '@/core/types/jwt-payload.type';
+import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
 import { PasswordResetAuthGuard } from './guards/password-reset-auth.guard';
@@ -23,6 +26,7 @@ import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
+import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
 
 @Controller('api/auth')
 export class AuthController {
@@ -65,15 +69,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(AdminRefreshTokenAuthGuard)
-  refresh(@GetCookies('refresh_token') refreshToken: string) {
-    return this.authService.refresh(refreshToken);
+  refresh(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
   // * Activate user account
   @Get('email-verification')
   @UseGuards(EmailVerificationAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@CurrentUser() accessTokenPayload: AccessTokenPayload) {
+  activateAccount(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
     return this.authService.activateAccount(accessTokenPayload);
   }
 
@@ -91,7 +100,7 @@ export class AuthController {
   @UseGuards(PasswordResetAuthGuard)
   resetPassword(
     @Body() password: ResetPasswordUserDto,
-    @CurrentUser() accessTokenPayload: AccessTokenPayload,
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.authService.passwordReset(
       accessTokenPayload,

@@ -1,4 +1,4 @@
-import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -24,7 +24,7 @@ export class AdminRefreshTokenStrategy extends PassportStrategy(
     });
   }
 
-  validate(accessTokenPayload: AccessTokenPayload) {
-    return accessTokenPayload;
+  validate(refreshTokenPayload: RefreshTokenPayload) {
+    return refreshTokenPayload;
   }
 }

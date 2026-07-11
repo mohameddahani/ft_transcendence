@@ -185,10 +185,14 @@ export class AuthProvider {
       this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
+
+    // *  Generate UUID for jwtId
+    const jwtId = randomUUID();
+
     const refreshTokenPayload: RefreshTokenPayload = {
       id: user.id,
       userType: user.userType,
-      jwtId: randomUUID(),
+      jwtId: jwtId,
     };
     const refreshToken =
       this.customJwtService.generateRefreshToken(refreshTokenPayload);
@@ -209,6 +213,7 @@ export class AuthProvider {
 
     await this.prisma.userRefreshToken.create({
       data: {
+        jwtId: jwtId,
         hash: refreshTokenHash,
         user: { connect: { id: user.id } },
         expiresAt: expiresAt,
@@ -225,8 +230,32 @@ export class AuthProvider {
   }
 
   // * Refresh
-  async refresh(refreshToken: string) {
-    // *
+  async refresh(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.userRefreshToken.findUnique({
+      where: { jwtId: refreshTokenPayload.jwtId },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Chek if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // FIXME: generate new tokens...
   }
 
   // * Activate user account
