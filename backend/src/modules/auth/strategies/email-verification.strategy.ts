@@ -60,7 +60,7 @@ export class EmailVerificationStrategy extends PassportStrategy(
     });
   }
 
-  validate(payload: AccessTokenPayload) {
-    return payload;
+  validate(accessTokenPayload: AccessTokenPayload) {
+    return accessTokenPayload;
   }
 }

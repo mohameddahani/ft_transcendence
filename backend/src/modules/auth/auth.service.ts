@@ -25,8 +25,8 @@ export class AuthService {
   }
 
   // * Activate user account
-  activateAccount(userPayload: AccessTokenPayload) {
-    return this.authProvider.activateAccount(userPayload);
+  activateAccount(accessTokenPayload: AccessTokenPayload) {
+    return this.authProvider.activateAccount(accessTokenPayload);
   }
 
   // * Forgot password
@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   // * Password reset
-  passwordReset(userPayload: AccessTokenPayload, password: string) {
-    return this.authProvider.passwordReset(userPayload, password);
+  passwordReset(accessTokenPayload: AccessTokenPayload, password: string) {
+    return this.authProvider.passwordReset(accessTokenPayload, password);
   }
 }

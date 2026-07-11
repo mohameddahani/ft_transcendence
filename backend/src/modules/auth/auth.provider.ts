@@ -8,7 +8,10 @@ import {
 import { RegisterUserDto } from './dto/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
 import { AccountStatus, UserType } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
@@ -22,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
+import { randomUUID } from 'node:crypto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -95,12 +99,12 @@ export class AuthProvider {
     });
 
     // * Generate Email Verification Token
-    const payload: AccessTokenPayload = {
+    const accessTokenPayload: AccessTokenPayload = {
       id: newUser.id,
       userType: newUser.userType,
     };
     const emailVerificationToken =
-      this.customJwtService.generateEmailVerificationToken(payload);
+      this.customJwtService.generateEmailVerificationToken(accessTokenPayload);
 
     // * Send Email verification to new user
     try {
@@ -138,12 +142,14 @@ export class AuthProvider {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Email Verification Token
-        const payload: AccessTokenPayload = {
+        const accessTokenPayload: AccessTokenPayload = {
           id: user.id,
           userType: user.userType,
         };
         const emailVerificationToken =
-          this.customJwtService.generateEmailVerificationToken(payload);
+          this.customJwtService.generateEmailVerificationToken(
+            accessTokenPayload,
+          );
 
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(
@@ -171,14 +177,21 @@ export class AuthProvider {
     }
 
     // * Generate Access Token
-    const payload: AccessTokenPayload = {
+    const accessTokenPayload: AccessTokenPayload = {
       id: user.id,
       userType: user.userType,
     };
-    const accessToken = this.customJwtService.generateAccessToken(payload);
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
-    const refreshToken = this.customJwtService.generateRefreshToken(payload);
+    const refreshTokenPayload: RefreshTokenPayload = {
+      id: user.id,
+      userType: user.userType,
+      jwtId: randomUUID(),
+    };
+    const refreshToken =
+      this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -217,9 +230,9 @@ export class AuthProvider {
   }
 
   // * Activate user account
-  async activateAccount(userPayload: AccessTokenPayload) {
+  async activateAccount(accessTokenPayload: AccessTokenPayload) {
     // * Check if we have user already in DB
-    const id = userPayload.id;
+    const id = accessTokenPayload.id;
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -258,12 +271,12 @@ export class AuthProvider {
     // * Send Email of reset password to user
     try {
       // * Generate JWT
-      const payload: AccessTokenPayload = {
+      const accessTokenPayload: AccessTokenPayload = {
         id: user.id,
         userType: user.userType,
       };
       const passwordResetToken =
-        this.customJwtService.generatePasswordResetToken(payload);
+        this.customJwtService.generatePasswordResetToken(accessTokenPayload);
 
       // * Send email
       await this.emailService.sendResetPasswordEmail(email, passwordResetToken);
@@ -273,9 +286,12 @@ export class AuthProvider {
   }
 
   // * Password reset
-  async passwordReset(userPayload: AccessTokenPayload, password: string) {
+  async passwordReset(
+    accessTokenPayload: AccessTokenPayload,
+    password: string,
+  ) {
     // * Check if we have user already in DB
-    const id = userPayload.id;
+    const id = accessTokenPayload.id;
 
     // * Check if user already exist
     const user = await this.prisma.user.findUnique({

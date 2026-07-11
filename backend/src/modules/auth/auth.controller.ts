@@ -73,8 +73,8 @@ export class AuthController {
   @Get('email-verification')
   @UseGuards(EmailVerificationAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@CurrentUser() userPayload: AccessTokenPayload) {
-    return this.authService.activateAccount(userPayload);
+  activateAccount(@CurrentUser() accessTokenPayload: AccessTokenPayload) {
+    return this.authService.activateAccount(accessTokenPayload);
   }
 
   // * Forgot password
@@ -91,8 +91,11 @@ export class AuthController {
   @UseGuards(PasswordResetAuthGuard)
   resetPassword(
     @Body() password: ResetPasswordUserDto,
-    @CurrentUser() userPayload: AccessTokenPayload,
+    @CurrentUser() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.authService.passwordReset(userPayload, password.password);
+    return this.authService.passwordReset(
+      accessTokenPayload,
+      password.password,
+    );
   }
 }

@@ -1,5 +1,8 @@
 import { JwtTokenType } from '@/core/enums/jwt-token-type.enum';
-import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import {
+  AccessTokenPayload,
+  RefreshTokenPayload,
+} from '@/core/types/jwt-payload.type';
 import { Injectable } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { JwtProvider } from './jwt.provider';
@@ -12,60 +15,60 @@ export class CustomJwtService {
   ) {}
 
   // * Generate Access Token
-  generateAccessToken(payload: AccessTokenPayload) {
+  generateAccessToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      payload.userType,
+      accessTokenPayload.userType,
       JwtTokenType.ACCESS,
     );
 
     // * Generate The Token
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(accessTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });
   }
 
   // * Generate Refresh Token
-  generateRefreshToken(payload: AccessTokenPayload) {
+  generateRefreshToken(refreshTokenPayload: RefreshTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      payload.userType,
+      refreshTokenPayload.userType,
       JwtTokenType.REFRESH,
     );
 
     // * Generate The Token
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(refreshTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });
   }
 
   // * Generate Email Verification Token
-  generateEmailVerificationToken(payload: AccessTokenPayload) {
+  generateEmailVerificationToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      payload.userType,
+      accessTokenPayload.userType,
       JwtTokenType.EMAIL_VERIFICATION,
     );
 
     // * Generate The Token
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(accessTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });
   }
 
   // * Generate Password Reset Token
-  generatePasswordResetToken(payload: AccessTokenPayload) {
+  generatePasswordResetToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      payload.userType,
+      accessTokenPayload.userType,
       JwtTokenType.PASSWORD_RESET,
     );
 
     // * Generate The Token
-    return this.jwtService.sign(payload, {
+    return this.jwtService.sign(accessTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });

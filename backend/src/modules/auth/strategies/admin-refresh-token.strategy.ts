@@ -24,7 +24,7 @@ export class AdminRefreshTokenStrategy extends PassportStrategy(
     });
   }
 
-  validate(payload: AccessTokenPayload) {
-    return payload;
+  validate(accessTokenPayload: AccessTokenPayload) {
+    return accessTokenPayload;
   }
 }
