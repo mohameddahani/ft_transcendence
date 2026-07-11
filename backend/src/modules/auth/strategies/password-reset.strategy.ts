@@ -9,7 +9,7 @@ export class PasswordResetStrategy extends PassportStrategy(
   Strategy,
   'password-reset',
 ) {
-  constructor(config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromUrlQueryParameter('token'),
       ignoreExpiration: false,

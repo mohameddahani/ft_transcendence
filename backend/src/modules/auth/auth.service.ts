@@ -3,6 +3,7 @@ import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { AuthProvider } from './auth.provider';
 import { JwtPayload } from '@/core/types/jwt-payload.type';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -14,8 +15,13 @@ export class AuthService {
   }
 
   // * Login
-  login(data: LoginUserDto) {
-    return this.authProvider.login(data);
+  login(request: Request, data: LoginUserDto) {
+    return this.authProvider.login(request, data);
+  }
+
+  // * Refresh
+  refresh(refreshToken: string) {
+    return this.authProvider.refresh(refreshToken);
   }
 
   // * Activate user account

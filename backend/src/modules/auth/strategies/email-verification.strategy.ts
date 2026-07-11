@@ -50,7 +50,7 @@ export class EmailVerificationStrategy extends PassportStrategy(
   Strategy,
   'email-verification',
 ) {
-  constructor(config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromUrlQueryParameter('token'),
       ignoreExpiration: false,

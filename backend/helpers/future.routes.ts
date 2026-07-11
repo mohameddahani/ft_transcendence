@@ -40,6 +40,8 @@
 
 // ! Understand how is email work
 
+// ! CRSF check documentation of NESTJS
+
 // * check admin of gym when he try to add members has more palace depend on his plan or subscription
 // * Check Down grade of plans of admin of gym by number of members
 

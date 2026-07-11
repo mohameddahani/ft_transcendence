@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,7 +31,10 @@ async function bootstrap() {
   // * Helmet
   // ? helmet is a security middleware for NestJS / Express.js that automatically adds secure HTTP headers to your server responses.
   // ? middleware is code that runs before your route handler.
-  app.use(helmet());
+
+  // * cookie-parser
+  // ? is a middleware used to extract and parse incoming cookies from the client's request header, converting the raw string into a usable JavaScript object automatically.
+  app.use(helmet(), cookieParser());
 
   // todo: Cors
 

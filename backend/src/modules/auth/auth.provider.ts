@@ -10,7 +10,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtPayload } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
-import { AccountStatus } from '@/generated/prisma/enums';
+import { AccountStatus, UserType } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
@@ -19,6 +19,9 @@ import {
   accountAlreadyActivatedTemplate,
 } from '@/infrastructure/email/templates';
 import { ConfigService } from '@nestjs/config';
+import { Request } from 'express';
+import { UAParser } from 'ua-parser-js';
+import ms, { StringValue } from 'ms';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -112,7 +115,7 @@ export class AuthProvider {
   }
 
   // * Login
-  async login(data: LoginUserDto) {
+  async login(request: Request, data: LoginUserDto) {
     // * Check if user already exist by email before login
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
@@ -169,12 +172,45 @@ export class AuthProvider {
       id: user.id,
       userType: user.userType,
     };
-    const AccessToken = this.customJwtService.generateAccessToken(payload);
+    const accessToken = this.customJwtService.generateAccessToken(payload);
+
+    // * Generate Refresh Token
+    const refreshToken = this.customJwtService.generateRefreshToken(payload);
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn =
+      user.userType === UserType.ADMIN
+        ? this.config.getOrThrow<StringValue>('JWT_ADMIN_REFRESH_EXPIRES_IN')
+        : this.config.getOrThrow<StringValue>('JWT_OWNER_REFRESH_EXPIRES_IN');
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.userRefreshToken.create({
+      data: {
+        hash: refreshTokenHash,
+        user: { connect: { id: user.id } },
+        expiresAt: expiresAt,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+        device: this.getDevice(request.headers['user-agent']),
+      },
+    });
 
     // * Exclude Some Fields
     const { id, password, createdAt, updatedAt, ...safeUser } = user;
 
-    return { user: safeUser, AccessToken };
+    return { user: safeUser, accessToken, refreshTokenHash, refreshExpiresIn };
+  }
+
+  // * Refresh
+  async refresh(refreshToken: string) {
+    // *
   }
 
   // * Activate user account
@@ -254,5 +290,17 @@ export class AuthProvider {
         password: newPassword,
       },
     });
+  }
+
+  // ! Private
+  // * Get Device by UA
+  getDevice(userAgent?: string): string | null {
+    if (!userAgent) return null;
+
+    const parser = new UAParser(userAgent);
+
+    const result = parser.getResult();
+
+    return `${result.device.vendor ?? 'Unknown'} ${result.device.model ?? 'Desktop'}`;
   }
 }
