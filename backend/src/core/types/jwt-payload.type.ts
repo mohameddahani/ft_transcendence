@@ -1,7 +1,12 @@
 import { UserType } from '@/generated/prisma/enums';
 
-// * Type of JWT payload
-export type JwtPayload = {
+export type AccessTokenPayload = {
   id: string;
   userType: UserType;
+};
+
+export type RefreshTokenPayload = {
+  id: string;
+  userType: UserType;
+  jwtId: string;
 };

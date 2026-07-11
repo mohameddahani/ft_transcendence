@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { AuthProvider } from './auth.provider';
-import { JwtPayload } from '@/core/types/jwt-payload.type';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class AuthService {
   }
 
   // * Activate user account
-  activateAccount(userPayload: JwtPayload) {
+  activateAccount(userPayload: AccessTokenPayload) {
     return this.authProvider.activateAccount(userPayload);
   }
 
@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   // * Password reset
-  passwordReset(userPayload: JwtPayload, password: string) {
+  passwordReset(userPayload: AccessTokenPayload, password: string) {
     return this.authProvider.passwordReset(userPayload, password);
   }
 }

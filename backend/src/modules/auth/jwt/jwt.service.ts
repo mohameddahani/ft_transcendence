@@ -1,5 +1,5 @@
 import { JwtTokenType } from '@/core/enums/jwt-token-type.enum';
-import { JwtPayload } from '@/core/types/jwt-payload.type';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { Injectable } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { JwtProvider } from './jwt.provider';
@@ -12,7 +12,7 @@ export class CustomJwtService {
   ) {}
 
   // * Generate Access Token
-  generateAccessToken(payload: JwtPayload) {
+  generateAccessToken(payload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
       payload.userType,
@@ -27,7 +27,7 @@ export class CustomJwtService {
   }
 
   // * Generate Refresh Token
-  generateRefreshToken(payload: JwtPayload) {
+  generateRefreshToken(payload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
       payload.userType,
@@ -42,7 +42,7 @@ export class CustomJwtService {
   }
 
   // * Generate Email Verification Token
-  generateEmailVerificationToken(payload: JwtPayload) {
+  generateEmailVerificationToken(payload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
       payload.userType,
@@ -57,7 +57,7 @@ export class CustomJwtService {
   }
 
   // * Generate Password Reset Token
-  generatePasswordResetToken(payload: JwtPayload) {
+  generatePasswordResetToken(payload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
       payload.userType,

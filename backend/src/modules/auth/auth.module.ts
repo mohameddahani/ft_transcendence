@@ -7,6 +7,7 @@ import { EmailModule } from '@/infrastructure/email/email.module';
 import { CustomJwtModule } from './jwt/jwt.module';
 import { EmailVerificationStrategy } from './strategies/email-verification.strategy';
 import { PasswordResetStrategy } from './strategies/password-reset.strategy';
+import { AdminRefreshTokenStrategy } from './strategies/admin-refresh-token.strategy';
 
 @Module({
   controllers: [AuthController],
@@ -15,6 +16,7 @@ import { PasswordResetStrategy } from './strategies/password-reset.strategy';
     AuthProvider,
     EmailVerificationStrategy,
     PasswordResetStrategy,
+    AdminRefreshTokenStrategy,
   ],
   imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],

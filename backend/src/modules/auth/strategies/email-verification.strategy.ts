@@ -1,4 +1,4 @@
-import { JwtPayload } from '@/core/types/jwt-payload.type';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -60,7 +60,7 @@ export class EmailVerificationStrategy extends PassportStrategy(
     });
   }
 
-  validate(payload: JwtPayload) {
+  validate(payload: AccessTokenPayload) {
     return payload;
   }
 }

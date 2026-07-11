@@ -15,7 +15,7 @@ import {
 import { UsersService } from './users.service';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
-import type { JwtPayload } from '@/core/types/jwt-payload.type';
+import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -34,7 +34,7 @@ export class UsersController {
   // @UseGuards(AuthGuard)
   @SkipThrottle() // * Skip Rate Limiting
   // * @CurrentUser(): this is Custom parameter decorator
-  findMe(@CurrentUser() userPayload: JwtPayload) {
+  findMe(@CurrentUser() userPayload: AccessTokenPayload) {
     return this.usersService.findMe(userPayload.id);
   }
 

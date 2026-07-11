@@ -14,7 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { EmailVerificationAuthGuard } from './guards/email-verification-auth.guard';
-import type { JwtPayload } from '@/core/types/jwt-payload.type';
+import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
@@ -73,7 +73,7 @@ export class AuthController {
   @Get('email-verification')
   @UseGuards(EmailVerificationAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@CurrentUser() userPayload: JwtPayload) {
+  activateAccount(@CurrentUser() userPayload: AccessTokenPayload) {
     return this.authService.activateAccount(userPayload);
   }
 
@@ -91,7 +91,7 @@ export class AuthController {
   @UseGuards(PasswordResetAuthGuard)
   resetPassword(
     @Body() password: ResetPasswordUserDto,
-    @CurrentUser() userPayload: JwtPayload,
+    @CurrentUser() userPayload: AccessTokenPayload,
   ) {
     return this.authService.passwordReset(userPayload, password.password);
   }

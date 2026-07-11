@@ -297,7 +297,8 @@ model Notification {
 model UserRefreshToken {
   id String @id @default(uuid())
 
-  hash String
+  jwtId String @unique
+  hash  String
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -317,7 +318,8 @@ model UserRefreshToken {
 model MemberRefreshToken {
   id String @id @default(uuid())
 
-  hash String
+  jwtId String @unique
+  hash  String
 
   memberId String
   user     Member @relation(fields: [memberId], references: [id])
