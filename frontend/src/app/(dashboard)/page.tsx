@@ -1,12 +1,7 @@
-
-// app/dashboard/page.tsx
+// app/(dashboard)/page.tsx
 'use client';
 
 import { useAuth } from '@/app/providers/AuthProvider';
-
-fetch("https://api-generator.retool.com/81rBia/data")
-.then(Response => Response.json())
-.then(Response => console.log(Response))
 
 export default function DashboardPage() {
   const { user } = useAuth();

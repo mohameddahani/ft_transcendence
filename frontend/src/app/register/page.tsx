@@ -34,7 +34,7 @@ export default function RegisterPage() {
     try {
       // 🔥 For mock: register = login
       await login(email, password);
-      router.push('/dashboard');
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {

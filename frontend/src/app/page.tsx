@@ -1,29 +1,28 @@
 // app/page.tsx
 'use client';
 
-import Link from 'next/link';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import Link from 'next/link';
+import DashboardPage from './(dashboard)/page';
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
 
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
-
+  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
+  // 🔥 If user is logged in → Show Dashboard (sidebar handled by layout)
+  if (user) {
+    return <DashboardPage />;
+  }
+
+  // 🔥 If user is NOT logged in → Show Landing Page
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -47,15 +46,6 @@ export default function HomePage() {
           >
             Register
           </Link>
-        </div>
-
-        <div className="mt-6 text-sm text-gray-500">
-          <p>Demo credentials:</p>
-          <p className="mt-1">
-            Email: demo@example.com
-            <br />
-            Password: password123
-          </p>
         </div>
       </div>
     </div>
