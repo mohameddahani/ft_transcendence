@@ -24,3 +24,49 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #DC2626;
+    --color-primary-light: #F87171;
+    --color-primary-dark: #991B1B;
+    --color-background: #FEF2F2;
+    --color-surface: #FFFFFF;
+    --color-accent: #EF4444;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply text-white font-medium py-2 px-4 rounded-lg transition duration-200;
+    background-color: var(--color-primary);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-primary-dark);
+  }
+  
+  .btn-outline {
+    @apply font-medium py-2 px-4 rounded-lg transition duration-200 border-2;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  .btn-outline:hover {
+    background-color: var(--color-primary);
+    color: white;
+  }
+  
+  .card {
+    @apply rounded-xl shadow-sm border transition-all duration-200;
+    background-color: var(--color-surface);
+    border-color: var(--color-primary-light);
+  }
+  .card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+}

@@ -1,15 +1,9 @@
 // app/layout.tsx
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+'use client';
+
 import { AuthProvider } from './providers/AuthProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata: Metadata = {
-  title: 'ft_transcendence',
-  description: 'Gym Management Platform',
-};
 
 export default function RootLayout({
   children,
@@ -18,10 +12,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className="min-h-screen transition-colors duration-300">
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -15,6 +15,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
+import { useTheme } from '@/app/providers/ThemeProvider';
 
 // --- Types ---
 interface Plan {
@@ -50,6 +51,8 @@ async function apiClient<T>(
 
 // --- Main Component ---
 export default function PlansPage() {
+  const { theme } = useTheme();
+
   // --- State ---
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,26 +160,33 @@ export default function PlansPage() {
   };
 
   const planIcons = [
-    <UserGroupIcon key="user" className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />,
-    <SparklesIcon key="sparkle" className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />,
-    <ChartBarIcon key="chart" className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />,
-    <ClockIcon key="clock" className="w-5 h-5 md:w-6 md:h-6 text-indigo-500" />,
+    <UserGroupIcon key="user" className="w-5 h-5 md:w-6 md:h-6" />,
+    <SparklesIcon key="sparkle" className="w-5 h-5 md:w-6 md:h-6" />,
+    <ChartBarIcon key="chart" className="w-5 h-5 md:w-6 md:h-6" />,
+    <ClockIcon key="clock" className="w-5 h-5 md:w-6 md:h-6" />,
   ];
 
   // --- Render ---
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6" style={{ backgroundColor: theme.background }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Plans</h1>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
+            Plans
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage your gym subscription plans
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 transition text-sm md:text-base w-full sm:w-auto"
+          className="inline-flex items-center justify-center gap-2 text-white px-4 py-2.5 rounded-lg transition text-sm md:text-base w-full sm:w-auto"
+          style={{ 
+            backgroundColor: theme.primary,
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.primaryDark}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
         >
           <PlusIcon className="w-5 h-5" />
           Add New Plan
@@ -186,7 +196,7 @@ export default function PlansPage() {
       {/* Plans Grid */}
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.primary }}></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -198,36 +208,48 @@ export default function PlansPage() {
             plans.map((plan, index) => (
               <div
                 key={plan.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col"
+                className="rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 flex flex-col"
+                style={{ 
+                  backgroundColor: theme.surface,
+                  border: `1px solid ${theme.primaryLight}`,
+                }}
               >
                 {/* Plan Header */}
-                <div className="p-4 md:p-6 border-b border-gray-100">
+                <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${theme.primaryLight}` }}>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="p-2 bg-indigo-50 rounded-lg flex-shrink-0">
+                      <div 
+                        className="p-2 rounded-lg flex-shrink-0"
+                        style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
+                      >
                         {planIcons[index % planIcons.length]}
                       </div>
-                      <h3 className="text-base md:text-lg font-semibold text-gray-800 truncate">
+                      <h3 className="text-base md:text-lg font-semibold truncate" style={{ color: theme.primaryDark }}>
                         {plan.fullName}
                       </h3>
                     </div>
                     <div className="flex gap-1 flex-shrink-0 ml-2">
                       <button
                         onClick={() => handleEdit(plan)}
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 transition rounded-lg hover:bg-indigo-50"
+                        className="p-1.5 rounded-lg transition"
+                        style={{ color: theme.primary }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.primary}15`}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
                         <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(plan.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 transition rounded-lg hover:bg-red-50"
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.primary}15`}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
                         <TrashIcon className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-2xl md:text-3xl font-bold text-gray-900">
+                    <span className="text-2xl md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
                       ${plan.isUser}
                     </span>
                     <span className="text-sm text-gray-500">/ month</span>
@@ -239,12 +261,12 @@ export default function PlansPage() {
                   <ul className="space-y-1.5 md:space-y-2">
                     {getFeatures(plan.description).slice(0, 4).map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
-                        <CheckIcon className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                        <CheckIcon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: theme.primary }} />
                         <span className="text-sm md:text-base">{feature.trim()}</span>
                       </li>
                     ))}
                     {getFeatures(plan.description).length > 4 && (
-                      <li className="text-sm text-indigo-600 font-medium pl-6">
+                      <li className="text-sm font-medium pl-6" style={{ color: theme.primary }}>
                         +{getFeatures(plan.description).length - 4} more features
                       </li>
                     )}
@@ -253,7 +275,21 @@ export default function PlansPage() {
 
                 {/* Plan Action */}
                 <div className="px-4 md:px-6 pb-4 md:pb-6">
-                  <button className="w-full py-2.5 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition font-medium text-sm">
+                  <button 
+                    className="w-full py-2.5 rounded-lg transition font-medium text-sm"
+                    style={{ 
+                      border: `1px solid ${theme.primary}`,
+                      color: theme.primary,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.primary;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = theme.primary;
+                    }}
+                  >
                     Choose Plan
                   </button>
                 </div>
@@ -298,7 +334,10 @@ export default function PlansPage() {
                     setFormData((prev) => ({ ...prev, fullName: e.target.value }))
                   }
                   required
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  style={{ borderColor: theme.primaryLight }}
+                  onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+                  onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
                   placeholder="e.g., Pro Plan"
                 />
               </div>
@@ -316,7 +355,10 @@ export default function PlansPage() {
                   required
                   min="0"
                   step="1"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  style={{ borderColor: theme.primaryLight }}
+                  onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+                  onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
                   placeholder="e.g., 49"
                 />
               </div>
@@ -332,7 +374,10 @@ export default function PlansPage() {
                   }
                   required
                   rows={4}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  style={{ borderColor: theme.primaryLight }}
+                  onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+                  onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
                   placeholder="e.g., AI Advisor, Unlimited auto tracking, 24/7 support"
                 />
                 <p className="text-xs text-gray-400 mt-1">
@@ -340,7 +385,7 @@ export default function PlansPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t" style={{ borderColor: theme.primaryLight }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -350,7 +395,12 @@ export default function PlansPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm md:text-base"
+                  className="px-4 py-2.5 text-white rounded-lg transition text-sm md:text-base"
+                  style={{ 
+                    backgroundColor: theme.primary,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.primaryDark}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
                 >
                   {editingPlan ? 'Update Plan' : 'Create Plan'}
                 </button>

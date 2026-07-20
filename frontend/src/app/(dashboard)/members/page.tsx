@@ -10,10 +10,9 @@ import {
   XMarkIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  UserIcon,
-  StarIcon
+  UserIcon
 } from '@heroicons/react/24/outline';
-import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
+import { useTheme } from '@/app/providers/ThemeProvider';
 
 // --- Types ---
 interface Member {
@@ -56,6 +55,8 @@ const getStarCount = (rating: string): number => {
 
 // --- Main Component ---
 export default function MembersPage() {
+  const { theme } = useTheme();
+
   // --- State ---
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,18 +200,26 @@ export default function MembersPage() {
 
   // --- Render ---
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6" style={{ backgroundColor: theme.background }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Members</h1>
+          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: theme.primaryDark }}>
+            Members
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Manage your gym members
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 transition text-sm md:text-base w-full sm:w-auto"
+          className="inline-flex items-center justify-center gap-2 text-white px-4 py-2.5 rounded-lg transition text-sm md:text-base w-full sm:w-auto"
+          style={{ 
+            backgroundColor: theme.primary,
+            hover: { backgroundColor: theme.primaryDark }
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.primaryDark}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
         >
           <PlusIcon className="w-5 h-5" />
           Add Member
@@ -225,7 +234,13 @@ export default function MembersPage() {
           placeholder="Search by name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+          className="w-full pl-10 pr-10 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+          style={{ 
+            borderColor: theme.primaryLight,
+            '--tw-ring-color': theme.primary,
+          } as React.CSSProperties}
+          onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+          onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
         />
         {searchTerm && (
           <button
@@ -250,10 +265,10 @@ export default function MembersPage() {
       <div className="md:hidden space-y-3">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.primary }}></div>
           </div>
         ) : paginatedMembers.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-gray-200">
+          <div className="text-center py-12 text-gray-500 bg-white rounded-xl border" style={{ borderColor: theme.primaryLight }}>
             {searchTerm ? (
               <>No members found for "<strong>{searchTerm}</strong>"</>
             ) : (
@@ -264,13 +279,16 @@ export default function MembersPage() {
           paginatedMembers.map((member) => (
             <div
               key={member.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition"
+              className="bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition"
+              style={{ borderColor: theme.primaryLight }}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <UserIcon className="w-5 h-5 text-indigo-600" />
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${theme.primary}20`, color: theme.primary }}
+                    >
+                      <UserIcon className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-800 truncate">
@@ -296,7 +314,10 @@ export default function MembersPage() {
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleEdit(member)}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                    className="p-2 rounded-lg transition"
+                    style={{ color: theme.primary }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${theme.primary}15`}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     aria-label="Edit"
                   >
                     <PencilIcon className="w-4 h-4" />
@@ -316,16 +337,18 @@ export default function MembersPage() {
       </div>
 
       {/* Desktop: Table View */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border overflow-hidden"
+        style={{ borderColor: theme.primaryLight }}
+      >
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.primary }}></div>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y" style={{ borderColor: theme.primaryLight }}>
+                <thead style={{ backgroundColor: `${theme.primary}10` }}>
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       ID
@@ -344,7 +367,7 @@ export default function MembersPage() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y" style={{ borderColor: theme.primaryLight }}>
                   {paginatedMembers.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
@@ -381,7 +404,10 @@ export default function MembersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                           <button
                             onClick={() => handleEdit(member)}
-                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                            className="mr-3 transition"
+                            style={{ color: theme.primary }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = theme.primaryDark}
+                            onMouseLeave={(e) => e.currentTarget.style.color = theme.primary}
                           >
                             <PencilIcon className="w-5 h-5" />
                           </button>
@@ -401,7 +427,7 @@ export default function MembersPage() {
 
             {/* Pagination */}
             {totalPages > 1 && !searchTerm && (
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-t flex items-center justify-between" style={{ borderColor: theme.primaryLight }}>
                 <p className="text-sm text-gray-500">
                   Showing {(currentPage - 1) * limit + 1} -{' '}
                   {Math.min(currentPage * limit, totalMembers)} of {totalMembers}
@@ -410,14 +436,16 @@ export default function MembersPage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    style={{ borderColor: theme.primaryLight }}
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => p + 1)}
                     disabled={currentPage >= totalPages}
-                    className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    style={{ borderColor: theme.primaryLight }}
                   >
                     Next
                   </button>
@@ -434,7 +462,8 @@ export default function MembersPage() {
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="flex items-center gap-1 px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            className="flex items-center gap-1 px-4 py-2 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            style={{ borderColor: theme.primaryLight }}
           >
             <ChevronLeftIcon className="w-4 h-4" />
             Previous
@@ -445,7 +474,8 @@ export default function MembersPage() {
           <button
             onClick={() => setCurrentPage((p) => p + 1)}
             disabled={currentPage >= totalPages}
-            className="flex items-center gap-1 px-4 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            className="flex items-center gap-1 px-4 py-2 border rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            style={{ borderColor: theme.primaryLight }}
           >
             Next
             <ChevronRightIcon className="w-4 h-4" />
@@ -462,7 +492,7 @@ export default function MembersPage() {
             onClick={() => setIsModalOpen(false)}
           />
           
-          {/* Modal Content - Bottom sheet on mobile, centered on desktop */}
+          {/* Modal Content */}
           <div className="relative bg-white rounded-t-2xl md:rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 animate-slide-up md:animate-none">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800">
@@ -488,7 +518,10 @@ export default function MembersPage() {
                     setFormData((prev) => ({ ...prev, fullName: e.target.value }))
                   }
                   required
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 placeholder:text-gray-400 text-sm md:text-base"
+                  style={{ borderColor: theme.primaryLight }}
+                  onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+                  onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
                   placeholder="Enter full name"
                 />
               </div>
@@ -502,7 +535,10 @@ export default function MembersPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, rating: e.target.value }))
                   }
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 text-sm md:text-base"
+                  className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:border-transparent text-gray-900 text-sm md:text-base"
+                  style={{ borderColor: theme.primaryLight }}
+                  onFocus={(e) => e.currentTarget.style.outlineColor = theme.primary}
+                  onBlur={(e) => e.currentTarget.style.outlineColor = 'transparent'}
                 >
                   <option value="⭐">⭐</option>
                   <option value="⭐⭐">⭐⭐</option>
@@ -520,14 +556,18 @@ export default function MembersPage() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, isUser: e.target.checked }))
                   }
-                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  className="w-5 h-5 border rounded focus:ring-2"
+                  style={{ 
+                    borderColor: theme.primaryLight,
+                    accentColor: theme.primary,
+                  }}
                 />
                 <label htmlFor="isUser" className="text-sm text-gray-700">
                   Active Member
                 </label>
               </div>
 
-              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t" style={{ borderColor: theme.primaryLight }}>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -537,7 +577,13 @@ export default function MembersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm md:text-base"
+                  className="px-4 py-2.5 text-white rounded-lg transition text-sm md:text-base"
+                  style={{ 
+                    backgroundColor: theme.primary,
+                    hover: { backgroundColor: theme.primaryDark }
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.primaryDark}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.primary}
                 >
                   {editingMember ? 'Update' : 'Create'}
                 </button>
