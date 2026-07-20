@@ -3,6 +3,7 @@
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import Link from 'next/link';
+import DashboardLayout from './(dashboard)/layout';
 import DashboardPage from './(dashboard)/page';
 
 export default function HomePage() {
@@ -17,9 +18,13 @@ export default function HomePage() {
     );
   }
 
-  // 🔥 If user is logged in → Show Dashboard (sidebar handled by layout)
+  // 🔥 If user is logged in → Show Dashboard with Sidebar (using the layout)
   if (user) {
-    return <DashboardPage />;
+    return (
+      <DashboardLayout>
+        <DashboardPage />
+      </DashboardLayout>
+    );
   }
 
   // 🔥 If user is NOT logged in → Show Landing Page
