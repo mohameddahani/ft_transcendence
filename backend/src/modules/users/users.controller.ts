@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '../../core/guards/auth.guard';
-import { CurrentUser } from '@/core/decorators/get-access-token-payload.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,6 +22,7 @@ import type { Response } from 'express';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 
 @Controller('/api/users')
 export class UsersController {
@@ -34,8 +34,8 @@ export class UsersController {
   // @UseGuards(AuthGuard)
   @SkipThrottle() // * Skip Rate Limiting
   // * @CurrentUser(): this is Custom parameter decorator
-  findMe(@CurrentUser() userPayload: AccessTokenPayload) {
-    return this.usersService.findMe(userPayload.id);
+  findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.usersService.findMe(accessTokenPayload.id);
   }
 
   // // * Update data of user

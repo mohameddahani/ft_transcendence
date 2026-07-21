@@ -23,12 +23,10 @@ services:
     depends_on:
       - postgres
 
-
-
 volumes:
   postgres_db:
     driver: local # Store data on the local machine (not remote storage like NFS or cloud)
     driver_opts: # driver options
       type: none # Don’t use any special filesystem type (like ext4, nfs, etc.)
       o: bind # Bind (attach) this volume to an existing directory on the host
-      device: /home/mohamed-dahani/Desktop/projects/volumes/postgres_db # This is where data will physically be stored.
+      device: ${HOME}/Desktop/projects/volumes/postgres_db # This is where data will physically be stored.

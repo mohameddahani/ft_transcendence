@@ -341,7 +341,7 @@ Protect:
 
 Generate secret:
 
-openssl rand -base64 64
+openssl rand -hex 64
 
 Use:
 
