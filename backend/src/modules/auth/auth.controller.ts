@@ -27,6 +27,7 @@ import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
+import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -74,6 +75,15 @@ export class AuthController {
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
   ) {
     return this.authService.refresh(refreshToken, refreshTokenPayload);
+  }
+
+  // * Logout
+  @Post('logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(AdminAccessTokenAuthGuard)
+  logout() {
+    // return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
   // * Activate user account

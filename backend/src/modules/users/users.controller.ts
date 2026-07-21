@@ -13,7 +13,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { AuthGuard } from '../../core/guards/auth.guard';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateUserDto } from './dtos/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -23,6 +22,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
+import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 
 @Controller('/api/users')
 export class UsersController {
@@ -31,9 +31,9 @@ export class UsersController {
   // * Get current user
   @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
-  // @UseGuards(AuthGuard)
+  @UseGuards(AdminAccessTokenAuthGuard)
   @SkipThrottle() // * Skip Rate Limiting
-  // * @CurrentUser(): this is Custom parameter decorator
+  // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.usersService.findMe(accessTokenPayload.id);
   }
