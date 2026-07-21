@@ -8,5 +8,5 @@ export type AccessTokenPayload = {
 export type RefreshTokenPayload = {
   id: string;
   userType: UserType;
-  jwtId: string;
+  jti: string;
 };

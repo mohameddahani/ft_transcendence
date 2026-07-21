@@ -186,13 +186,13 @@ export class AuthProvider {
 
     // * Generate Refresh Token
 
-    // *  Generate UUID for jwtId
-    const jwtId = randomUUID();
+    // *  Generate UUID for jti
+    const jti = randomUUID();
 
     const refreshTokenPayload: RefreshTokenPayload = {
       id: user.id,
       userType: user.userType,
-      jwtId: jwtId,
+      jti: jti,
     };
     const refreshToken =
       this.customJwtService.generateRefreshToken(refreshTokenPayload);
@@ -213,7 +213,7 @@ export class AuthProvider {
 
     await this.prisma.userRefreshToken.create({
       data: {
-        jwtId: jwtId,
+        jti: jti,
         hash: refreshTokenHash,
         user: { connect: { id: user.id } },
         expiresAt: expiresAt,
@@ -236,7 +236,8 @@ export class AuthProvider {
   ) {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
-      where: { jwtId: refreshTokenPayload.jwtId },
+      where: { jti: refreshTokenPayload.jti },
+      include: { user: true },
     });
 
     if (!storedToken) {
@@ -255,7 +256,30 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
-    // FIXME: generate new tokens...
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to log in
+    if (storedToken.user.accountStatus !== AccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.user.userType !== UserType.ADMIN) {
+      throw new UnauthorizedException();
+    }
+
+    // * generate new access token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: storedToken.user.id,
+      userType: storedToken.user.userType,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    return { accessToken: accessToken };
   }
 
   // * Activate user account
