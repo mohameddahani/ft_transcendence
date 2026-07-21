@@ -38,13 +38,16 @@ export class UsersController {
     return this.usersService.findMe(accessTokenPayload.id);
   }
 
-  // // * Update data of user
-  // @Patch('edit-profile')
-  // // @UseGuards(AuthGuard)
-  // @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
-  // update(@CurrentUser() userPayload: JwtPayload, @Body() body: UpdateUserDto) {
-  //   return this.usersService.update(userPayload.id, body);
-  // }
+  // * Update data of user
+  @Patch('edit-profile')
+  @UseGuards(AdminAccessTokenAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: UpdateUserDto,
+  ) {
+    return this.usersService.update(accessTokenPayload.id, body);
+  }
 
   // // * Upload profile image
   // @Post('profile-image')
