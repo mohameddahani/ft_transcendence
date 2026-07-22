@@ -11,6 +11,7 @@ import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
 import { UserType } from '@/generated/prisma/enums';
+import { Response } from 'express';
 
 @Injectable()
 export class UsersService {
@@ -110,38 +111,56 @@ export class UsersService {
     });
   }
 
-  // // * Remove profile image
-  // async removeProfileImage(id: string) {
-  //   // * Check if we have user already in DB
-  //   const user = await this.findOne(id);
+  // * Remove profile image
+  async removeProfileImage(id: string) {
+    // * Check if we have user already in DB
+    const user = await this.findOne(id);
 
-  //   // * Check user if already set image
-  //   if (user.profileImage === DEFAULT_PROFILE_IMAGE) {
-  //     throw new BadRequestException('There is No Profile Image');
-  //   }
+    // * Check user if already set image
+    if (user.profileImage === DEFAULT_PROFILE_IMAGE) {
+      throw new BadRequestException('There is No Profile Image');
+    }
 
-  //   // * Create path of image
-  //   const imagePath = join(
-  //     process.cwd(),
-  //     `./images/users/profile/${user.profileImage}`,
-  //   );
+    // * Create path of image
+    const imagePath = join(
+      process.cwd(),
+      `./images/users/profile/${user.profileImage}`,
+    );
 
-  //   // * Check if image already in server
-  //   if (!existsSync(imagePath)) {
-  //     throw new BadRequestException('There is No Profile Image In DataBase');
-  //   }
+    // * Check if image already in server
+    if (!existsSync(imagePath)) {
+      throw new BadRequestException('There is No Profile Image To Remove');
+    }
 
-  //   // * Remove image
-  //   unlinkSync(imagePath);
+    // * Remove image
+    unlinkSync(imagePath);
 
-  //   // * Update data of user
-  //   await this.prisma.user.update({
-  //     where: { id },
-  //     data: {
-  //       profileImage: DEFAULT_PROFILE_IMAGE,
-  //     },
-  //   });
-  // }
+    // * Update data of user
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        profileImage: DEFAULT_PROFILE_IMAGE,
+      },
+    });
+  }
+
+  // * Get Image
+  async findImage(id: string, image: string, res: Response) {
+    // * Check the user has this image
+    const user = await this.findOne(id);
+    if (user.profileImage !== image) {
+      throw new NotFoundException('There is No Profile Image To Show');
+    }
+
+    // * Check if image is already exist
+    const imagePath = join(process.cwd(), 'images/users/profile', image);
+    if (!existsSync(imagePath)) {
+      throw new BadRequestException('There is No Profile Image');
+    }
+
+    // * Send file to client
+    return res.sendFile(imagePath);
+  }
 
   // ! Private Attributes
   // * Get one user
