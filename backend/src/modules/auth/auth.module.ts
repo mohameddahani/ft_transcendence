@@ -9,6 +9,8 @@ import { EmailVerificationStrategy } from './strategies/email-verification.strat
 import { PasswordResetStrategy } from './strategies/password-reset.strategy';
 import { AdminRefreshTokenStrategy } from './strategies/admin-refresh-token.strategy';
 import { AdminAccessTokenStrategy } from './strategies/admin-access-token.strategy';
+import { OwnerAccessTokenStrategy } from './strategies/owner-access-token.strategy';
+import { OwnerRefreshTokenStrategy } from './strategies/owner-refresh-token.strategy';
 
 @Module({
   controllers: [AuthController],
@@ -19,6 +21,8 @@ import { AdminAccessTokenStrategy } from './strategies/admin-access-token.strate
     PasswordResetStrategy,
     AdminRefreshTokenStrategy,
     AdminAccessTokenStrategy,
+    OwnerAccessTokenStrategy,
+    OwnerRefreshTokenStrategy,
   ],
   imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],

@@ -34,6 +34,8 @@
 // ! Logic code of payment
 // ! Logic code of notifications
 
+// ! Logic code Logout
+
 // ! Check Roles in user controller
 
 // ! Change UserType of User to member is better

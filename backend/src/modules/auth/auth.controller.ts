@@ -28,6 +28,7 @@ import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
+import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -65,12 +66,24 @@ export class AuthController {
     return { user, accessToken };
   }
 
-  // * Refresh
+  // * Refresh Admin
   @Post('refresh/admin')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(AdminRefreshTokenAuthGuard)
-  refresh(
+  refreshAdmin(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authService.refresh(refreshToken, refreshTokenPayload);
+  }
+
+  // * Refresh Owner
+  @Post('refresh/owner')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(OwnerRefreshTokenAuthGuard)
+  refreshOwner(
     @GetCookies('refresh_token') refreshToken: string,
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
   ) {

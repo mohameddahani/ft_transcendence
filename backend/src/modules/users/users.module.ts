@@ -6,7 +6,9 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   controllers: [UsersController],
   providers: [UsersService],
-  imports: [AuthModule],
+  imports: [
+    AuthModule, // * This for documentation because auth module has all passport strategies and this module use it.
+  ],
   exports: [],
 })
 export class UsersModule {}

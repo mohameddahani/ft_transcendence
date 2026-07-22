@@ -15,7 +15,7 @@ import { PaymentCron } from './jobs/payment.cron';
 import { AuthModule } from './modules/auth/auth.module';
 // import { PaymentsModule } from './modules/payments/payments.module';
 // import { MembershipsModule } from './modules/memberships/memberships.module';
-// import { OwnersModule } from './modules/owners/owners.module';
+import { OwnersModule } from './modules/owners/owners.module';
 // import { MemberAccount } from './modules/members/member-account/member-account.module';
 
 @Module({
@@ -55,7 +55,7 @@ import { AuthModule } from './modules/auth/auth.module';
 
     AuthModule,
     UsersModule,
-    // OwnersModule,
+    OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
     // MembershipPlanModule,

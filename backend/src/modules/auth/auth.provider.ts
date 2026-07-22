@@ -185,7 +185,6 @@ export class AuthProvider {
       this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
-
     // *  Generate UUID for jti
     const jti = randomUUID();
 
@@ -251,7 +250,7 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
-    // * Chek if Refresh token is expired
+    // * Check if Refresh token is expired
     if (storedToken.expiresAt < new Date()) {
       throw new UnauthorizedException();
     }
@@ -267,7 +266,10 @@ export class AuthProvider {
     }
 
     // * Verify the user type
-    if (storedToken.user.userType !== UserType.ADMIN) {
+    if (
+      storedToken.user.userType !== UserType.ADMIN &&
+      storedToken.user.userType !== UserType.OWNER
+    ) {
       throw new UnauthorizedException();
     }
 
