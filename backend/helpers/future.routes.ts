@@ -36,6 +36,8 @@
 
 // ! Logic code Logout
 
+// ! Give the auth to any one to see plans (in landing page)
+
 // ! Check Roles in user controller
 
 // ! Change UserType of User to member is better

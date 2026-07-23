@@ -7,7 +7,7 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [UsersController],
   providers: [UsersService],
   imports: [
-    AuthModule, // * This for documentation because auth module has all passport strategies and this module use it.
+    AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
   ],
   exports: [],
 })
