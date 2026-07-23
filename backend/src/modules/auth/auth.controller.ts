@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -100,7 +99,7 @@ export class AuthController {
   }
 
   // * Activate user account
-  @Get('email-verification')
+  @Post('email-verification')
   @UseGuards(EmailVerificationAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
   activateAccount(
