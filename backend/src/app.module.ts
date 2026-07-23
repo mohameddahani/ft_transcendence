@@ -4,7 +4,7 @@ import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './infrastructure/database/prisma.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-// import { MembershipPlanModule } from './modules/membership-plans/membership-plans.module';
+import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
 // import { MembersModule } from './modules/members/members.module';
 import { PlansModule } from './modules/owners/plans/plans.module';
 import { SubscriptionsModule } from './modules/owners/subscriptions/subscriptions.module';
@@ -58,7 +58,7 @@ import { OwnersModule } from './modules/owners/owners.module';
     OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
-    // MembershipPlanModule,
+    MembershipPlansModule,
     // MembersModule,
     PlansModule,
     SubscriptionsModule,
