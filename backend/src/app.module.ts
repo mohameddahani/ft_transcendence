@@ -13,7 +13,7 @@ import { SubscriptionCron } from './jobs/subscription.cron';
 import { MembershipCron } from './jobs/membership.cron';
 import { PaymentCron } from './jobs/payment.cron';
 import { AuthModule } from './modules/auth/auth.module';
-// import { PaymentsModule } from './modules/payments/payments.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { OwnersModule } from './modules/owners/owners.module';
 // import { MemberAccount } from './modules/members/member-account/member-account.module';
@@ -62,7 +62,7 @@ import { OwnersModule } from './modules/owners/owners.module';
     MembersModule,
     PlansModule,
     SubscriptionsModule,
-    // PaymentsModule,
+    PaymentsModule,
     MembershipsModule,
     // MemberAccount,
   ],

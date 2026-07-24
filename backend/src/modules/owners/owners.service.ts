@@ -14,7 +14,7 @@ export class OwnersService {
   async findAll(page: number, limit: number) {
     const users = await this.prisma.user.findMany({
       where: {
-        userType: { notIn: [UserType.OWNER, UserType.USER] },
+        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -56,7 +56,7 @@ export class OwnersService {
     const user = await this.prisma.user.findUnique({
       where: {
         id,
-        userType: { notIn: [UserType.OWNER, UserType.USER] },
+        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
       },
       select: {
         id: true,
@@ -103,7 +103,7 @@ export class OwnersService {
     }
 
     await this.prisma.user.update({
-      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.USER] } },
+      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.MEMBER] } },
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
@@ -131,7 +131,7 @@ export class OwnersService {
     }
 
     await this.prisma.user.update({
-      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.USER] } },
+      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.MEMBER] } },
       data: {
         accountStatus: AccountStatus.PENDING,
       },
@@ -155,7 +155,7 @@ export class OwnersService {
     }
 
     await this.prisma.user.update({
-      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.USER] } },
+      where: { id: id, userType: { notIn: [UserType.OWNER, UserType.MEMBER] } },
       data: {
         accountStatus: AccountStatus.BANNED,
       },

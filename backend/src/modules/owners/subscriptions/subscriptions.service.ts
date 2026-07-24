@@ -131,7 +131,7 @@ export class SubscriptionsService {
     const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
-        userType: { notIn: [UserType.OWNER, UserType.USER] },
+        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
       },
       include: {
         subscription: true,

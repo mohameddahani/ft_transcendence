@@ -77,7 +77,7 @@ export class JwtProvider {
           ),
         };
       }
-    } else if (role === UserType.USER) {
+    } else if (role === UserType.MEMBER) {
       if (type === JwtTokenType.ACCESS) {
         return {
           secret: this.config.getOrThrow<string>('JWT_MEMBER_ACCESS_SECRET'),

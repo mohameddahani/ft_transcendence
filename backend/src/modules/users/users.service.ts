@@ -168,7 +168,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: {
         id,
-        userType: { notIn: [UserType.OWNER, UserType.USER] },
+        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
       },
       select: {
         id: true,

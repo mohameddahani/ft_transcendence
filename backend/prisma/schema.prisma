@@ -23,7 +23,7 @@ enum Gender {
 enum UserType {
   OWNER
   ADMIN
-  USER
+  MEMBER
 }
 
 // * this enum had Account Status
@@ -180,7 +180,7 @@ model Member {
   photo            String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
-  userType         UserType     @default(USER)
+  userType         UserType     @default(MEMBER)
   status           MemberStatus @default(ACTIVE)
 
   memberships         Membership[]
