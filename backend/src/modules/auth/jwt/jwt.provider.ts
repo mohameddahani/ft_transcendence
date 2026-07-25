@@ -1,5 +1,5 @@
 import { JwtTokenType } from '@/core/enums/jwt-token-type.enum';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -8,8 +8,8 @@ export class JwtProvider {
   constructor(private readonly config: ConfigService) {}
 
   // * Get Secret Key and expiresIn fom envirement
-  getJwtConfig(role: UserType, type: JwtTokenType) {
-    if (role === UserType.OWNER) {
+  getJwtConfig(role: Role, type: JwtTokenType) {
+    if (role === Role.OWNER) {
       if (type === JwtTokenType.ACCESS) {
         return {
           secret: this.config.getOrThrow<string>('JWT_OWNER_ACCESS_SECRET'),
@@ -43,7 +43,7 @@ export class JwtProvider {
           ),
         };
       }
-    } else if (role === UserType.ADMIN) {
+    } else if (role === Role.ADMIN) {
       if (type === JwtTokenType.ACCESS) {
         return {
           secret: this.config.getOrThrow<string>('JWT_ADMIN_ACCESS_SECRET'),
@@ -77,7 +77,7 @@ export class JwtProvider {
           ),
         };
       }
-    } else if (role === UserType.MEMBER) {
+    } else if (role === Role.MEMBER) {
       if (type === JwtTokenType.ACCESS) {
         return {
           secret: this.config.getOrThrow<string>('JWT_MEMBER_ACCESS_SECRET'),

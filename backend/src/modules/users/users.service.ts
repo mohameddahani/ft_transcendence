@@ -10,7 +10,7 @@ import { UpdateUserDto } from './dtos/update-user.dto';
 import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Response } from 'express';
 
 @Injectable()
@@ -30,7 +30,7 @@ export class UsersService {
         email: true,
         phoneNumber: true,
         companyName: true,
-        userType: true,
+        role: true,
         profileImage: true,
         isAccountVerified: true,
         accountStatus: true,
@@ -168,7 +168,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: {
         id,
-        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
+        role: { notIn: [Role.OWNER, Role.MEMBER] },
       },
       select: {
         id: true,
@@ -180,7 +180,7 @@ export class UsersService {
         email: true,
         phoneNumber: true,
         companyName: true,
-        userType: true,
+        role: true,
         profileImage: true,
         isAccountVerified: true,
         accountStatus: true,

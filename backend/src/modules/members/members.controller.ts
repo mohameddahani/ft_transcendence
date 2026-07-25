@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MembersService } from './members.service';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { UpdateMemberDto } from './dtos/update-member.dto';
@@ -24,7 +24,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 @Controller('/api/members')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.ADMIN])
+@Roles([Role.ADMIN])
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 

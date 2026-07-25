@@ -7,7 +7,7 @@
 // // * SetMetadata('roles', roles): attaches metadata to the route handler with key 'roles' so it can later be read by Reflector inside a Guard (e.g. RolesGuard)
 // export const Roles = (...roles: UserType[]) => SetMetadata('roles', roles);
 
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Reflector } from '@nestjs/core';
 
 // ! NEW SYNTAX
@@ -18,4 +18,4 @@ import { Reflector } from '@nestjs/core';
 //   which automatically stores and retrieves metadata without using manual string keys (like 'roles').
 //
 //   It improves type safety and avoids bugs caused by typos in metadata keys.
-export const Roles = Reflector.createDecorator<UserType[]>();
+export const Roles = Reflector.createDecorator<Role[]>();

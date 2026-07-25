@@ -1,12 +1,12 @@
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 
 export type AccessTokenPayload = {
   id: string;
-  userType: UserType;
+  role: Role;
 };
 
 export type RefreshTokenPayload = {
   id: string;
-  userType: UserType;
+  role: Role;
   jti: string;
 };

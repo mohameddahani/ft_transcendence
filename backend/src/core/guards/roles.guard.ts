@@ -1,5 +1,5 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import {
   CanActivate,
@@ -25,7 +25,7 @@ export class AuthRolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
   canActivate(context: ExecutionContext) {
     // * Get roles from @Roles() decorator metadata
-    const roles: UserType[] = this.reflector.getAllAndOverride(Roles, [
+    const roles: Role[] = this.reflector.getAllAndOverride(Roles, [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -40,7 +40,7 @@ export class AuthRolesGuard implements CanActivate {
     const user = request['user'] as AccessTokenPayload;
 
     // * Check if user's role is in the allowed roles
-    if (!user || !roles.includes(user.userType)) {
+    if (!user || !roles.includes(user.role)) {
       throw new ForbiddenException(
         'You do not have permission to access this resource.',
       );

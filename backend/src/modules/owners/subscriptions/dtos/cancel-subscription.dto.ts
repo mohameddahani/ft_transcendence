@@ -1,7 +1,7 @@
 import { IsUUID } from 'class-validator';
 
 export class CancelSubscriptionDto {
-  // * UserId
+  // * AdminId
   @IsUUID()
-  userId!: string;
+  adminId!: string;
 }

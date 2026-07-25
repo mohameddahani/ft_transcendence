@@ -1,5 +1,5 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { AddPlanDto } from './dtos/add-plan.dto';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
@@ -24,7 +24,7 @@ import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-to
 @Controller('/api/plans')
 // * Make Authorazation Golbal on this route
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.OWNER])
+@Roles([Role.OWNER])
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 

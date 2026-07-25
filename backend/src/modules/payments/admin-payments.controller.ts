@@ -1,5 +1,5 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Controller,
@@ -19,7 +19,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @Controller('/api/admin/payments')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.ADMIN])
+@Roles([Role.ADMIN])
 export class AdminPaymentsController {
   constructor(private readonly adminPaymentsService: AdminPaymentsService) {}
 

@@ -15,7 +15,7 @@ import { Throttle } from '@nestjs/throttler';
 import { MembershipPlansService } from './membership-plans.service';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
@@ -26,7 +26,7 @@ import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 @Controller('/api/membership-plans')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.ADMIN])
+@Roles([Role.ADMIN])
 export class MembershipPlansController {
   constructor(
     private readonly membershipPlansService: MembershipPlansService,

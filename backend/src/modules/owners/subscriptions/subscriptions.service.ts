@@ -10,7 +10,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   AccountStatus,
   SubscriptionStatus,
-  UserType,
+  Role,
 } from '@/generated/prisma/enums';
 
 @Injectable()
@@ -126,12 +126,12 @@ export class SubscriptionsService {
   }
 
   // * Cancel Subscription
-  async cancelSubscription(userId: string) {
+  async cancelSubscription(adminId: string) {
     // * Check if user all ready exist
     const user = await this.prisma.user.findUnique({
       where: {
-        id: userId,
-        userType: { notIn: [UserType.OWNER, UserType.MEMBER] },
+        id: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER] },
       },
       include: {
         subscription: true,

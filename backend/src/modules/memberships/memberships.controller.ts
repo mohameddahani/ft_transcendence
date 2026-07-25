@@ -10,7 +10,7 @@ import {
 import { MembershipsService } from './memberships.service';
 import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -19,7 +19,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @Controller('/api/memberships')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.ADMIN])
+@Roles([Role.ADMIN])
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 

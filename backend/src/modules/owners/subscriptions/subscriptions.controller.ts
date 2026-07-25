@@ -1,5 +1,5 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Body,
@@ -22,7 +22,7 @@ import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-to
 @Controller('/api/subscriptions')
 // * Make Authorazation Golbal on this route
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([UserType.OWNER])
+@Roles([Role.OWNER])
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
@@ -37,7 +37,7 @@ export class SubscriptionsController {
   @Patch()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   cancelSubscription(@Body() body: CancelSubscriptionDto) {
-    return this.subscriptionsService.cancelSubscription(body.userId);
+    return this.subscriptionsService.cancelSubscription(body.adminId);
   }
 
   // * Get all Subscriptions

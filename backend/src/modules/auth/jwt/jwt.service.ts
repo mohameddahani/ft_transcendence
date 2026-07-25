@@ -18,7 +18,7 @@ export class CustomJwtService {
   generateAccessToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.userType,
+      accessTokenPayload.role,
       JwtTokenType.ACCESS,
     );
 
@@ -33,7 +33,7 @@ export class CustomJwtService {
   generateRefreshToken(refreshTokenPayload: RefreshTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      refreshTokenPayload.userType,
+      refreshTokenPayload.role,
       JwtTokenType.REFRESH,
     );
 
@@ -48,7 +48,7 @@ export class CustomJwtService {
   generateEmailVerificationToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.userType,
+      accessTokenPayload.role,
       JwtTokenType.EMAIL_VERIFICATION,
     );
 
@@ -63,7 +63,7 @@ export class CustomJwtService {
   generatePasswordResetToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.userType,
+      accessTokenPayload.role,
       JwtTokenType.PASSWORD_RESET,
     );
 

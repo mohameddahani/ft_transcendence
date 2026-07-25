@@ -5,17 +5,15 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
-export class EmailVerificationStrategy extends PassportStrategy(
+export class MemberAccessTokenStrategy extends PassportStrategy(
   Strategy,
-  'email-verification',
+  'member-access-token',
 ) {
   constructor(private readonly config: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromUrlQueryParameter('token'),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.getOrThrow<string>(
-        'JWT_ADMIN_EMAIL_VERIFICATION_SECRET',
-      ),
+      secretOrKey: config.getOrThrow<string>('JWT_MEMBER_ACCESS_SECRET'),
     });
   }
 

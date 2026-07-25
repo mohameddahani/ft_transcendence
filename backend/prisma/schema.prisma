@@ -19,8 +19,8 @@ enum Gender {
   FEMALE
 }
 
-// * this enum had type of user
-enum UserType {
+// * this enum had role of user
+enum Role {
   OWNER
   ADMIN
   MEMBER
@@ -81,7 +81,7 @@ model User {
   password          String
   phoneNumber       String        @unique
   companyName       String
-  userType          UserType      @default(ADMIN)
+  role              Role          @default(ADMIN)
   subscription      Subscription?
   profileImage      String        @default("default-image.jpg")
   isAccountVerified Boolean       @default(false)
@@ -180,7 +180,7 @@ model Member {
   photo            String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
-  userType         UserType     @default(MEMBER)
+  role             Role         @default(MEMBER)
   status           MemberStatus @default(ACTIVE)
 
   memberships         Membership[]

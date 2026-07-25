@@ -11,13 +11,13 @@ export class AdminPaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Get all Payments
-  async findAll(userId: string, page: number, limit: number) {
+  async findAll(adminId: string, page: number, limit: number) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(userId);
+    await this.checkIfAdminHasSubscription(adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
-        adminId: userId,
+        adminId: adminId,
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -37,7 +37,7 @@ export class AdminPaymentsService {
             photo: true,
             address: true,
             emergencyContact: true,
-            userType: true,
+            role: true,
             status: true,
             memberships: true,
             payments: true,
@@ -62,13 +62,13 @@ export class AdminPaymentsService {
   }
 
   // * Get one payment
-  async findOne(userId: string, id: string) {
+  async findOne(adminId: string, id: string) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(userId);
+    await this.checkIfAdminHasSubscription(adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
-        adminId: userId,
+        adminId: adminId,
         id: id,
       },
       select: {
@@ -87,7 +87,7 @@ export class AdminPaymentsService {
             photo: true,
             address: true,
             emergencyContact: true,
-            userType: true,
+            role: true,
             status: true,
             memberships: true,
             payments: true,
@@ -105,7 +105,7 @@ export class AdminPaymentsService {
       },
     });
     if (!payment) {
-      throw new NotFoundException('There is No Payment To Show!');
+      throw new NotFoundException('Payment Not Found!');
     }
 
     return payment;

@@ -1,5 +1,5 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { UserType } from '@/generated/prisma/enums';
+import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Controller,
@@ -19,7 +19,7 @@ import { OwnerAccessTokenAuthGuard } from '../auth/guards/owner-access-token-aut
 // * Check if user has valid token and is a owner not normal user
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
 // * Set owner roles in this route
-@Roles([UserType.OWNER])
+@Roles([Role.OWNER])
 export class OwnersController {
   constructor(private readonly ownersService: OwnersService) {}
 

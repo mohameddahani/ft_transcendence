@@ -13,7 +13,7 @@ import {
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
-import { AccountStatus, UserType } from '@/generated/prisma/enums';
+import { AccountStatus, Role } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
@@ -101,7 +101,7 @@ export class AuthProvider {
     // * Generate Email Verification Token
     const accessTokenPayload: AccessTokenPayload = {
       id: newUser.id,
-      userType: newUser.userType,
+      role: newUser.role,
     };
     const emailVerificationToken =
       this.customJwtService.generateEmailVerificationToken(accessTokenPayload);
@@ -144,7 +144,7 @@ export class AuthProvider {
         // * Generate Email Verification Token
         const accessTokenPayload: AccessTokenPayload = {
           id: user.id,
-          userType: user.userType,
+          role: user.role,
         };
         const emailVerificationToken =
           this.customJwtService.generateEmailVerificationToken(
@@ -179,7 +179,7 @@ export class AuthProvider {
     // * Generate Access Token
     const accessTokenPayload: AccessTokenPayload = {
       id: user.id,
-      userType: user.userType,
+      role: user.role,
     };
     const accessToken =
       this.customJwtService.generateAccessToken(accessTokenPayload);
@@ -190,7 +190,7 @@ export class AuthProvider {
 
     const refreshTokenPayload: RefreshTokenPayload = {
       id: user.id,
-      userType: user.userType,
+      role: user.role,
       jti: jti,
     };
     const refreshToken =
@@ -203,7 +203,7 @@ export class AuthProvider {
     // * Save Hash Refresh Token in database
     // * Get refresh token expiration time from .env
     const refreshExpiresIn =
-      user.userType === UserType.ADMIN
+      user.role === Role.ADMIN
         ? this.config.getOrThrow<StringValue>('JWT_ADMIN_REFRESH_EXPIRES_IN')
         : this.config.getOrThrow<StringValue>('JWT_OWNER_REFRESH_EXPIRES_IN');
 
@@ -267,8 +267,8 @@ export class AuthProvider {
 
     // * Verify the user type
     if (
-      storedToken.user.userType !== UserType.ADMIN &&
-      storedToken.user.userType !== UserType.OWNER
+      storedToken.user.role !== Role.ADMIN &&
+      storedToken.user.role !== Role.OWNER
     ) {
       throw new UnauthorizedException();
     }
@@ -276,7 +276,7 @@ export class AuthProvider {
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.user.id,
-      userType: storedToken.user.userType,
+      role: storedToken.user.role,
     };
     const accessToken =
       this.customJwtService.generateAccessToken(accessTokenPayload);
@@ -328,7 +328,7 @@ export class AuthProvider {
       // * Generate JWT
       const accessTokenPayload: AccessTokenPayload = {
         id: user.id,
-        userType: user.userType,
+        role: user.role,
       };
       const passwordResetToken =
         this.customJwtService.generatePasswordResetToken(accessTokenPayload);
