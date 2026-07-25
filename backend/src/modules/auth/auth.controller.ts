@@ -28,6 +28,7 @@ import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.gu
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
+import { LoginMemberDto } from './dto/login-member.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -52,6 +53,31 @@ export class AuthController {
   ) {
     const { user, accessToken, refreshToken, refreshExpiresIn } =
       await this.authService.login(request, body);
+
+    // * Store the refresh token in a secure HttpOnly cookie
+    response.cookie('refresh_token', refreshToken, {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth/refresh', // * Send only to the refresh endpoint
+      maxAge: ms(refreshExpiresIn), // * Expires after 30 days
+    });
+
+    return { user, accessToken };
+  }
+
+  // * Login Member
+  @Post('/members/login')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async loginMember(
+    @Body() body: LoginMemberDto,
+    @Req() request: Request,
+    // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { user, accessToken, refreshToken, refreshExpiresIn } =
+      await this.authService.loginMember(request, body);
 
     // * Store the refresh token in a secure HttpOnly cookie
     response.cookie('refresh_token', refreshToken, {

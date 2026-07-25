@@ -13,7 +13,7 @@ import {
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
-import { AccountStatus, Role } from '@/generated/prisma/enums';
+import { AccountStatus, MemberStatus, Role } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
@@ -26,6 +26,7 @@ import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
 import { randomUUID } from 'node:crypto';
+import { LoginMemberDto } from './dto/login-member.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -226,6 +227,48 @@ export class AuthProvider {
     const { id, password, createdAt, updatedAt, ...safeUser } = user;
 
     return { user: safeUser, accessToken, refreshToken, refreshExpiresIn };
+  }
+
+  // * Login Member
+  async loginMember(request: Request, data: LoginMemberDto) {
+    // * Check if member already exist by userName before login
+    const member = await this.prisma.member.findUnique({
+      where: { userName: data.userName },
+    });
+    if (!member) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Check status of account
+    if (member.status === MemberStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact your gym administrator for assistance.',
+      );
+    }
+
+    if (member.status === MemberStatus.FROZEN) {
+      throw new UnauthorizedException(
+        'Your account is temporarily inactive. Please contact your gym administrator to reactivate your membership.',
+      );
+    }
+
+    // * Check the member if he set a password
+    if (!member.password) {
+      throw new UnauthorizedException(
+        'Your account has not been activated yet. Please check your email and set your password to continue.',
+      );
+    }
+
+    // * Check the password is match
+    const passwordIsMatch = await bcrypt.compare(
+      data.password,
+      member.password,
+    );
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Generate JWT
   }
 
   // * Refresh

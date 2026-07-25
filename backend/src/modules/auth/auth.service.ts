@@ -7,6 +7,7 @@ import {
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
+import { LoginMemberDto } from './dto/login-member.dto';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,11 @@ export class AuthService {
   // * Login
   login(request: Request, data: LoginUserDto) {
     return this.authProvider.login(request, data);
+  }
+
+  // * Login Member
+  loginMember(request: Request, data: LoginMemberDto) {
+    return this.authProvider.loginMember(request, data);
   }
 
   // * Refresh
