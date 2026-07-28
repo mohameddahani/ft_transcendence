@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -16,10 +17,17 @@ import {
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
+import { EmailService } from '@/infrastructure/email/email.service';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { CustomJwtService } from '../auth/jwt/jwt.service';
 
 @Injectable()
 export class MembersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly customJwtService: CustomJwtService,
+  ) {}
 
   // * Add Member by Admin
   async addMember(adminId: string, data: AddMemberDto) {
@@ -135,6 +143,28 @@ export class MembersService {
         status: PaymentStatus.PAID,
       },
     });
+
+    // * Send Email of Set password to member
+    try {
+      // * Generate Email Password Set Token
+      const accessTokenPayload: AccessTokenPayload = {
+        id: member.id,
+        role: member.role,
+      };
+      const emailSetPasswordToken =
+        this.customJwtService.generateSetPasswordToken(accessTokenPayload);
+
+      // * Send email of Password Set to member
+      await this.emailService.sendSetPasswordEmail(
+        member.userName,
+        member.email,
+        emailSetPasswordToken,
+      );
+    } catch {
+      throw new RequestTimeoutException(
+        'Failed to send set password of member email',
+      );
+    }
   }
 
   // * Update data of member

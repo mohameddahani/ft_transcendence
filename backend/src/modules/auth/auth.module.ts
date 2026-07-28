@@ -6,7 +6,7 @@ import { PassportModule } from '@nestjs/passport';
 import { EmailModule } from '@/infrastructure/email/email.module';
 import { CustomJwtModule } from './jwt/jwt.module';
 import { EmailVerificationStrategy } from './strategies/email-verification.strategy';
-import { PasswordResetStrategy } from './strategies/password-reset.strategy';
+import { ResetPasswordStrategy } from './strategies/reset-password.strategy';
 import { AdminRefreshTokenStrategy } from './strategies/admin-refresh-token.strategy';
 import { AdminAccessTokenStrategy } from './strategies/admin-access-token.strategy';
 import { OwnerAccessTokenStrategy } from './strategies/owner-access-token.strategy';
@@ -20,7 +20,7 @@ import { MemberRefreshTokenStrategy } from './strategies/member-refresh-token.st
     AuthService,
     AuthProvider,
     EmailVerificationStrategy,
-    PasswordResetStrategy,
+    ResetPasswordStrategy,
     OwnerAccessTokenStrategy,
     OwnerRefreshTokenStrategy,
     AdminRefreshTokenStrategy,

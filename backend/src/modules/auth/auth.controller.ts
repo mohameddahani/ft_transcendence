@@ -20,7 +20,7 @@ import type {
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
-import { PasswordResetAuthGuard } from './guards/password-reset-auth.guard';
+import { ResetPasswordAuthGuard } from './guards/reset-password-auth.guard';
 import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
@@ -156,14 +156,14 @@ export class AuthController {
   }
 
   // * Password reset
-  @Post('password-reset')
+  @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  @UseGuards(PasswordResetAuthGuard)
+  @UseGuards(ResetPasswordAuthGuard)
   resetPassword(
     @Body() password: ResetPasswordUserDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.authService.passwordReset(
+    return this.authService.resetPassword(
       accessTokenPayload,
       password.password,
     );

@@ -33,13 +33,13 @@ export class JwtProvider {
             'JWT_OWNER_EMAIL_VERIFICATION_EXPIRES_IN',
           ),
         };
-      } else if (type === JwtTokenType.PASSWORD_RESET) {
+      } else if (type === JwtTokenType.RESET_PASSWORD) {
         return {
           secret: this.config.getOrThrow<string>(
-            'JWT_OWNER_PASSWORD_RESET_SECRET',
+            'JWT_OWNER_RESET_PASSWORD_SECRET',
           ),
           expiresIn: this.config.getOrThrow<string>(
-            'JWT_OWNER_PASSWORD_RESET_EXPIRES_IN',
+            'JWT_OWNER_RESET_PASSWORD_EXPIRES_IN',
           ),
         };
       }
@@ -67,13 +67,13 @@ export class JwtProvider {
             'JWT_ADMIN_EMAIL_VERIFICATION_EXPIRES_IN',
           ),
         };
-      } else if (type === JwtTokenType.PASSWORD_RESET) {
+      } else if (type === JwtTokenType.RESET_PASSWORD) {
         return {
           secret: this.config.getOrThrow<string>(
-            'JWT_ADMIN_PASSWORD_RESET_SECRET',
+            'JWT_ADMIN_RESET_PASSWORD_SECRET',
           ),
           expiresIn: this.config.getOrThrow<string>(
-            'JWT_ADMIN_PASSWORD_RESET_EXPIRES_IN',
+            'JWT_ADMIN_RESET_PASSWORD_EXPIRES_IN',
           ),
         };
       }
@@ -101,13 +101,22 @@ export class JwtProvider {
             'JWT_MEMBER_EMAIL_VERIFICATION_EXPIRES_IN',
           ),
         };
-      } else if (type === JwtTokenType.PASSWORD_RESET) {
+      } else if (type === JwtTokenType.RESET_PASSWORD) {
         return {
           secret: this.config.getOrThrow<string>(
-            'JWT_MEMBER_PASSWORD_RESET_SECRET',
+            'JWT_MEMBER_RESET_PASSWORD_SECRET',
           ),
           expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_PASSWORD_RESET_EXPIRES_IN',
+            'JWT_MEMBER_RESET_PASSWORD_EXPIRES_IN',
+          ),
+        };
+      } else if (type === JwtTokenType.SET_PASSWORD) {
+        return {
+          secret: this.config.getOrThrow<string>(
+            'JWT_MEMBER_PASSWORD_SET_SECRET',
+          ),
+          expiresIn: this.config.getOrThrow<string>(
+            'JWT_MEMBER_PASSWORD_SET_EXPIRES_IN',
           ),
         };
       }

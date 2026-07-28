@@ -27,6 +27,7 @@
 // ! GET all notification / One notification
 
 // ! Login of member
+// ! Resend the set password email of member
 // ! change password of member
 // ! track plan of member (ui ux of member not admin)
 // ! add profile image of member (ui ux of member not admin)

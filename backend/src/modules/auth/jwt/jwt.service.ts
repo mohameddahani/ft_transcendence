@@ -59,12 +59,27 @@ export class CustomJwtService {
     });
   }
 
-  // * Generate Password Reset Token
-  generatePasswordResetToken(accessTokenPayload: AccessTokenPayload) {
+  // * Generate Reset Password Token
+  generateResetPasswordToken(accessTokenPayload: AccessTokenPayload) {
     // * Get Secret key and expiresIn
     const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
       accessTokenPayload.role,
-      JwtTokenType.PASSWORD_RESET,
+      JwtTokenType.RESET_PASSWORD,
+    );
+
+    // * Generate The Token
+    return this.jwtService.sign(accessTokenPayload, {
+      secret,
+      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
+    });
+  }
+
+  // * Generate Password Set Token
+  generateSetPasswordToken(accessTokenPayload: AccessTokenPayload) {
+    // * Get Secret key and expiresIn
+    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
+      accessTokenPayload.role,
+      JwtTokenType.SET_PASSWORD,
     );
 
     // * Generate The Token

@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import {
   verificationEmailTemplate,
   resetPasswordEmailTemplate,
+  setPasswordEmailTemplate,
 } from './templates';
 
 import { RESEND } from './email.provider';
@@ -37,7 +38,7 @@ export class EmailService {
   }
 
   async sendResetPasswordEmail(email: string, token: string) {
-    const link = `${this.frontendUrl}/api/auth/password-reset?token=${token}`;
+    const link = `${this.frontendUrl}/api/auth/reset-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -47,6 +48,20 @@ export class EmailService {
       subject: 'Reset your password',
 
       html: resetPasswordEmailTemplate(link),
+    });
+  }
+
+  async sendSetPasswordEmail(username: string, email: string, token: string) {
+    const link = `${this.frontendUrl}/api/auth/members/set-password?token=${token}`;
+
+    await this.resend.emails.send({
+      from: 'onboarding@resend.dev',
+
+      to: email,
+
+      subject: 'Set your password',
+
+      html: setPasswordEmailTemplate(link, username),
     });
   }
 }

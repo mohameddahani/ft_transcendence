@@ -52,7 +52,7 @@ export class AuthService {
   }
 
   // * Password reset
-  passwordReset(accessTokenPayload: AccessTokenPayload, password: string) {
-    return this.authProvider.passwordReset(accessTokenPayload, password);
+  resetPassword(accessTokenPayload: AccessTokenPayload, password: string) {
+    return this.authProvider.resetPassword(accessTokenPayload, password);
   }
 }

@@ -474,18 +474,18 @@ export class AuthProvider {
         id: user.id,
         role: user.role,
       };
-      const passwordResetToken =
-        this.customJwtService.generatePasswordResetToken(accessTokenPayload);
+      const resetPasswordToken =
+        this.customJwtService.generateResetPasswordToken(accessTokenPayload);
 
       // * Send email
-      await this.emailService.sendResetPasswordEmail(email, passwordResetToken);
+      await this.emailService.sendResetPasswordEmail(email, resetPasswordToken);
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
   }
 
   // * Password reset
-  async passwordReset(
+  async resetPassword(
     accessTokenPayload: AccessTokenPayload,
     password: string,
   ) {
