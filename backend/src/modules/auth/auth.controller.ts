@@ -29,6 +29,7 @@ import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payl
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
 import { LoginMemberDto } from './dto/login-member.dto';
+import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -76,7 +77,7 @@ export class AuthController {
     // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { user, accessToken, refreshToken, refreshExpiresIn } =
+    const { member, accessToken, refreshToken, refreshExpiresIn } =
       await this.authService.loginMember(request, body);
 
     // * Store the refresh token in a secure HttpOnly cookie
@@ -88,7 +89,7 @@ export class AuthController {
       maxAge: ms(refreshExpiresIn), // * Expires after 30 days
     });
 
-    return { user, accessToken };
+    return { member, accessToken };
   }
 
   // * Refresh Admin
@@ -113,6 +114,18 @@ export class AuthController {
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
   ) {
     return this.authService.refresh(refreshToken, refreshTokenPayload);
+  }
+
+  // * Refresh Member
+  @Post('refresh/member')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(MemberRefreshTokenAuthGuard)
+  refreshMember(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authService.refreshMember(refreshToken, refreshTokenPayload);
   }
 
   // * Logout

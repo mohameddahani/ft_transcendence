@@ -268,7 +268,55 @@ export class AuthProvider {
       throw new UnauthorizedException('Invalid User Name or Password');
     }
 
-    // * Generate JWT
+    // * Generate Access Token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: member.id,
+      role: member.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    // * Generate Refresh Token
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const refreshTokenPayload: RefreshTokenPayload = {
+      id: member.id,
+      role: member.role,
+      jti: jti,
+    };
+    const refreshToken =
+      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_MEMBER_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.memberRefreshToken.create({
+      data: {
+        jti: jti,
+        hash: refreshTokenHash,
+        member: { connect: { id: member.id } },
+        expiresAt: expiresAt,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+        device: this.getDevice(request.headers['user-agent']),
+      },
+    });
+
+    // * Exclude Some Fields
+    const { id, password, createdAt, updatedAt, ...safeMember } = member;
+
+    return { member: safeMember, accessToken, refreshToken, refreshExpiresIn };
   }
 
   // * Refresh
@@ -320,6 +368,59 @@ export class AuthProvider {
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.user.id,
       role: storedToken.user.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    return { accessToken: accessToken };
+  }
+
+  // * Refresh Member
+  async refreshMember(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.memberRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { member: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to log in
+    if (storedToken.member.status !== MemberStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.member.role !== Role.MEMBER) {
+      throw new UnauthorizedException();
+    }
+
+    // * generate new access token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: storedToken.member.id,
+      role: storedToken.member.role,
     };
     const accessToken =
       this.customJwtService.generateAccessToken(accessTokenPayload);

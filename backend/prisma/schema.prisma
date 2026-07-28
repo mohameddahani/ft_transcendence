@@ -322,7 +322,7 @@ model MemberRefreshToken {
   hash String
 
   memberId String
-  user     Member @relation(fields: [memberId], references: [id])
+  member   Member @relation(fields: [memberId], references: [id])
 
   expiresAt DateTime
   revokedAt DateTime?

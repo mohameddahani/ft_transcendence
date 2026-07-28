@@ -33,6 +33,14 @@ export class AuthService {
     return this.authProvider.refresh(refreshToken, refreshTokenPayload);
   }
 
+  // * Refresh Member
+  refreshMember(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authProvider.refreshMember(refreshToken, refreshTokenPayload);
+  }
+
   // * Activate user account
   activateAccount(accessTokenPayload: AccessTokenPayload) {
     return this.authProvider.activateAccount(accessTokenPayload);
