@@ -11,6 +11,8 @@ export class LoginMemberDto {
   userName!: string;
 
   // * Password
+  @IsNotEmpty()
+  @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )

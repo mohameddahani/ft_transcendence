@@ -2,7 +2,14 @@ import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+
+const refreshTokenExtractor = (request: Request): string | null => {
+  const cookies = request.cookies as Record<string, string | undefined>;
+
+  return cookies.refresh_token ?? null;
+};
 
 @Injectable()
 export class MemberRefreshTokenStrategy extends PassportStrategy(
@@ -11,7 +18,7 @@ export class MemberRefreshTokenStrategy extends PassportStrategy(
 ) {
   constructor(private readonly config: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([refreshTokenExtractor]),
       ignoreExpiration: false,
       secretOrKey: config.getOrThrow<string>('JWT_MEMBER_REFRESH_SECRET'),
     });
