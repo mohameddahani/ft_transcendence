@@ -39,6 +39,7 @@ export class AuthProvider {
     private readonly customJwtService: CustomJwtService,
     private readonly config: ConfigService,
   ) {}
+
   // * Register
   async register(data: RegisterUserDto) {
     // * Check if user already exist before register
