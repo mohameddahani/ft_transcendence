@@ -22,10 +22,6 @@ import {
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
-import {
-  accountActivatedTemplate,
-  accountAlreadyActivatedTemplate,
-} from '@/infrastructure/email/templates';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
@@ -108,22 +104,29 @@ export class AuthProvider {
     // * Generate Email Verification Token
     try {
       // * Generate Action Token
-      const { raw, hash } = this.generateActionToken();
+      const { rawToken, tokenHash } = this.generateActionToken();
 
       // * Calc the expir
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setHours(expiresAt.getHours() + 24); // 19 + 30 => July 19th
+      const emailVerificationTokenExpiresIn =
+        this.config.getOrThrow<StringValue>(
+          'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
+        );
+      const expiresAt = new Date(
+        Date.now() + ms(emailVerificationTokenExpiresIn),
+      );
 
+      // * Store the hash Token in DB
       await this.prisma.userActionToken.create({
         data: {
-          userId: newUser.id,
-          tokenHash: hash,
+          user: { connect: { id: newUser.id } },
+          tokenHash: tokenHash,
           type: ActionTokenType.EMAIL_VERIFICATION,
           expiresAt: expiresAt,
         },
       });
 
-      await this.emailService.sendVerificationEmail(newUser.email, raw);
+      // * Send Email
+      await this.emailService.sendVerificationEmail(newUser.email, rawToken);
     } catch {
       throw new RequestTimeoutException('Failed to send verification email');
     }
@@ -153,21 +156,11 @@ export class AuthProvider {
     if (user.accountStatus === AccountStatus.INACTIVE) {
       // * Send Email verification to new user if he try to login without activating his account
       try {
-        // * Generate Email Verification Token
-        const accessTokenPayload: AccessTokenPayload = {
-          id: user.id,
-          role: user.role,
-        };
-        const emailVerificationToken =
-          this.customJwtService.generateEmailVerificationToken(
-            accessTokenPayload,
-          );
+        // * Generate Action Token
+        const { rawToken, tokenHash } = this.generateActionToken();
 
         // * Send email of verification to user
-        await this.emailService.sendVerificationEmail(
-          user.email,
-          emailVerificationToken,
-        );
+        await this.emailService.sendVerificationEmail(user.email, rawToken);
       } catch {
         throw new RequestTimeoutException('Failed to send verification email');
       }
@@ -331,23 +324,37 @@ export class AuthProvider {
   }
 
   // * Set Password Member
-  async setPasswordMember(data: SetPasswordMemberDto) {
-    // * Check the Role
-    if (accessTokenPayload.role !== Role.MEMBER) {
-      throw new BadRequestException();
+  async setPasswordMember(rawToken: string, data: SetPasswordMemberDto) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.memberActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { member: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
     }
 
-    // * Check if member is already exist before set password
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have member already in DB
     const member = await this.prisma.member.findUnique({
-      where: {
-        id: accessTokenPayload.id,
-      },
+      where: { id: token.member.id },
     });
     if (!member) {
       throw new NotFoundException('Member Not Found');
     }
 
-    // * Check if user has already password
+    // * Check if member has already password
     if (member.password) {
       throw new BadRequestException('Member has already password');
     }
@@ -356,13 +363,26 @@ export class AuthProvider {
     const salt = await bcrypt.genSalt(10);
     data.password = await bcrypt.hash(data.password, salt);
 
-    // * Set The Password
-    await this.prisma.member.update({
-      where: { id: accessTokenPayload.id },
-      data: {
-        password: data.password,
-      },
-    });
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Set The Password
+      this.prisma.member.update({
+        where: { id: member.id },
+        data: {
+          password: data.password,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.memberActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
   }
 
   // * Refresh
@@ -475,32 +495,67 @@ export class AuthProvider {
   }
 
   // * Activate user account
-  async activateAccount() {
+  async activateAccount(rawToken: string) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.userActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { user: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
     // * Check if we have user already in DB
-    const id = accessTokenPayload.id;
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id: token.user.id },
     });
     if (!user) {
       throw new NotFoundException('User Not Found');
     }
 
     // * Get Domain
-    const domain = this.config.getOrThrow<string>('FRONTEND_URL');
+    // const domain = this.config.getOrThrow<string>('FRONTEND_URL');
 
     // * Check if user already active his account
     if (user.accountStatus === AccountStatus.ACTIVE) {
-      return accountAlreadyActivatedTemplate(domain);
+      // return accountAlreadyActivatedTemplate(domain);
+      throw new BadRequestException('Account Already Activated');
     }
 
-    await this.prisma.user.update({
-      where: { id },
-      data: {
-        accountStatus: AccountStatus.ACTIVE,
-      },
-    });
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Make the account active
+      this.prisma.user.update({
+        where: { id: token.user.id },
+        data: {
+          accountStatus: AccountStatus.ACTIVE,
+        },
+      }),
 
-    return accountActivatedTemplate(domain);
+      // * Make this token used
+      this.prisma.userActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
+
+    // return accountActivatedTemplate(domain);
   }
 
   // * Forgot password
@@ -515,29 +570,58 @@ export class AuthProvider {
 
     // * Send Email of reset password to user
     try {
-      // * Generate JWT
-      const accessTokenPayload: AccessTokenPayload = {
-        id: user.id,
-        role: user.role,
-      };
-      const resetPasswordToken =
-        this.customJwtService.generateResetPasswordToken(accessTokenPayload);
+      // * Generate Token
+      const { rawToken, tokenHash } = this.generateActionToken();
+
+      // * Calc the expir
+      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.userActionToken.create({
+        data: {
+          user: { connect: { id: user.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.RESET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
 
       // * Send email
-      await this.emailService.sendResetPasswordEmail(email, resetPasswordToken);
+      await this.emailService.sendResetPasswordEmail(email, rawToken);
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
   }
 
   // * Password reset
-  async resetPassword(password: string) {
-    // * Check if we have user already in DB
-    const id = accessTokenPayload.id;
+  async resetPassword(rawToken: string, password: string) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
-    // * Check if user already exist
+    const token = await this.prisma.userActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { user: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have user already in DB
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id: token.user.id },
     });
     if (!user) {
       throw new NotFoundException('User Not Found');
@@ -547,13 +631,26 @@ export class AuthProvider {
     const salt = await bcrypt.genSalt(10);
     const newPassword = await bcrypt.hash(password, salt);
 
-    // * Save new password
-    await this.prisma.user.update({
-      where: { id },
-      data: {
-        password: newPassword,
-      },
-    });
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Save new password
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: newPassword,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.userActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
   }
 
   // ! Private
@@ -570,8 +667,8 @@ export class AuthProvider {
 
   // * Generate Action Token
   generateActionToken() {
-    const raw = randomBytes(32).toString('hex'); // * sent to user
-    const hash = createHash('sha256').update(raw).digest('hex'); // * stored in DB
-    return { raw, hash };
+    const rawToken = randomBytes(32).toString('hex'); // * sent to user
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
+    return { rawToken, tokenHash };
   }
 }

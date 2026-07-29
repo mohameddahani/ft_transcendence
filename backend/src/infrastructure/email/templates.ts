@@ -207,65 +207,65 @@ function detailedEmailShell(opts: {
 // ============================================================
 // Shell #2 — simple status card, used by activated / already-activated
 // ============================================================
-function statusEmailShell(opts: {
-  title: string;
-  topBarGradient: string;
-  icon: string;
-  headline: string;
-  text: string;
-  buttonHref: string;
-  buttonLabel: string;
-}): string {
-  const {
-    title,
-    topBarGradient,
-    icon,
-    headline,
-    text,
-    buttonHref,
-    buttonLabel,
-  } = opts;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>${title}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#060608;font-family:${FONT_DISPLAY};">
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-    <tr>
-      <td align="center" style="padding:80px 20px;">
-        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:520px;background:#0d0d10;border:1px solid #1e1e26;border-radius:20px;overflow:hidden;">
-          <tr><td style="height:3px;background:${topBarGradient};"></td></tr>
-          <tr>
-            <td align="center" style="padding:50px 20px 20px;">
-              <div style="width:80px;height:80px;border-radius:18px;background:linear-gradient(145deg,#1a1a28,#141420);border:1px solid #2a2a3d;display:flex;align-items:center;justify-content:center;font-size:34px;">${icon}</div>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding:10px 40px;">
-              <h1 style="margin:0;font-size:28px;color:#f0eeff;letter-spacing:-0.5px;">${headline}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding:10px 50px 30px;">
-              <p style="margin:0;color:#8a8aa3;font-size:15px;line-height:1.6;">${text}</p>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding-bottom:50px;">
-              <a href="${buttonHref}" style="display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#7c5cfc,#5b3ff8);color:#fff;text-decoration:none;font-weight:600;font-size:15px;">${buttonLabel}</a>
-            </td>
-          </tr>
-        </table>
-        <p style="margin-top:20px;font-size:12px;color:#2e2e40;">© ${new Date().getFullYear()} ft_transcendence</p>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-}
+// function statusEmailShell(opts: {
+//   title: string;
+//   topBarGradient: string;
+//   icon: string;
+//   headline: string;
+//   text: string;
+//   buttonHref: string;
+//   buttonLabel: string;
+// }): string {
+//   const {
+//     title,
+//     topBarGradient,
+//     icon,
+//     headline,
+//     text,
+//     buttonHref,
+//     buttonLabel,
+//   } = opts;
+//   return `<!DOCTYPE html>
+// <html lang="en">
+// <head>
+// <meta charset="UTF-8" />
+// <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+// <title>${title}</title>
+// </head>
+// <body style="margin:0;padding:0;background-color:#060608;font-family:${FONT_DISPLAY};">
+//   <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+//     <tr>
+//       <td align="center" style="padding:80px 20px;">
+//         <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:520px;background:#0d0d10;border:1px solid #1e1e26;border-radius:20px;overflow:hidden;">
+//           <tr><td style="height:3px;background:${topBarGradient};"></td></tr>
+//           <tr>
+//             <td align="center" style="padding:50px 20px 20px;">
+//               <div style="width:80px;height:80px;border-radius:18px;background:linear-gradient(145deg,#1a1a28,#141420);border:1px solid #2a2a3d;display:flex;align-items:center;justify-content:center;font-size:34px;">${icon}</div>
+//             </td>
+//           </tr>
+//           <tr>
+//             <td align="center" style="padding:10px 40px;">
+//               <h1 style="margin:0;font-size:28px;color:#f0eeff;letter-spacing:-0.5px;">${headline}</h1>
+//             </td>
+//           </tr>
+//           <tr>
+//             <td align="center" style="padding:10px 50px 30px;">
+//               <p style="margin:0;color:#8a8aa3;font-size:15px;line-height:1.6;">${text}</p>
+//             </td>
+//           </tr>
+//           <tr>
+//             <td align="center" style="padding-bottom:50px;">
+//               <a href="${buttonHref}" style="display:inline-block;padding:14px 36px;border-radius:12px;background:linear-gradient(135deg,#7c5cfc,#5b3ff8);color:#fff;text-decoration:none;font-weight:600;font-size:15px;">${buttonLabel}</a>
+//             </td>
+//           </tr>
+//         </table>
+//         <p style="margin-top:20px;font-size:12px;color:#2e2e40;">© ${new Date().getFullYear()} ft_transcendence</p>
+//       </td>
+//     </tr>
+//   </table>
+// </body>
+// </html>`;
+// }
 
 // ============================================================
 // Templates
@@ -340,26 +340,26 @@ export function setPasswordEmailTemplate(
   });
 }
 
-export function accountActivatedTemplate(domain: string): string {
-  return statusEmailShell({
-    title: 'Account Activated',
-    topBarGradient: 'linear-gradient(90deg,#7c5cfc,#22c55e,#7c5cfc)',
-    icon: '🎉',
-    headline: 'Account Activated',
-    text: `Your account has been successfully verified. You can now access all features of <b style="color:#7c5cfc;">ft_transcendence</b>.`,
-    buttonHref: `${domain}/login`,
-    buttonLabel: 'Go to Login',
-  });
-}
+// export function accountActivatedTemplate(domain: string): string {
+//   return statusEmailShell({
+//     title: 'Account Activated',
+//     topBarGradient: 'linear-gradient(90deg,#7c5cfc,#22c55e,#7c5cfc)',
+//     icon: '🎉',
+//     headline: 'Account Activated',
+//     text: `Your account has been successfully verified. You can now access all features of <b style="color:#7c5cfc;">ft_transcendence</b>.`,
+//     buttonHref: `${domain}/login`,
+//     buttonLabel: 'Go to Login',
+//   });
+// }
 
-export function accountAlreadyActivatedTemplate(domain: string): string {
-  return statusEmailShell({
-    title: 'Account Already Activated',
-    topBarGradient: 'linear-gradient(90deg,#f59e0b,#ef4444,#f59e0b)',
-    icon: '⚠️',
-    headline: 'Account Already Activated',
-    text: `Your account is already active. You can log in and start using <b style="color:#7c5cfc;">ft_transcendence</b> without any further steps.`,
-    buttonHref: `${domain}/login`,
-    buttonLabel: 'Go to Login',
-  });
-}
+// export function accountAlreadyActivatedTemplate(domain: string): string {
+//   return statusEmailShell({
+//     title: 'Account Already Activated',
+//     topBarGradient: 'linear-gradient(90deg,#f59e0b,#ef4444,#f59e0b)',
+//     icon: '⚠️',
+//     headline: 'Account Already Activated',
+//     text: `Your account is already active. You can log in and start using <b style="color:#7c5cfc;">ft_transcendence</b> without any further steps.`,
+//     buttonHref: `${domain}/login`,
+//     buttonLabel: 'Go to Login',
+//   });
+// }

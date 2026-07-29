@@ -12,14 +12,17 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  ActionTokenType,
   MemberStatus,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 import { EmailService } from '@/infrastructure/email/email.service';
-import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CustomJwtService } from '../auth/jwt/jwt.service';
+import { createHash, randomBytes } from 'node:crypto';
+import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
 
 @Injectable()
 export class MembersService {
@@ -27,6 +30,7 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly customJwtService: CustomJwtService,
+    private readonly config: ConfigService,
   ) {}
 
   // * Add Member by Admin
@@ -146,19 +150,30 @@ export class MembersService {
 
     // * Send Email of Set password to member
     try {
-      // * Generate Email Password Set Token
-      const accessTokenPayload: AccessTokenPayload = {
-        id: member.id,
-        role: member.role,
-      };
-      const emailSetPasswordToken =
-        this.customJwtService.generateSetPasswordToken(accessTokenPayload);
+      // * Generate Action Token
+      const { rawToken, tokenHash } = this.generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.memberActionToken.create({
+        data: {
+          member: { connect: { id: member.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
 
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordEmail(
         member.userName,
         member.email,
-        emailSetPasswordToken,
+        rawToken,
       );
     } catch {
       throw new RequestTimeoutException(
@@ -487,5 +502,12 @@ export class MembersService {
     }
 
     return { duration, membershipPlan };
+  }
+
+  // * Generate Action Token
+  generateActionToken() {
+    const rawToken = randomBytes(32).toString('hex'); // * sent to user
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
+    return { rawToken, tokenHash };
   }
 }

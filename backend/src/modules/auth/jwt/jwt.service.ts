@@ -43,49 +43,4 @@ export class CustomJwtService {
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });
   }
-
-  // * Generate Email Verification Token
-  generateEmailVerificationToken(accessTokenPayload: AccessTokenPayload) {
-    // * Get Secret key and expiresIn
-    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.role,
-      JwtTokenType.EMAIL_VERIFICATION,
-    );
-
-    // * Generate The Token
-    return this.jwtService.sign(accessTokenPayload, {
-      secret,
-      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
-    });
-  }
-
-  // * Generate Reset Password Token
-  generateResetPasswordToken(accessTokenPayload: AccessTokenPayload) {
-    // * Get Secret key and expiresIn
-    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.role,
-      JwtTokenType.RESET_PASSWORD,
-    );
-
-    // * Generate The Token
-    return this.jwtService.sign(accessTokenPayload, {
-      secret,
-      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
-    });
-  }
-
-  // * Generate Password Set Token
-  generateSetPasswordToken(accessTokenPayload: AccessTokenPayload) {
-    // * Get Secret key and expiresIn
-    const { secret, expiresIn } = this.jwtProvider.getJwtConfig(
-      accessTokenPayload.role,
-      JwtTokenType.SET_PASSWORD,
-    );
-
-    // * Generate The Token
-    return this.jwtService.sign(accessTokenPayload, {
-      secret,
-      expiresIn: expiresIn as JwtSignOptions['expiresIn'],
-    });
-  }
 }

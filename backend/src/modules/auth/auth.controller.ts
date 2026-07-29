@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -90,8 +91,11 @@ export class AuthController {
   // * Set Password (Member)
   @Post('members/set-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  setPasswordMember(@Body() body: SetPasswordMemberDto) {
-    return this.authService.setPasswordMember(body);
+  setPasswordMember(
+    @Query('token') rawToken: string,
+    @Body() body: SetPasswordMemberDto,
+  ) {
+    return this.authService.setPasswordMember(rawToken, body);
   }
 
   // * Refresh Admin
@@ -142,8 +146,8 @@ export class AuthController {
   // * Activate user account
   @Post('email-verification')
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount() {
-    return this.authService.activateAccount();
+  activateAccount(@Query('token') rawToken: string) {
+    return this.authService.activateAccount(rawToken);
   }
 
   // * Forgot password
@@ -157,7 +161,10 @@ export class AuthController {
   // * Password reset
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  resetPassword(@Body() password: ResetPasswordUserDto) {
-    return this.authService.resetPassword(password.password);
+  resetPassword(
+    @Query('token') rawToken: string,
+    @Body() password: ResetPasswordUserDto,
+  ) {
+    return this.authService.resetPassword(rawToken, password.password);
   }
 }

@@ -27,8 +27,8 @@ export class AuthService {
   }
 
   // * Set Password Member
-  setPasswordMember(data: SetPasswordMemberDto) {
-    return this.authProvider.setPasswordMember(data);
+  setPasswordMember(rawToken: string, data: SetPasswordMemberDto) {
+    return this.authProvider.setPasswordMember(rawToken, data);
   }
 
   // * Refresh
@@ -45,8 +45,8 @@ export class AuthService {
   }
 
   // * Activate user account
-  activateAccount() {
-    return this.authProvider.activateAccount();
+  activateAccount(rawToken: string) {
+    return this.authProvider.activateAccount(rawToken);
   }
 
   // * Forgot password
@@ -55,7 +55,7 @@ export class AuthService {
   }
 
   // * Password reset
-  resetPassword(password: string) {
-    return this.authProvider.resetPassword(password);
+  resetPassword(rawToken: string, password: string) {
+    return this.authProvider.resetPassword(rawToken, password);
   }
 }
