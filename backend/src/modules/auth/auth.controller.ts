@@ -12,7 +12,7 @@ import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { EmailVerificationAuthGuard } from './guards/email-verification-auth.guard';
+import { EmailVerificationTokenAuthGuard } from './guards/email-verification-token-auth.guard';
 import type {
   AccessTokenPayload,
   RefreshTokenPayload,
@@ -20,7 +20,7 @@ import type {
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
-import { ResetPasswordAuthGuard } from './guards/reset-password-auth.guard';
+import { AdminResetPasswordAuthGuard } from './guards/admin-reset-password-auth.guard';
 import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
@@ -30,6 +30,8 @@ import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guar
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
+import { SetPasswordMemberDto } from './dto/set-password-member.dto';
+import { MemberSetPasswordTokenAuthGuard } from './guards/member-set-password-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -92,6 +94,17 @@ export class AuthController {
     return { member, accessToken };
   }
 
+  // * Set Password (Member)
+  @Post('members/set-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(MemberSetPasswordTokenAuthGuard)
+  setPasswordMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: SetPasswordMemberDto,
+  ) {
+    return this.authService.setPasswordMember(accessTokenPayload, body);
+  }
+
   // * Refresh Admin
   @Post('refresh/admin')
   @HttpCode(HttpStatus.OK) // * set default status code
@@ -139,7 +152,7 @@ export class AuthController {
 
   // * Activate user account
   @Post('email-verification')
-  @UseGuards(EmailVerificationAuthGuard)
+  @UseGuards(EmailVerificationTokenAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
   activateAccount(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -158,7 +171,7 @@ export class AuthController {
   // * Password reset
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  @UseGuards(ResetPasswordAuthGuard)
+  @UseGuards(AdminResetPasswordAuthGuard)
   resetPassword(
     @Body() password: ResetPasswordUserDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,

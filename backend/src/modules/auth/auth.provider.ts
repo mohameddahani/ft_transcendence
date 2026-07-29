@@ -27,6 +27,7 @@ import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
 import { randomUUID } from 'node:crypto';
 import { LoginMemberDto } from './dto/login-member.dto';
+import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -317,6 +318,44 @@ export class AuthProvider {
     const { id, password, createdAt, updatedAt, ...safeMember } = member;
 
     return { member: safeMember, accessToken, refreshToken, refreshExpiresIn };
+  }
+
+  // * Set Password Member
+  async setPasswordMember(
+    accessTokenPayload: AccessTokenPayload,
+    data: SetPasswordMemberDto,
+  ) {
+    // * Check the Role
+    if (accessTokenPayload.role !== Role.MEMBER) {
+      throw new BadRequestException();
+    }
+
+    // * Check if member is already exist before set password
+    const member = await this.prisma.member.findUnique({
+      where: {
+        id: accessTokenPayload.id,
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+
+    // * Check if user has already password
+    if (member.password) {
+      throw new BadRequestException('Member has already password');
+    }
+
+    // * Hash the password
+    const salt = await bcrypt.genSalt(10);
+    data.password = await bcrypt.hash(data.password, salt);
+
+    // * Set The Password
+    await this.prisma.member.update({
+      where: { id: accessTokenPayload.id },
+      data: {
+        password: data.password,
+      },
+    });
   }
 
   // * Refresh

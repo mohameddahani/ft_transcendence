@@ -5,9 +5,9 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 @Injectable()
-export class EmailVerificationStrategy extends PassportStrategy(
+export class EmailVerificationTokenStrategy extends PassportStrategy(
   Strategy,
-  'email-verification',
+  'email-verification-token',
 ) {
   constructor(private readonly config: ConfigService) {
     super({

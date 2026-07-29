@@ -8,6 +8,7 @@ import {
 } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
 import { LoginMemberDto } from './dto/login-member.dto';
+import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,14 @@ export class AuthService {
   // * Login Member
   loginMember(request: Request, data: LoginMemberDto) {
     return this.authProvider.loginMember(request, data);
+  }
+
+  // * Set Password Member
+  setPasswordMember(
+    accessTokenPayload: AccessTokenPayload,
+    data: SetPasswordMemberDto,
+  ) {
+    return this.authProvider.setPasswordMember(accessTokenPayload, data);
   }
 
   // * Refresh

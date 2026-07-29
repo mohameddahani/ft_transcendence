@@ -113,10 +113,10 @@ export class JwtProvider {
       } else if (type === JwtTokenType.SET_PASSWORD) {
         return {
           secret: this.config.getOrThrow<string>(
-            'JWT_MEMBER_PASSWORD_SET_SECRET',
+            'JWT_MEMBER_SET_PASSWORD_SECRET',
           ),
           expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_PASSWORD_SET_EXPIRES_IN',
+            'JWT_MEMBER_SET_PASSWORD_EXPIRES_IN',
           ),
         };
       }
