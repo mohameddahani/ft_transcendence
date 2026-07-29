@@ -110,33 +110,19 @@ function fallbackLinkBlock(link: string, linkColor: string): string {
     </table>`;
 }
 
-// A button that submits a POST form — use for anything that
-// mutates state on click (verify, reset, set password).
-function ctaFormButton(
-  accent: Accent,
-  action: string,
-  label: string,
-  hiddenFields: Record<string, string> = {},
-): string {
-  const hidden = Object.entries(hiddenFields)
-    .map(
-      ([name, value]) =>
-        `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`,
-    )
-    .join('\n');
+// A plain <a href> CTA button — every email action is a navigation
+// to a frontend route, never a state-changing form submission.
+function ctaButton(accent: Accent, href: string, label: string): string {
   return `
-    <form action="${action}" method="POST" style="margin:0;">
-      ${hidden}
-      <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
-        <tr>
-          <td style="background:${accent.button};border-radius:12px;padding:1px;">
-            <button type="submit" style="display:block;width:100%;background:${accent.buttonBright};border:none;border-radius:11px;padding:16px 44px;font-family:${FONT_SANS};font-size:15px;font-weight:600;color:#ffffff;cursor:pointer;">
-              ${label}
-            </button>
-          </td>
-        </tr>
-      </table>
-    </form>`;
+    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+      <tr>
+        <td style="background:${accent.button};border-radius:12px;padding:1px;">
+          <a href="${href}" style="display:block;background:${accent.buttonBright};border-radius:11px;padding:16px 44px;font-family:${FONT_SANS};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;letter-spacing:0.01em;white-space:nowrap;">
+            ${label}
+          </a>
+        </td>
+      </tr>
+    </table>`;
 }
 
 // ============================================================
@@ -149,7 +135,7 @@ function detailedEmailShell(opts: {
   eyebrow: string;
   headline: string;
   subtext: string;
-  body: string; // CTA / form section, injected as-is
+  body: string; // CTA section, injected as-is
   footnote: string;
 }): string {
   const { title, accent, icon, eyebrow, headline, subtext, body, footnote } =
@@ -288,7 +274,7 @@ export function verificationEmailTemplate(link: string): string {
   const accent = ACCENTS.purple;
   const body = `
     ${expiryBadge(accent, '⏱ &nbsp;This link expires in 24 hours')}
-    ${ctaFormButton(accent, link, 'Activate My Account →')}
+    ${ctaButton(accent, link, 'Activate My Account →')}
     ${fallbackLinkBlock(link, '#5a4af0')}`;
   return detailedEmailShell({
     title: 'Activate your account — ft_transcendence',
@@ -299,7 +285,7 @@ export function verificationEmailTemplate(link: string): string {
     subtext:
       'One click away. Verify your email address to activate your ft_transcendence account and get started.',
     body,
-    footnote: `If you didn't register for ft_transcendence, your account will not be activated.<br/>You can safely disregard this email.`,
+    footnote: `If you did not create this account, you can safely ignore this email.`,
   });
 }
 
@@ -307,16 +293,15 @@ export function resetPasswordEmailTemplate(link: string): string {
   const accent = ACCENTS.amber;
   const body = `
     ${expiryBadge(accent, '⏱ &nbsp;This link expires in 15 minutes · Single use only')}
-    ${ctaFormButton(accent, link, 'Reset My Password')}
+    ${ctaButton(accent, link, 'Reset My Password')}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
       <tr>
         <td style="background-color:#0f0c07;border:1px solid #1e1a0a;border-left:3px solid #d97316;border-radius:0 10px 10px 0;padding:16px 20px;">
           <p style="margin:0 0 4px;font-family:${FONT_SANS};font-size:12px;font-weight:600;color:#d97316;letter-spacing:0.04em;">Didn't request this?</p>
-          <p style="margin:0;font-family:${FONT_SANS};font-size:12px;line-height:1.6;color:#4a4030;">Your password has not been changed and your account is secure. You can safely ignore this email. If you're concerned about unauthorized access, contact support.</p>
+          <p style="margin:0;font-family:${FONT_SANS};font-size:12px;line-height:1.6;color:#4a4030;">If you did not request a password reset, your password will remain unchanged. If you're concerned about unauthorized access, contact support.</p>
         </td>
       </tr>
-    </table>
-    ${fallbackLinkBlock(link, '#d97316')}`;
+    </table>`;
   return detailedEmailShell({
     title: 'Reset your password — ft_transcendence',
     accent,
@@ -324,7 +309,7 @@ export function resetPasswordEmailTemplate(link: string): string {
     eyebrow: 'Security Request',
     headline: 'Reset your password',
     subtext:
-      'We received a request to reset the password for your ft_transcendence account. Click the button below to set a new one.',
+      'We received a request to reset the password for your ft_transcendence account. Click the button below to choose a new one.',
     body,
     footnote:
       'For your security, this link is valid for 15 minutes and can only be used once.',
@@ -337,58 +322,21 @@ export function setPasswordEmailTemplate(
 ): string {
   const accent = ACCENTS.purple;
   const safeUsername = escapeHtml(username);
-  const fieldStyle = `box-sizing:border-box;width:100%;background-color:#0a0a0f;border:1px solid #2a2a3d;border-radius:10px;padding:13px 16px;font-family:${FONT_SANS};font-size:14px;color:#f0eeff;outline:none;`;
-  const labelStyle = `display:block;margin:0 0 8px;font-family:${FONT_SANS};font-size:11px;font-weight:600;color:#7a7a96;letter-spacing:0.08em;text-transform:uppercase;`;
 
   const body = `
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto 28px;">
-      <tr>
-        <td style="background-color:${accent.badgeBg};border:1px solid ${accent.badgeBorder};border-radius:8px;padding:8px 16px;">
-          <span style="font-family:${FONT_SANS};font-size:12px;color:#a89bfa;font-weight:500;letter-spacing:0.02em;">👤 &nbsp;Signing in as <b style="color:#f0eeff;">${safeUsername}</b></span>
-        </td>
-      </tr>
-    </table>
-    <form action="${link}" method="POST" style="margin:0;">
-      <input type="hidden" name="username" value="${safeUsername}" />
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
-        <tr><td>
-          <label style="${labelStyle}">Password</label>
-          <input type="password" name="password" required minlength="8" placeholder="Enter a password" style="${fieldStyle}" />
-        </td></tr>
-      </table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
-        <tr><td>
-          <label style="${labelStyle}">Confirm Password</label>
-          <input type="password" name="confirmPassword" required minlength="8" placeholder="Re-enter your password" style="${fieldStyle}" />
-        </td></tr>
-      </table>
-      <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
-        <tr>
-          <td style="background:${accent.button};border-radius:12px;padding:1px;">
-            <button type="submit" style="display:block;width:100%;background:${accent.buttonBright};border:none;border-radius:11px;padding:16px 44px;font-family:${FONT_SANS};font-size:15px;font-weight:600;color:#ffffff;cursor:pointer;">
-              Set Password &amp; Activate →
-            </button>
-          </td>
-        </tr>
-      </table>
-    </form>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
-      <tr>
-        <td style="background-color:#0a0a0f;border:1px solid #18181f;border-radius:10px;padding:16px 20px;text-align:center;">
-          <p style="margin:0;font-family:${FONT_SANS};font-size:12px;color:#4a4a66;">⏱ &nbsp;This link expires in 24 hours</p>
-        </td>
-      </tr>
-    </table>`;
+    ${expiryBadge(accent, `👤 &nbsp;Account: <b style="color:#f0eeff;">${safeUsername}</b>`)}
+    ${ctaButton(accent, link, 'Set Password →')}
+    ${fallbackLinkBlock(link, '#5a4af0')}`;
 
   return detailedEmailShell({
     title: 'Set your password — ft_transcendence',
     accent,
     icon: '🔑',
     eyebrow: 'Welcome to the team',
-    headline: 'Set your password',
-    subtext: `An account was created for you on <b style="color:#c9bcff;">ft_transcendence</b>. Choose a password below to activate access and log in.`,
+    headline: `Welcome, ${safeUsername}`,
+    subtext: `An account was created for you on <b style="color:#c9bcff;">ft_transcendence</b>. Set your password to activate your account.`,
     body,
-    footnote: `If you weren't expecting this invite, you can safely ignore this email.`,
+    footnote: `If you were not expecting this invitation, you can safely ignore this email.`,
   });
 }
 
@@ -399,7 +347,7 @@ export function accountActivatedTemplate(domain: string): string {
     icon: '🎉',
     headline: 'Account Activated',
     text: `Your account has been successfully verified. You can now access all features of <b style="color:#7c5cfc;">ft_transcendence</b>.`,
-    buttonHref: `${domain}/api/login`,
+    buttonHref: `${domain}/login`,
     buttonLabel: 'Go to Login',
   });
 }
@@ -411,7 +359,7 @@ export function accountAlreadyActivatedTemplate(domain: string): string {
     icon: '⚠️',
     headline: 'Account Already Activated',
     text: `Your account is already active. You can log in and start using <b style="color:#7c5cfc;">ft_transcendence</b> without any further steps.`,
-    buttonHref: `${domain}/api/login`,
+    buttonHref: `${domain}/login`,
     buttonLabel: 'Go to Login',
   });
 }

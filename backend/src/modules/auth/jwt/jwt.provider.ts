@@ -24,24 +24,6 @@ export class JwtProvider {
             'JWT_OWNER_REFRESH_EXPIRES_IN',
           ),
         };
-      } else if (type === JwtTokenType.EMAIL_VERIFICATION) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_OWNER_EMAIL_VERIFICATION_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_OWNER_EMAIL_VERIFICATION_EXPIRES_IN',
-          ),
-        };
-      } else if (type === JwtTokenType.RESET_PASSWORD) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_OWNER_RESET_PASSWORD_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_OWNER_RESET_PASSWORD_EXPIRES_IN',
-          ),
-        };
       }
     } else if (role === Role.ADMIN) {
       if (type === JwtTokenType.ACCESS) {
@@ -58,24 +40,6 @@ export class JwtProvider {
             'JWT_ADMIN_REFRESH_EXPIRES_IN',
           ),
         };
-      } else if (type === JwtTokenType.EMAIL_VERIFICATION) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_ADMIN_EMAIL_VERIFICATION_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_ADMIN_EMAIL_VERIFICATION_EXPIRES_IN',
-          ),
-        };
-      } else if (type === JwtTokenType.RESET_PASSWORD) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_ADMIN_RESET_PASSWORD_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_ADMIN_RESET_PASSWORD_EXPIRES_IN',
-          ),
-        };
       }
     } else if (role === Role.MEMBER) {
       if (type === JwtTokenType.ACCESS) {
@@ -90,33 +54,6 @@ export class JwtProvider {
           secret: this.config.getOrThrow<string>('JWT_MEMBER_REFRESH_SECRET'),
           expiresIn: this.config.getOrThrow<string>(
             'JWT_MEMBER_REFRESH_EXPIRES_IN',
-          ),
-        };
-      } else if (type === JwtTokenType.EMAIL_VERIFICATION) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_MEMBER_EMAIL_VERIFICATION_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_EMAIL_VERIFICATION_EXPIRES_IN',
-          ),
-        };
-      } else if (type === JwtTokenType.RESET_PASSWORD) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_MEMBER_RESET_PASSWORD_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_RESET_PASSWORD_EXPIRES_IN',
-          ),
-        };
-      } else if (type === JwtTokenType.SET_PASSWORD) {
-        return {
-          secret: this.config.getOrThrow<string>(
-            'JWT_MEMBER_SET_PASSWORD_SECRET',
-          ),
-          expiresIn: this.config.getOrThrow<string>(
-            'JWT_MEMBER_SET_PASSWORD_EXPIRES_IN',
           ),
         };
       }

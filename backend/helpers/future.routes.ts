@@ -26,6 +26,8 @@
 // * GET all membership / One membership
 // ! GET all notification / One notification
 
+// ! Make expire time get from .env
+
 // ! Login of member
 // ! Resend the set password email of member
 // ! change password of member

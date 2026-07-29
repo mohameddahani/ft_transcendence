@@ -24,7 +24,7 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string) {
-    const link = `${this.frontendUrl}/api/auth/email-verification?token=${token}`;
+    const link = `${this.frontendUrl}/auth/email-verification?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -38,7 +38,7 @@ export class EmailService {
   }
 
   async sendResetPasswordEmail(email: string, token: string) {
-    const link = `${this.frontendUrl}/api/auth/reset-password?token=${token}`;
+    const link = `${this.frontendUrl}/auth/reset-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -52,7 +52,7 @@ export class EmailService {
   }
 
   async sendSetPasswordEmail(username: string, email: string, token: string) {
-    const link = `${this.frontendUrl}/api/auth/members/set-password?token=${token}`;
+    const link = `${this.frontendUrl}/auth/members/set-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',

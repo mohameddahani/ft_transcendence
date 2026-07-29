@@ -13,7 +13,12 @@ import {
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
-import { AccountStatus, MemberStatus, Role } from '@/generated/prisma/enums';
+import {
+  AccountStatus,
+  ActionTokenType,
+  MemberStatus,
+  Role,
+} from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
@@ -25,7 +30,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 
@@ -101,19 +106,24 @@ export class AuthProvider {
     });
 
     // * Generate Email Verification Token
-    const accessTokenPayload: AccessTokenPayload = {
-      id: newUser.id,
-      role: newUser.role,
-    };
-    const emailVerificationToken =
-      this.customJwtService.generateEmailVerificationToken(accessTokenPayload);
-
-    // * Send Email verification to new user
     try {
-      await this.emailService.sendVerificationEmail(
-        newUser.email,
-        emailVerificationToken,
-      );
+      // * Generate Action Token
+      const { raw, hash } = this.generateActionToken();
+
+      // * Calc the expir
+      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+      expiresAt.setHours(expiresAt.getHours() + 24); // 19 + 30 => July 19th
+
+      await this.prisma.userActionToken.create({
+        data: {
+          userId: newUser.id,
+          tokenHash: hash,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          expiresAt: expiresAt,
+        },
+      });
+
+      await this.emailService.sendVerificationEmail(newUser.email, raw);
     } catch {
       throw new RequestTimeoutException('Failed to send verification email');
     }
@@ -321,10 +331,7 @@ export class AuthProvider {
   }
 
   // * Set Password Member
-  async setPasswordMember(
-    accessTokenPayload: AccessTokenPayload,
-    data: SetPasswordMemberDto,
-  ) {
+  async setPasswordMember(data: SetPasswordMemberDto) {
     // * Check the Role
     if (accessTokenPayload.role !== Role.MEMBER) {
       throw new BadRequestException();
@@ -468,7 +475,7 @@ export class AuthProvider {
   }
 
   // * Activate user account
-  async activateAccount(accessTokenPayload: AccessTokenPayload) {
+  async activateAccount() {
     // * Check if we have user already in DB
     const id = accessTokenPayload.id;
     const user = await this.prisma.user.findUnique({
@@ -524,10 +531,7 @@ export class AuthProvider {
   }
 
   // * Password reset
-  async resetPassword(
-    accessTokenPayload: AccessTokenPayload,
-    password: string,
-  ) {
+  async resetPassword(password: string) {
     // * Check if we have user already in DB
     const id = accessTokenPayload.id;
 
@@ -562,5 +566,12 @@ export class AuthProvider {
     const result = parser.getResult();
 
     return `${result.device.vendor ?? 'Unknown'} ${result.device.model ?? 'Desktop'}`;
+  }
+
+  // * Generate Action Token
+  generateActionToken() {
+    const raw = randomBytes(32).toString('hex'); // * sent to user
+    const hash = createHash('sha256').update(raw).digest('hex'); // * stored in DB
+    return { raw, hash };
   }
 }

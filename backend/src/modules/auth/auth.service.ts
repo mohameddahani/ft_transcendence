@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { AuthProvider } from './auth.provider';
-import {
-  AccessTokenPayload,
-  RefreshTokenPayload,
-} from '@/core/types/jwt-payload.type';
+import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
@@ -30,11 +27,8 @@ export class AuthService {
   }
 
   // * Set Password Member
-  setPasswordMember(
-    accessTokenPayload: AccessTokenPayload,
-    data: SetPasswordMemberDto,
-  ) {
-    return this.authProvider.setPasswordMember(accessTokenPayload, data);
+  setPasswordMember(data: SetPasswordMemberDto) {
+    return this.authProvider.setPasswordMember(data);
   }
 
   // * Refresh
@@ -51,8 +45,8 @@ export class AuthService {
   }
 
   // * Activate user account
-  activateAccount(accessTokenPayload: AccessTokenPayload) {
-    return this.authProvider.activateAccount(accessTokenPayload);
+  activateAccount() {
+    return this.authProvider.activateAccount();
   }
 
   // * Forgot password
@@ -61,7 +55,7 @@ export class AuthService {
   }
 
   // * Password reset
-  resetPassword(accessTokenPayload: AccessTokenPayload, password: string) {
-    return this.authProvider.resetPassword(accessTokenPayload, password);
+  resetPassword(password: string) {
+    return this.authProvider.resetPassword(password);
   }
 }

@@ -69,6 +69,13 @@ enum NotificationType {
   CUSTOM
 }
 
+// * this enum had User Action Type
+enum ActionTokenType {
+  EMAIL_VERIFICATION
+  RESET_PASSWORD
+  SET_PASSWORD
+}
+
 // * Table of users
 model User {
   id                String        @id @default(uuid())
@@ -93,6 +100,7 @@ model User {
   membershipPlans   MembershipPlan[]
   payments          Payment[]
   userRefreshTokens UserRefreshToken[]
+  userActionTokens  UserActionToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,6 +195,7 @@ model Member {
   payments            Payment[]
   notifications       Notification[]
   memberRefreshTokens MemberRefreshToken[]
+  memberActionTokens  MemberActionToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -330,6 +339,38 @@ model MemberRefreshToken {
   ip        String?
   userAgent String?
   device    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// * Table of User Action Token
+model UserActionToken {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tokenHash String              @unique
+  type      ActionTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// * Table of Member Action Token
+model MemberActionToken {
+  id String @id @default(uuid())
+
+  memberId String
+  member   Member @relation(fields: [memberId], references: [id])
+
+  tokenHash String              @unique
+  type      ActionTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

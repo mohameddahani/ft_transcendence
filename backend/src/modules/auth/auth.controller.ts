@@ -12,15 +12,9 @@ import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { EmailVerificationTokenAuthGuard } from './guards/email-verification-token-auth.guard';
-import type {
-  AccessTokenPayload,
-  RefreshTokenPayload,
-} from '@/core/types/jwt-payload.type';
-import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
+import type { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
-import { AdminResetPasswordAuthGuard } from './guards/admin-reset-password-auth.guard';
 import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
@@ -31,7 +25,6 @@ import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.gu
 import { LoginMemberDto } from './dto/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
-import { MemberSetPasswordTokenAuthGuard } from './guards/member-set-password-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -97,12 +90,8 @@ export class AuthController {
   // * Set Password (Member)
   @Post('members/set-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(MemberSetPasswordTokenAuthGuard)
-  setPasswordMember(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: SetPasswordMemberDto,
-  ) {
-    return this.authService.setPasswordMember(accessTokenPayload, body);
+  setPasswordMember(@Body() body: SetPasswordMemberDto) {
+    return this.authService.setPasswordMember(body);
   }
 
   // * Refresh Admin
@@ -152,12 +141,9 @@ export class AuthController {
 
   // * Activate user account
   @Post('email-verification')
-  @UseGuards(EmailVerificationTokenAuthGuard)
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.authService.activateAccount(accessTokenPayload);
+  activateAccount() {
+    return this.authService.activateAccount();
   }
 
   // * Forgot password
@@ -171,14 +157,7 @@ export class AuthController {
   // * Password reset
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  @UseGuards(AdminResetPasswordAuthGuard)
-  resetPassword(
-    @Body() password: ResetPasswordUserDto,
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.authService.resetPassword(
-      accessTokenPayload,
-      password.password,
-    );
+  resetPassword(@Body() password: ResetPasswordUserDto) {
+    return this.authService.resetPassword(password.password);
   }
 }
