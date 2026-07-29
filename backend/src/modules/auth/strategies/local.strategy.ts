@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
 
