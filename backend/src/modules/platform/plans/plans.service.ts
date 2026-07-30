@@ -19,7 +19,7 @@ export class PlansService {
   // * Add Plan by Owner
   async addPlan(data: AddPlanDto) {
     // * Check if plan already exist
-    const existingPlan = await this.prisma.plan.findFirst({
+    const existingPlan = await this.prisma.plan.findUnique({
       where: {
         planName: data.planName,
       },
@@ -234,7 +234,7 @@ export class PlansService {
     planId: string,
   ) {
     // * Check if plan duration already exist
-    const existingPlanDuration = await this.prisma.planDuration.findFirst({
+    const existingPlanDuration = await this.prisma.planDuration.findUnique({
       where: {
         planId: planId,
         id: durationId,
