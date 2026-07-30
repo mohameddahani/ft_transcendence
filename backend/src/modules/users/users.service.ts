@@ -164,7 +164,7 @@ export class UsersService {
 
   // ! Private Attributes
   // * Get one user
-  async findOne(id: string) {
+  private async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: {
         id,

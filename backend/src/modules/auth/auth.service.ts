@@ -58,4 +58,14 @@ export class AuthService {
   resetPassword(rawToken: string, password: string) {
     return this.authProvider.resetPassword(rawToken, password);
   }
+
+  // * Forgot password (Member)
+  forgotPasswordMember(username: string) {
+    return this.authProvider.forgotPasswordMember(username);
+  }
+
+  // * Password reset (Member)
+  resetPasswordMember(rawToken: string, password: string) {
+    return this.authProvider.resetPasswordMember(rawToken, password);
+  }
 }

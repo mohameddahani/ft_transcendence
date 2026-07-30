@@ -654,9 +654,107 @@ export class AuthProvider {
     ]);
   }
 
+  // * Forgot password (Member)
+  async forgotPasswordMember(username: string) {
+    // * Check if member already exist by username
+    const member = await this.prisma.member.findUnique({
+      where: { userName: username },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+
+    // * Send Email of reset password to member
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = this.generateActionToken();
+
+      // * Calc the expir
+      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.memberActionToken.create({
+        data: {
+          member: { connect: { id: member.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.RESET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email
+      await this.emailService.sendResetPasswordMemberEmail(
+        member.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException('Failed to send reset password email');
+    }
+  }
+
+  // * Password reset (Member)
+  async resetPasswordMember(rawToken: string, password: string) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.memberActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { member: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have member already in DB
+    const member = await this.prisma.member.findUnique({
+      where: { id: token.member.id },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+
+    // * Hash new Password
+    const salt = await bcrypt.genSalt(10);
+    const newPassword = await bcrypt.hash(password, salt);
+
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Save new password
+      this.prisma.member.update({
+        where: { id: member.id },
+        data: {
+          password: newPassword,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.memberActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
+  }
+
   // ! Private
   // * Get Device by UA
-  getDevice(userAgent?: string): string | null {
+  private getDevice(userAgent?: string): string | null {
     if (!userAgent) return null;
 
     const parser = new UAParser(userAgent);
@@ -667,7 +765,7 @@ export class AuthProvider {
   }
 
   // * Generate Action Token
-  generateActionToken() {
+  private generateActionToken() {
     const rawToken = randomBytes(32).toString('hex'); // * sent to user
     const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
     return { rawToken, tokenHash };

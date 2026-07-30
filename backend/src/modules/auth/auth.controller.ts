@@ -14,7 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import type { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
-import { ForgotPasswordUserDto } from './dto/forgot-passworf-user.dto';
+import { ForgotPasswordUserDto } from './dto/forgot-password-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
 import type { Request, Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
@@ -26,10 +26,19 @@ import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.gu
 import { LoginMemberDto } from './dto/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
+import { ForgotPasswordMemberDto } from './dto/forgot-password-member.dto';
+import { ResetPasswordMemberDto } from './dto/reset-password-member.dto';
+import { QueryTokenDto } from './dto/query-token.dto';
 
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /* 
+  =========================
+  ! Admin / Owner Auth
+  =========================
+  */
 
   // * Register
   @Post('register')
@@ -63,40 +72,45 @@ export class AuthController {
     return { user, accessToken };
   }
 
-  // * Login Member
-  @Post('/members/login')
+  // * Logout
+  @Post('logout')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  async loginMember(
-    @Body() body: LoginMemberDto,
-    @Req() request: Request,
-    // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const { member, accessToken, refreshToken, refreshExpiresIn } =
-      await this.authService.loginMember(request, body);
-
-    // * Store the refresh token in a secure HttpOnly cookie
-    response.cookie('refresh_token', refreshToken, {
-      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
-      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
-      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
-      path: '/api/auth/refresh', // * Send only to the refresh endpoint
-      maxAge: ms(refreshExpiresIn), // * Expires after 30 days
-    });
-
-    return { member, accessToken };
+  @UseGuards(AdminAccessTokenAuthGuard)
+  logout() {
+    // return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
-  // * Set Password (Member)
-  @Post('members/set-password')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  setPasswordMember(
-    @Query('token') rawToken: string,
-    @Body() body: SetPasswordMemberDto,
-  ) {
-    return this.authService.setPasswordMember(rawToken, body);
+  // * Activate user account
+  @Post('email-verification')
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  activateAccount(@Query() rawToken: QueryTokenDto) {
+    return this.authService.activateAccount(rawToken.token);
   }
+
+  // * Forgot password
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  forgotPassword(@Body() Body: ForgotPasswordUserDto) {
+    return this.authService.forgotPassword(Body.email);
+  }
+
+  // * Password reset
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  resetPassword(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: ResetPasswordUserDto,
+  ) {
+    return this.authService.resetPassword(rawToken.token, body.password);
+  }
+
+  /* 
+  =========================
+  ! Admin / Owner / Member Refresh
+  =========================
+  */
 
   // * Refresh Admin
   @Post('refresh/admin')
@@ -134,37 +148,61 @@ export class AuthController {
     return this.authService.refreshMember(refreshToken, refreshTokenPayload);
   }
 
-  // * Logout
-  @Post('logout')
+  /* 
+  =========================
+  ! Member Auth
+  =========================
+  */
+  // * Login Member
+  @Post('/members/login')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(AdminAccessTokenAuthGuard)
-  logout() {
-    // return this.authService.refresh(refreshToken, refreshTokenPayload);
+  async loginMember(
+    @Body() body: LoginMemberDto,
+    @Req() request: Request,
+    // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { member, accessToken, refreshToken, refreshExpiresIn } =
+      await this.authService.loginMember(request, body);
+
+    // * Store the refresh token in a secure HttpOnly cookie
+    response.cookie('refresh_token', refreshToken, {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth/refresh', // * Send only to the refresh endpoint
+      maxAge: ms(refreshExpiresIn), // * Expires after 30 days
+    });
+
+    return { member, accessToken };
   }
 
-  // * Activate user account
-  @Post('email-verification')
-  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  activateAccount(@Query('token') rawToken: string) {
-    return this.authService.activateAccount(rawToken);
+  // * Set Password (Member)
+  @Post('members/set-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  setPasswordMember(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: SetPasswordMemberDto,
+  ) {
+    return this.authService.setPasswordMember(rawToken.token, body);
   }
 
-  // * Forgot password
-  @Post('forgot-password')
+  // * Forgot password (Member)
+  @Post('members/forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
-  forgotPassword(@Body() email: ForgotPasswordUserDto) {
-    return this.authService.forgotPassword(email.email);
+  forgotPasswordMember(@Body() body: ForgotPasswordMemberDto) {
+    return this.authService.forgotPasswordMember(body.userName);
   }
 
-  // * Password reset
-  @Post('reset-password')
+  // * Password reset (Member)
+  @Post('members/reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
-  resetPassword(
-    @Query('token') rawToken: string,
-    @Body() password: ResetPasswordUserDto,
+  resetPasswordMember(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: ResetPasswordMemberDto,
   ) {
-    return this.authService.resetPassword(rawToken, password.password);
+    return this.authService.resetPasswordMember(rawToken.token, body.password);
   }
 }

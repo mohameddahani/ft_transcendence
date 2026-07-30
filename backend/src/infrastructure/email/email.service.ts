@@ -51,6 +51,20 @@ export class EmailService {
     });
   }
 
+  async sendResetPasswordMemberEmail(email: string, token: string) {
+    const link = `${this.frontendUrl}/auth/members/reset-password?token=${token}`;
+
+    await this.resend.emails.send({
+      from: 'onboarding@resend.dev',
+
+      to: email,
+
+      subject: 'Reset your password',
+
+      html: resetPasswordEmailTemplate(link),
+    });
+  }
+
   async sendSetPasswordEmail(username: string, email: string, token: string) {
     const link = `${this.frontendUrl}/auth/members/set-password?token=${token}`;
 
