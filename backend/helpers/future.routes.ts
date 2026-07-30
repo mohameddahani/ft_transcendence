@@ -26,11 +26,11 @@
 // * GET all membership / One membership
 // ! GET all notification / One notification
 
-// ! Make expire time get from .env
+// * Make expire time get from .env
 
-// ! Login of member
-// ! Resend the set password email of member
-// ! change password of member
+// * Login of member
+// * Resend the set password email of member
+// * change password of member
 // ! track plan of member (ui ux of member not admin)
 // ! add profile image of member (ui ux of member not admin)
 
@@ -45,9 +45,9 @@
 
 // ! Check Roles in user controller
 
-// ! Change UserType of User to member is better
+// * Change UserType of User to member is better
 
-// ! Understand how is email work
+// * Understand how is email work
 
 // ! CRSF check documentation of NESTJS
 
