@@ -268,7 +268,7 @@ export class MembershipPlansService {
   // ! Private Attributes
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findUnique({
+    const subscription = await this.prisma.subscription.findFirst({
       where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
       include: {
         plan: true,

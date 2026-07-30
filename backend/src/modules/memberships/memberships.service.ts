@@ -78,37 +78,37 @@ export class MembershipsService {
     return membership;
   }
 
-  async findMyMemberships(memberId: string) {
-    // * Check membership is exist
-    const memberships = await this.prisma.membership.findUnique({
-      where: {
-        memberId: memberId,
-      },
-      include: {
-        membershipPlan: true,
-        membershipPlanDuration: true,
-      },
-    });
+  // async findMyMemberships(memberId: string) {
+  //   // * Check membership is exist
+  //   const memberships = await this.prisma.membership.findUnique({
+  //     where: {
+  //       memberId: memberId,
+  //     },
+  //     include: {
+  //       membershipPlan: true,
+  //       membershipPlanDuration: true,
+  //     },
+  //   });
 
-    if (!memberships) {
-      throw new NotFoundException('No Memberships Found');
-    }
+  //   if (!memberships) {
+  //     throw new NotFoundException('No Memberships Found');
+  //   }
 
-    if (memberships.status === MembershipStatus.EXPIRED) {
-      throw new BadRequestException('You have an expired membership');
-    }
+  //   if (memberships.status === MembershipStatus.EXPIRED) {
+  //     throw new BadRequestException('You have an expired membership');
+  //   }
 
-    if (memberships.status === MembershipStatus.CANCELLED) {
-      throw new BadRequestException('You have a cancelled membership');
-    }
+  //   if (memberships.status === MembershipStatus.CANCELLED) {
+  //     throw new BadRequestException('You have a cancelled membership');
+  //   }
 
-    return memberships;
-  }
+  //   return memberships;
+  // }
 
   // ! Private Atributes
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findUnique({
+    const subscription = await this.prisma.subscription.findFirst({
       where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
     });

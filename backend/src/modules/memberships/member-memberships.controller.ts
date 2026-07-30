@@ -21,6 +21,6 @@ export class MemberMembershipsController {
   findMyMembership(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.membershipsService.findMyMembership(accessTokenPayload.id);
+    // return this.membershipsService.findMyMembership(accessTokenPayload.id);
   }
 }

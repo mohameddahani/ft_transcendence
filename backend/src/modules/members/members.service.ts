@@ -44,7 +44,7 @@ export class MembersService {
         adminId,
       },
     });
-    if (membersCount >= subscription.plan.maxMembers) {
+    if (membersCount > subscription.plan.maxMembers) {
       throw new ForbiddenException(
         `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
       );
@@ -448,7 +448,7 @@ export class MembersService {
   // ! Private Attributes
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findUnique({
+    const subscription = await this.prisma.subscription.findFirst({
       where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
     });
