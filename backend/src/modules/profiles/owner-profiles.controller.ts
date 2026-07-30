@@ -20,35 +20,36 @@ import { diskStorage } from 'multer';
 import type { Response } from 'express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
-import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
+import { OwnerAccessTokenAuthGuard } from '../auth/guards/owner-access-token-auth.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
-@Controller('/api/users')
-export class ProfilesController {
+@Controller('/api/users/owners')
+export class OwnerProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
   /* 
   =========================
-  ! Admin Profile
+  ! Owners Profile
   =========================
   */
 
-  // * Get current user
-  @Get('admins/me')
+  // * Get current owner
+  @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
-  @UseGuards(AdminAccessTokenAuthGuard)
-  @Roles([Role.ADMIN])
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.profilesService.findMe(accessTokenPayload.id);
   }
 
-  // * Update data of user
-  @Patch('admins/edit-profile')
-  @UseGuards(AdminAccessTokenAuthGuard)
-  @Roles([Role.ADMIN])
+  // * Update data of owner
+  @Patch('edit-profile')
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -58,7 +59,7 @@ export class ProfilesController {
   }
 
   // * Upload profile image
-  @Post('admins/profile-image')
+  @Post('profile-image')
   // * Interceptors: are NestJS classes that run BEFORE and AFTER the route handler.
   //   They can transform requests, handle files, logging, or modify responses.
   //
@@ -113,8 +114,8 @@ export class ProfilesController {
   )
 
   // * UseGuards: applies authentication/authorization guards to protect the route
-  @UseGuards(AdminAccessTokenAuthGuard)
-  @Roles([Role.ADMIN])
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   uploadProfileImage(
     // * @UploadedFile: extracts the uploaded file from the request
@@ -135,9 +136,9 @@ export class ProfilesController {
   }
 
   // * Remove profile image
-  @Delete('admins/profile-image')
-  @UseGuards(AdminAccessTokenAuthGuard)
-  @Roles([Role.ADMIN])
+  @Delete('profile-image')
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   removeProfileImage(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -146,9 +147,9 @@ export class ProfilesController {
   }
 
   // * Get image
-  @Get('admins/profile-image/:image')
-  @UseGuards(AdminAccessTokenAuthGuard)
-  @Roles([Role.ADMIN])
+  @Get('profile-image/:image')
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 300, ttl: 60_000 } })
   findImage(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -157,16 +158,4 @@ export class ProfilesController {
   ) {
     return this.profilesService.findImage(accessTokenPayload.id, image, res);
   }
-
-  /* 
-  =========================
-  ! Owner Profile
-  =========================
-  */
-
-  /* 
-  =========================
-  ! Member Profile
-  =========================
-  */
 }

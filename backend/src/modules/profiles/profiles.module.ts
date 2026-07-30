@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
-import { ProfilesController } from './profiles.controller';
+import { AdminProfilesController } from './admin-profiles.controller';
 import { ProfilesService } from './profiles.service';
 import { AuthModule } from '../auth/auth.module';
+import { OwnerProfilesController } from './owner-profiles.controller';
+import { MemberProfilesController } from './member-profiles.controller';
 
 @Module({
-  controllers: [ProfilesController],
+  controllers: [
+    AdminProfilesController,
+    OwnerProfilesController,
+    MemberProfilesController,
+  ],
   providers: [ProfilesService],
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
