@@ -249,7 +249,7 @@ export class MembershipPlansService {
 
   // * Get one membership Plan
   async findOne(adminId: string, membershipPlanId: string) {
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId,
         id: membershipPlanId,
