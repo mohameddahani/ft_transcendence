@@ -13,13 +13,13 @@ import {
 import {
   AccountStatus,
   ActionTokenType,
+  MembershipStatus,
   MemberStatus,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 import { EmailService } from '@/infrastructure/email/email.service';
-import { CustomJwtService } from '../auth/jwt/jwt.service';
 import { createHash, randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
@@ -29,7 +29,6 @@ export class MembersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-    private readonly customJwtService: CustomJwtService,
     private readonly config: ConfigService,
   ) {}
 
@@ -259,17 +258,23 @@ export class MembersService {
         throw new NotFoundException('Membership Not Found!');
       }
 
+      // * make old menbership expired
+      await this.prisma.membership.update({
+        where: { id: membership.id },
+        data: { status: MembershipStatus.EXPIRED },
+      });
+
       // * Add new Membership to member
       const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
       expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-      const updatedMembership = await this.prisma.membership.update({
-        where: { id: membership.id },
+      const newMembership = await this.prisma.membership.create({
         data: {
+          admin: { connect: { id: adminId } },
+          member: { connect: { id: memberId } },
           membershipPlan: { connect: { id: data.membershipPlanId } },
           membershipPlanDuration: {
             connect: { id: data.membershipPlanDurationId },
           },
-          startDate: new Date(),
           expiresAt: expiresAt,
         },
         include: { membershipPlan: true, membershipPlanDuration: true },
@@ -278,11 +283,11 @@ export class MembersService {
       // * Add New Payment for Updated Member
       await this.prisma.payment.create({
         data: {
-          member: { connect: { id: updatedMembership.memberId } },
+          member: { connect: { id: newMembership.memberId } },
           admin: { connect: { id: adminId } },
-          amount: updatedMembership.membershipPlanDuration.price,
-          paidAt: updatedMembership.startDate,
-          dueDate: updatedMembership.expiresAt,
+          amount: newMembership.membershipPlanDuration.price,
+          paidAt: newMembership.startDate,
+          dueDate: newMembership.expiresAt,
           status: PaymentStatus.PAID,
         },
       });

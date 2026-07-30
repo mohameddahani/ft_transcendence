@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -20,7 +19,7 @@ export class SubscriptionsService {
   // * Active Subscription
   async activeSubscription(data: ActiveSubscriptionDto) {
     // * Check if admin is already exist
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         userName: data.userName,
       },
@@ -37,7 +36,7 @@ export class SubscriptionsService {
     }
 
     // * Check if plan is already exist
-    const newPlan = await this.prisma.plan.findFirst({
+    const newPlan = await this.prisma.plan.findUnique({
       where: {
         id: data.planId,
       },
@@ -60,7 +59,7 @@ export class SubscriptionsService {
         adminId: user.id,
       },
     });
-    if (membersCount >= newPlan.maxMembers) {
+    if (membersCount > newPlan.maxMembers) {
       throw new ForbiddenException(
         `Plan downgrade is not allowed. You currently have ${membersCount} members, but the selected plan supports a maximum of ${newPlan.maxMembers} members.`,
       );
@@ -81,12 +80,9 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,
+        status: SubscriptionStatus.ACTIVE,
       },
     });
-
-    // * Create date of expiration
-    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
 
     // * Has already subscription
     if (subscription) {
@@ -99,21 +95,22 @@ export class SubscriptionsService {
         throw new ConflictException('You already have this subscription');
       }
 
-      // * Upgrade / change plan
-      return this.prisma.subscription.update({
-        where: { id: subscription.id },
+      // * Make the old Subscription expired
+      await this.prisma.subscription.update({
+        where: {
+          id: subscription.id,
+        },
         data: {
-          plan: { connect: { id: newPlan.id } },
-          planDuration: { connect: { id: duration.id } },
-          status: SubscriptionStatus.ACTIVE,
-          startedAt: new Date(),
-          expiresAt: expiresAt,
-          amount: duration.price,
+          status: SubscriptionStatus.EXPIRED,
         },
       });
     }
 
-    // *  No subscription
+    // * Create date of expiration
+    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+
+    // *  No subscription / Upgrade / change plan
     return this.prisma.subscription.create({
       data: {
         user: { connect: { id: user.id } },
@@ -127,36 +124,36 @@ export class SubscriptionsService {
 
   // * Cancel Subscription
   async cancelSubscription(adminId: string) {
-    // * Check if user all ready exist
+    // * Check User
     const user = await this.prisma.user.findUnique({
       where: {
         id: adminId,
-        role: { notIn: [Role.OWNER, Role.MEMBER] },
-      },
-      include: {
-        subscription: true,
+        role: {
+          notIn: [Role.OWNER, Role.MEMBER],
+        },
       },
     });
+
     if (!user) {
       throw new NotFoundException('User Not Found');
     }
 
-    // * Check if Subscription is exist befor update it
-    // * Check if user has a subscription
-    if (!user.subscription) {
-      throw new NotFoundException('No subscription was found for this user.');
+    // * Check Subscription is Active
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId: adminId,
+        status: SubscriptionStatus.ACTIVE,
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('No active subscription was found');
     }
 
-    // * Check the subscription is Active
-    if (user.subscription.status !== SubscriptionStatus.ACTIVE) {
-      throw new BadRequestException(
-        'Only active subscriptions can be cancelled.',
-      );
-    }
-
+    // * Cancel the Subscription
     await this.prisma.subscription.update({
       where: {
-        id: user.subscription.id,
+        id: subscription.id,
       },
       data: {
         status: SubscriptionStatus.CANCELLED,

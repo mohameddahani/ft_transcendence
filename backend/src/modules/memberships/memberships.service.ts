@@ -1,6 +1,11 @@
-import { AccountStatus, SubscriptionStatus } from '@/generated/prisma/enums';
+import {
+  AccountStatus,
+  MembershipStatus,
+  SubscriptionStatus,
+} from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -71,6 +76,33 @@ export class MembershipsService {
     }
 
     return membership;
+  }
+
+  async findMyMemberships(memberId: string) {
+    // * Check membership is exist
+    const memberships = await this.prisma.membership.findUnique({
+      where: {
+        memberId: memberId,
+      },
+      include: {
+        membershipPlan: true,
+        membershipPlanDuration: true,
+      },
+    });
+
+    if (!memberships) {
+      throw new NotFoundException('No Memberships Found');
+    }
+
+    if (memberships.status === MembershipStatus.EXPIRED) {
+      throw new BadRequestException('You have an expired membership');
+    }
+
+    if (memberships.status === MembershipStatus.CANCELLED) {
+      throw new BadRequestException('You have a cancelled membership');
+    }
+
+    return memberships;
   }
 
   // ! Private Atributes

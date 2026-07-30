@@ -89,12 +89,12 @@ model User {
   phoneNumber       String        @unique
   companyName       String
   role              Role          @default(ADMIN)
-  subscription      Subscription?
   profileImage      String        @default("default-image.jpg")
   isAccountVerified Boolean       @default(false)
   accountStatus     AccountStatus @default(INACTIVE)
   termsAccepted     Boolean
 
+  subscription      Subscription[]
   members           Member[]
   memberships       Membership[]
   membershipPlans   MembershipPlan[]
@@ -150,7 +150,7 @@ model PlanDuration {
 model Subscription {
   id String @id @default(uuid())
 
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id])
 
   planId String
@@ -351,7 +351,7 @@ model UserActionToken {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  tokenHash String              @unique
+  tokenHash String          @unique
   type      ActionTokenType
   expiresAt DateTime
   usedAt    DateTime?
@@ -367,7 +367,7 @@ model MemberActionToken {
   memberId String
   member   Member @relation(fields: [memberId], references: [id])
 
-  tokenHash String              @unique
+  tokenHash String          @unique
   type      ActionTokenType
   expiresAt DateTime
   usedAt    DateTime?

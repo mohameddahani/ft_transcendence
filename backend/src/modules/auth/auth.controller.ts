@@ -113,7 +113,7 @@ export class AuthController {
   */
 
   // * Refresh Admin
-  @Post('refresh/admin')
+  @Post('refresh/admins')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(AdminRefreshTokenAuthGuard)
@@ -125,7 +125,7 @@ export class AuthController {
   }
 
   // * Refresh Owner
-  @Post('refresh/owner')
+  @Post('refresh/owners')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(OwnerRefreshTokenAuthGuard)
@@ -137,7 +137,7 @@ export class AuthController {
   }
 
   // * Refresh Member
-  @Post('refresh/member')
+  @Post('refresh/members')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @UseGuards(MemberRefreshTokenAuthGuard)
@@ -154,7 +154,7 @@ export class AuthController {
   =========================
   */
   // * Login Member
-  @Post('/members/login')
+  @Post('members/login')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async loginMember(
