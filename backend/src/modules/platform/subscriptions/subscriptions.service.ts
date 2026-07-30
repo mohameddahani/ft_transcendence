@@ -66,7 +66,7 @@ export class SubscriptionsService {
     }
 
     // * Check if duration is already exist for this plan
-    const duration = await this.prisma.planDuration.findFirst({
+    const duration = await this.prisma.planDuration.findUnique({
       where: {
         id: data.planDurationId,
         planId: data.planId,
@@ -95,31 +95,34 @@ export class SubscriptionsService {
         throw new ConflictException('You already have this subscription');
       }
 
-      // * Make the old Subscription expired
-      await this.prisma.subscription.update({
-        where: {
-          id: subscription.id,
-        },
-        data: {
-          status: SubscriptionStatus.EXPIRED,
-        },
-      });
+      // * Use Transaction
+      // * Create date of expiration
+      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+
+      await this.prisma.$transaction([
+        // * Make the old Subscription expired
+        this.prisma.subscription.update({
+          where: {
+            id: subscription.id,
+          },
+          data: {
+            status: SubscriptionStatus.EXPIRED,
+          },
+        }),
+
+        // *  No subscription / Upgrade / change plan
+        this.prisma.subscription.create({
+          data: {
+            user: { connect: { id: user.id } },
+            plan: { connect: { id: newPlan.id } },
+            planDuration: { connect: { id: duration.id } },
+            expiresAt: expiresAt,
+            amount: duration.price,
+          },
+        }),
+      ]);
     }
-
-    // * Create date of expiration
-    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-
-    // *  No subscription / Upgrade / change plan
-    return this.prisma.subscription.create({
-      data: {
-        user: { connect: { id: user.id } },
-        plan: { connect: { id: newPlan.id } },
-        planDuration: { connect: { id: duration.id } },
-        expiresAt: expiresAt,
-        amount: duration.price,
-      },
-    });
   }
 
   // * Cancel Subscription
