@@ -57,6 +57,8 @@
 // * check admin of gym when he try to add members has more palace depend on his plan or subscription
 // * Check Down grade of plans of admin of gym by number of members
 
+// ! add props of all routes in swagger
+
 // Common Types
 // Type	Meaning
 // feat	New feature

@@ -98,53 +98,54 @@ export class MembersService {
       }
     }
 
-    // * Add members to database
-    const member = await this.prisma.member.create({
-      data: {
-        admin: { connect: { id: adminId } },
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        birthDate: data.birthDate,
-        userName: userName,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        emergencyContact: data.emergencyContact,
-      },
-    });
-    if (!member) {
-      throw new BadRequestException('Somthing Went Wrong');
-    }
-
-    // * Add Membership of member
-    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-    const membership = await this.prisma.membership.create({
-      data: {
-        admin: { connect: { id: adminId } },
-        member: { connect: { id: member.id } },
-        membershipPlan: { connect: { id: data.membershipPlanId } },
-        membershipPlanDuration: {
-          connect: { id: data.membershipPlanDurationId },
+    // * Interactive transaction (function)
+    const result = await this.prisma.$transaction(async (tx) => {
+      // * Add members to database
+      const member = await tx.member.create({
+        data: {
+          admin: { connect: { id: adminId } },
+          firstName: data.firstName,
+          lastName: data.lastName,
+          gender: data.gender,
+          birthDate: data.birthDate,
+          userName: userName,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          emergencyContact: data.emergencyContact,
         },
-        expiresAt: expiresAt,
-      },
-      include: {
-        membershipPlanDuration: true,
-      },
-    });
+      });
+      // * Add Membership of member
+      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+      const membership = await tx.membership.create({
+        data: {
+          admin: { connect: { id: adminId } },
+          member: { connect: { id: member.id } },
+          membershipPlan: { connect: { id: data.membershipPlanId } },
+          membershipPlanDuration: {
+            connect: { id: data.membershipPlanDurationId },
+          },
+          expiresAt: expiresAt,
+        },
+        include: {
+          membershipPlanDuration: true,
+        },
+      });
 
-    // * Add Payment of Member
-    await this.prisma.payment.create({
-      data: {
-        member: { connect: { id: member.id } },
-        admin: { connect: { id: adminId } },
-        amount: membership.membershipPlanDuration.price,
-        paidAt: membership.startDate,
-        dueDate: membership.expiresAt,
-        status: PaymentStatus.PAID,
-      },
+      // * Add Payment of Member
+      await tx.payment.create({
+        data: {
+          member: { connect: { id: member.id } },
+          admin: { connect: { id: adminId } },
+          amount: membership.membershipPlanDuration.price,
+          paidAt: membership.startDate,
+          dueDate: membership.expiresAt,
+          status: PaymentStatus.PAID,
+        },
+      });
+
+      return member;
     });
 
     // * Send Email of Set password to member
@@ -161,7 +162,7 @@ export class MembersService {
       // * Store the hash Token in DB
       await this.prisma.memberActionToken.create({
         data: {
-          member: { connect: { id: member.id } },
+          member: { connect: { id: result.id } },
           tokenHash: tokenHash,
           type: ActionTokenType.SET_PASSWORD,
           expiresAt: expiresAt,
@@ -170,8 +171,8 @@ export class MembersService {
 
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordEmail(
-        member.userName,
-        member.email,
+        result.userName,
+        result.email,
         rawToken,
       );
     } catch {
@@ -258,38 +259,41 @@ export class MembersService {
         throw new NotFoundException('Membership Not Found!');
       }
 
-      // * make old menbership expired
-      await this.prisma.membership.update({
-        where: { id: membership.id },
-        data: { status: MembershipStatus.EXPIRED },
-      });
+      // * Interactive transaction (function)
+      await this.prisma.$transaction(async (tx) => {
+        // * make old membership expired
+        await tx.membership.update({
+          where: { id: membership.id },
+          data: { status: MembershipStatus.EXPIRED },
+        });
 
-      // * Add new Membership to member
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
-      const newMembership = await this.prisma.membership.create({
-        data: {
-          admin: { connect: { id: adminId } },
-          member: { connect: { id: memberId } },
-          membershipPlan: { connect: { id: data.membershipPlanId } },
-          membershipPlanDuration: {
-            connect: { id: data.membershipPlanDurationId },
+        // * Add new Membership to member
+        const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+        expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+        const newMembership = await this.prisma.membership.create({
+          data: {
+            admin: { connect: { id: adminId } },
+            member: { connect: { id: memberId } },
+            membershipPlan: { connect: { id: data.membershipPlanId } },
+            membershipPlanDuration: {
+              connect: { id: data.membershipPlanDurationId },
+            },
+            expiresAt: expiresAt,
           },
-          expiresAt: expiresAt,
-        },
-        include: { membershipPlan: true, membershipPlanDuration: true },
-      });
+          include: { membershipPlan: true, membershipPlanDuration: true },
+        });
 
-      // * Add New Payment for Updated Member
-      await this.prisma.payment.create({
-        data: {
-          member: { connect: { id: newMembership.memberId } },
-          admin: { connect: { id: adminId } },
-          amount: newMembership.membershipPlanDuration.price,
-          paidAt: newMembership.startDate,
-          dueDate: newMembership.expiresAt,
-          status: PaymentStatus.PAID,
-        },
+        // * Add New Payment for Updated Member
+        await this.prisma.payment.create({
+          data: {
+            member: { connect: { id: newMembership.memberId } },
+            admin: { connect: { id: adminId } },
+            amount: newMembership.membershipPlanDuration.price,
+            paidAt: newMembership.startDate,
+            dueDate: newMembership.expiresAt,
+            status: PaymentStatus.PAID,
+          },
+        });
       });
     } else if (
       (data.membershipPlanId && !data.membershipPlanDurationId) ||
@@ -303,6 +307,9 @@ export class MembersService {
 
   // * Active a Member
   async activeMember(adminId: string, memberId: string) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     // * Check member is exist
     const member = await this.findOne(adminId, memberId);
     if (member.status === MemberStatus.ACTIVE) {
@@ -322,6 +329,9 @@ export class MembersService {
 
   // * Freeze a Member
   async freezeMember(adminId: string, memberId: string) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
 
@@ -348,6 +358,9 @@ export class MembersService {
 
   // * Ban a Member
   async banMember(adminId: string, memberId: string) {
+    // * Check if admin is has already a subscription
+    await this.checkIfAdminHasSubscription(adminId);
+
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
 
@@ -482,7 +495,7 @@ export class MembersService {
     durationId: string,
   ) {
     // * Check if the admin has this membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId: adminId,
         id: membershipPlanId,
@@ -495,7 +508,7 @@ export class MembersService {
     }
 
     // * Check if duration is already exist for this membership plan
-    const duration = await this.prisma.membershipPlanDuration.findFirst({
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
       where: {
         id: durationId,
         membershipPlan: { adminId: adminId },
