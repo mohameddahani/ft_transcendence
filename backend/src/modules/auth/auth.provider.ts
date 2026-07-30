@@ -518,19 +518,11 @@ export class AuthProvider {
       throw new BadRequestException('Token expired');
     }
 
-    // * Check if we have user already in DB
-    const user = await this.prisma.user.findUnique({
-      where: { id: token.user.id },
-    });
-    if (!user) {
-      throw new NotFoundException('User Not Found');
-    }
-
     // * Get Domain
     // const domain = this.config.getOrThrow<string>('FRONTEND_URL');
 
     // * Check if user already active his account
-    if (user.accountStatus === AccountStatus.ACTIVE) {
+    if (token.user.accountStatus === AccountStatus.ACTIVE) {
       // return accountAlreadyActivatedTemplate(domain);
       throw new BadRequestException('Account Already Activated');
     }
@@ -620,14 +612,6 @@ export class AuthProvider {
       throw new BadRequestException('Token expired');
     }
 
-    // * Check if we have user already in DB
-    const user = await this.prisma.user.findUnique({
-      where: { id: token.user.id },
-    });
-    if (!user) {
-      throw new NotFoundException('User Not Found');
-    }
-
     // * Hash new Password
     const salt = await bcrypt.genSalt(10);
     const newPassword = await bcrypt.hash(password, salt);
@@ -638,7 +622,7 @@ export class AuthProvider {
     await this.prisma.$transaction([
       // * Save new password
       this.prisma.user.update({
-        where: { id: user.id },
+        where: { id: token.user.id },
         data: {
           password: newPassword,
         },
