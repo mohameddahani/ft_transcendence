@@ -66,7 +66,7 @@ export class AdminPaymentsService {
     // * Check if admin has subscription
     await this.checkIfAdminHasSubscription(adminId);
 
-    const payment = await this.prisma.payment.findUnique({
+    const payment = await this.prisma.payment.findFirst({
       where: {
         adminId: adminId,
         id: id,

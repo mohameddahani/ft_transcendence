@@ -495,7 +495,7 @@ export class MembersService {
     durationId: string,
   ) {
     // * Check if the admin has this membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
       where: {
         adminId: adminId,
         id: membershipPlanId,
@@ -508,7 +508,7 @@ export class MembersService {
     }
 
     // * Check if duration is already exist for this membership plan
-    const duration = await this.prisma.membershipPlanDuration.findUnique({
+    const duration = await this.prisma.membershipPlanDuration.findFirst({
       where: {
         id: durationId,
         membershipPlan: { adminId: adminId },

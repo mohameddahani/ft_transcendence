@@ -140,7 +140,7 @@ export class SubscriptionsService {
   // * Cancel Subscription
   async cancelSubscription(adminId: string) {
     // * Check User
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         id: adminId,
         role: {

@@ -234,7 +234,7 @@ export class PlansService {
     planId: string,
   ) {
     // * Check if plan duration already exist
-    const existingPlanDuration = await this.prisma.planDuration.findUnique({
+    const existingPlanDuration = await this.prisma.planDuration.findFirst({
       where: {
         planId: planId,
         id: durationId,

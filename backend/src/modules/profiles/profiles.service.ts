@@ -162,7 +162,7 @@ export class ProfilesService {
   // ! Private Attributes
   // * Get one user
   private async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         id,
         role: { notIn: [Role.OWNER, Role.MEMBER] },
