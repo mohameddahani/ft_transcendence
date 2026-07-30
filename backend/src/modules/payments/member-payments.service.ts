@@ -66,7 +66,7 @@ export class MemberPaymentsService {
     // * Check if member has membership
     await this.checkIfMemberHasMembership(memberId);
 
-    const payment = await this.prisma.payment.findFirst({
+    const payment = await this.prisma.payment.findUnique({
       where: {
         id: id,
         memberId: memberId,
