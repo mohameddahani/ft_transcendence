@@ -29,6 +29,9 @@ import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 import { ForgotPasswordMemberDto } from './dto/forgot-password-member.dto';
 import { ResetPasswordMemberDto } from './dto/reset-password-member.dto';
 import { QueryTokenDto } from './dto/query-token.dto';
+import { Roles } from '@/core/decorators/user-role.decorator';
+import { Role } from '@/generated/prisma/enums';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -65,7 +68,7 @@ export class AuthController {
       httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
       secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
       sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
-      path: '/api/auth/refresh', // * Send only to the refresh endpoint
+      path: '/api/auth', // * Send only to the refresh endpoint
       maxAge: ms(refreshExpiresIn), // * Expires after 30 days
     });
 
@@ -73,10 +76,11 @@ export class AuthController {
   }
 
   // * Logout
-  @Post('logout')
+  @Post('admins/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(AdminAccessTokenAuthGuard)
+  @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.ADMIN])
   logout() {
     // return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
@@ -113,10 +117,11 @@ export class AuthController {
   */
 
   // * Refresh Admin
-  @Post('refresh/admins')
+  @Post('admins/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(AdminRefreshTokenAuthGuard)
+  @UseGuards(AdminRefreshTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.ADMIN])
   refreshAdmin(
     @GetCookies('refresh_token') refreshToken: string,
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
@@ -125,10 +130,11 @@ export class AuthController {
   }
 
   // * Refresh Owner
-  @Post('refresh/owners')
+  @Post('owners/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(OwnerRefreshTokenAuthGuard)
+  @UseGuards(OwnerRefreshTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   refreshOwner(
     @GetCookies('refresh_token') refreshToken: string,
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
@@ -137,10 +143,11 @@ export class AuthController {
   }
 
   // * Refresh Member
-  @Post('refresh/members')
+  @Post('members/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(MemberRefreshTokenAuthGuard)
+  @UseGuards(MemberRefreshTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.MEMBER])
   refreshMember(
     @GetCookies('refresh_token') refreshToken: string,
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
@@ -171,7 +178,7 @@ export class AuthController {
       httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
       secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
       sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
-      path: '/api/auth/refresh', // * Send only to the refresh endpoint
+      path: '/api/auth', // * Send only to the refresh endpoint
       maxAge: ms(refreshExpiresIn), // * Expires after 30 days
     });
 

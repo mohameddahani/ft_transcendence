@@ -321,6 +321,8 @@ model UserRefreshToken {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("userRefreshTokens")
 }
 
 // * Table of Member Refresh Token
@@ -342,6 +344,8 @@ model MemberRefreshToken {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("memberRefreshTokens")
 }
 
 // * Table of User Action Token
@@ -358,6 +362,8 @@ model UserActionToken {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("userActionTokens")
 }
 
 // * Table of Member Action Token
@@ -374,4 +380,6 @@ model MemberActionToken {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("memberActionTokens")
 }
