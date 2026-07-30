@@ -66,7 +66,7 @@ export class SubscriptionsService {
     }
 
     // * Check if duration is already exist for this plan
-    const duration = await this.prisma.planDuration.findUnique({
+    const duration = await this.prisma.planDuration.findFirst({
       where: {
         id: data.planDurationId,
         planId: data.planId,
@@ -85,6 +85,10 @@ export class SubscriptionsService {
     });
 
     // * Has already subscription
+
+    // * Create date of expiration
+    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
+    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
     if (subscription) {
       // * Already same plan
       if (
@@ -96,9 +100,6 @@ export class SubscriptionsService {
       }
 
       // * Use Transaction
-      // * Create date of expiration
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
 
       await this.prisma.$transaction([
         // * Make the old Subscription expired
@@ -111,7 +112,7 @@ export class SubscriptionsService {
           },
         }),
 
-        // *  No subscription / Upgrade / change plan
+        // *  Upgrade / change plan
         this.prisma.subscription.create({
           data: {
             user: { connect: { id: user.id } },
@@ -122,6 +123,17 @@ export class SubscriptionsService {
           },
         }),
       ]);
+    } else {
+      // *  No subscription
+      return await this.prisma.subscription.create({
+        data: {
+          user: { connect: { id: user.id } },
+          plan: { connect: { id: newPlan.id } },
+          planDuration: { connect: { id: duration.id } },
+          expiresAt: expiresAt,
+          amount: duration.price,
+        },
+      });
     }
   }
 
@@ -170,6 +182,7 @@ export class SubscriptionsService {
       skip: (page - 1) * limit,
       take: limit,
       include: {
+        user: true,
         plan: true,
         planDuration: true,
       },
@@ -188,6 +201,7 @@ export class SubscriptionsService {
         id: subscriptionId,
       },
       include: {
+        user: true,
         plan: true,
         planDuration: true,
       },
@@ -197,5 +211,56 @@ export class SubscriptionsService {
     }
 
     return subscription;
+  }
+
+  // ! Services Of Admin
+
+  // * Get Subscription of Admin
+  async findMySubscription(adminId: string) {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        userId: adminId,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      select: {
+        plan: true,
+        planDuration: true,
+        status: true,
+        startedAt: true,
+        expiresAt: true,
+        amount: true,
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('No Active Subscription Found');
+    }
+
+    return subscription;
+  }
+
+  // * Get All Subscriptions of Admin
+  async findAllSubscriptions(adminId: string, page: number, limit: number) {
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        userId: adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        plan: true,
+        planDuration: true,
+        status: true,
+        startedAt: true,
+        expiresAt: true,
+        amount: true,
+      },
+    });
+
+    if (subscriptions.length === 0) {
+      throw new NotFoundException('No Subscriptions Found');
+    }
+
+    return subscriptions;
   }
 }

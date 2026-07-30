@@ -31,8 +31,9 @@
 // * Login of member
 // * Resend the set password email of member
 // * change password of member
-// ! track plan of member (ui ux of member not admin)
+// * track plan of member (ui ux of member not admin)
 // ! track plan of admin (ui ux of admin not member)
+// ! @@unique([id, planId]) and @@index and all props that has @@ in prisma
 // ! add profile image of member (ui ux of member not admin)
 
 // ! make refresh token revok in logout
