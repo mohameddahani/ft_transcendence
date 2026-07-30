@@ -48,9 +48,6 @@ export class ProfilesService {
 
   // * Update data of user
   async update(id: string, data: UpdateProfileDto) {
-    // * Check if we have user already in DB
-    await this.findOne(id);
-
     // * Check if user update the username: (we need to check if username is unique)
     const existingData = await this.prisma.user.findFirst({
       where: {
@@ -82,7 +79,7 @@ export class ProfilesService {
 
   // * Upload profile image
   async uploadProfileImage(id: string, filename: string) {
-    // * Check if we have user already in DB
+    // * Get User to check image
     const user = await this.findOne(id);
 
     // * Remove old image
@@ -113,7 +110,7 @@ export class ProfilesService {
 
   // * Remove profile image
   async removeProfileImage(id: string) {
-    // * Check if we have user already in DB
+    // * Get User to check image
     const user = await this.findOne(id);
 
     // * Check user if already set image
