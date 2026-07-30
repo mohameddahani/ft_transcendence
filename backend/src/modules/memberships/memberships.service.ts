@@ -5,7 +5,6 @@ import {
 } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -78,32 +77,53 @@ export class MembershipsService {
     return membership;
   }
 
-  // async findMyMemberships(memberId: string) {
-  //   // * Check membership is exist
-  //   const memberships = await this.prisma.membership.findUnique({
-  //     where: {
-  //       memberId: memberId,
-  //     },
-  //     include: {
-  //       membershipPlan: true,
-  //       membershipPlanDuration: true,
-  //     },
-  //   });
+  // * Get Membership of Member
+  async findMyMembership(memberId: string) {
+    // * Check membership is exist
+    const memberships = await this.prisma.membership.findFirst({
+      where: {
+        memberId: memberId,
+        status: MembershipStatus.ACTIVE,
+      },
+      select: {
+        membershipPlan: true,
+        membershipPlanDuration: true,
+        status: true,
+        startDate: true,
+        expiresAt: true,
+      },
+    });
 
-  //   if (!memberships) {
-  //     throw new NotFoundException('No Memberships Found');
-  //   }
+    if (!memberships) {
+      throw new NotFoundException('No Active Membership Found');
+    }
 
-  //   if (memberships.status === MembershipStatus.EXPIRED) {
-  //     throw new BadRequestException('You have an expired membership');
-  //   }
+    return memberships;
+  }
 
-  //   if (memberships.status === MembershipStatus.CANCELLED) {
-  //     throw new BadRequestException('You have a cancelled membership');
-  //   }
+  // * Get All Memberships of Member
+  async findAllMemberships(memberId: string, page: number, limit: number) {
+    const memberships = await this.prisma.membership.findMany({
+      where: {
+        memberId: memberId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        membershipPlan: true,
+        membershipPlanDuration: true,
+        status: true,
+        startDate: true,
+        expiresAt: true,
+      },
+    });
 
-  //   return memberships;
-  // }
+    if (memberships.length === 0) {
+      throw new NotFoundException('There No Memberships To Show');
+    }
+
+    return memberships;
+  }
 
   // ! Private Atributes
   // * Check if admin has subscription

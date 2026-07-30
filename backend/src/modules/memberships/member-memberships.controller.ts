@@ -1,4 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
 import { SkipThrottle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
@@ -21,6 +27,21 @@ export class MemberMembershipsController {
   findMyMembership(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    // return this.membershipsService.findMyMembership(accessTokenPayload.id);
+    return this.membershipsService.findMyMembership(accessTokenPayload.id);
+  }
+
+  // * Get All Membership of Member
+  @Get('all')
+  @SkipThrottle() // * Skip Rate Limiting
+  findAllMemberships(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.membershipsService.findAllMemberships(
+      accessTokenPayload.id,
+      page,
+      limit,
+    );
   }
 }
