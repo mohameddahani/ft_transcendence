@@ -32,6 +32,7 @@
 // * Resend the set password email of member
 // * change password of member
 // ! track plan of member (ui ux of member not admin)
+// ! track plan of admin (ui ux of admin not member)
 // ! add profile image of member (ui ux of member not admin)
 
 // ! Logic code of payment

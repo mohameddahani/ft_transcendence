@@ -12,9 +12,9 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { UpdateUserDto } from './dtos/update-user.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import type { Response } from 'express';
@@ -23,8 +23,8 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 
 @Controller('/api/users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class ProfilesController {
+  constructor(private readonly profilesService: ProfilesService) {}
 
   // * Get current user
   @Get('me')
@@ -33,7 +33,7 @@ export class UsersController {
   @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
-    return this.usersService.findMe(accessTokenPayload.id);
+    return this.profilesService.findMe(accessTokenPayload.id);
   }
 
   // * Update data of user
@@ -42,9 +42,9 @@ export class UsersController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: UpdateUserDto,
+    @Body() body: UpdateProfileDto,
   ) {
-    return this.usersService.update(accessTokenPayload.id, body);
+    return this.profilesService.update(accessTokenPayload.id, body);
   }
 
   // * Upload profile image
@@ -117,7 +117,7 @@ export class UsersController {
       throw new BadRequestException('No Image Provided');
     }
 
-    return this.usersService.uploadProfileImage(
+    return this.profilesService.uploadProfileImage(
       accessTokenPayload.id,
       file.filename,
     );
@@ -130,7 +130,7 @@ export class UsersController {
   removeProfileImage(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.usersService.removeProfileImage(accessTokenPayload.id);
+    return this.profilesService.removeProfileImage(accessTokenPayload.id);
   }
 
   // * Get image
@@ -142,6 +142,6 @@ export class UsersController {
     @Param('image') image: string,
     @Res() res: Response,
   ) {
-    return this.usersService.findImage(accessTokenPayload.id, image, res);
+    return this.profilesService.findImage(accessTokenPayload.id, image, res);
   }
 }

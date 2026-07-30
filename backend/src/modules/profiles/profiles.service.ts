@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { UpdateUserDto } from './dtos/update-user.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
@@ -14,7 +14,7 @@ import { Role } from '@/generated/prisma/enums';
 import { Response } from 'express';
 
 @Injectable()
-export class UsersService {
+export class ProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Get current user
@@ -47,7 +47,7 @@ export class UsersService {
   }
 
   // * Update data of user
-  async update(id: string, data: UpdateUserDto) {
+  async update(id: string, data: UpdateProfileDto) {
     // * Check if we have user already in DB
     await this.findOne(id);
 

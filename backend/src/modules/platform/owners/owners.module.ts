@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { OwnersController } from './owners.controller';
 import { OwnersService } from './owners.service';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
   controllers: [OwnersController],
