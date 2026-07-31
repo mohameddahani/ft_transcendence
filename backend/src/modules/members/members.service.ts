@@ -11,10 +11,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  AccountStatus,
+  UserAccountStatus,
   ActionTokenType,
   MembershipStatus,
-  MemberStatus,
+  MemberAccountStatus,
   PaymentStatus,
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
@@ -312,7 +312,7 @@ export class MembersService {
 
     // * Check member is exist
     const member = await this.findOne(adminId, memberId);
-    if (member.status === MemberStatus.ACTIVE) {
+    if (member.accountStatus === MemberAccountStatus.ACTIVE) {
       throw new ConflictException('The Member is already Active!');
     }
 
@@ -322,7 +322,7 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        status: MemberStatus.ACTIVE,
+        accountStatus: MemberAccountStatus.ACTIVE,
       },
     });
   }
@@ -335,11 +335,11 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
 
-    if (member.status === MemberStatus.FROZEN) {
+    if (member.accountStatus === MemberAccountStatus.FROZEN) {
       throw new ConflictException('The member is already frozen.');
     }
 
-    if (member.status === MemberStatus.BANNED) {
+    if (member.accountStatus === MemberAccountStatus.BANNED) {
       throw new ConflictException(
         'A banned member cannot be frozen. Active the member first.',
       );
@@ -351,7 +351,7 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        status: MemberStatus.FROZEN,
+        accountStatus: MemberAccountStatus.FROZEN,
       },
     });
   }
@@ -364,7 +364,7 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
 
-    if (member.status === MemberStatus.BANNED) {
+    if (member.accountStatus === MemberAccountStatus.BANNED) {
       throw new ConflictException('The member is already banned.');
     }
 
@@ -374,7 +374,7 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        status: MemberStatus.BANNED,
+        accountStatus: MemberAccountStatus.BANNED,
       },
     });
   }
@@ -404,7 +404,7 @@ export class MembersService {
         address: true,
         emergencyContact: true,
         role: true,
-        status: true,
+        accountStatus: true,
         memberships: true,
         payments: true,
         notifications: true,
@@ -443,7 +443,7 @@ export class MembersService {
         address: true,
         emergencyContact: true,
         role: true,
-        status: true,
+        accountStatus: true,
         memberships: true,
         payments: true,
         notifications: true,
@@ -469,16 +469,18 @@ export class MembersService {
       throw new UnauthorizedException(
         'You don’t have an active subscription. Upgrade your plan to continue.',
       );
-    } else if (subscription.user.accountStatus !== AccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === AccountStatus.INACTIVE) {
+    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
         throw new UnauthorizedException(
           'Your account is inactive. Please activate your account to continue.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.PENDING) {
+      } else if (
+        subscription.user.accountStatus === UserAccountStatus.PENDING
+      ) {
         throw new UnauthorizedException(
           'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.BANNED) {
+      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
         throw new UnauthorizedException(
           'Your account has been suspended. Please contact support for assistance.',
         );

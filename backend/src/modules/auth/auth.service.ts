@@ -26,6 +26,16 @@ export class AuthService {
     return this.authProvider.logoutAdmin(refreshToken, refreshTokenPayload);
   }
 
+  // * Logout (Owner)
+  logoutOwner(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutOwner(refreshToken, refreshTokenPayload);
+  }
+
+  // * Logout (Member)
+  logoutMember(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutMember(refreshToken, refreshTokenPayload);
+  }
+
   // * Login Member
   loginMember(request: Request, data: LoginMemberDto) {
     return this.authProvider.loginMember(request, data);

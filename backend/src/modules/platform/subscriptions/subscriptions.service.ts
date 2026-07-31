@@ -7,7 +7,7 @@ import {
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
-  AccountStatus,
+  UserAccountStatus,
   SubscriptionStatus,
   Role,
 } from '@/generated/prisma/enums';
@@ -29,7 +29,7 @@ export class SubscriptionsService {
     }
 
     // * Check Status of user
-    if (user.accountStatus !== AccountStatus.ACTIVE) {
+    if (user.accountStatus !== UserAccountStatus.ACTIVE) {
       throw new ForbiddenException(
         'This account is not active. Please activate your account before subscribing.',
       );

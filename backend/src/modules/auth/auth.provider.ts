@@ -14,9 +14,9 @@ import {
 } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dto/login-user.dto';
 import {
-  AccountStatus,
+  UserAccountStatus,
   ActionTokenType,
-  MemberStatus,
+  MemberAccountStatus,
   Role,
 } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
@@ -148,13 +148,13 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (user.accountStatus === AccountStatus.PENDING) {
+    if (user.accountStatus === UserAccountStatus.PENDING) {
       throw new UnauthorizedException(
         'Your account is pending verification. Please contact support for assistance.',
       );
     }
 
-    if (user.accountStatus === AccountStatus.INACTIVE) {
+    if (user.accountStatus === UserAccountStatus.INACTIVE) {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
@@ -170,7 +170,7 @@ export class AuthProvider {
       );
     }
 
-    if (user.accountStatus === AccountStatus.BANNED) {
+    if (user.accountStatus === UserAccountStatus.BANNED) {
       throw new UnauthorizedException(
         'Your account has been suspended. Please contact support for assistance.',
       );
@@ -272,7 +272,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to logout
-    if (storedToken.user.accountStatus !== AccountStatus.ACTIVE) {
+    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -283,6 +283,122 @@ export class AuthProvider {
 
     // * Revoke the refresh Token
     await this.prisma.userRefreshToken.update({
+      where: {
+        id: storedToken.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+  }
+
+  // * Logout (Owner)
+  async logoutOwner(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.userRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { user: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the JWT payload matches the database
+    if (storedToken.userId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to logout
+    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.user.role !== Role.OWNER) {
+      throw new UnauthorizedException();
+    }
+
+    // * Revoke the refresh Token
+    await this.prisma.userRefreshToken.update({
+      where: {
+        id: storedToken.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+  }
+
+  // * Logout (Member)
+  async logoutMember(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.memberRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { member: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the JWT payload matches the database
+    if (storedToken.memberId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to logout
+    if (storedToken.member.accountStatus !== MemberAccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.member.role !== Role.MEMBER) {
+      throw new UnauthorizedException();
+    }
+
+    // * Revoke the refresh Token
+    await this.prisma.memberRefreshToken.update({
       where: {
         id: storedToken.id,
       },
@@ -303,13 +419,13 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (member.status === MemberStatus.BANNED) {
+    if (member.accountStatus === MemberAccountStatus.BANNED) {
       throw new UnauthorizedException(
         'Your account has been suspended. Please contact your gym administrator for assistance.',
       );
     }
 
-    if (member.status === MemberStatus.FROZEN) {
+    if (member.accountStatus === MemberAccountStatus.FROZEN) {
       throw new UnauthorizedException(
         'Your account is temporarily inactive. Please contact your gym administrator to reactivate your membership.',
       );
@@ -477,7 +593,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to log in
-    if (storedToken.user.accountStatus !== AccountStatus.ACTIVE) {
+    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -533,7 +649,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to log in
-    if (storedToken.member.status !== MemberStatus.ACTIVE) {
+    if (storedToken.member.accountStatus !== MemberAccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -580,7 +696,7 @@ export class AuthProvider {
     // const domain = this.config.getOrThrow<string>('FRONTEND_URL');
 
     // * Check if user already active his account
-    if (token.user.accountStatus === AccountStatus.ACTIVE) {
+    if (token.user.accountStatus === UserAccountStatus.ACTIVE) {
       // return accountAlreadyActivatedTemplate(domain);
       throw new BadRequestException('Account Already Activated');
     }
@@ -593,7 +709,7 @@ export class AuthProvider {
       this.prisma.user.update({
         where: { id: token.user.id },
         data: {
-          accountStatus: AccountStatus.ACTIVE,
+          accountStatus: UserAccountStatus.ACTIVE,
         },
       }),
 

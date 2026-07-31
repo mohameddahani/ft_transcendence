@@ -27,7 +27,7 @@ enum Role {
 }
 
 // * this enum had Account Status
-enum AccountStatus {
+enum UserAccountStatus {
   ACTIVE
   INACTIVE
   PENDING
@@ -42,7 +42,7 @@ enum SubscriptionStatus {
 }
 
 // * this enum had Member Status
-enum MemberStatus {
+enum MemberAccountStatus {
   ACTIVE
   FROZEN
   BANNED
@@ -78,20 +78,20 @@ enum ActionTokenType {
 
 // * Table of users
 model User {
-  id                String        @id @default(uuid())
+  id                String            @id @default(uuid())
   firstName         String
   lastName          String
   gender            Gender
   birthDate         DateTime
-  userName          String        @unique
-  email             String        @unique
+  userName          String            @unique
+  email             String            @unique
   password          String
-  phoneNumber       String        @unique
+  phoneNumber       String            @unique
   companyName       String
-  role              Role          @default(ADMIN)
-  profileImage      String        @default("default-image.jpg")
-  isAccountVerified Boolean       @default(false)
-  accountStatus     AccountStatus @default(INACTIVE)
+  role              Role              @default(ADMIN)
+  profileImage      String            @default("default-image.jpg")
+  isAccountVerified Boolean           @default(false)
+  accountStatus     UserAccountStatus @default(INACTIVE)
   termsAccepted     Boolean
 
   subscription      Subscription[]
@@ -181,15 +181,15 @@ model Member {
   lastName         String
   gender           Gender
   birthDate        DateTime
-  userName         String       @unique
+  userName         String              @unique
   email            String
   password         String?
   phoneNumber      String
-  profileImage     String       @default("default-member-image.jpg")
+  profileImage     String              @default("default-member-image.jpg")
   address          String
   emergencyContact String
-  role             Role         @default(MEMBER)
-  status           MemberStatus @default(ACTIVE)
+  role             Role                @default(MEMBER)
+  accountStatus    MemberAccountStatus @default(ACTIVE)
 
   memberships         Membership[]
   payments            Payment[]

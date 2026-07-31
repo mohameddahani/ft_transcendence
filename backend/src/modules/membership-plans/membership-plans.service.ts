@@ -9,9 +9,9 @@ import {
 } from '@nestjs/common';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import {
-  AccountStatus,
   MembershipStatus,
   SubscriptionStatus,
+  UserAccountStatus,
 } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
@@ -279,16 +279,18 @@ export class MembershipPlansService {
       throw new UnauthorizedException(
         'You don’t have an active subscription. Upgrade your plan to continue.',
       );
-    } else if (subscription.user.accountStatus !== AccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === AccountStatus.INACTIVE) {
+    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
         throw new UnauthorizedException(
           'Your account is inactive. Please activate your account to continue.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.PENDING) {
+      } else if (
+        subscription.user.accountStatus === UserAccountStatus.PENDING
+      ) {
         throw new UnauthorizedException(
           'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.BANNED) {
+      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
         throw new UnauthorizedException(
           'Your account has been suspended. Please contact support for assistance.',
         );

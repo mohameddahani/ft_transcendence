@@ -1,4 +1,4 @@
-import { AccountStatus, Role } from '@/generated/prisma/enums';
+import { UserAccountStatus, Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   BadRequestException,
@@ -98,14 +98,14 @@ export class OwnersService {
     const user = await this.findOne(id);
 
     // * Check if user not Active
-    if (user.accountStatus === AccountStatus.ACTIVE) {
+    if (user.accountStatus === UserAccountStatus.ACTIVE) {
       throw new BadRequestException('This account is already active.');
     }
 
     await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
-        accountStatus: AccountStatus.ACTIVE,
+        accountStatus: UserAccountStatus.ACTIVE,
       },
     });
   }
@@ -116,14 +116,14 @@ export class OwnersService {
     const user = await this.findOne(id);
 
     // * Check if user not Active
-    if (user.accountStatus !== AccountStatus.ACTIVE) {
-      if (user.accountStatus === AccountStatus.INACTIVE) {
+    if (user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (user.accountStatus === UserAccountStatus.INACTIVE) {
         throw new BadRequestException(
           'Only active accounts can be moved to pending status.',
         );
-      } else if (user.accountStatus === AccountStatus.PENDING) {
+      } else if (user.accountStatus === UserAccountStatus.PENDING) {
         throw new BadRequestException('This account is already pending.');
-      } else if (user.accountStatus === AccountStatus.BANNED) {
+      } else if (user.accountStatus === UserAccountStatus.BANNED) {
         throw new BadRequestException(
           'A banned account cannot be moved to pending. Please reactivate the account first if appropriate.',
         );
@@ -133,7 +133,7 @@ export class OwnersService {
     await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
-        accountStatus: AccountStatus.PENDING,
+        accountStatus: UserAccountStatus.PENDING,
       },
     });
   }
@@ -144,12 +144,12 @@ export class OwnersService {
     const user = await this.findOne(id);
 
     // * Check if user not Active
-    if (user.accountStatus !== AccountStatus.ACTIVE) {
-      if (user.accountStatus === AccountStatus.INACTIVE) {
+    if (user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (user.accountStatus === UserAccountStatus.INACTIVE) {
         throw new BadRequestException(
           'Only active accounts can be moved to banned status.',
         );
-      } else if (user.accountStatus === AccountStatus.BANNED) {
+      } else if (user.accountStatus === UserAccountStatus.BANNED) {
         throw new BadRequestException('This account is already banned.');
       }
     }
@@ -157,7 +157,7 @@ export class OwnersService {
     await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
-        accountStatus: AccountStatus.BANNED,
+        accountStatus: UserAccountStatus.BANNED,
       },
     });
   }

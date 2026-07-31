@@ -190,7 +190,7 @@ export class ProfilesService {
         address: true,
         emergencyContact: true,
         role: true,
-        status: true,
+        accountStatus: true,
       },
     });
 
@@ -344,7 +344,7 @@ export class ProfilesService {
         address: true,
         emergencyContact: true,
         role: true,
-        status: true,
+        accountStatus: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -1,4 +1,7 @@
-import { AccountStatus, SubscriptionStatus } from '@/generated/prisma/enums';
+import {
+  UserAccountStatus,
+  SubscriptionStatus,
+} from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   Injectable,
@@ -38,7 +41,7 @@ export class AdminPaymentsService {
             address: true,
             emergencyContact: true,
             role: true,
-            status: true,
+            accountStatus: true,
             memberships: true,
             payments: true,
             notifications: true,
@@ -88,7 +91,7 @@ export class AdminPaymentsService {
             address: true,
             emergencyContact: true,
             role: true,
-            status: true,
+            accountStatus: true,
             memberships: true,
             payments: true,
             notifications: true,
@@ -122,16 +125,18 @@ export class AdminPaymentsService {
       throw new UnauthorizedException(
         'You don’t have an active subscription. Upgrade your plan to continue.',
       );
-    } else if (subscription.user.accountStatus !== AccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === AccountStatus.INACTIVE) {
+    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
         throw new UnauthorizedException(
           'Your account is inactive. Please activate your account to continue.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.PENDING) {
+      } else if (
+        subscription.user.accountStatus === UserAccountStatus.PENDING
+      ) {
         throw new UnauthorizedException(
           'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
         );
-      } else if (subscription.user.accountStatus === AccountStatus.BANNED) {
+      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
         throw new UnauthorizedException(
           'Your account has been suspended. Please contact support for assistance.',
         );
