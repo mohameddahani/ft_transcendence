@@ -13,6 +13,7 @@ import {
 import { Transform, Type } from 'class-transformer';
 import { IsValidPassword } from '@/core/utils/password.validator';
 import { Gender } from '@/generated/prisma/enums';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterUserDto {
   // * First Name
@@ -34,6 +35,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'Mohamed', description: 'User first name' }) // * Swagger Document
   firstName!: string;
 
   // * Last Name
@@ -47,6 +49,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'Dahani', description: 'User first name' }) // * Swagger Document
   lastName!: string;
 
   // * Gender
@@ -54,11 +57,13 @@ export class RegisterUserDto {
     typeof value === 'string' ? value.toUpperCase() : value,
   )
   @IsEnum(Gender)
+  @ApiProperty({ enum: Gender, example: Gender.MALE }) // * Swagger Document
   gender!: Gender;
 
   // * Birth Date
   @Type(() => Date)
   @IsDate()
+  @ApiProperty({ example: '1996-05-23', description: 'User Birth Date' }) // * Swagger Document
   birthDate!: Date;
 
   // * Email
@@ -67,6 +72,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'mohamed@gmail.com', description: 'User Email' }) // * Swagger Document
   email!: string;
 
   // * Password
@@ -75,6 +81,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'Passw0rd123@', description: 'User Password' }) // * Swagger Document
   password!: string;
 
   // * Phone Number
@@ -86,6 +93,7 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value?.replace(/\s+/g, '') : value,
   )
+  @ApiProperty({ example: '+212607080904', description: 'User Phone Number' }) // * Swagger Document
   phoneNumber!: string;
 
   // * Company Name
@@ -95,9 +103,11 @@ export class RegisterUserDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'City Club', description: 'User Company Name' }) // * Swagger Document
   companyName!: string;
 
   // * Terms acceptance
   @IsBoolean()
+  @ApiProperty({ example: true, description: 'User Terms Accepted' }) // * Swagger Document
   termsAccepted!: boolean;
 }
