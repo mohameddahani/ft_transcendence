@@ -61,6 +61,15 @@ async function bootstrap() {
   const documentation = SwaggerModule.createDocument(app, swagger); // * create document
   SwaggerModule.setup('swagger', app, documentation); // * setup documentation on domain/swagger
 
+  // * CORS
+  app.enableCors({
+    origin: process.env.FRONTEND_URL, // * Controls which websites are allowed to access your API or to see Response Your API.
+    credentials: true, // * Allows cookies and HTTP authentication.
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // * Allowed HTTP methods.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'], // * Which request headers the browser may send
+    maxAge: 86400, // * How long the browser caches the CORS preflight (OPTIONS) response. / 86400 = 24 hours.
+  });
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

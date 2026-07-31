@@ -41,6 +41,8 @@
 // * Logic code of payment
 // ! Logic code of notifications
 
+// * Enable Cors
+
 // * Logic code Logout
 
 // * Give the auth to any one to see plans (in landing page)
@@ -53,7 +55,7 @@
 
 // * Understand how is email work
 
-// ! CRSF check documentation of NESTJS
+// * CRSF check documentation of NESTJS
 
 // * check admin of gym when he try to add members has more palace depend on his plan or subscription
 // * Check Down grade of plans of admin of gym by number of members
