@@ -185,7 +185,7 @@ model Member {
   email            String
   password         String?
   phoneNumber      String
-  photo            String       @default("default-member-image.jpg")
+  profileImage     String       @default("default-member-image.jpg")
   address          String
   emergencyContact String
   role             Role         @default(MEMBER)

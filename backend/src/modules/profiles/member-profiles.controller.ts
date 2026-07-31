@@ -5,7 +5,6 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
   Res,
   UploadedFile,
@@ -14,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import type { Response } from 'express';
@@ -42,20 +40,10 @@ export class MemberProfilesController {
   @Roles([Role.MEMBER])
   @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
-  findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
-    return this.profilesService.findMe(accessTokenPayload.id);
-  }
-
-  // * Update data of member
-  @Patch('edit-profile')
-  @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.MEMBER])
-  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
-  update(
+  findMeMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: UpdateProfileDto,
   ) {
-    return this.profilesService.update(accessTokenPayload.id, body);
+    return this.profilesService.findMeMember(accessTokenPayload.id);
   }
 
   // * Upload profile image
@@ -117,7 +105,7 @@ export class MemberProfilesController {
   @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  uploadProfileImage(
+  uploadProfileImageMember(
     // * @UploadedFile: extracts the uploaded file from the request
     @UploadedFile() file: Express.Multer.File,
 
@@ -129,7 +117,7 @@ export class MemberProfilesController {
       throw new BadRequestException('No Image Provided');
     }
 
-    return this.profilesService.uploadProfileImage(
+    return this.profilesService.uploadProfileImageMember(
       accessTokenPayload.id,
       file.filename,
     );
@@ -140,10 +128,10 @@ export class MemberProfilesController {
   @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  removeProfileImage(
+  removeProfileImageMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.profilesService.removeProfileImage(accessTokenPayload.id);
+    return this.profilesService.removeProfileImageMember(accessTokenPayload.id);
   }
 
   // * Get image
@@ -151,11 +139,15 @@ export class MemberProfilesController {
   @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 300, ttl: 60_000 } })
-  findImage(
+  findImageMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('image') image: string,
     @Res() res: Response,
   ) {
-    return this.profilesService.findImage(accessTokenPayload.id, image, res);
+    return this.profilesService.findImageMember(
+      accessTokenPayload.id,
+      image,
+      res,
+    );
   }
 }
