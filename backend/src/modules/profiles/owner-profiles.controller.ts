@@ -26,6 +26,8 @@ import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
 @Controller('/api/users/owners')
+@UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.OWNER])
 export class OwnerProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
@@ -38,8 +40,6 @@ export class OwnerProfilesController {
   // * Get current owner
   @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
-  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.OWNER])
   @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMe(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
@@ -48,8 +48,6 @@ export class OwnerProfilesController {
 
   // * Update data of owner
   @Patch('edit-profile')
-  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -114,8 +112,6 @@ export class OwnerProfilesController {
   )
 
   // * UseGuards: applies authentication/authorization guards to protect the route
-  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   uploadProfileImage(
     // * @UploadedFile: extracts the uploaded file from the request
@@ -137,8 +133,6 @@ export class OwnerProfilesController {
 
   // * Remove profile image
   @Delete('profile-image')
-  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   removeProfileImage(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -148,8 +142,6 @@ export class OwnerProfilesController {
 
   // * Get image
   @Get('profile-image/:image')
-  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.OWNER])
   @Throttle({ default: { limit: 300, ttl: 60_000 } })
   findImage(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,

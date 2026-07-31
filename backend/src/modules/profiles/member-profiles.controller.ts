@@ -24,6 +24,8 @@ import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
 @Controller('/api/users/members')
+@UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.MEMBER])
 export class MemberProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
@@ -36,8 +38,6 @@ export class MemberProfilesController {
   // * Get current member
   @Get('me')
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
-  @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.MEMBER])
   @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMeMember(
@@ -102,8 +102,6 @@ export class MemberProfilesController {
   )
 
   // * UseGuards: applies authentication/authorization guards to protect the route
-  @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   uploadProfileImageMember(
     // * @UploadedFile: extracts the uploaded file from the request
@@ -125,8 +123,6 @@ export class MemberProfilesController {
 
   // * Remove profile image
   @Delete('profile-image')
-  @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   removeProfileImageMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -136,8 +132,6 @@ export class MemberProfilesController {
 
   // * Get image
   @Get('profile-image/:image')
-  @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
-  @Roles([Role.MEMBER])
   @Throttle({ default: { limit: 300, ttl: 60_000 } })
   findImageMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
