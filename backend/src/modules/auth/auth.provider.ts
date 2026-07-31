@@ -234,6 +234,64 @@ export class AuthProvider {
     return { user: safeUser, accessToken, refreshToken, refreshExpiresIn };
   }
 
+  // * Logout (Admin)
+  async logoutAdmin(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.userRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { user: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the JWT payload matches the database
+    if (storedToken.userId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to logout
+    if (storedToken.user.accountStatus !== AccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.user.role !== Role.ADMIN) {
+      throw new UnauthorizedException();
+    }
+
+    // * Revoke the refresh Token
+    await this.prisma.userRefreshToken.update({
+      where: {
+        id: storedToken.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+  }
+
   // * Login Member
   async loginMember(request: Request, data: LoginMemberDto) {
     // * Check if member already exist by userName before login

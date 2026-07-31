@@ -35,7 +35,7 @@ export class AuthRolesGuard implements CanActivate {
       return true;
     }
 
-    // * Get user from request (set by AuthGuard)
+    // * Get user from request (set by UseGuards)
     const request: Request = context.switchToHttp().getRequest();
     const user = request['user'] as AccessTokenPayload;
 

@@ -21,7 +21,6 @@ import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
-import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
@@ -32,6 +31,8 @@ import { QueryTokenDto } from './dto/query-token.dto';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
+import { OwnerAccessTokenAuthGuard } from './guards/owner-access-token-auth.guard';
+import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -75,13 +76,38 @@ export class AuthController {
     return { user, accessToken };
   }
 
-  // * Logout
+  // * Logout (Admin)
   @Post('admins/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
+  @UseGuards(
+    AdminAccessTokenAuthGuard,
+    AdminRefreshTokenAuthGuard,
+    AuthRolesGuard,
+  )
   @Roles([Role.ADMIN])
-  logout() {
+  logoutAdmin(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // * Clear the secure HttpOnly cookie
+    response.clearCookie('refresh_token', {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+    });
+    return this.authService.logoutAdmin(refreshToken, refreshTokenPayload);
+  }
+
+  // * Logout (Owner)
+  @Post('owners/logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
+  logoutOwner() {
     // return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
