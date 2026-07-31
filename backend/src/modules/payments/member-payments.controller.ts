@@ -16,7 +16,7 @@ import { MemberPaymentsService } from './member-payments.service';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
-@Controller('/api/member/payments')
+@Controller('/api/members/payments')
 // * Make Authorazation Golbal on this route
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])

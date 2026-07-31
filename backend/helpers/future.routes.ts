@@ -36,16 +36,16 @@
 // ! @@unique([id, planId]) and @@index and all props that has @@ in prisma
 // * add profile image of member (ui ux of member not admin)
 
-// ! make refresh token revok in logout
+// * make refresh token revok in logout
 
-// ! Logic code of payment
+// * Logic code of payment
 // ! Logic code of notifications
 
-// ! Logic code Logout
+// * Logic code Logout
 
 // ! Give the auth to any one to see plans (in landing page)
 
-// ! Give the auth to member to see payments
+// * Give the auth to member to see payments
 
 // ! Check Roles in user controller
 
