@@ -22,15 +22,14 @@ import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-token-auth.guard';
 
 @Controller('/api/plans')
-// * Make Authorazation Golbal on this route
-@UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([Role.OWNER])
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 
   // * Add Plan
   @Post()
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   addPlan(@Body() body: AddPlanDto) {
     return this.plansService.addPlan(body);
   }
@@ -38,6 +37,8 @@ export class PlansController {
   // * Add Plan Duration
   @Post('durations')
   @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   addPlanDuration(@Body() body: AddPlanDurationDto) {
     return this.plansService.addPlanDuration(body);
   }
@@ -45,6 +46,8 @@ export class PlansController {
   // * Update a Plan
   @Patch(':id')
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   update(@Param('id', ParseUUIDPipe) id: string, @Body() body: UpdatePlanDto) {
     return this.plansService.update(id, body);
   }
@@ -52,6 +55,8 @@ export class PlansController {
   // * Update a Plan Duration
   @Patch('durations/:id')
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
   updatePlanDuration(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdatePlanDurationDto,

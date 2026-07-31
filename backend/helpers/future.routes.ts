@@ -43,11 +43,11 @@
 
 // * Logic code Logout
 
-// ! Give the auth to any one to see plans (in landing page)
+// * Give the auth to any one to see plans (in landing page)
 
 // * Give the auth to member to see payments
 
-// ! Check Roles in user controller
+// * Check Roles in user controller
 
 // * Change UserType of User to member is better
 
