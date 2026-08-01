@@ -10,7 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AdminPaymentsService } from './admin-payments.service';
+import { PaymentsService } from './payments.service';
 import { Throttle } from '@nestjs/throttler';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -21,7 +21,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
 export class AdminPaymentsController {
-  constructor(private readonly adminPaymentsService: AdminPaymentsService) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
   // * Get all Payments (Admin)
   @Get()
@@ -31,7 +31,7 @@ export class AdminPaymentsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.adminPaymentsService.findAll(
+    return this.paymentsService.findAllPaymentsAdmin(
       accessTokenPayload.id,
       page,
       limit,
@@ -45,6 +45,6 @@ export class AdminPaymentsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.adminPaymentsService.findOne(accessTokenPayload.id, id);
+    return this.paymentsService.findOnePaymentAdmin(accessTokenPayload.id, id);
   }
 }

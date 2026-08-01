@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { MemberPaymentsService } from './member-payments.service';
+import { PaymentsService } from './payments.service';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 
@@ -21,7 +21,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])
 export class MemberPaymentsController {
-  constructor(private readonly memberPaymentsService: MemberPaymentsService) {}
+  constructor(private readonly PaymentsService: PaymentsService) {}
 
   // * Get all Payments (Member)
   @Get()
@@ -31,7 +31,7 @@ export class MemberPaymentsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.memberPaymentsService.findAll(
+    return this.PaymentsService.findAllPaymentsMember(
       accessTokenPayload.id,
       page,
       limit,
@@ -45,6 +45,6 @@ export class MemberPaymentsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.memberPaymentsService.findOne(accessTokenPayload.id, id);
+    return this.PaymentsService.findOnePaymentMember(accessTokenPayload.id, id);
   }
 }

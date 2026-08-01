@@ -1,6 +1,7 @@
 import {
-  UserAccountStatus,
+  MembershipStatus,
   SubscriptionStatus,
+  UserAccountStatus,
 } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
@@ -10,11 +11,11 @@ import {
 } from '@nestjs/common';
 
 @Injectable()
-export class AdminPaymentsService {
+export class PaymentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Get all Payments
-  async findAll(adminId: string, page: number, limit: number) {
+  async findAllPaymentsAdmin(adminId: string, page: number, limit: number) {
     // * Check if admin has subscription
     await this.checkIfAdminHasSubscription(adminId);
 
@@ -65,7 +66,7 @@ export class AdminPaymentsService {
   }
 
   // * Get one payment
-  async findOne(adminId: string, id: string) {
+  async findOnePaymentAdmin(adminId: string, id: string) {
     // * Check if admin has subscription
     await this.checkIfAdminHasSubscription(adminId);
 
@@ -114,7 +115,109 @@ export class AdminPaymentsService {
     return payment;
   }
 
-  // ! Private Attributes
+  // * Get all Payments
+  async findAllPaymentsMember(memberId: string, page: number, limit: number) {
+    // * Check if member has membership
+    await this.checkIfMemberHasMembership(memberId);
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        memberId: memberId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        adminId: true,
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            gender: true,
+            birthDate: true,
+            userName: true,
+            email: true,
+            phoneNumber: true,
+            profileImage: true,
+            address: true,
+            emergencyContact: true,
+            role: true,
+            accountStatus: true,
+            memberships: true,
+            payments: true,
+            notifications: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        amount: true,
+        paidAt: true,
+        dueDate: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!payments) {
+      throw new NotFoundException('There Is No Payments To Show');
+    }
+
+    return payments;
+  }
+
+  // * Get one payment
+  async findOnePaymentMember(memberId: string, id: string) {
+    // * Check if member has membership
+    await this.checkIfMemberHasMembership(memberId);
+
+    const payment = await this.prisma.payment.findFirst({
+      where: {
+        id: id,
+        memberId: memberId,
+      },
+      select: {
+        id: true,
+        adminId: true,
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            gender: true,
+            birthDate: true,
+            userName: true,
+            email: true,
+            phoneNumber: true,
+            profileImage: true,
+            address: true,
+            emergencyContact: true,
+            role: true,
+            accountStatus: true,
+            memberships: true,
+            payments: true,
+            notifications: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        amount: true,
+        paidAt: true,
+        dueDate: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!payment) {
+      throw new NotFoundException('Payment Not Found');
+    }
+
+    return payment;
+  }
+
+  // ! Private
+
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
@@ -144,5 +247,34 @@ export class AdminPaymentsService {
     }
 
     return subscription;
+  }
+
+  // * Check if member has membership
+  private async checkIfMemberHasMembership(memberId: string) {
+    // * Check if member already exist
+    const member = await this.prisma.member.findUnique({
+      where: { id: memberId },
+      include: {
+        payments: true,
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found !');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        memberId: member.id,
+        adminId: member.adminId,
+        status: MembershipStatus.ACTIVE,
+      },
+    });
+    if (!membership) {
+      throw new UnauthorizedException(
+        'You don’t have an membership. Upgrade your plan to continue.',
+      );
+    }
+
+    return { member, membership };
   }
 }
