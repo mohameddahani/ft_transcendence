@@ -13,9 +13,12 @@ export class MembershipNotificationCron {
         paymentStatus: PaymentStatus.OVERDUE,
       },
     });
+
     if (payments.length === 0) {
       return;
     }
+
+    // * Create Notification to all this payments
     for (let i = 0; i < payments.length; i++) {
       await this.prisma.memberNotification.create({
         data: {

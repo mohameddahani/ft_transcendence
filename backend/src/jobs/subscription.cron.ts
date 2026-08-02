@@ -7,8 +7,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class SubscriptionCron {
   constructor(private readonly prisma: PrismaService) {}
 
-  // * Check if subscriptions is expired to switch subscription status from ACTIVE to EXPIRED
   @Cron(CronExpression.EVERY_HOUR)
+  // * Check if subscriptions is expired to switch subscription status from ACTIVE to EXPIRED
   async expireSubscriptions() {
     await this.prisma.subscription.updateMany({
       where: {

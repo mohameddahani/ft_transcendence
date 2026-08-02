@@ -9,6 +9,7 @@ export class MembershipCron {
 
   @Cron(CronExpression.EVERY_HOUR)
   async expireMembershipPlans() {
+    // * Check if membership is expired to switch membership status from ACTIVE to EXPIRED
     await this.prisma.membership.updateMany({
       where: {
         membershipStatus: MembershipStatus.ACTIVE,
