@@ -24,7 +24,7 @@
 // * GET all subscription / One subscription
 // * GET all payment / One payment
 // * GET all membership / One membership
-// ! GET all notification / One notification
+// * GET all notification / One notification
 
 // * Make expire time get from .env
 
@@ -39,7 +39,7 @@
 // * make refresh token revok in logout
 
 // * Logic code of payment
-// ! Logic code of notifications
+// ! Cron of notifications
 
 // * Enable Cors
 

@@ -16,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { OwnersModule } from './modules/platform/owners/owners.module';
+import { NotificationModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { OwnersModule } from './modules/platform/owners/owners.module';
     SubscriptionsModule,
     PaymentsModule,
     MembershipsModule,
+    NotificationModule,
   ],
 
   providers: [

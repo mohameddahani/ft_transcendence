@@ -101,6 +101,7 @@ model User {
   payments          Payment[]
   userRefreshTokens UserRefreshToken[]
   userActionTokens  UserActionToken[]
+  notifications     AdminNotification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -143,7 +144,7 @@ model PlanDuration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("planDurations")
+  @@map("plan_durations")
 }
 
 // * Table of Subscription
@@ -193,7 +194,7 @@ model Member {
 
   memberships         Membership[]
   payments            Payment[]
-  notifications       Notification[]
+  notifications       MemberNotification[]
   memberRefreshTokens MemberRefreshToken[]
   memberActionTokens  MemberActionToken[]
 
@@ -246,7 +247,7 @@ model MembershipPlan {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("membershipPlans")
+  @@map("membership_plans")
 }
 
 // * Table of Membership plan Duration
@@ -264,7 +265,7 @@ model MembershipPlanDuration {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("membershipPlanDurations")
+  @@map("membership_plan_durations")
 }
 
 // * Table of Membership Plan
@@ -287,19 +288,40 @@ model Payment {
   @@map("payments")
 }
 
-// * Table of Notifications
-model Notification {
+// * Table of Notifications of Admin
+model AdminNotification {
+  id String @id @default(uuid())
+
+  adminId String
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  type    NotificationType
+  title   String
+  message String
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("admin_notifications")
+}
+
+// * Table of Notifications of Admin
+model MemberNotification {
   id String @id @default(uuid())
 
   memberId String
   member   Member @relation(fields: [memberId], references: [id])
 
-  type      NotificationType
-  message   String
-  sentAt    DateTime         @default(now())
-  delivered Boolean          @default(false)
+  type    NotificationType
+  title   String
+  message String
 
-  @@map("notifications")
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("member_notifications")
 }
 
 // * Table of User Refresh Token
@@ -322,7 +344,7 @@ model UserRefreshToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("userRefreshTokens")
+  @@map("user_refresh_tokens")
 }
 
 // * Table of Member Refresh Token
@@ -345,7 +367,7 @@ model MemberRefreshToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("memberRefreshTokens")
+  @@map("member_refresh_tokens")
 }
 
 // * Table of User Action Token
@@ -363,7 +385,7 @@ model UserActionToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("userActionTokens")
+  @@map("user_action_tokens")
 }
 
 // * Table of Member Action Token
@@ -381,5 +403,5 @@ model MemberActionToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("memberActionTokens")
+  @@map("member_action_tokens")
 }
