@@ -124,7 +124,7 @@ export class MembershipPlansService {
           where: {
             adminId: adminId,
             membershipPlanId: membershipPlan.id,
-            status: MembershipStatus.ACTIVE,
+            membershipStatus: MembershipStatus.ACTIVE,
           },
         });
         if (NumMembers > 0) {
@@ -269,7 +269,7 @@ export class MembershipPlansService {
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
+      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
       include: {
         plan: true,
         user: true,

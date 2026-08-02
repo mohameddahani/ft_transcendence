@@ -12,13 +12,13 @@ export class SubscriptionCron {
   async expireSubscriptions() {
     await this.prisma.subscription.updateMany({
       where: {
-        status: SubscriptionStatus.ACTIVE,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
         expiresAt: {
           lte: new Date(),
         },
       },
       data: {
-        status: SubscriptionStatus.EXPIRED,
+        subscriptionStatus: SubscriptionStatus.EXPIRED,
       },
     });
   }

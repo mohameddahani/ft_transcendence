@@ -160,13 +160,13 @@ model Subscription {
   planDurationId String
   planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
 
-  status    SubscriptionStatus @default(ACTIVE)
-  startedAt DateTime           @default(now())
-  expiresAt DateTime
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  startedAt          DateTime           @default(now())
+  expiresAt          DateTime
   // autoRenew Boolean @default(false)
-  amount    Decimal            @db.Decimal(10, 2)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  amount             Decimal            @db.Decimal(10, 2)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   @@map("subscriptions")
 }
@@ -220,9 +220,9 @@ model Membership {
   membershipPlanDurationId String
   membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
-  status    MembershipStatus @default(ACTIVE)
-  startDate DateTime         @default(now())
-  expiresAt DateTime
+  membershipStatus MembershipStatus @default(ACTIVE)
+  startDate        DateTime         @default(now())
+  expiresAt        DateTime
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -278,12 +278,12 @@ model Payment {
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  amount    Decimal       @db.Decimal(10, 2)
-  paidAt    DateTime
-  dueDate   DateTime
-  status    PaymentStatus @default(UNPAID)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  amount        Decimal       @db.Decimal(10, 2)
+  paidAt        DateTime
+  dueDate       DateTime
+  paymentStatus PaymentStatus @default(UNPAID)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@map("payments")
 }

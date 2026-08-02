@@ -53,7 +53,7 @@ export class PaymentsService {
         amount: true,
         paidAt: true,
         dueDate: true,
-        status: true,
+        paymentStatus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -103,7 +103,7 @@ export class PaymentsService {
         amount: true,
         paidAt: true,
         dueDate: true,
-        status: true,
+        paymentStatus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -154,7 +154,7 @@ export class PaymentsService {
         amount: true,
         paidAt: true,
         dueDate: true,
-        status: true,
+        paymentStatus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -204,7 +204,7 @@ export class PaymentsService {
         amount: true,
         paidAt: true,
         dueDate: true,
-        status: true,
+        paymentStatus: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -221,7 +221,7 @@ export class PaymentsService {
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
+      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
     });
     if (!subscription || !subscription.plan.isActive) {
@@ -266,7 +266,7 @@ export class PaymentsService {
       where: {
         memberId: member.id,
         adminId: member.adminId,
-        status: MembershipStatus.ACTIVE,
+        membershipStatus: MembershipStatus.ACTIVE,
       },
     });
     if (!membership) {

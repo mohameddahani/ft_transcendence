@@ -67,7 +67,7 @@ export class PlansService {
         const NumAdmins = await this.prisma.subscription.count({
           where: {
             planId: plan.id,
-            status: SubscriptionStatus.ACTIVE,
+            subscriptionStatus: SubscriptionStatus.ACTIVE,
           },
         });
         if (NumAdmins > 0) {

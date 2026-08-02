@@ -141,7 +141,7 @@ export class MembersService {
           amount: membership.membershipPlanDuration.price,
           paidAt: membership.startDate,
           dueDate: membership.expiresAt,
-          status: PaymentStatus.PAID,
+          paymentStatus: PaymentStatus.PAID,
         },
       });
 
@@ -264,7 +264,7 @@ export class MembersService {
         // * make old membership expired
         await tx.membership.update({
           where: { id: membership.id },
-          data: { status: MembershipStatus.EXPIRED },
+          data: { membershipStatus: MembershipStatus.EXPIRED },
         });
 
         // * Add new Membership to member
@@ -291,7 +291,7 @@ export class MembersService {
             amount: newMembership.membershipPlanDuration.price,
             paidAt: newMembership.startDate,
             dueDate: newMembership.expiresAt,
-            status: PaymentStatus.PAID,
+            paymentStatus: PaymentStatus.PAID,
           },
         });
       });
@@ -462,7 +462,7 @@ export class MembersService {
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
+      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
     });
     if (!subscription || !subscription.plan.isActive) {

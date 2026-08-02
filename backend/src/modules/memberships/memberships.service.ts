@@ -32,7 +32,7 @@ export class MembershipsService {
         },
         membershipPlan: true,
         membershipPlanDuration: true,
-        status: true,
+        membershipStatus: true,
         startDate: true,
         expiresAt: true,
         createdAt: true,
@@ -63,7 +63,7 @@ export class MembershipsService {
         },
         membershipPlan: true,
         membershipPlanDuration: true,
-        status: true,
+        membershipStatus: true,
         startDate: true,
         expiresAt: true,
         createdAt: true,
@@ -83,12 +83,12 @@ export class MembershipsService {
     const memberships = await this.prisma.membership.findFirst({
       where: {
         memberId: memberId,
-        status: MembershipStatus.ACTIVE,
+        membershipStatus: MembershipStatus.ACTIVE,
       },
       select: {
         membershipPlan: true,
         membershipPlanDuration: true,
-        status: true,
+        membershipStatus: true,
         startDate: true,
         expiresAt: true,
       },
@@ -112,7 +112,7 @@ export class MembershipsService {
       select: {
         membershipPlan: true,
         membershipPlanDuration: true,
-        status: true,
+        membershipStatus: true,
         startDate: true,
         expiresAt: true,
       },
@@ -129,7 +129,7 @@ export class MembershipsService {
   // * Check if admin has subscription
   private async checkIfAdminHasSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, status: SubscriptionStatus.ACTIVE },
+      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
     });
     if (!subscription || !subscription.plan.isActive) {

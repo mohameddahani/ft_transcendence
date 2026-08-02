@@ -80,7 +80,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,
-        status: SubscriptionStatus.ACTIVE,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
       },
     });
 
@@ -94,7 +94,7 @@ export class SubscriptionsService {
       if (
         subscription.planId === newPlan.id &&
         subscription.planDurationId === duration.id &&
-        subscription.status === SubscriptionStatus.ACTIVE
+        subscription.subscriptionStatus === SubscriptionStatus.ACTIVE
       ) {
         throw new ConflictException('You already have this subscription');
       }
@@ -108,7 +108,7 @@ export class SubscriptionsService {
             id: subscription.id,
           },
           data: {
-            status: SubscriptionStatus.EXPIRED,
+            subscriptionStatus: SubscriptionStatus.EXPIRED,
           },
         }),
 
@@ -157,7 +157,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: adminId,
-        status: SubscriptionStatus.ACTIVE,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
       },
     });
 
@@ -171,7 +171,7 @@ export class SubscriptionsService {
         id: subscription.id,
       },
       data: {
-        status: SubscriptionStatus.CANCELLED,
+        subscriptionStatus: SubscriptionStatus.CANCELLED,
       },
     });
   }
@@ -220,12 +220,12 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: adminId,
-        status: SubscriptionStatus.ACTIVE,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
       },
       select: {
         plan: true,
         planDuration: true,
-        status: true,
+        subscriptionStatus: true,
         startedAt: true,
         expiresAt: true,
         amount: true,
@@ -250,7 +250,7 @@ export class SubscriptionsService {
       select: {
         plan: true,
         planDuration: true,
-        status: true,
+        subscriptionStatus: true,
         startedAt: true,
         expiresAt: true,
         amount: true,
