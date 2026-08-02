@@ -17,6 +17,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { OwnersModule } from './modules/platform/owners/owners.module';
 import { NotificationModule } from './modules/notifications/notifications.module';
+import { MembershipNotificationCron } from './jobs/membership-notification.cron';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { NotificationModule } from './modules/notifications/notifications.module
     SubscriptionCron,
     MembershipCron,
     PaymentCron,
+    MembershipNotificationCron,
   ],
 })
 export class AppModule {}

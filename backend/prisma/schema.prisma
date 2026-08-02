@@ -66,6 +66,7 @@ enum PaymentStatus {
 enum NotificationType {
   PAYMENT_REMINDER
   MEMBERSHIP_EXPIRATION
+  SUBSCRIPTION_EXPIRATION
   CUSTOM
 }
 
@@ -295,9 +296,9 @@ model AdminNotification {
   adminId String
   admin   User   @relation(fields: [adminId], references: [id])
 
-  type    NotificationType
-  title   String
-  message String
+  notificationType NotificationType
+  title            String
+  message          String
 
   isRead Boolean @default(false)
 
@@ -313,9 +314,9 @@ model MemberNotification {
   memberId String
   member   Member @relation(fields: [memberId], references: [id])
 
-  type    NotificationType
-  title   String
-  message String
+  notificationType NotificationType
+  title            String
+  message          String
 
   isRead Boolean @default(false)
 
