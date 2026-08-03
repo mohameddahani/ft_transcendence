@@ -80,20 +80,20 @@ enum ActionTokenType {
 // * Table of users
 model User {
   id                String            @id @default(uuid())
-  firstName         String
-  lastName          String
+  firstName         String            @map("first_name")
+  lastName          String            @map("last_name")
   gender            Gender
-  birthDate         DateTime
-  userName          String            @unique
+  birthDate         DateTime          @map("birth_date")
+  userName          String            @unique @map("user_name")
   email             String            @unique
   password          String
-  phoneNumber       String            @unique
-  companyName       String
+  phoneNumber       String            @unique @map("phone_number")
+  companyName       String            @map("company_name")
   role              Role              @default(ADMIN)
-  profileImage      String            @default("default-image.jpg")
-  isAccountVerified Boolean           @default(false)
-  accountStatus     UserAccountStatus @default(INACTIVE)
-  termsAccepted     Boolean
+  profileImage      String            @default("default-image.jpg") @map("profile_image")
+  isAccountVerified Boolean           @default(false) @map("is_account_verified")
+  accountStatus     UserAccountStatus @default(INACTIVE) @map("account_status")
+  termsAccepted     Boolean           @map("terms_accepted")
 
   subscription      Subscription[]
   members           Member[]
@@ -104,8 +104,8 @@ model User {
   userActionTokens  UserActionToken[]
   notifications     AdminNotification[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -114,18 +114,18 @@ model User {
 model Plan {
   id String @id @default(uuid())
 
-  planName String @unique // BASIC, PRO, ENTERPRISE
+  planName String @unique @map("plan_name") // BASIC, PRO, ENTERPRISE
 
-  maxMembers  Int // 100
+  maxMembers  Int     @map("max_members") // 100
   description String?
 
-  isActive Boolean @default(true)
+  isActive Boolean @default(true) @map("is_active")
 
   durations     PlanDuration[]
   subscriptions Subscription[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("plans")
 }
@@ -134,16 +134,16 @@ model Plan {
 model PlanDuration {
   id String @id @default(uuid())
 
-  durationDays Int
+  durationDays Int     @map("duration_days")
   price        Decimal @db.Decimal(10, 2)
 
-  planId String
+  planId String @map("plan_id")
   plan   Plan   @relation(fields: [planId], references: [id])
 
   subscriptions Subscription[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("plan_durations")
 }
@@ -152,22 +152,22 @@ model PlanDuration {
 model Subscription {
   id String @id @default(uuid())
 
-  userId String
+  userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
-  planId String
+  planId String @map("plan_id")
   plan   Plan   @relation(fields: [planId], references: [id])
 
-  planDurationId String
+  planDurationId String       @map("plan_duration_id")
   planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
 
-  subscriptionStatus SubscriptionStatus @default(ACTIVE)
-  startedAt          DateTime           @default(now())
-  expiresAt          DateTime
+  subscriptionStatus SubscriptionStatus @default(ACTIVE) @map("subscription_status")
+  startedAt          DateTime           @default(now()) @map("started_at")
+  expiresAt          DateTime           @map("expires_at")
   // autoRenew Boolean @default(false)
   amount             Decimal            @db.Decimal(10, 2)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
   @@map("subscriptions")
 }
@@ -176,22 +176,22 @@ model Subscription {
 model Member {
   id String @id @default(uuid())
 
-  adminId String
+  adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  firstName        String
-  lastName         String
+  firstName        String              @map("first_name")
+  lastName         String              @map("last_name")
   gender           Gender
-  birthDate        DateTime
-  userName         String              @unique
+  birthDate        DateTime            @map("birth_date")
+  userName         String              @unique @map("user_name")
   email            String
   password         String?
-  phoneNumber      String
-  profileImage     String              @default("default-member-image.jpg")
+  phoneNumber      String              @map("phone_number")
+  profileImage     String              @default("default-member-image.jpg") @map("profile_image")
   address          String
-  emergencyContact String
+  emergencyContact String              @map("emergency_contact")
   role             Role                @default(MEMBER)
-  accountStatus    MemberAccountStatus @default(ACTIVE)
+  accountStatus    MemberAccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
@@ -199,8 +199,8 @@ model Member {
   memberRefreshTokens MemberRefreshToken[]
   memberActionTokens  MemberActionToken[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("members")
 }
@@ -209,24 +209,24 @@ model Member {
 model Membership {
   id String @id @default(uuid())
 
-  adminId String
+  adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  memberId String
+  memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  membershipPlanId String
+  membershipPlanId String         @map("membership_plan_id")
   membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
 
-  membershipPlanDurationId String
+  membershipPlanDurationId String                 @map("membership_plan_duration_id")
   membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
-  membershipStatus MembershipStatus @default(ACTIVE)
-  startDate        DateTime         @default(now())
-  expiresAt        DateTime
+  membershipStatus MembershipStatus @default(ACTIVE) @map("membership_status")
+  startDate        DateTime         @default(now()) @map("start_date")
+  expiresAt        DateTime         @map("expires_at")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("memberships")
 }
@@ -235,18 +235,18 @@ model Membership {
 model MembershipPlan {
   id String @id @default(uuid())
 
-  adminId String
+  adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  planName    String
+  planName    String  @map("plan_name")
   description String?
-  isActive    Boolean @default(true)
+  isActive    Boolean @default(true) @map("is_active")
 
   membershipPlanDurations MembershipPlanDuration[]
   memberships             Membership[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("membership_plans")
 }
@@ -255,16 +255,16 @@ model MembershipPlan {
 model MembershipPlanDuration {
   id String @id @default(uuid())
 
-  durationDays Int
+  durationDays Int     @map("duration_days")
   price        Decimal @db.Decimal(10, 2)
 
-  membershipPlanId String
+  membershipPlanId String         @map("membership_plan_id")
   membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
 
   memberships Membership[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("membership_plan_durations")
 }
@@ -273,18 +273,18 @@ model MembershipPlanDuration {
 model Payment {
   id String @id @default(uuid())
 
-  memberId String
+  memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  adminId String
+  adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
   amount        Decimal       @db.Decimal(10, 2)
-  paidAt        DateTime
-  dueDate       DateTime
-  paymentStatus PaymentStatus @default(UNPAID)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  paidAt        DateTime      @map("paid_at")
+  dueDate       DateTime      @map("due_date")
+  paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   @@map("payments")
 }
@@ -293,16 +293,16 @@ model Payment {
 model AdminNotification {
   id String @id @default(uuid())
 
-  adminId String
+  adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  notificationType NotificationType
+  notificationType NotificationType @map("notification_type")
   title            String
   message          String
 
-  isRead Boolean @default(false)
+  isRead Boolean @default(false) @map("is_read")
 
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("admin_notifications")
 }
@@ -311,16 +311,16 @@ model AdminNotification {
 model MemberNotification {
   id String @id @default(uuid())
 
-  memberId String
+  memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  notificationType NotificationType
+  notificationType NotificationType @map("notification_type")
   title            String
   message          String
 
-  isRead Boolean @default(false)
+  isRead Boolean @default(false) @map("is_read")
 
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("member_notifications")
 }
@@ -332,18 +332,18 @@ model UserRefreshToken {
   jti  String @unique
   hash String
 
-  userId String
+  userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
-  expiresAt DateTime
-  revokedAt DateTime?
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
 
   ip        String?
-  userAgent String?
+  userAgent String? @map("user_agent")
   device    String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_refresh_tokens")
 }
@@ -355,18 +355,18 @@ model MemberRefreshToken {
   jti  String @unique
   hash String
 
-  memberId String
+  memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  expiresAt DateTime
-  revokedAt DateTime?
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
 
   ip        String?
-  userAgent String?
+  userAgent String? @map("user_agent")
   device    String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("member_refresh_tokens")
 }
@@ -375,16 +375,16 @@ model MemberRefreshToken {
 model UserActionToken {
   id String @id @default(uuid())
 
-  userId String
+  userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
-  tokenHash String          @unique
+  tokenHash String          @unique @map("token_hash")
   type      ActionTokenType
-  expiresAt DateTime
-  usedAt    DateTime?
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_action_tokens")
 }
@@ -393,16 +393,16 @@ model UserActionToken {
 model MemberActionToken {
   id String @id @default(uuid())
 
-  memberId String
+  memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  tokenHash String          @unique
+  tokenHash String          @unique @map("token_hash")
   type      ActionTokenType
-  expiresAt DateTime
-  usedAt    DateTime?
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("member_action_tokens")
 }
