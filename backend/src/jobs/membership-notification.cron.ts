@@ -1,7 +1,9 @@
 import { NotificationType, PaymentStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+@Injectable()
 export class MembershipNotificationCron {
   constructor(private readonly prisma: PrismaService) {}
 
