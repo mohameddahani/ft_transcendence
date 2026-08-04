@@ -107,6 +107,7 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([firstName, lastName])
   @@map("users")
 }
 
@@ -169,6 +170,7 @@ model Subscription {
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
+  @@index([userId])
   @@map("subscriptions")
 }
 
@@ -202,6 +204,7 @@ model Member {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId, firstName, lastName])
   @@map("members")
 }
 
@@ -228,6 +231,7 @@ model Membership {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId, memberId])
   @@map("memberships")
 }
 
@@ -248,6 +252,7 @@ model MembershipPlan {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId, planName])
   @@map("membership_plans")
 }
 
@@ -286,6 +291,7 @@ model Payment {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
+  @@index([adminId, memberId])
   @@map("payments")
 }
 
@@ -304,6 +310,7 @@ model AdminNotification {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([adminId])
   @@map("admin_notifications")
 }
 
@@ -322,6 +329,7 @@ model MemberNotification {
 
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([memberId])
   @@map("member_notifications")
 }
 
@@ -345,6 +353,7 @@ model UserRefreshToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([userId])
   @@map("user_refresh_tokens")
 }
 
@@ -368,6 +377,7 @@ model MemberRefreshToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([memberId])
   @@map("member_refresh_tokens")
 }
 
@@ -386,6 +396,7 @@ model UserActionToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([userId])
   @@map("user_action_tokens")
 }
 
@@ -404,5 +415,6 @@ model MemberActionToken {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([memberId])
   @@map("member_action_tokens")
 }
