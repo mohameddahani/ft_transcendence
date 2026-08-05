@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class AddMemberDto {
   // * First Name
@@ -32,6 +33,7 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'Ayman', description: 'Member first name' }) // * Swagger Document
   firstName!: string;
 
   // * Last Name
@@ -45,6 +47,7 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'El Jamaaouy', description: 'Member last name' }) // * Swagger Document
   lastName!: string;
 
   // * Gender
@@ -52,11 +55,13 @@ export class AddMemberDto {
     typeof value === 'string' ? value.toUpperCase() : value,
   )
   @IsEnum(Gender)
+  @ApiProperty({ enum: Gender, example: Gender.MALE }) // * Swagger Document
   gender!: Gender;
 
   // * Birth Date
   @Type(() => Date)
   @IsDate()
+  @ApiProperty({ example: '1996-05-23', description: 'Member Birth Date' }) // * Swagger Document
   birthDate!: Date;
 
   // * Email
@@ -65,6 +70,7 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'ayman@gmail.com', description: 'Member Email' }) // * Swagger Document
   email!: string;
 
   // * Phone Number
@@ -76,6 +82,7 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value?.replace(/\s+/g, '') : value,
   )
+  @ApiProperty({ example: '+212607080904', description: 'Member Phone Number' }) // * Swagger Document
   phoneNumber!: string;
 
   // * Address
@@ -86,6 +93,7 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({ example: 'Hay almal Bengurir', description: 'Member Address' }) // * Swagger Document
   address!: string;
 
   // * Emergency Contact
@@ -97,13 +105,22 @@ export class AddMemberDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value?.replace(/\s+/g, '') : value,
   )
+  @ApiProperty({ example: '+212607080905', description: 'Member Phone Number' }) // * Swagger Document
   emergencyContact!: string;
 
   // * Membership PlanId
   @IsUUID()
+  @ApiProperty({
+    example: 'b4453677-b504-44ec-890f-0f42710cd155',
+    description: 'Membership Plan id',
+  }) // * Swagger Document
   membershipPlanId!: string;
 
   // * Membership Plan DurationId
   @IsUUID()
+  @ApiProperty({
+    example: 'b4453677-b504-44ec-890f-0f42710cd156',
+    description: 'Membership Plan Duration id',
+  }) // * Swagger Document
   membershipPlanDurationId!: string;
 }
