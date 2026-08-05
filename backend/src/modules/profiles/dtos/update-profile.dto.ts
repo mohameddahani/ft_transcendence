@@ -1,4 +1,4 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { RegisterUserDto } from '../../auth/dto/register-user.dto';
 
 export class UpdateProfileDto extends PartialType(
