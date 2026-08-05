@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
@@ -10,6 +11,10 @@ export class AddMembershipPlanDto {
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
+  @ApiProperty({
+    example: 'Basic',
+    description: 'Membership Plan Name',
+  }) // * Swagger Document
   planName!: string;
 
   // * Description
@@ -17,5 +22,9 @@ export class AddMembershipPlanDto {
   @IsString()
   @MinLength(2)
   @MaxLength(200)
+  @ApiProperty({
+    example: 'You Have Authorisation to use only Basic Machines',
+    description: 'Membership Plan Description',
+  }) // * Swagger Document
   description!: string;
 }
