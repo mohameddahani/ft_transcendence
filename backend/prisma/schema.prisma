@@ -108,6 +108,7 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([firstName, lastName])
+  @@index([role])
   @@map("users")
 }
 
@@ -171,6 +172,10 @@ model Subscription {
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
   @@index([userId])
+  @@index([subscriptionStatus])
+  @@index([subscriptionStatus, expiresAt])
+  @@index([userId, subscriptionStatus])
+  @@index([planId, subscriptionStatus])
   @@map("subscriptions")
 }
 
@@ -204,7 +209,9 @@ model Member {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId])
   @@index([adminId, firstName, lastName])
+  @@index([adminId, email, phoneNumber])
   @@map("members")
 }
 
@@ -232,6 +239,10 @@ model Membership {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([adminId, memberId])
+  @@index([membershipStatus])
+  @@index([membershipStatus, expiresAt])
+  @@index([adminId, membershipPlanId, membershipStatus])
+  @@index([memberId, membershipStatus])
   @@map("memberships")
 }
 
@@ -252,6 +263,7 @@ model MembershipPlan {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([adminId])
   @@index([adminId, planName])
   @@map("membership_plans")
 }
@@ -271,6 +283,7 @@ model MembershipPlanDuration {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([membershipPlanId])
   @@map("membership_plan_durations")
 }
 
@@ -292,6 +305,9 @@ model Payment {
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
   @@index([adminId, memberId])
+  @@index([memberId])
+  @@index([paymentStatus])
+  @@index([paymentStatus, dueDate])
   @@map("payments")
 }
 
