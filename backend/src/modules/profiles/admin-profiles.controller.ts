@@ -4,10 +4,8 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
   Patch,
   Post,
-  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -16,14 +14,14 @@ import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import type { Response } from 'express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
+// * Side-effect import
+import 'multer'; // * Load/execute the Multer module, but don't give me any exported value to use.
 
 @Controller('/api/users/admins')
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
@@ -67,31 +65,32 @@ export class AdminProfilesController {
   // * FileInterceptor: is a built-in NestJS interceptor (based on Multer)
   //   that handles SINGLE file upload from a specific form field name.
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor('image', {
       // * diskStorage: is a Multer storage engine that saves uploaded files
       //   directly to the local filesystem (your server disk).
 
-      storage: diskStorage({
-        // * destination: is the folder path where uploaded files will be saved.
-        destination: './images/users/profile',
+      // ! This Options if we need to store image inside Server
+      // storage: diskStorage({
+      //   // * destination: is the folder path where uploaded files will be saved.
+      //   destination: './images/users/profile',
 
-        // * req: is the HTTP request object (contains headers, body, user, etc.)
-        // * file: is the uploaded file object (originalname, mimetype, buffer, etc.)
-        // * cb: is a callback function used by Multer to return the filename or error
+      //   // * req: is the HTTP request object (contains headers, body, user, etc.)
+      //   // * file: is the uploaded file object (originalname, mimetype, buffer, etc.)
+      //   // * cb: is a callback function used by Multer to return the filename or error
 
-        filename: (req, file, cb) => {
-          // * Date.now(): returns current timestamp (used to avoid filename collisions)
-          // * Math.random(): generates random number to further ensure uniqueness
-          const prefix = `${Date.now()}-${Math.round(Math.random() * 1000000000)}`;
+      //   filename: (req, file, cb) => {
+      //     // * Date.now(): returns current timestamp (used to avoid filename collisions)
+      //     // * Math.random(): generates random number to further ensure uniqueness
+      //     const prefix = `${Date.now()}-${Math.round(Math.random() * 1000000000)}`;
 
-          // * file.originalname: is the original filename from the user (e.g. avatar.png)
-          const filename = `${prefix}-${file.originalname}`;
+      //     // * file.originalname: is the original filename from the user (e.g. avatar.png)
+      //     const filename = `${prefix}-${file.originalname}`;
 
-          // * cb(null, filename): sends final generated filename back to Multer
-          //   null = no error, filename = saved file name
-          cb(null, filename);
-        },
-      }),
+      //     // * cb(null, filename): sends final generated filename back to Multer
+      //     //   null = no error, filename = saved file name
+      //     cb(null, filename);
+      //   },
+      // }),
 
       fileFilter: (req, file, cb) => {
         // * file.mimetype: represents file type sent by browser (e.g. image/png, image/jpeg)
@@ -125,10 +124,7 @@ export class AdminProfilesController {
       throw new BadRequestException('No Image Provided');
     }
 
-    return this.profilesService.uploadProfileImage(
-      accessTokenPayload.id,
-      file.filename,
-    );
+    return this.profilesService.uploadProfileImage(accessTokenPayload.id, file);
   }
 
   // * Remove profile image
@@ -140,14 +136,14 @@ export class AdminProfilesController {
     return this.profilesService.removeProfileImage(accessTokenPayload.id);
   }
 
-  // * Get image
-  @Get('profile-image/:image')
-  @Throttle({ default: { limit: 300, ttl: 60_000 } })
-  findImage(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Param('image') image: string,
-    @Res() res: Response,
-  ) {
-    return this.profilesService.findImage(accessTokenPayload.id, image, res);
-  }
+  // ! with Cloudinary architecture, this method is essentially unnecessary.
+  // // * Get image
+  // @Get('profile-image')
+  // @Throttle({ default: { limit: 300, ttl: 60_000 } })
+  // findImage(
+  //   @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  //   @Res() res: Response,
+  // ) {
+  //   return this.profilesService.findImage(accessTokenPayload.id, res);
+  // }
 }

@@ -79,21 +79,22 @@ enum ActionTokenType {
 
 // * Table of users
 model User {
-  id                String            @id @default(uuid())
-  firstName         String            @map("first_name")
-  lastName          String            @map("last_name")
-  gender            Gender
-  birthDate         DateTime          @map("birth_date")
-  userName          String            @unique @map("user_name")
-  email             String            @unique
-  password          String
-  phoneNumber       String            @unique @map("phone_number")
-  companyName       String            @map("company_name")
-  role              Role              @default(ADMIN)
-  profileImage      String            @default("default-image.jpg") @map("profile_image")
-  isAccountVerified Boolean           @default(false) @map("is_account_verified")
-  accountStatus     UserAccountStatus @default(INACTIVE) @map("account_status")
-  termsAccepted     Boolean           @map("terms_accepted")
+  id                   String            @id @default(uuid())
+  firstName            String            @map("first_name")
+  lastName             String            @map("last_name")
+  gender               Gender
+  birthDate            DateTime          @map("birth_date")
+  userName             String            @unique @map("user_name")
+  email                String            @unique
+  password             String
+  phoneNumber          String            @unique @map("phone_number")
+  companyName          String            @map("company_name")
+  role                 Role              @default(ADMIN)
+  profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
+  profileImagePublicId String?           @map("profile_image_public_id")
+  isAccountVerified    Boolean           @default(false) @map("is_account_verified")
+  accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
+  termsAccepted        Boolean           @map("terms_accepted")
 
   subscription      Subscription[]
   members           Member[]
@@ -186,19 +187,20 @@ model Member {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  firstName        String              @map("first_name")
-  lastName         String              @map("last_name")
-  gender           Gender
-  birthDate        DateTime            @map("birth_date")
-  userName         String              @unique @map("user_name")
-  email            String
-  password         String?
-  phoneNumber      String              @map("phone_number")
-  profileImage     String              @default("default-member-image.jpg") @map("profile_image")
-  address          String
-  emergencyContact String              @map("emergency_contact")
-  role             Role                @default(MEMBER)
-  accountStatus    MemberAccountStatus @default(ACTIVE) @map("account_status")
+  firstName            String              @map("first_name")
+  lastName             String              @map("last_name")
+  gender               Gender
+  birthDate            DateTime            @map("birth_date")
+  userName             String              @unique @map("user_name")
+  email                String
+  password             String?
+  phoneNumber          String              @map("phone_number")
+  profileImageUrl      String              @default("default-member-image.jpg") @map("profile_image_url")
+  profileImagePublicId String?             @map("profile_image_public_id")
+  address              String
+  emergencyContact     String              @map("emergency_contact")
+  role                 Role                @default(MEMBER)
+  accountStatus        MemberAccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
