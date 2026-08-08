@@ -25,6 +25,8 @@ import Carousel from "@/components/carousel/Carousel";
 import GridItems from "@/components/grid-items/GridItems";
 import Testimonials from "@/components/testimonials/Testimonials";
 import Pricing from "@/components/pricing/Pricing";
+import Faq from "@/components/faq/Faq";
+import ContactUs from "@/components/contact-us/ContactUs";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -57,6 +59,12 @@ export default function Home() {
 
         {/* Pricing */}
         <Pricing />
+
+        {/* FAQ */}
+        <Faq />
+
+        {/* Contact Section */}
+        <ContactUs />
       </div>
     </div>
   );
