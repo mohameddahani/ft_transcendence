@@ -1,0 +1,447 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================================================
+   GymFlow Design System
+   Blue + Lime + Cyan
+   ========================================================= */
+
+@theme inline {
+  /* Font */
+  --font-heading: var(--font-sans);
+
+  /* Core */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* GymFlow Brand */
+  --color-secondary-green: var(--secondary-green);
+  --color-tertiary: var(--tertiary);
+
+  /* Semantic */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* =========================================================
+   LIGHT MODE
+   ========================================================= */
+
+:root {
+  /* GymFlow Brand */
+
+  --primary: #0066ff;
+  --secondary-green: #84cc16;
+  --tertiary: #06b6d4;
+
+  /* Neutral */
+
+  --neutrale: #f8fafc;
+
+  /* Shadcn */
+
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.18 0.02 250);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 250);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 250);
+
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.95 0.02 250);
+  --secondary-foreground: oklch(0.25 0.08 255);
+
+  --muted: oklch(0.96 0.01 250);
+  --muted-foreground: oklch(0.52 0.03 250);
+
+  --accent: oklch(0.85 0.18 135);
+  --accent-foreground: oklch(0.2 0.08 135);
+
+  --destructive: oklch(0.6 0.22 25);
+
+  --border: oklch(0.92 0.01 250);
+  --input: oklch(0.92 0.01 250);
+
+  --ring: #0066ff;
+
+  /* Semantic */
+
+  --success: #84cc16;
+  --success-foreground: #1a2e05;
+
+  --warning: #f59e0b;
+  --warning-foreground: #451a03;
+
+  --info: #06b6d4;
+  --info-foreground: #083344;
+
+  /* Charts */
+
+  --chart-1: #0066ff;
+  --chart-2: #84cc16;
+  --chart-3: #06b6d4;
+  --chart-4: #f59e0b;
+  --chart-5: #8b5cf6;
+
+  --radius: 0.625rem;
+
+  /* Sidebar */
+
+  --sidebar: oklch(0.98 0.005 250);
+  --sidebar-foreground: oklch(0.2 0.02 250);
+
+  --sidebar-primary: #0066ff;
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+
+  --sidebar-accent: oklch(0.94 0.02 250);
+  --sidebar-accent-foreground: oklch(0.2 0.02 250);
+
+  --sidebar-border: oklch(0.92 0.01 250);
+  --sidebar-ring: #0066ff;
+}
+
+/* =========================================================
+   DARK MODE
+   ========================================================= */
+
+.dark {
+  --background: oklch(0.14 0.02 250);
+  --foreground: oklch(0.98 0.005 250);
+
+  --card: oklch(0.19 0.025 250);
+  --card-foreground: oklch(0.98 0.005 250);
+
+  --popover: oklch(0.19 0.025 250);
+  --popover-foreground: oklch(0.98 0.005 250);
+
+  --primary: #3385ff;
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.25 0.03 250);
+  --secondary-foreground: oklch(0.98 0.005 250);
+
+  --secondary-green: #a3e635;
+  --tertiary: #22d3ee;
+
+  --muted: oklch(0.23 0.02 250);
+  --muted-foreground: oklch(0.68 0.02 250);
+
+  --accent: oklch(0.82 0.2 135);
+  --accent-foreground: oklch(0.12 0.05 135);
+
+  --destructive: oklch(0.62 0.22 22);
+
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+
+  --ring: #3385ff;
+
+  /* Semantic */
+
+  --success: #a3e635;
+  --success-foreground: #1a2e05;
+
+  --warning: #fbbf24;
+  --warning-foreground: #451a03;
+
+  --info: #22d3ee;
+  --info-foreground: #083344;
+
+  /* Charts */
+
+  --chart-1: #3385ff;
+  --chart-2: #a3e635;
+  --chart-3: #22d3ee;
+  --chart-4: #fbbf24;
+  --chart-5: #a78bfa;
+
+  /* Sidebar */
+
+  --sidebar: oklch(0.16 0.02 250);
+  --sidebar-foreground: oklch(0.98 0.005 250);
+
+  --sidebar-primary: #3385ff;
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+
+  --sidebar-accent: oklch(0.23 0.03 250);
+  --sidebar-accent-foreground: oklch(0.98 0.005 250);
+
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #3385ff;
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* =========================================================
+   PRIMARY BUTTON
+   ========================================================= */
+
+.btn-primary-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--tertiary) 100%);
+
+  background-size: 150% 150%;
+  background-position: 0% 0%;
+
+  color: var(--primary-foreground);
+
+  position: relative;
+  overflow: hidden;
+
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-position 0.5s ease;
+}
+
+.btn-primary-gradient:hover {
+  transform: translateY(-2px);
+
+  background-position: 100% 100%;
+
+  box-shadow:
+    0 8px 22px rgb(0 102 255 / 35%),
+    0 2px 6px rgb(0 0 0 / 12%);
+}
+
+.btn-primary-gradient:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-primary-gradient:focus-visible {
+  outline: none;
+
+  box-shadow: 0 0 0 3px rgb(0 102 255 / 35%);
+}
+
+/* =========================================================
+   PRIMARY BUTTON SHINE
+   ========================================================= */
+
+.btn-primary-gradient::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: -75%;
+
+  width: 50%;
+  height: 100%;
+
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgb(255 255 255 / 30%),
+    transparent
+  );
+
+  transform: skewX(-20deg);
+
+  transition: left 0.6s ease;
+
+  pointer-events: none;
+}
+
+.btn-primary-gradient:hover::before {
+  left: 130%;
+}
+
+/* =========================================================
+   SECONDARY BUTTON
+   ========================================================= */
+
+.btn-secondary-gradient {
+  background: var(--card);
+
+  color: var(--primary);
+
+  border: 1px solid var(--border);
+
+  position: relative;
+  overflow: hidden;
+
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.btn-secondary-gradient:hover {
+  transform: translateY(-2px);
+
+  background: var(--accent);
+
+  border-color: var(--primary);
+
+  box-shadow:
+    0 8px 20px rgb(0 102 255 / 15%),
+    0 2px 6px rgb(0 0 0 / 5%);
+}
+
+.btn-secondary-gradient:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-secondary-gradient:focus-visible {
+  outline: none;
+
+  box-shadow: 0 0 0 3px rgb(0 102 255 / 30%);
+}
+
+/* =========================================================
+   SECONDARY BUTTON SHINE
+   ========================================================= */
+
+.btn-secondary-gradient::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: -75%;
+
+  width: 50%;
+  height: 100%;
+
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgb(0 102 255 / 10%),
+    transparent
+  );
+
+  transform: skewX(-20deg);
+
+  transition: left 0.6s ease;
+
+  pointer-events: none;
+}
+
+.btn-secondary-gradient:hover::before {
+  left: 130%;
+}
+
+/* =========================================================
+   DARK MODE — SECONDARY BUTTON
+   ========================================================= */
+
+.dark .btn-secondary-gradient {
+  background: var(--card);
+
+  color: var(--primary);
+
+  border-color: var(--border);
+}
+
+.dark .btn-secondary-gradient:hover {
+  background: var(--secondary);
+
+  border-color: var(--primary);
+}
+
+/* =========================================================
+   SEMANTIC UTILITIES
+   ========================================================= */
+
+.status-success {
+  color: var(--success);
+}
+
+.status-warning {
+  color: var(--warning);
+}
+
+.status-info {
+  color: var(--info);
+}
+
+.bg-success {
+  background-color: var(--success);
+}
+
+.bg-warning {
+  background-color: var(--warning);
+}
+
+.bg-info {
+  background-color: var(--info);
+}

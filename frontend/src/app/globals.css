@@ -187,3 +187,53 @@
 .btn-primary-gradient:hover::before {
   left: 130%;
 }
+
+.btn-secondary-gradient {
+  background: white;
+  color: var(--primary);
+  background-size: 150% 150%;
+  background-position: 0% 0%;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-position 0.5s ease;
+}
+
+.btn-secondary-gradient:hover {
+  transform: translateY(-2px);
+  background: white;
+  background-position: 100% 100%;
+  box-shadow:
+    0 8px 20px rgba(117, 52, 225, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary-gradient:active {
+  transform: translateY(0px);
+  box-shadow: none;
+}
+
+/* Optional shine sweep */
+.btn-secondary-gradient::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(117, 52, 225, 0.15),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.btn-secondary-gradient:hover::before {
+  left: 130%;
+}

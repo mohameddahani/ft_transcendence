@@ -28,8 +28,8 @@ const items = [
 
 const Faq = () => {
   return (
-    <section className="my-30 w-full">
-      <div className="text-center my-20">
+    <section className="my-30 w-full bg-secondary p-10">
+      <div className="text-center mb-20">
         <h2 className="text-4xl font-semibold">Frequently Asked Questions</h2>
       </div>
       <div className="flex justify-center items-center">

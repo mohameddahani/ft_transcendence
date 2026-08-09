@@ -1,9 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner"; // ! Use Toastify here is all ready installed
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -29,13 +28,33 @@ import {
   InputGroupText,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+import { toast } from "react-toastify";
+import { Mail, MessageSquareText } from "lucide-react";
 
 const ContactUs = () => {
   const formSchema = z.object({
-    title: z
+    firstName: z
       .string()
-      .min(5, "Bug title must be at least 5 characters.")
-      .max(32, "Bug title must be at most 32 characters."),
+      .min(2, "First name must be at least 2 characters.")
+      .max(30, "First name must be at most 30 characters.")
+      .regex(
+        /^[a-zA-Z- ]+$/,
+        "First name can only contain letters, spaces, and hyphens",
+      )
+      .trim(),
+
+    lastName: z
+      .string()
+      .min(2, "Last name must be at least 2 characters.")
+      .max(30, "Last name must be at most 30 characters.")
+      .regex(
+        /^[a-zA-Z\- ]+$/,
+        "Last name can only contain letters, spaces, and hyphens",
+      )
+      .trim(),
+
+    email: z.string().email("Please enter a valid email address").trim(),
+
     description: z
       .string()
       .min(20, "Description must be at least 20 characters.")
@@ -45,92 +64,145 @@ const ContactUs = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
+      firstName: "",
+      lastName: "",
+      email: "",
       description: "",
     },
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    toast("You submitted the following values:", {
-      description: (
-        <pre className="mt-2 w-[320px] overflow-x-auto rounded-md bg-code p-4 text-code-foreground">
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-      position: "bottom-right",
-      classNames: {
-        content: "flex flex-col gap-2",
-      },
-      style: {
-        "--border-radius": "calc(var(--radius)  + 4px)",
-      } as React.CSSProperties,
-    });
+    toast.success("Your message has been sent successfully!");
+    console.log(data);
+    form.reset();
   }
 
   return (
-    <section>
+    <section className="mt-40 grid grid-cols-2 gap-15 max-lg:grid-cols-1">
       <div>
-        <h2 className="text-4xl font-semibold">
-          Let {"'"}s get your gym flowing
-        </h2>
-        <Card className="w-full sm:max-w-md">
+        <Card>
           <CardHeader>
-            <CardTitle>Bug Report</CardTitle>
-            <CardDescription>
-              Help us improve by reporting bugs you encounter.
+            <CardTitle className="text-4xl font-semibold mt-10">
+              Let{"'"}s get your gym flowing
+            </CardTitle>
+
+            <CardDescription className="my-5">
+              Tell us about your gym and how we can help you get started with
+              GymFlow.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent>
               <FieldGroup>
+                <div className="grid grid-cols-2 gap-5">
+                  <Controller
+                    name="firstName"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="form-rhf-demo-first-name">
+                          First Name
+                        </FieldLabel>
+
+                        <Input
+                          {...field}
+                          id="form-rhf-demo-first-name"
+                          aria-invalid={fieldState.invalid}
+                          placeholder="First Name"
+                          autoComplete="off"
+                          className="p-6"
+                        />
+
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name="lastName"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="form-rhf-demo-last-name">
+                          Last Name
+                        </FieldLabel>
+
+                        <Input
+                          {...field}
+                          id="form-rhf-demo-last-name"
+                          aria-invalid={fieldState.invalid}
+                          placeholder="Last Name"
+                          autoComplete="off"
+                          className="p-6"
+                        />
+
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
+                    )}
+                  />
+                </div>
+
                 <Controller
-                  name="title"
+                  name="email"
                   control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor="form-rhf-demo-title">
-                        Bug Title
+                      <FieldLabel htmlFor="form-rhf-demo-email">
+                        Work Email
                       </FieldLabel>
+
                       <Input
                         {...field}
-                        id="form-rhf-demo-title"
+                        id="form-rhf-demo-email"
                         aria-invalid={fieldState.invalid}
-                        placeholder="Login button not working on mobile"
+                        placeholder="Work Email"
                         autoComplete="off"
+                        className="p-6"
                       />
+
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
                       )}
                     </Field>
                   )}
                 />
+
                 <Controller
                   name="description"
                   control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="form-rhf-demo-description">
-                        Description
+                        Tell us about your gym
                       </FieldLabel>
+
                       <InputGroup>
                         <InputGroupTextarea
                           {...field}
                           id="form-rhf-demo-description"
-                          placeholder="I'm having an issue with the login button on mobile."
+                          placeholder="Tell us about your gym"
                           rows={6}
-                          className="min-h-24 resize-none"
+                          className="min-h-24 resize-none p-6"
                           aria-invalid={fieldState.invalid}
                         />
+
                         <InputGroupAddon align="block-end">
-                          <InputGroupText className="tabular-nums">
+                          <InputGroupText className="tabular-nums p-6">
                             {field.value.length}/100 characters
                           </InputGroupText>
                         </InputGroupAddon>
                       </InputGroup>
+
                       <FieldDescription>
-                        Include steps to reproduce, expected behavior, and what
-                        actually happened.
+                        Tell us about your gym, your current software, or what
+                        you would like to achieve with GymFlow.
                       </FieldDescription>
+
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
                       )}
@@ -138,25 +210,54 @@ const ContactUs = () => {
                   )}
                 />
               </FieldGroup>
-            </form>
-          </CardContent>
-          <CardFooter>
-            <Field orientation="horizontal">
+            </CardContent>
+
+            <CardFooter className="flex items-center justify-center">
               <Button
-                type="button"
-                variant="outline"
-                onClick={() => form.reset()}
+              type="submit"
+                size={"lg"}
+                className={
+                  "w-full shadow-lg rounded-full text-md p-6 btn-primary-gradient"
+                }
               >
-                Reset
+                Send Message
               </Button>
-              <Button type="submit" form="form-rhf-demo">
-                Submit
-              </Button>
-            </Field>
-          </CardFooter>
+            </CardFooter>
+          </form>
         </Card>
       </div>
-      <div></div>
+
+      <div className="flex flex-col gap-10 h-full">
+        <div className="h-full p-20 rounded-3xl bg-green-50 border border-green-200 flex flex-col items-center text-center gap-5">
+          <img className="w-12 h-12" src="/whatsapp.svg" alt="" />
+
+          <h3 className="text-green-900 font-bold text-3xl">
+            Prefer WhatsApp?
+          </h3>
+
+          <p className="font-light  text-green-800 ">
+            Chat with us directly to get your gym activated instantly. Our
+            agents are standing by.
+          </p>
+
+          <button className="bg-green-500 hover:bg-green-600 text-white px-10 py-3 rounded-full flex items-center gap-2 transition-all shadow-md">
+            <MessageSquareText />
+            Chat on WhatsApp
+          </button>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-secondary border flex items-center gap-4">
+          <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+            <Mail />
+          </div>
+
+          <div>
+            <div className="text-sm uppercase opacity-60">Support</div>
+
+            <div className="text-lg">support@gymflow.saas</div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 };

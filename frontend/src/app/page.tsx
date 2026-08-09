@@ -27,6 +27,8 @@ import Testimonials from "@/components/testimonials/Testimonials";
 import Pricing from "@/components/pricing/Pricing";
 import Faq from "@/components/faq/Faq";
 import ContactUs from "@/components/contact-us/ContactUs";
+import { ToastContainer } from "react-toastify";
+import Cta from "@/components/cta/Cta";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
@@ -60,12 +62,17 @@ export default function Home() {
         {/* Pricing */}
         <Pricing />
 
-        {/* FAQ */}
-        <Faq />
-
         {/* Contact Section */}
         <ContactUs />
       </div>
+      {/* FAQ */}
+      <Faq />
+
+      <div className="container mx-auto px-5">
+        {/* CTA */}
+        <Cta />
+      </div>
+      <ToastContainer />
     </div>
   );
 }
