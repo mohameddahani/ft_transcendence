@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local data (Chroma, SQLite state, Postgres volumes)
+data/
+*.db
+*.sqlite3
+
+# Env
+.env
+.env.*
+!.env.example

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gym_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in AI/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in AI/.env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in AI/.env}
+    ports:
+      # Loopback only: the database must not be reachable from the network.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - gym_db_data:/var/lib/postgresql/data
+    healthcheck:
+      # $$ escapes Compose interpolation so the container's shell expands these.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      # initdb runs on first boot; probes here don't burn retries.
+      start_period: 10s
+
+  ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gym_ai_service
+    restart: unless-stopped
+    ports:
+      # Loopback only: accessible only locally on port 8000
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # No curl in python:slim, so probe with the interpreter that is already here.
+      # /health returns 503 when Postgres is unreachable, so an unhealthy container
+      # here means "cannot serve", not merely "process exited".
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  gym_db_data:

@@ -1,0 +1,15 @@
+# Development overrides. Compose loads this automatically on top of
+# docker-compose.yml, so `docker compose up -d` gets live reload locally.
+#
+# Production must NOT use it: `docker compose -f docker-compose.yml up -d`.
+#
+# Without this file the source is baked into the image, so every edit needs a
+# rebuild -- and a `docker compose restart` silently runs the OLD code, which is
+# a genuinely confusing way to lose half an hour.
+services:
+  ai:
+    volumes:
+      # Read-only: the container may run the code, never rewrite it. Matches the
+      # permissions the image itself sets.
+      - ./app:/app/app:ro
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
