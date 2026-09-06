@@ -1,0 +1,53 @@
+{
+  "name": "gym-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@types/node": "^22.20.1",
+    "dotenv": "^17.4.2",
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2",
+    "hardhat": "^3.15.0",
+    "typescript": "~6.0.3",
+    "viem": "^2.56.3"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "ansi-colors": "^4.1.3",
+    "ansi-regex": "^5.0.1",
+    "chokidar": "^5.0.0",
+    "enquirer": "^2.4.1",
+    "env-paths": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "ethereum-cryptography": "^2.2.1",
+    "fast-equals": "^6.0.3",
+    "is-safe-filename": "^0.1.1",
+    "json-stream-stringify": "^3.1.7",
+    "micro-eth-signer": "^0.14.0",
+    "micro-packed": "^0.7.3",
+    "p-map": "^7.0.7",
+    "readdirp": "^5.1.1",
+    "resolve.exports": "^2.0.3",
+    "rfdc": "^1.4.1",
+    "semver": "^7.8.5",
+    "strip-ansi": "^6.0.1",
+    "tsx": "^4.23.13",
+    "undici": "^6.28.1",
+    "ws": "^8.21.3",
+    "zod": "^3.25.76"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
