@@ -48,6 +48,16 @@ class Settings(BaseSettings):
     DB_CONNECT_TIMEOUT_SECONDS: float = Field(default=5.0, gt=0)
     DB_HEALTH_TIMEOUT_SECONDS: float = Field(default=2.0, gt=0)
 
+    # --- our own state + rate limiting (task 0.7) ---
+    # SQLite on the ai_state volume. Must stay under /data: that is the only path
+    # the Dockerfile makes writable to the runtime user.
+    SQLITE_PATH: str = Field(default="/data/ai_state.db", min_length=1)
+    RATE_LIMIT_CHAT_PER_MIN: int = Field(default=20, ge=1)
+    RATE_LIMIT_DOCS_PER_MIN: int = Field(default=10, ge=1)
+    # The rolling window both limits are measured over. Configurable mainly so a
+    # test can use a two-second window instead of sleeping a minute.
+    RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, ge=1, le=3600)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

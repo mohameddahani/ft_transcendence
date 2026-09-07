@@ -17,6 +17,8 @@ from app.core import errors
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.db import engine as db
 from app.db.schema import verify_schema
+from app.state import db as state_db
+from app.state.limits import sweep_expired
 
 # Read and validate configuration at import time. A missing or malformed setting
 # now kills the process during startup with a readable pydantic error, instead of
@@ -39,8 +41,14 @@ async def lifespan(_: FastAPI):
     # call later. Running as `ai_readonly` means a missing GRANT fails here too.
     try:
         await verify_schema()
+        await state_db.init_state_db(settings)
+        # check_and_record only prunes the key it is asked about, so a subject that
+        # never returns leaves rows behind. One sweep at boot keeps the table
+        # proportional to recent traffic rather than to all traffic ever.
+        await sweep_expired(settings.RATE_LIMIT_WINDOW_SECONDS)
         yield
     finally:
+        await state_db.close_state_db()
         # Also runs when verify_schema raises, so a schema mismatch does not leave
         # a pool of open connections behind on the way out.
         await db.dispose_engine()

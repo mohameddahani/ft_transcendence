@@ -86,6 +86,38 @@ else
   bad "/health" "HTTP ${CODE:-no response}"
 fi
 
+echo "── state volume (task 0.7a) ──"
+# The AI service owns writable state at /data (SQLite: rate limits, checkpoints,
+# document metadata). Two things have to hold at once, and they pull in opposite
+# directions: the runtime user must be able to WRITE there, and must still not be
+# able to write to its own code.
+OWNER=$(docker compose exec -T ai stat -c '%U %a' /data 2>/dev/null | tr -d '\r')
+chk "/data owned by the runtime user" "$OWNER" "appuser 755"
+if docker compose exec -T ai sh -c 'touch /data/.verify && rm /data/.verify' >/dev/null 2>&1; then
+  ok "/data is writable"
+else
+  bad "/data is writable" "a named volume is created root-owned; chown it in the Dockerfile before USER"
+fi
+if docker compose exec -T ai sh -c 'touch /app/app/evil' >/dev/null 2>&1; then
+  bad "/app is NOT writable" "the runtime user can rewrite its own code"
+  docker compose exec -T ai rm -f /app/app/evil >/dev/null 2>&1
+else
+  ok "/app is NOT writable"
+fi
+chk "SQLITE_PATH points into /data" \
+    "$(docker compose exec -T ai sh -c 'case "$SQLITE_PATH" in /data/*) echo yes;; *) echo "$SQLITE_PATH";; esac' | tr -d '\r')" "yes"
+if docker compose exec -T ai python -c "import aiosqlite" >/dev/null 2>&1; then
+  ok "aiosqlite installed"
+else
+  bad "aiosqlite installed" "add it to requirements.txt and rebuild"
+fi
+# A named volume, not a bind mount: it must outlive `docker compose down`.
+MOUNTS=$(docker inspect gym_ai_service --format '{{range .Mounts}}{{.Type}} {{.Destination}}{{println}}{{end}}')
+case "$MOUNTS" in
+  *"volume /data"*) ok "/data is a docker volume" ;;
+  *) bad "/data is a docker volume" "state would be lost on \`compose down\`" ;;
+esac
+
 echo "── db layer (task 0.2) ──"
 docker compose cp scripts/check_db_layer.py ai:/tmp/check_db_layer.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_db_layer.py || FAIL=1
@@ -177,6 +209,27 @@ if printf '%s' "$PROD" | jq -e '.level and .ts and .logger' >/dev/null 2>&1; the
 else
   bad "production log lines are JSON" "${PROD:-no JSON line produced}"
 fi
+
+echo "── rate limiter (task 0.7) ──"
+docker compose cp scripts/check_ratelimit.py ai:/tmp/check_ratelimit.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_ratelimit.py || FAIL=1
+
+# The counter has to outlive the process. An in-memory limiter (slowapi's default)
+# resets on every deploy, which is a free way around it -- and would also reset per
+# worker. check_ratelimit.py has just exhausted Omar's chat budget and spent one of
+# Rachid's, so restarting and re-checking both proves persistence AND that the state
+# is per subject, not a single global counter that happened to survive.
+RL_OMAR=$(mint member Omar)
+RL_RACHID=$(mint member Rachid)
+rl() { curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
+       -H "Authorization: Bearer $1" "http://127.0.0.1:8000/ai/rate-probe"; }
+docker compose restart ai >/dev/null 2>&1
+for i in $(seq 1 20); do
+  [ "$(docker inspect gym_ai_service --format '{{.State.Health.Status}}' 2>/dev/null)" = "healthy" ] && break
+  sleep 2
+done
+chk "exhausted budget survives a restart" "$(rl "$RL_OMAR")" "429"
+chk "an unexhausted subject is unaffected" "$(rl "$RL_RACHID")" "200"
 
 echo
 [ $FAIL -eq 0 ] && echo "PASS" || echo "FAIL"

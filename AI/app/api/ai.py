@@ -12,9 +12,11 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.auth.dependencies import CurrentUser
+from app.config import get_settings
+from app.core.errors import unauthorized
+from app.core.ratelimit import ChatRateLimited, DocsRateLimited
 from app.db import scope as sc
 from app.db.models import Role
-from app.core.errors import unauthorized
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -55,3 +57,20 @@ async def me(ctx: CurrentUser) -> Identity:
         member_name = mine[0].full_name
 
     return Identity(role=ctx.role, gym=gym.company_name, member_name=member_name)
+
+
+# `/ai/chat` (week 3) and `/ai/documents` (week 4) are what the rate limiter is
+# really for. Until they exist these two probes carry the same dependencies, so
+# verify.sh can demonstrate a 429 on demand -- AI_SPECS 3.7 puts that on the
+# evaluator's checklist, and an untested limiter is a limiter that fires for the
+# first time in front of them. Development only; both are deleted when /ai/chat
+# takes the dependency over.
+if get_settings().is_development:
+
+    @router.get("/rate-probe", include_in_schema=False)
+    async def rate_probe(ctx: ChatRateLimited) -> dict[str, str]:
+        return {"bucket": "chat", "subject": ctx.subject}
+
+    @router.get("/rate-probe-docs", include_in_schema=False)
+    async def rate_probe_docs(ctx: DocsRateLimited) -> dict[str, str]:
+        return {"bucket": "docs", "subject": ctx.subject}

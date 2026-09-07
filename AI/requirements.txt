@@ -4,3 +4,4 @@ pydantic-settings>=2.2.0,<2.3.0
 sqlalchemy[asyncio]>=2.0.28,<2.1.0
 asyncpg>=0.29.0,<0.30.0
 pyjwt>=2.8.0,<3.0.0
+aiosqlite>=0.20.0,<0.21.0

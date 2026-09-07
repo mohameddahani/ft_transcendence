@@ -13,6 +13,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN adduser --disabled-password --gecos "" appuser
 
+# The AI service's own state lives here: rate-limit events (task 0.7), LangGraph
+# checkpoints (2.4), document metadata (3.x). A named volume is created ROOT-owned,
+# and this container runs as appuser -- SQLite would fail with "unable to open
+# database file". Docker copies ownership from the image's directory when it
+# initialises an *empty* volume, so the fix is to create it here, before USER.
+#
+# Note the asymmetry with /app below: code is read-only to the runtime user, state
+# is writable. A compromised handler can write rate counters; it cannot rewrite the
+# application it is running inside.
+RUN mkdir -p /data && chown appuser:appuser /data
+
 # Copy as root, then hand ownership to nobody. appuser can read and execute the
 # code but cannot modify it, so a compromised request handler cannot rewrite the
 # application it is running inside.

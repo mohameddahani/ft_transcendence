@@ -32,6 +32,10 @@ services:
       - "127.0.0.1:8000:8000"
     env_file:
       - .env
+    volumes:
+      # AI-owned state (SQLite). A named volume, so it survives `docker compose
+      # down` and is wiped only by `down -v` -- the same lifecycle as the database.
+      - ai_state:/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,3 +52,4 @@ services:
 
 volumes:
   gym_db_data:
+  ai_state:
