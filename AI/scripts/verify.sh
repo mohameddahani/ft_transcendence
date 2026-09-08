@@ -18,25 +18,71 @@ chk "bound to loopback only"     "$(docker port gym_postgres 5432/tcp 2>/dev/nul
 
 echo "── schema ──"
 chk "migrations applied"  "$(q 'select count(*) from _prisma_migrations where finished_at is not null')" "24"
-chk "tables present"      "$(q "select count(*) from information_schema.tables where table_schema='public' and table_name not like '_prisma%'")" "15"
+chk "tables present"      "$(q "select count(*) from information_schema.tables where table_schema='public' and table_name not like '_prisma%'")" "17"
+# check_ins and feedbacks come from seeder/pending/, not from a Prisma migration:
+# Dahani has not shipped his versions yet (AI_PLAN §7 asks 1-2). The shadow copies
+# match what `prisma migrate dev` will generate, and app/db/schema.py fails the boot
+# loudly if his real ones differ. Nothing in backend/ is touched.
 for t in check_ins feedbacks; do
   n=$(q "select count(*) from information_schema.tables where table_schema='public' and table_name='$t'")
-  [ "$n" = "1" ] && ok "$t present" || printf "  \033[33m⋯\033[0m %-38s %s\n" "$t" "pending Dahani (blocks seeder + sentiment)"
+  [ "$n" = "1" ] && ok "$t present" "shadow (seeder/pending/)" \
+                 || bad "$t present" "run seeder/pending/001_check_ins_feedbacks.sql"
 done
+# The indexes ARE the ask. Without them every attendance question seq-scans a table
+# that will hold ~100k rows, and the agent runs several per streamed answer.
+chk "attendance indexes present" \
+    "$(q "select count(*) from pg_indexes where indexname in (
+           'check_ins_admin_id_checked_in_at_idx','check_ins_member_id_checked_in_at_idx',
+           'feedbacks_admin_id_created_at_idx')")" "3"
 
 echo "── fixture data ──"
 # Two gyms, not one. Every tenant-scoping assertion in check_scope.py is vacuous
 # against a single-tenant database: "my rows" and "all rows" are the same set.
-chk "gyms (tenants)" "$(q "select count(*) from users where role='ADMIN'")" "2"
-chk "members"     "$(q 'select count(*) from members')" "5"
-chk "memberships" "$(q 'select count(*) from memberships')" "5"
-chk "payments"    "$(q 'select count(*) from payments')" "5"
-chk "plan prices differ per gym" "$(q 'select count(distinct price) from membership_plan_durations')" "2"
-EXPIRED=$(q "select count(*) from memberships where expires_at < now()")
-SOON=$(q "select count(*) from memberships where expires_at >= now() and expires_at < now() + interval '7 days'")
-ACTIVE=$(q "select count(*) from memberships where expires_at >= now() + interval '7 days'")
-chk "expired|soon|active split" "$EXPIRED|$SOON|$ACTIVE" "1|1|3"
-chk "revenue spans >1 month" "$(q "select count(distinct date_trunc('month', paid_at)) from payments")" "4"
+chk "gyms (tenants)" "$(q "select count(*) from users where role='ADMIN'")" "4"
+chk "fixture members present" "$(q "select count(*) from members where email in ('youssef@gmail.com','siham@gmail.com','omar@gmail.com','rachid@gmail.com','latifa@gmail.com')")" "5"
+chk "one payment per membership" \
+    "$(q 'select (select count(*) from memberships) = (select count(*) from payments)')" "t"
+# Every gym must sell at something nobody else charges, so a tenant leak in
+# membership_plan_durations (the one table with no admin_id) shows up as a wrong
+# NUMBER in an answer, not just as a wrong row count.
+chk "every plan price is unique" \
+    "$(q 'select count(distinct price) = count(*) from membership_plan_durations')" "t"
+chk "every gym has a plan catalogue" \
+    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (select 1 from membership_plans p where p.admin_id = u.id)")" "t"
+MEMBERS=$(q 'select count(*) from members')
+chk "members per gym within 150-400" \
+    "$(q "select bool_and(n between 150 and 403) from (select count(*) n from members group by admin_id) s")" "t"
+ok "seeded corpus" "$MEMBERS members across 4 gyms"
+# Relative, not absolute: the seeder grows this corpus every phase, and a magic
+# number here would have to be re-derived on each one. What must stay true is that
+# all three states exist in every gym -- an empty renewal-chase list is a dead demo.
+chk "every gym has expired, expiring and active members" \
+    "$(q "select bool_and(e>0 and s>0 and a>0) from (
+           select count(*) filter (where expires_at < now()) e,
+                  count(*) filter (where expires_at >= now() and expires_at < now()+interval '7 days') s,
+                  count(*) filter (where expires_at >= now()+interval '7 days') a
+           from memberships where membership_status <> 'CANCELLED' group by admin_id) g")" "t"
+chk "feedback exists in every gym, all three sentiments" \
+    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (
+           select 1 from feedbacks f where f.admin_id = u.id and f.sentiment='POSITIVE')")" "t"
+chk "policy documents on disk" "$(ls seeder/documents/*/*.md 2>/dev/null | wc -l | tr -d ' ')" "16"
+chk "attendance exists in every gym" \
+    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (select 1 from check_ins c where c.admin_id = u.id)")" "t"
+chk "revenue spans 12+ months" \
+    "$(q "select count(distinct date_trunc('month', paid_at)) >= 12 from payments where payment_status='PAID'")" "t"
+
+echo "── seeder: gyms, plans, members, history, attendance, corpus (1.1-1.7) ──"
+# Runs on the host, not in the container: it imports seeder/, which is kept out of
+# the image on purpose, and it reads as `admin` to see columns the service's role
+# cannot. The generator half needs no database at all.
+if [ -x .venv/bin/python ]; then
+  .venv/bin/python -m scripts.check_seed || FAIL=1
+  .venv/bin/python -m scripts.check_history || FAIL=1
+  .venv/bin/python -m scripts.check_attendance || FAIL=1
+  .venv/bin/python -m scripts.check_corpus || FAIL=1
+else
+  printf "  \033[33m⋯\033[0m %-38s %s\n" "seeder checks" "no .venv (see DEV_SETUP.md)"
+fi
 
 echo "── read-only role ──"
 # Guardrail #1 is only real if the *database* refuses. Assert both directions:
@@ -47,7 +93,9 @@ ro() { PGPASSWORD="${AI_DB_PASSWORD:-ai_readonly_dev_pw}" psql -q -t -A \
 
 if ro "select 1" | grep -q "^1$"; then
   ok "ai_readonly can connect"
-  chk "can read members read-model" "$(ro 'select count(*) from members')" "5"
+  chk "can read members read-model" "$(ro 'select count(*) from members')" "$MEMBERS"
+  chk "can read check_ins" "$(ro 'select count(*) from check_ins')" "$(q 'select count(*) from check_ins')"
+  chk "can read feedbacks" "$(ro 'select count(*) from feedbacks')" "$(q 'select count(*) from feedbacks')"
   for probe in \
       "members.password|select password from members limit 1" \
       "users.password|select password from users limit 1" \
@@ -56,6 +104,8 @@ if ro "select 1" | grep -q "^1$"; then
       "member_refresh_tokens|select 1 from member_refresh_tokens limit 1" \
       "user_action_tokens|select 1 from user_action_tokens limit 1" \
       "member_action_tokens|select 1 from member_action_tokens limit 1" \
+      "write to check_ins|insert into check_ins (id) values ('x')" \
+      "write to feedbacks|update feedbacks set content='x'" \
       "write to members|update members set first_name='x'" \
       "create table|create table _evil(i int)" ; do
     label="${probe%%|*}"; sql="${probe#*|}"
@@ -136,6 +186,28 @@ fi
 docker compose cp scripts/check_scope.py ai:/tmp/check_scope.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_scope.py || FAIL=1
 
+echo "── agent tools (task 2.1) ──"
+# The tool layer is the surface a language model drives, so the grep matters as much
+# as the assertions: a tool that reached the engine directly would be a query with no
+# Scope on it, chosen by the model.
+TOOL_LEAKS=$(grep -rn "_fetch_all\|_fetch_one" app/agents/ --include='*.py' || true)
+if [ -z "$TOOL_LEAKS" ]; then
+  ok "tools reach the database only via scope/reports"
+else
+  bad "tools reach the database only via scope/reports" "$(printf '%s' "$TOOL_LEAKS" | head -2)"
+fi
+# The scope a tool runs under must be the one it was handed. Constructing a fresh
+# Scope inside the agent layer is how a tool would quietly pick its own tenant --
+# nothing in Python prevents it, so it is prevented here.
+SCOPE_BUILDS=$(grep -rn "Scope(" app/agents/ --include='*.py' | grep -v ": Scope" || true)
+if [ -z "$SCOPE_BUILDS" ]; then
+  ok "no tool constructs its own Scope"
+else
+  bad "no tool constructs its own Scope" "$(printf '%s' "$SCOPE_BUILDS" | head -2)"
+fi
+docker compose cp scripts/check_tools.py ai:/tmp/check_tools.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_tools.py 2>/dev/null || FAIL=1
+
 echo "── auth: JWT + tenant resolution (task 0.5) ──"
 docker compose cp scripts/check_auth.py ai:/tmp/check_auth.py >/dev/null 2>&1
 docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1
@@ -169,7 +241,7 @@ docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_api.py ||
 # a token in more places than the token store is. Exercise both credentials, then
 # read the container's own output back and look for them.
 API_KEY=$(grep '^INTERNAL_API_KEY=' .env | cut -d= -f2-)
-LOG_TOKEN=$(mint member Omar)
+LOG_TOKEN=$(mint member omar@gmail.com)
 curl -s -o /dev/null -H "Authorization: Bearer $LOG_TOKEN" http://127.0.0.1:8000/ai/me
 curl -s -o /dev/null -H "X-API-Key: $API_KEY" http://127.0.0.1:8000/internal/ping
 curl -s -o /dev/null -H "X-API-Key: wrong-key-abc123" http://127.0.0.1:8000/internal/ping
@@ -219,8 +291,8 @@ docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_ratelimit
 # worker. check_ratelimit.py has just exhausted Omar's chat budget and spent one of
 # Rachid's, so restarting and re-checking both proves persistence AND that the state
 # is per subject, not a single global counter that happened to survive.
-RL_OMAR=$(mint member Omar)
-RL_RACHID=$(mint member Rachid)
+RL_OMAR=$(mint member omar@gmail.com)
+RL_RACHID=$(mint member rachid@gmail.com)
 rl() { curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
        -H "Authorization: Bearer $1" "http://127.0.0.1:8000/ai/rate-probe"; }
 docker compose restart ai >/dev/null 2>&1

@@ -43,6 +43,18 @@ def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
+def naive_utc_now() -> datetime:
+    """`now`, shaped for binding into a query parameter.
+
+    Every timestamp column here is `timestamp without time zone` holding a UTC
+    instant, and asyncpg refuses to bind a tz-aware datetime to one. So a time window
+    computed in Python -- which is where they should be computed, since a SQL literal
+    like `NOW() - INTERVAL '7 days'` cannot survive the where-fragment grammar -- has
+    to drop its tzinfo on the way in.
+    """
+    return datetime.now(UTC).replace(tzinfo=None)
+
+
 def to_local(value: datetime) -> datetime:
     """UTC -> Africa/Casablanca. For display only; never for comparison."""
     return _utc(value).astimezone(CASABLANCA)
@@ -73,6 +85,16 @@ class PaymentStatus(StrEnum):
     OVERDUE = "OVERDUE"
 
 
+class Sentiment(StrEnum):
+    """Written by the sentiment module (task 5.1) through Dahani's backend, then read
+    back here. Nullable in the schema: a feedback that has not been scored yet is a
+    normal state, not an error."""
+
+    POSITIVE = "POSITIVE"
+    NEUTRAL = "NEUTRAL"
+    NEGATIVE = "NEGATIVE"
+
+
 class StoredMembershipStatus(StrEnum):
     """The cron-maintained column. Named `Stored` as a warning: read it only to
     report the discrepancy, never to answer whether a membership is valid."""
@@ -83,11 +105,13 @@ class StoredMembershipStatus(StrEnum):
 
 
 class DerivedMembershipStatus(StrEnum):
-    """Computed from `expires_at`. This is the one the agent is allowed to use."""
+    """What the agent is allowed to report. Computed from `expires_at`, except for
+    cancellation -- see `Membership.status_at`."""
 
     ACTIVE = "active"
     EXPIRING_SOON = "expiring_soon"
     EXPIRED = "expired"
+    CANCELLED = "cancelled"
 
 
 # --- read models --------------------------------------------------------------
@@ -173,6 +197,18 @@ class Membership(ReadModel):
     )
 
     def status_at(self, now: datetime | None = None) -> DerivedMembershipStatus:
+        """Rule #6 says never derive *expiry* from `membership_status`, because a
+        cron job maintains it and a missed run leaves it stale.
+
+        Cancellation is the exception, and the distinction matters: nothing else in
+        the schema records that a member cancelled. `expires_at` is unchanged when
+        they do -- so a cancelled membership with a future expiry would otherwise be
+        reported ACTIVE, and the owner would be told that someone who quit last week
+        is still a member. The stored column is untrusted for expiry and is the only
+        source for cancellation; both statements are true at once.
+        """
+        if self.membership_status == StoredMembershipStatus.CANCELLED:
+            return DerivedMembershipStatus.CANCELLED
         now = _utc(now or datetime.now(UTC))
         if self.expires_at < now:
             return DerivedMembershipStatus.EXPIRED
@@ -193,15 +229,29 @@ class Membership(ReadModel):
 
     @computed_field
     @property
+    def is_valid(self) -> bool:
+        """May this member train today? The one question a tool should ask."""
+        return self.status in (DerivedMembershipStatus.ACTIVE,
+                               DerivedMembershipStatus.EXPIRING_SOON)
+
+    @computed_field
+    @property
     def status_drifted(self) -> bool:
         """True when the cron column disagrees with reality -- worth surfacing to
         the owner, and the reason rule #6 exists."""
+        # CANCELLED is set by a person, not by the cron job, so it cannot drift.
+        # Including it here would flag every cancelled-but-not-yet-expired
+        # membership as a cron failure.
+        if self.membership_status == StoredMembershipStatus.CANCELLED:
+            return False
         # `==` not `is`: these are StrEnums, so equality also holds for a raw
         # string that skipped validation (model_copy, a hand-built fixture). An
         # identity check would silently report "no drift" in exactly the case
         # this method exists to catch.
         stored_expired = self.membership_status == StoredMembershipStatus.EXPIRED
-        really_expired = self.status == DerivedMembershipStatus.EXPIRED
+        # Straight from expires_at, not from `self.status`: that property now
+        # short-circuits on CANCELLED and would make this comparison meaningless.
+        really_expired = self.expires_at < datetime.now(UTC)
         return stored_expired != really_expired
 
 
@@ -224,3 +274,56 @@ class Payment(ReadModel):
     def is_collected(self) -> bool:
         """The only safe basis for revenue: money actually received."""
         return self.payment_status == PaymentStatus.PAID
+
+
+class CheckIn(ReadModel):
+    """One visit. The whole attendance module is built on counting these.
+
+    Deliberately thin -- the table carries `created_at` and `updated_at` too, but a
+    check-in has exactly one interesting fact, and widening the read model would
+    mean widening the grant.
+    """
+
+    id: str
+    admin_id: str
+    member_id: str
+    checked_in_at: datetime
+
+    _norm = field_validator("checked_in_at")(classmethod(lambda cls, v: _utc(v)))
+
+    @computed_field
+    @property
+    def hour(self) -> int:
+        """Local hour, for `get_attendance_stats(group_by="hour")`.
+
+        Casablanca rather than UTC, because an owner asking about their busiest hour
+        means the hour on the clock in the gym. This is presentation: every filter
+        and comparison still happens in UTC.
+        """
+        return to_local(self.checked_in_at).hour
+
+    @computed_field
+    @property
+    def weekday(self) -> int:
+        """Monday = 0, matching `datetime.weekday()`."""
+        return to_local(self.checked_in_at).weekday()
+
+
+class Feedback(ReadModel):
+    id: str
+    admin_id: str
+    member_id: str
+    content: str
+    rating: int | None
+    # Both nullable: the row is written when the member submits and scored
+    # afterwards by POST /internal/sentiment.
+    sentiment: Sentiment | None
+    sentiment_score: Decimal | None
+    created_at: datetime
+
+    _norm = field_validator("created_at")(classmethod(lambda cls, v: _utc(v)))
+
+    @computed_field
+    @property
+    def is_scored(self) -> bool:
+        return self.sentiment is not None

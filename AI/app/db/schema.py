@@ -28,6 +28,8 @@ from typing import Final
 
 from app.db import engine as _engine
 from app.db.models import (
+    CheckIn,
+    Feedback,
     GymOwner,
     Member,
     Membership,
@@ -188,11 +190,33 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         },
         model=Payment,
     ),
+    "check_ins": TableSpec(
+        rule=ScopeRule.DIRECT,
+        member_access=MemberAccess.OWN_ROWS,
+        member_column="member_id",
+        columns={
+            "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "checked_in_at": TIMESTAMP,
+        },
+        model=CheckIn,
+    ),
+    "feedbacks": TableSpec(
+        rule=ScopeRule.DIRECT,
+        member_access=MemberAccess.OWN_ROWS,
+        member_column="member_id",
+        columns={
+            "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "content": TEXT,
+            "rating": INTEGER, "sentiment": ENUM, "sentiment_score": NUMERIC,
+            "created_at": TIMESTAMP,
+        },
+        model=Feedback,
+    ),
 }
 
-# check_ins and feedbacks are not here on purpose: Dahani has not shipped the
-# migrations yet (AI_PLAN 7, due D8). Adding them before they exist would make the
-# boot check fail on a known-pending dependency, which trains everyone to ignore it.
+# Both tables come from `seeder/pending/001_check_ins_feedbacks.sql`, not from a
+# Prisma migration -- Dahani has not shipped his versions yet (AI_PLAN 7). Listing
+# them here is deliberate: if his eventual shape differs from the shadow copy in any
+# column or type, this contract fails the boot and names the column, which is far
+# better than discovering it inside a tool call during the demo.
 
 _SCHEMA_SQL = """
 SELECT table_name, column_name, data_type

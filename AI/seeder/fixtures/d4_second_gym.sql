@@ -74,8 +74,14 @@ member_rows AS (
            s.phone_number, s.address, s.emergency_contact,
            s.gender::"Gender", s.birth_date::timestamp,
            'ACTIVE'::"MemberAccountStatus", 'MEMBER'::"Role",
-           'default-member-image.jpg', NOW(), NOW()
-    FROM member_spec s CROSS JOIN admin_user a
+           'default-member-image.jpg',
+           -- Joined when their membership began, not "now": a member whose
+           -- created_at is later than their own membership start is inconsistent
+           -- data, and scripts/check_history.py asserts against exactly that.
+           NOW() + make_interval(days => s.days_to_expiry)
+                 - make_interval(days => gpd.duration_days),
+           NOW()
+    FROM member_spec s CROSS JOIN admin_user a CROSS JOIN gym_plan_duration gpd
     RETURNING id, admin_id, user_name
 ),
 membership_rows AS (

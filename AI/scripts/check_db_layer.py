@@ -31,13 +31,25 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 
 async def main() -> None:
     await db.init_engine(get_settings())
-    admin = (await db._fetch_one("SELECT id FROM users WHERE role = 'ADMIN' LIMIT 1"))["id"]
+    # Pinned to one named gym. "The first ADMIN" was fine with two gyms; the seeder
+    # makes four, and the membership-status assertions below only hold for this one.
+    admin = (await db._fetch_one(
+        "SELECT id FROM users WHERE email = :e", {"e": "karim@atlasfitness.ma"}))["id"]
+    expected_members = (await db._fetch_one(
+        "SELECT COUNT(*) AS n FROM members WHERE admin_id = :a", {"a": admin}))["n"]
+    expected_durations = (await db._fetch_one(
+        "SELECT COUNT(*) AS n FROM membership_plan_durations d"
+        " JOIN membership_plans p ON p.id = d.membership_plan_id WHERE p.admin_id = :a",
+        {"a": admin}))["n"]
+    # Taken before the injection probe below, so "unchanged" means unchanged.
+    corpus_size = (await db._fetch_one("SELECT COUNT(*) AS n FROM members"))["n"]
 
     members = [Member(**r) for r in await db._fetch_all(
         "SELECT id, admin_id, first_name, last_name, phone_number, email, gender,"
         " birth_date, account_status, created_at FROM members WHERE admin_id = :a"
-        " ORDER BY first_name", {"a": admin})]
-    check("members parse into read models", len(members) == 3)
+        " ORDER BY first_name LIMIT 500", {"a": admin})]
+    check("members parse into read models", len(members) == expected_members,
+          f"{expected_members} in this gym")
     check("timestamps are tz-aware UTC", all(m.created_at.tzinfo is not None for m in members))
 
     pays = [Payment(**r) for r in await db._fetch_all(
@@ -52,12 +64,16 @@ async def main() -> None:
     ms = [Membership(**r) for r in await db._fetch_all(
         "SELECT id, admin_id, member_id, membership_plan_id, membership_plan_duration_id,"
         " membership_status, start_date, expires_at, created_at FROM memberships"
-        " WHERE admin_id = :a", {"a": admin})]
+        " WHERE admin_id = :a LIMIT 500", {"a": admin})]
+    seen = {m.status.value for m in ms}
     check("status derived from expires_at",
-          sorted(m.status.value for m in ms) == ["active", "expired", "expiring_soon"])
+          {"active", "expired", "expiring_soon"} <= seen, ", ".join(sorted(seen)))
     check("no cron drift right now", not any(m.status_drifted for m in ms))
-    stale = ms[0].model_copy(update={
-        "membership_status": "ACTIVE" if ms[0].status.value == "expired" else "EXPIRED"})
+    # Not ms[0]: a CANCELLED membership cannot drift by design, so flipping its
+    # stored status would prove nothing.
+    live = next(m for m in ms if m.membership_status != "CANCELLED")
+    stale = live.model_copy(update={
+        "membership_status": "ACTIVE" if live.status.value == "expired" else "EXPIRED"})
     check("drift detector fires when stale", stale.status_drifted)
 
     ds = [MembershipPlanDuration(**r) for r in await db._fetch_all(
@@ -65,7 +81,9 @@ async def main() -> None:
         " FROM membership_plan_durations d"
         " JOIN membership_plans p ON p.id = d.membership_plan_id"
         " WHERE p.admin_id = :a", {"a": admin})]
-    check("plan_durations scoped via join", len(ds) == 1 and isinstance(ds[0].price, Decimal))
+    check("plan_durations scoped via join",
+          len(ds) == expected_durations and all(isinstance(d.price, Decimal) for d in ds),
+          f"{len(ds)} durations in this gym's catalogue")
 
     # Layer 1: the engine's own prefix guard.
     for stmt in ("UPDATE members SET first_name = 'x'", "DELETE FROM payments",
@@ -95,8 +113,8 @@ async def main() -> None:
     rows = await db._fetch_all("SELECT id FROM members WHERE first_name = :n",
                               {"n": "x'; DROP TABLE members; --"})
     check("bound params are data, not SQL", rows == [])
-    total = len(await db._fetch_all("SELECT id FROM members"))
-    check("members table intact", total == 5, f"{total} rows across both gyms")
+    total = (await db._fetch_one("SELECT COUNT(*) AS n FROM members"))["n"]
+    check("members table intact", total == corpus_size, f"{total} rows, unchanged")
 
     await db.dispose_engine()
     sys.exit(FAIL)

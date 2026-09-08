@@ -68,6 +68,15 @@ _IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]*$")
 _ORDER_ITEM = re.compile(r"^([a-z_][a-z0-9_]*)(?:\s+(asc|desc))?$", re.IGNORECASE)
 _AGGREGATES: Final = frozenset({"COUNT", "SUM", "AVG", "MIN", "MAX"})
 
+_DERIVED_GROUPINGS: Final[dict[str, str]] = {
+    # `::int` is not cosmetic: EXTRACT returns `numeric` in Postgres 14+, asyncpg maps
+    # that to Decimal, and a Decimal grouping key fails json.dumps on the way to the
+    # model -- the same trap as money, arriving from an unexpected direction.
+    "hour": "EXTRACT(HOUR FROM {col} AT TIME ZONE 'UTC' AT TIME ZONE 'Africa/Casablanca')::int",
+    "weekday": "EXTRACT(ISODOW FROM {col} AT TIME ZONE 'UTC' AT TIME ZONE 'Africa/Casablanca')::int",
+    "month": "TO_CHAR(DATE_TRUNC('month', {col}), 'YYYY-MM')",
+}
+
 
 class ScopeViolation(PermissionError):
     """A query that this scope is not allowed to make. Never reaches the database."""
@@ -137,6 +146,42 @@ def _scope_sql(spec: TableSpec, scope: Scope, table: str) -> tuple[str, dict[str
             params[_MEMBER_PARAM] = scope.member_id
 
     return predicate, params
+
+
+def _validate_group_by(
+    spec: TableSpec, table: str, group_by: Sequence[str], date_column: str
+) -> tuple[list[str], list[str]]:
+    """Validate group_by items. Returns (select expressions, group expressions).
+
+    Both halves of every expression come from constants: the grouping name is a key
+    of `_DERIVED_GROUPINGS`, and `date_column` is checked against the table's own
+    contract below. Neither reaches the SQL string unvalidated.
+    """
+    # `date_column` is an identifier being formatted into SQL, so it is allowlisted
+    # like every other identifier in this module. Without this check a caller could
+    # pass `date_column="x) OR 1=1 --"` -- and a caller is one refactor away from
+    # being a tool argument.
+    if any(item in _DERIVED_GROUPINGS for item in group_by) and date_column not in spec.columns:
+        raise ScopeViolation(
+            f"{table}: cannot group by time on {date_column!r}, not in the schema contract"
+        )
+
+    select_parts: list[str] = []
+    group_parts: list[str] = []
+    for item in group_by:
+        if item in _DERIVED_GROUPINGS:
+            expr = _DERIVED_GROUPINGS[item].format(col=date_column)
+            select_parts.append(f"{expr} AS {item}")
+            group_parts.append(expr)
+        elif item in spec.columns:
+            select_parts.append(item)
+            group_parts.append(item)
+        else:
+            raise ScopeViolation(
+                f"{table}: grouping {item!r} is neither a column nor a derived grouping "
+                f"({sorted(_DERIVED_GROUPINGS)})"
+            )
+    return select_parts, group_parts
 
 
 def _validate_columns(spec: TableSpec, table: str, columns: Sequence[str]) -> list[str]:
@@ -276,6 +321,7 @@ async def aggregate(
     functions: Sequence[tuple[str, str, str]],
     *,
     group_by: Sequence[str] = (),
+    date_column: str = "created_at",
     where: str = "",
     params: Mapping[str, Any] | None = None,
     limit: int = DEFAULT_LIMIT,
@@ -284,6 +330,10 @@ async def aggregate(
 
     This exists so nobody ever has a reason to drop down to the engine for a total.
     An escape hatch that is needed in practice is not a guardrail; it is a hole.
+
+    `group_by` accepts a column name or one of the derived time groupings in
+    `_DERIVED_GROUPINGS`; the latter need `date_column` to say which timestamp to
+    group on, and it is allowlisted like any other identifier.
     """
     spec = _spec(table)
     bound = _validate_params(params)
@@ -303,17 +353,20 @@ async def aggregate(
         if not _IDENTIFIER.match(alias):
             raise ScopeViolation(f"alias {alias!r} must be a plain lowercase identifier")
         projections.append(f"{upper}({column}) AS {alias}")
+
     if not projections:
         raise ScopeViolation("aggregate() needs at least one function")
 
-    grouped = _validate_columns(spec, table, group_by) if group_by else []
+    select_group_exprs, group_by_exprs = (
+        _validate_group_by(spec, table, group_by, date_column) if group_by else ([], []))
 
-    sql = f"SELECT {', '.join(grouped + projections)} FROM {table} WHERE {predicate}"
+    all_selects = select_group_exprs + projections
+    sql = f"SELECT {', '.join(all_selects)} FROM {table} WHERE {predicate}"
     if where:
         _validate_where(where)
         sql += f" AND ({where})"
-    if grouped:
-        sql += f" GROUP BY {', '.join(grouped)} ORDER BY {', '.join(grouped)}"
+    if group_by_exprs:
+        sql += f" GROUP BY {', '.join(group_by_exprs)} ORDER BY {', '.join(group_by_exprs)}"
     sql += f" LIMIT :{_LIMIT_PARAM}"
 
     return await _engine._fetch_all(sql, {**bound, **scope_params, _LIMIT_PARAM: limit})

@@ -84,13 +84,20 @@ def http(path: str, token: str | None = None, raw_header: str | None = None):
 async def main() -> None:  # noqa: C901
     await db.init_engine(settings)
 
-    gyms = await db._fetch_all(
-        "SELECT id, company_name FROM users WHERE role = 'ADMIN' ORDER BY company_name")
-    atlas, oasis = gyms[0]["id"], gyms[1]["id"]
-    omar = (await db._fetch_one(
-        "SELECT id FROM members WHERE first_name = 'Omar' AND admin_id = :a", {"a": atlas}))["id"]
-    rachid = (await db._fetch_one(
-        "SELECT id FROM members WHERE first_name = 'Rachid' AND admin_id = :a", {"a": oasis}))["id"]
+    # Anchored on email: the seeder puts 150-400 members in each gym, so row order
+    # and first names stopped identifying anyone. user_name would be unique but is
+    # deliberately outside the ai_readonly column grant.
+    async def by_email(table: str, email: str) -> str:
+        row = await db._fetch_one(f"SELECT id FROM {table} WHERE email = :e", {"e": email})
+        if row is None:
+            print(f"\033[31m  x fixture row {email} missing\033[0m")
+            sys.exit(1)
+        return row["id"]
+
+    atlas = await by_email("users", "karim@atlasfitness.ma")
+    oasis = await by_email("users", "nadia@oasisgym.ma")
+    omar = await by_email("members", "omar@gmail.com")
+    rachid = await by_email("members", "rachid@gmail.com")
 
     # ------------------------------------------------------------ happy path
     admin_token = mint(atlas, "ADMIN", ADMIN_SECRET)
