@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # instead of the key. Read the value with `.get_secret_value()`.
     # min_length rejects `INTERNAL_API_KEY=` in .env, which a bare `str` accepts.
     INTERNAL_API_KEY: SecretStr = Field(min_length=16)
+    
+    GEMINI_API_KEY: SecretStr = Field(min_length=16)
+    GEMINI_CHAT_MODEL: str
 
     # --- JWT verification (task 0.5) ---
     # One secret per role, matching Dahani's getJwtConfig(role, type). We hold only
