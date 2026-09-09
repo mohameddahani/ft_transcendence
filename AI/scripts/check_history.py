@@ -217,13 +217,9 @@ def _reseed() -> subprocess.CompletedProcess:
 
 
 async def check_seeder_properties(conn: asyncpg.Connection) -> None:
-    # Seed once before measuring. Dates are anchored to midnight *today*, so a
-    # database last seeded yesterday differs from a fresh run for a reason that has
-    # nothing to do with determinism -- and a suite that fails every morning is a
-    # suite people stop reading. The property under test is "two runs agree", not
-    # "the database happens to be from today".
-    first = _reseed()
-    check("the seeder re-runs cleanly", first.returncode == 0, first.stderr.strip()[:60])
+    # The corpus was normalised in main() before anything was asserted, so the
+    # property under test here is "two runs agree", not "the database happens to be
+    # from today".
     before = await fingerprint(conn)
     _reseed()
     after = await fingerprint(conn)
@@ -254,6 +250,18 @@ async def check_seeder_properties(conn: asyncpg.Connection) -> None:
 
 
 async def main() -> int:
+    # Normalise the corpus BEFORE anything is asserted, not halfway down.
+    # Everything the seeder writes is anchored to midnight *today*, so a database
+    # generated yesterday disagrees with `now()` for reasons that are the calendar's
+    # doing and not the seeder's: memberships that expired overnight still carry the
+    # status they were given, and `membership_status agrees with expires_at` fails.
+    # D12 moved this reseed in front of the *determinism* group for exactly this
+    # reason and stopped there, which left the structure group failing on the first
+    # run of every day -- and a suite that fails every morning is a suite people
+    # stop reading.
+    first = _reseed()
+    check("the seeder re-runs cleanly", first.returncode == 0, first.stderr.strip()[:60])
+
     conn = await asyncpg.connect(resolve_dsn(None))
     try:
         print("  -- structure --")

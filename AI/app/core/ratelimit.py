@@ -83,12 +83,32 @@ def rate_limit(bucket: str) -> Callable[..., Awaitable[AuthContext]]:
                 headers={**_headers(decision), "Retry-After": str(decision.retry_after)},
             )
 
-        # FastAPI merges headers set on the injected Response onto whatever the
-        # endpoint returns -- including a Response the endpoint builds itself.
+        # FastAPI merges these onto the response only when it *serialises* the
+        # endpoint's return value. An endpoint that returns a `Response` object
+        # itself -- which a stream must -- is used verbatim, and these are dropped.
+        # `carry_rate_headers` is how such an endpoint gets them back.
         response.headers.update(_headers(decision))
         return ctx
 
     return dependency
+
+
+def carry_rate_headers(sub_response: Response, target: Response) -> None:
+    """Copy the rate-limit headers onto a Response the endpoint built itself.
+
+    Found by testing, not by reading: `/ai/chat` returns a `StreamingResponse`, and
+    FastAPI hands that straight to the server without merging the injected
+    `sub_response`. Every rate-limit header the limiter had just set was silently
+    lost -- on the one endpoint where a client most needs to know what is left, and
+    against AI_SPECS 3.7, which says *every* response carries them.
+
+    Only our own headers are copied. The injected response also carries a
+    `content-type` and possibly a `content-length` of its own, and putting either of
+    those on a stream would break it.
+    """
+    for key, value in sub_response.headers.items():
+        if key.lower().startswith("x-ratelimit") or key.lower() == "retry-after":
+            target.headers[key] = value
 
 
 ChatRateLimited = Annotated[AuthContext, Depends(rate_limit("chat"))]

@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     APP_ENV: Literal["development", "production"] = "development"
     LOG_LEVEL: Literal["debug", "info", "warning", "error", "critical"] = "info"
     VERSION: str = "0.1.0"
+    # Comma-separated so local development and a deployed frontend can both be
+    # allowed without a second setting. Origins only -- scheme, host and port, no
+    # path -- because that is what a browser sends in `Origin` and what CORS
+    # compares against.
     FRONTEND_URL: str = "http://localhost:3000"
 
     # --- secrets: no defaults, so a missing value fails at boot ---
@@ -33,6 +37,26 @@ class Settings(BaseSettings):
     
     GEMINI_API_KEY: SecretStr = Field(min_length=16)
     GEMINI_CHAT_MODEL: str
+
+    # --- agent (task 2.2) ---
+    # gemini-2.5-flash reasons before answering unless told not to, and on this tool
+    # registry that measurably *hurt*: asked "who hasn't checked in for three weeks
+    # and expires soon?", thinking-on spent ~190 reasoning tokens and returned no
+    # tool call at all, while thinking-off called both tools correctly in half the
+    # time. 0 disables it; -1 hands the decision back to the model.
+    GEMINI_THINKING_BUDGET: int = Field(default=0, ge=-1, le=24576)
+    # A ceiling on one Gemini call. The agent may make several per answer, so this
+    # is not the request budget -- it is how long a dead upstream may hang a stream.
+    GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, gt=0, le=120)
+    # AI_SPECS 3.2 requires the length limit in the frontend *and* here: the browser
+    # is not the only thing that can POST to this endpoint. Sized for a long question,
+    # not an essay -- every character is billed and re-sent on every tool round.
+    MAX_MESSAGE_CHARS: int = Field(default=2000, ge=100, le=20000)
+    # How many rounds of tool execution one question may spend before the agent is
+    # made to answer with what it already has. Counted in rounds rather than model
+    # calls because a round is what a runaway model actually spends: each one is a
+    # fan-out of database reads and another full context window sent to Gemini.
+    AGENT_MAX_TOOL_ROUNDS: int = Field(default=5, ge=1, le=12)
 
     # --- JWT verification (task 0.5) ---
     # One secret per role, matching Dahani's getJwtConfig(role, type). We hold only
@@ -109,6 +133,17 @@ class Settings(BaseSettings):
                 "that collapses the admin/member boundary"
             )
         return self
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """The exact origins allowed to call this service from a browser.
+
+        A list, never `*`. A wildcard would let any page on the internet make a
+        request with the user's Authorization header if it could obtain one, and it
+        is the difference between "the frontend may call us" and "anything may".
+        """
+        return [origin.strip().rstrip("/") for origin in self.FRONTEND_URL.split(",")
+                if origin.strip()]
 
     @property
     def is_development(self) -> bool:

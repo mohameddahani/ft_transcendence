@@ -187,9 +187,15 @@ async def main() -> None:  # noqa: C901
     # issued BEGIN IMMEDIATE on the same connection and SQLite refused the second
     # with "cannot start a transaction within a transaction". A limiter that 500s
     # under load has not limited anything; it has just broken differently.
-    admin_token = mint(atlas, "ADMIN")
+    # A member, not a gym admin, and that matters to the *suite* rather than to this
+    # check: this test leaves its subject's budget fully spent for a whole window,
+    # and check_chat.py needs the four admin subjects to have budget. Two suites
+    # quietly sharing one subject made check_chat fail only when verify.sh was run
+    # twice inside a minute -- the worst kind of failure to diagnose.
+    burst_subject = await by_email("members", "latifa@gmail.com")
+    burst_token = mint(burst_subject, "MEMBER")
     burst = await asyncio.gather(*[
-        asyncio.to_thread(http, "/ai/rate-probe", admin_token) for _ in range(LIMIT * 2)
+        asyncio.to_thread(http, "/ai/rate-probe", burst_token) for _ in range(LIMIT * 2)
     ])
     codes = [status for status, _, _ in burst]
     check("parallel requests: exactly `limit` allowed",

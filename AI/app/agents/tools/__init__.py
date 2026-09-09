@@ -14,8 +14,10 @@ from app.agents.tools.base import (
     MEMBER_ID_ALLOWED_IN,
     Tool,
     period_start,
+    plain_field,
+    quote_user_text,
 )
 from app.agents.tools.members import build_member_tools
 
 __all__ = ["Tool", "build_admin_tools", "build_member_tools", "period_start",
-           "FORBIDDEN_PARAMETERS", "MEMBER_ID_ALLOWED_IN"]
+           "plain_field", "quote_user_text", "FORBIDDEN_PARAMETERS", "MEMBER_ID_ALLOWED_IN"]

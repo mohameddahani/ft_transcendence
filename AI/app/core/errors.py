@@ -32,6 +32,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.config import get_settings
 from app.core.logging import REQUEST_ID_HEADER, get_request_id
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,17 @@ def unauthorized(message: str = "Authentication required.") -> ApiError:
 
 def forbidden(message: str = "This account may not use that endpoint.") -> ApiError:
     return ApiError(403, "forbidden", message)
+
+
+def upstream(message: str = "The assistant is temporarily unavailable.") -> ApiError:
+    """Gemini failed, timed out, or refused. 502, never 500.
+
+    The distinction is not cosmetic: 500 means *we* are broken and someone should
+    read our logs, 502 means the dependency is. The message is deliberately generic
+    -- an upstream exception can carry a URL, a quota figure or part of a request
+    body, and this string is shown to a user.
+    """
+    return ApiError(502, "upstream_error", message)
 
 
 async def api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
@@ -145,8 +157,30 @@ async def unhandled_handler(request: Request, exc: Exception) -> JSONResponse:
         # unhandled 500 in ServerErrorMiddleware, which sits OUTSIDE our middleware
         # and writes straight to the transport -- so the header our middleware adds
         # never gets attached to this one response, the one where it matters most.
-        headers={REQUEST_ID_HEADER: request_id},
+        headers={REQUEST_ID_HEADER: request_id, **_cors_headers(request)},
     )
+
+
+def _cors_headers(request: Request) -> dict[str, str]:
+    """The CORS headers an unhandled 500 would otherwise be missing.
+
+    Same root cause as the request id above: `ServerErrorMiddleware` is outside the
+    CORS middleware, so this one response comes back without them. In a browser that
+    turns a 500 into an opaque "CORS error" -- the frontend never sees the status, and
+    the developer spends the afternoon debugging CORS instead of reading the
+    traceback the reference id points at.
+
+    The origin is still checked against the allowlist. This restores a header the
+    stack dropped; it does not widen who may read it.
+    """
+    origin = request.headers.get("origin")
+    if not origin or origin.rstrip("/") not in get_settings().cors_origins:
+        return {}
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Expose-Headers": REQUEST_ID_HEADER,
+        "Vary": "Origin",
+    }
 
 
 def install(app: Any) -> None:

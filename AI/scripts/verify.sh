@@ -208,6 +208,128 @@ fi
 docker compose cp scripts/check_tools.py ai:/tmp/check_tools.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_tools.py 2>/dev/null || FAIL=1
 
+echo "── agent loop (task 2.2) ──"
+# The graph is rebuilt per request because the tool registry has a Scope closed over
+# it. A module-level compiled graph would hand gym 1's tools to gym 2, and scope.py
+# would not catch it -- every query would be correctly scoped, to the wrong tenant.
+# check_agent.py asserts the module holds no graph; this asserts nothing binds tools
+# at import time either, which is the same mistake one step earlier.
+BIND_AT_IMPORT=$(grep -rn "^[A-Za-z_]* *=.*bind_tools" app/ --include='*.py' || true)
+if [ -z "$BIND_AT_IMPORT" ]; then
+  ok "no tools are bound to a module-level model"
+else
+  bad "no tools are bound to a module-level model" "$(printf '%s' "$BIND_AT_IMPORT" | head -2)"
+fi
+docker compose cp scripts/check_agent.py ai:/tmp/check_agent.py >/dev/null 2>&1
+# stderr is dropped: two of these checks deliberately provoke a logged traceback (a
+# tool returning unserialisable data, a dead upstream) and the log is the point.
+# AI_LIVE_TESTS is passed through rather than set: the default suite must not call a
+# paid, nondeterministic API, but `AI_LIVE_TESTS=1 ./scripts/verify.sh` should reach
+# the real model without anyone editing a script.
+docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
+  ai python /tmp/check_agent.py 2>/dev/null || FAIL=1
+
+echo "── streaming chat endpoint (task 2.3) ──"
+# The stream's own grammar is asserted in check_agent.py against `stream_turn`, with
+# no HTTP and no network. What is left here is the part only a real request can show:
+# what fails *before* the stream opens, and therefore still has a status code.
+docker compose cp scripts/check_chat.py ai:/tmp/check_chat.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
+  ai python /tmp/check_chat.py 2>/dev/null || FAIL=1
+
+# The endpoint must actually be a stream. Content-Type is the one thing a frontend
+# branches on before it has parsed a byte, and `EventSource` refuses anything else.
+CT=$(curl -s -o /dev/null -w '%{content_type}' --max-time 5 -X POST \
+     -H "Content-Type: application/json" -d '{"message":""}' \
+     "http://127.0.0.1:8000/ai/chat")
+chk "an unauthenticated chat is JSON, not a stream" "$CT" "application/json"
+
+echo "── CORS (task 2.7) ──"
+# The browser is the only client that enforces any of this, so it is the only thing
+# that can be broken by getting it wrong -- and the symptom is "CORS error" with no
+# status, which sends you debugging the wrong layer.
+ORIGIN=$(grep '^FRONTEND_URL=' .env | cut -d= -f2- | cut -d, -f1)
+ORIGIN=${ORIGIN:-http://localhost:3000}
+pre() { curl -s -D - -o /dev/null --max-time 5 -X OPTIONS "http://127.0.0.1:8000$2" \
+        -H "Origin: $1" -H 'Access-Control-Request-Method: POST' \
+        -H 'Access-Control-Request-Headers: authorization,content-type'; }
+
+ALLOWED=$(pre "$ORIGIN" /ai/chat | tr -d '\r')
+chk "the frontend origin is allowed to preflight /ai/chat" \
+    "$(printf '%s' "$ALLOWED" | grep -ci "^access-control-allow-origin: $ORIGIN")" "1"
+# A wildcard would let any page that can obtain a token spend it from a user's browser.
+chk "...and the allowed origin is exact, never a wildcard" \
+    "$(printf '%s' "$ALLOWED" | grep -c 'access-control-allow-origin: \*')" "0"
+# We authenticate with a bearer header and set no cookie, so the browser must never
+# be told to attach credentials cross-origin.
+chk "credentials are not allowed cross-origin" \
+    "$(printf '%s' "$ALLOWED" | grep -ci 'access-control-allow-credentials')" "0"
+
+REFUSED=$(pre https://evil.example /ai/chat | tr -d '\r')
+chk "an unknown origin gets no allow-origin header" \
+    "$(printf '%s' "$REFUSED" | grep -ci '^access-control-allow-origin')" "0"
+
+# Without expose_headers a cross-origin fetch cannot read these at all, so the
+# frontend's rate_limited state has no retry time to show (AI_SPECS 3.7 and 6).
+EXPOSED=$(curl -s -D - -o /dev/null --max-time 5 "http://127.0.0.1:8000/health" \
+          -H "Origin: $ORIGIN" | tr -d '\r' | grep -i '^access-control-expose-headers')
+for h in Retry-After X-RateLimit-Limit X-RateLimit-Remaining X-RateLimit-Reset X-Request-ID; do
+  case "$EXPOSED" in *"$h"*) ok "$h is readable by the browser" ;;
+                     *) bad "$h is readable by the browser" "not in expose_headers" ;; esac
+done
+
+# ServerErrorMiddleware sits OUTSIDE the CORS middleware, so an unhandled 500 comes
+# back without CORS headers and reaches the browser as an opaque "CORS error" -- the
+# frontend never sees the 500, and nobody thinks to look for the reference id.
+if [ "${APP_ENV:-development}" != "production" ]; then
+  BOOM=$(curl -s -D - -o /dev/null --max-time 5 "http://127.0.0.1:8000/internal/boom" \
+         -H "X-API-Key: $(grep '^INTERNAL_API_KEY=' .env | cut -d= -f2-)" \
+         -H "Origin: $ORIGIN" | tr -d '\r')
+  chk "an unhandled 500 still carries CORS headers" \
+      "$(printf '%s' "$BOOM" | grep -ci "^access-control-allow-origin: $ORIGIN")" "1"
+  chk "...and still carries its request id" \
+      "$(printf '%s' "$BOOM" | grep -ci '^x-request-id')" "1"
+  EVIL_BOOM=$(curl -s -D - -o /dev/null --max-time 5 "http://127.0.0.1:8000/internal/boom" \
+              -H "X-API-Key: $(grep '^INTERNAL_API_KEY=' .env | cut -d= -f2-)" \
+              -H "Origin: https://evil.example" | tr -d '\r')
+  chk "...for the allowed origin only" \
+      "$(printf '%s' "$EVIL_BOOM" | grep -ci '^access-control-allow-origin')" "0"
+fi
+
+echo "── AI frontend (task 2.7) ──"
+# Runs only if the frontend has been installed. Typecheck and lint, not a full build:
+# both catch what actually breaks here, and neither adds ten seconds to every run.
+# "Zero console errors or warnings" is a subject requirement and cannot be asserted
+# from a shell -- it was verified in a real browser, and the two defects it found
+# (duplicate React keys, focus lost after every answer) are why it was.
+FRONTEND=../frontend
+if [ -d "$FRONTEND/node_modules" ]; then
+  if (cd "$FRONTEND" && npx tsc --noEmit >/dev/null 2>&1); then
+    ok "frontend typechecks"
+  else
+    bad "frontend typechecks" "cd $FRONTEND && npx tsc --noEmit"
+  fi
+  if (cd "$FRONTEND" && npx eslint src --max-warnings 0 >/dev/null 2>&1); then
+    ok "frontend lints with zero warnings"
+  else
+    bad "frontend lints with zero warnings" "cd $FRONTEND && npx eslint src"
+  fi
+  # The panel must never build HTML from model output: everything it renders came
+  # through a language model, and part of it came from a member's own comment.
+  # Anchored on the assignment, not the identifier: the renderer's docstring
+  # explains why it does not use dangerouslySetInnerHTML, and a grep that cannot
+  # tell an explanation from a use is a grep that gets switched off.
+  XSS=$(grep -rnE 'dangerouslySetInnerHTML[[:space:]]*=|\.innerHTML[[:space:]]*=|insertAdjacentHTML' \
+        "$FRONTEND/src" || true)
+  if [ -z "$XSS" ]; then
+    ok "no path from tool output to parsed HTML"
+  else
+    bad "no path from tool output to parsed HTML" "$(printf '%s' "$XSS" | head -2)"
+  fi
+else
+  printf "  \033[33m⋯\033[0m %-38s %s\n" "frontend checks" "no node_modules (npm install)"
+fi
+
 echo "── auth: JWT + tenant resolution (task 0.5) ──"
 docker compose cp scripts/check_auth.py ai:/tmp/check_auth.py >/dev/null 2>&1
 docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1

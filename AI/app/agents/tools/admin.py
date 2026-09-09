@@ -18,7 +18,7 @@ from datetime import timedelta
 from typing import Any
 
 from app.agents.tools import schemas
-from app.agents.tools.base import Tool, period_start, tool
+from app.agents.tools.base import Tool, period_start, plain_field, quote_user_text, tool
 from app.db import reports
 from app.db.models import StoredMembershipStatus, naive_utc_now
 from app.db.scope import Scope, ScopeViolation, aggregate, select
@@ -26,6 +26,16 @@ from app.db.scope import Scope, ScopeViolation, aggregate, select
 # Feedback is the only member-authored text any tool returns. Long enough for every
 # real comment, short enough that a wall of injected instructions cannot ride in.
 MAX_COMMENT_CHARS = 600
+
+
+# The three model-facing identity fields. Named once, so a report that starts
+# returning another one is a change in a single place rather than three.
+_IDENTITY_FIELDS = ("name", "phone_number", "email")
+
+
+def _safe_person(row: dict[str, Any]) -> dict[str, Any]:
+    """Flatten the member-controlled fields in a row from `reports`."""
+    return {k: plain_field(v) if k in _IDENTITY_FIELDS else v for k, v in row.items()}
 
 
 def build_admin_tools(scope: Scope) -> dict[str, Tool]:
@@ -63,7 +73,8 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
           schemas.SearchMembersArgs)
     async def search_members(args: schemas.SearchMembersArgs) -> dict[str, Any]:
         found = await reports.search_members(scope, args.query, args.limit)
-        return {"query": args.query, "count": len(found), "members": found}
+        return {"query": args.query, "count": len(found),
+                "members": [_safe_person(row) for row in found]}
 
     @tool("get_member_detail",
           "Everything about one member: their current membership, recent payments and "
@@ -99,9 +110,9 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             "found": True,
             "member": {
                 "member_id": person["id"],
-                "name": f"{person['first_name']} {person['last_name']}",
-                "phone_number": person["phone_number"],
-                "email": person["email"],
+                "name": plain_field(f"{person['first_name']} {person['last_name']}"),
+                "phone_number": plain_field(person["phone_number"]),
+                "email": plain_field(person["email"]),
                 "account_status": person["account_status"],
             },
             "memberships": [
@@ -164,7 +175,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
         found = await reports.members_without_recent_checkin(
             scope, days=args.days_since_last_checkin, limit=args.limit)
         return {"days_since_last_checkin": args.days_since_last_checkin,
-                "count": len(found), "members": found}
+                "count": len(found), "members": [_safe_person(row) for row in found]}
 
     @tool("get_revenue",
           "Collected revenue in MAD for a period, optionally broken down by month or "
@@ -241,7 +252,8 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             "count": len(rows),
             "feedback": [
                 {"feedback_id": r["id"], "member_id": r["member_id"],
-                 "comment": r["content"][:MAX_COMMENT_CHARS], "rating": r["rating"],
+                 "comment": quote_user_text(r["content"], MAX_COMMENT_CHARS),
+                 "rating": r["rating"],
                  "sentiment": r["sentiment"] or "unscored",
                  "date": r["created_at"].date().isoformat()}
                 for r in rows

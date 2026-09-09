@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -69,6 +70,35 @@ app = FastAPI(
 # Middleware first: the request id has to exist before a handler can put it in a
 # 500's message.
 app.add_middleware(RequestContextMiddleware)
+
+# CORS is added *after*, and that ordering is the point: Starlette inserts each new
+# middleware at the front, so the last one added is the outermost. CORS has to wrap
+# everything below it, because a 401 or a 429 without CORS headers reaches the
+# browser as "CORS error" -- the frontend never sees the status it needs to act on,
+# and the developer chases the wrong bug.
+app.add_middleware(
+    CORSMiddleware,
+    # Never `*`. `allow_origins=["*"]` would let any page that can obtain a token
+    # spend it against this service from a user's browser.
+    allow_origins=settings.cors_origins,
+    # False on purpose. This service authenticates with a bearer header and sets no
+    # cookie, so it never needs the browser to attach credentials -- and leaving it
+    # off means a cross-origin page cannot ride an existing session even if Dahani
+    # later issues one for his own domain.
+    allow_credentials=False,
+    # The methods and headers that actually exist, not a wildcard. DELETE is here
+    # for /ai/documents in phase 3; adding it now costs nothing and a preflight that
+    # fails in week 4 costs an afternoon.
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+    # Without this the browser hands JavaScript only the CORS-safelisted headers,
+    # and `fetch` sees no `Retry-After` and no `X-RateLimit-*` at all. AI_SPECS 3.7
+    # requires the frontend to show the retry time, and 6 requires a `rate_limited`
+    # state -- neither is reachable unless these are exposed.
+    expose_headers=["X-Request-ID", "Retry-After",
+                    "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+    max_age=600,
+)
 errors.install(app)
 app.include_router(ai_routes.router)
 app.include_router(internal_routes.router)
