@@ -66,6 +66,17 @@ def post_chat(token: str | None, body: object, *, timeout: float = 90.0, raw: bo
         return e.code, e.headers, e.read().decode()
 
 
+def get_json(path: str, token: str):
+    req = urllib.request.Request(f"{BASE}{path}")
+    req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status, json.loads(r.read() or b"null")
+    except urllib.error.HTTPError as e:
+        e.read()
+        return e.code, None
+
+
 def get_probe(token: str) -> int:
     req = urllib.request.Request(f"{BASE}/ai/rate-probe")
     req.add_header("Authorization", f"Bearer {token}")
@@ -319,6 +330,27 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
           "expire" in memory.lower(), memory[:70])
     check("...on the same id it was given",
           bool(resumed) and resumed[0][1]["thread_id"] == given)
+
+    # Redrawing after a reload: the panel loses the transcript otherwise, while the
+    # server still holds it -- the assistant remembers and the screen does not.
+    status, listing = get_json("/ai/threads", member_token)
+    check("the conversation appears in the caller's listing",
+          status == 200 and any(row["thread_id"] == given for row in listing or []),
+          f"status={status}")
+    status, redrawn = get_json(f"/ai/threads/{given}", member_token)
+    check("...and can be redrawn in the shape the panel renders",
+          status == 200 and bool(redrawn)
+          and {row["author"] for row in redrawn} <= {"user", "assistant"},
+          f"{len(redrawn or [])} messages")
+    check("...with the tools that ran attached to the answer",
+          any(row["tools"] for row in redrawn or []),
+          str([row["tools"] for row in redrawn or []][:3]))
+
+    status, _ = get_json(f"/ai/threads/{given}", live_token)
+    check("another account cannot redraw it", status == 404, f"status={status}")
+    status, theirs = get_json("/ai/threads", live_token)
+    check("...and it is absent from their listing",
+          status == 200 and all(row["thread_id"] != given for row in theirs or []))
     member_answer = "".join(d["text"] for k, d in member_events if k == "token")
     check("a member gets their own answer, streamed",
           bool(member_answer.strip()), member_answer[:60])

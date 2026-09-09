@@ -39,6 +39,13 @@ export interface ErrorEvent {
   message: string;
 }
 
+/** `GET /ai/threads/{id}` — a stored conversation, already in this file's shape. */
+export interface StoredMessage {
+  author: "user" | "assistant";
+  text: string;
+  tools: string[];
+}
+
 export type AssistantEvent =
   | { type: "meta"; data: MetaEvent }
   | { type: "tool"; data: ToolEvent }

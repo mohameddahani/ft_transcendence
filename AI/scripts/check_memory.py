@@ -27,6 +27,8 @@ from app.state import db as state_db
 from app.state.threads import (
     ThreadNotFound,
     append_messages,
+    assert_owned,
+    list_threads,
     load_history,
     open_thread,
     sweep_expired_threads,
@@ -100,6 +102,19 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
             check(label, False, "RESUMED")
         except ThreadNotFound:
             check(label, True, "404 not_found, never 403")
+
+    # A read is not a use. `assert_owned` exists so redrawing a transcript does not
+    # renew the TTL -- otherwise an open tab keeps a dead conversation alive forever.
+    await assert_owned(thread, SUBJECT, "ADMIN")
+    for label, subject, role in (
+        ("another subject cannot read the transcript", OTHER_SUBJECT, "ADMIN"),
+        ("...nor another role", SUBJECT, "MEMBER"),
+    ):
+        try:
+            await assert_owned(thread, subject, role)
+            check(label, False, "READ")
+        except ThreadNotFound:
+            check(label, True)
 
     # ------------------------------------------------------- what is stored
     print("\n\033[1m  what is written down\033[0m")
@@ -209,6 +224,23 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     check("a truncated turn leaves a replayable thread",
           outcome.finish_reason == "max_tool_rounds" and not unanswered,
           f"{len(replayed)} messages, {len(unanswered)} dangling")
+
+    # ------------------------------------------------------------- the listing
+    print("\n\033[1m  a caller sees only their own conversations\033[0m")
+
+    listed = await list_threads(SUBJECT, "ADMIN")
+    ids = [row["thread_id"] for row in listed]
+    check("the caller's threads are listed", thread in ids, f"{len(listed)} threads")
+    check("...newest first",
+          [row["last_used_at"] for row in listed] == sorted(
+              (row["last_used_at"] for row in listed), reverse=True))
+    check("...with the first question as the title",
+          any(row["opening"].startswith("how many active members") for row in listed))
+    check("...and no empty ones", all(row["messages"] > 0 for row in listed))
+    check("another subject's listing is empty of it",
+          thread not in [row["thread_id"] for row in await list_threads(OTHER_SUBJECT, "ADMIN")])
+    check("...and so is the same subject's under another role",
+          thread not in [row["thread_id"] for row in await list_threads(SUBJECT, "MEMBER")])
 
     # ------------------------------------------------------ opt-out and expiry
     print("\n\033[1m  memory is opt-in, and it expires\033[0m")

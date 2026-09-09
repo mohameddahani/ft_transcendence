@@ -23,6 +23,27 @@ docker compose up -d         # once AI/docker-compose.yml exists (task 1.1)
 
 `colima stop` when you are done — it holds 6 GB of RAM.
 
+## When a change does not take effect
+
+Four different things look identical from the outside — the code you just edited is not
+the code that is running — and each needs a different command. All four cost real time
+during D14–D17 before they were written down.
+
+| You changed | Do this | Why `restart` is not enough |
+|---|---|---|
+| `requirements.txt`, `Dockerfile` | `docker compose up -d --build` | Packages live in the image. `restart` reuses it, so the import fails or the old version answers. |
+| `.env` | `docker compose up -d` | Environment is fixed when the **container** is created. `restart` keeps the old values — a wrong model id will look like it was ignored. |
+| `app/**.py` | usually nothing — the override bind-mounts `app/` and uvicorn `--reload` picks it up | **But `--reload` misses edits often enough to matter.** Before *measuring* anything (a prompt change, a timing), `docker compose restart ai` and be sure. |
+| anything, for production | `docker compose -f docker-compose.yml up -d --build` | Without `-f`, compose loads `docker-compose.override.yml` and you are testing the dev topology. |
+
+The tell is always the same: run the check twice and get the same wrong answer, then
+inspect the running container directly —
+`docker compose exec -T ai printenv GEMINI_CHAT_MODEL`,
+`docker compose exec -T ai pip show langgraph`,
+`docker compose exec -T ai python -c "import app.main as m; print(sorted({r.path for r in m.app.routes}))"`.
+A container recreate (`up -d`) also wipes `/tmp`, so any script copied in with
+`docker compose cp` has to be copied again.
+
 ## Layout
 
 ```

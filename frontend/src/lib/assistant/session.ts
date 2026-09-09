@@ -36,6 +36,29 @@ export function writeToken(token: string): void {
   }
 }
 
+const THREAD_KEY = "assistant_thread";
+
+/** Per tab, not per browser. Two tabs are two conversations, which is what a person
+ *  means by opening a second one -- and it is `sessionStorage` rather than
+ *  `localStorage` so closing the tab ends the thread the way closing a chat does. */
+export function readThreadId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(THREAD_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function writeThreadId(threadId: string | null): void {
+  try {
+    if (threadId) window.sessionStorage.setItem(THREAD_KEY, threadId);
+    else window.sessionStorage.removeItem(THREAD_KEY);
+  } catch {
+    /* storage unavailable: the conversation still works, it just will not survive a reload */
+  }
+}
+
 export function clearToken(): void {
   try {
     window.localStorage.removeItem(TOKEN_KEY);

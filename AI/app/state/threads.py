@@ -102,6 +102,58 @@ async def open_thread(
         return thread_id, False
 
 
+async def assert_owned(thread_id: str, subject_id: str, role: str) -> None:
+    """Ownership, without touching `last_used_at`.
+
+    `open_thread` marks a thread as used because a *turn* is use. Reading the
+    transcript back is not, and a read that renewed the TTL would keep a dead
+    conversation alive forever in an open tab.
+    """
+    connection = get_state_db()
+    async with connection.execute(
+        "SELECT subject_id, role FROM threads WHERE id = ?", (thread_id,)
+    ) as cursor:
+        row = await cursor.fetchone()
+    if row is None or row[0] != subject_id or row[1] != role:
+        raise ThreadNotFound("no such conversation")
+
+
+async def list_threads(subject_id: str, role: str, limit: int = 20) -> list[dict]:
+    """This caller's recent conversations, newest first.
+
+    Filtered on `subject_id` in the query rather than checked afterwards: a listing
+    that fetched everything and filtered in Python is one refactor away from
+    forgetting to.
+    """
+    connection = get_state_db()
+    async with connection.execute(
+        "SELECT t.id, t.created_at, t.last_used_at,"
+        " (SELECT COUNT(*) FROM thread_messages m WHERE m.thread_id = t.id),"
+        " (SELECT m.payload FROM thread_messages m WHERE m.thread_id = t.id"
+        "   AND m.role = 'human' ORDER BY m.seq LIMIT 1)"
+        " FROM threads t WHERE t.subject_id = ? AND t.role = ?"
+        " ORDER BY t.last_used_at DESC LIMIT ?",
+        (subject_id, role, limit),
+    ) as cursor:
+        rows = await cursor.fetchall()
+
+    listed = []
+    for thread_id, created, used, count, first in rows:
+        if not count:
+            # A thread whose turn failed before it stored anything. Real, and not
+            # worth showing anybody a blank row for.
+            continue
+        opening = ""
+        if first:
+            try:
+                opening = str(_load(first).content)[:80]
+            except Exception:  # noqa: BLE001 -- a bad row costs a title, not a listing
+                opening = ""
+        listed.append({"thread_id": thread_id, "created_at": created,
+                       "last_used_at": used, "messages": count, "opening": opening})
+    return listed
+
+
 async def sweep_expired_threads(ttl_days: int) -> int:
     """Delete threads untouched for `ttl_days`, and their messages with them.
 

@@ -12,9 +12,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { AI_BASE_URL, IS_DEV, clearToken, readToken, writeToken } from "@/lib/assistant/session";
+import {
+  AI_BASE_URL,
+  IS_DEV,
+  clearToken,
+  readThreadId,
+  readToken,
+  writeThreadId,
+  writeToken,
+} from "@/lib/assistant/session";
 import { RateLimited, RequestFailed, streamChat } from "@/lib/assistant/stream";
-import type { ChatMessage, Identity, PanelState, ToolRun } from "@/lib/assistant/types";
+import type {
+  ChatMessage,
+  Identity,
+  PanelState,
+  StoredMessage,
+  ToolRun,
+} from "@/lib/assistant/types";
 
 import { ChatInput } from "./ChatInput";
 import { ChatMessageList } from "./ChatMessageList";
@@ -49,6 +63,13 @@ export function AssistantPanel() {
   const [fatal, setFatal] = useState<string | null>(null);
   const [retryIn, setRetryIn] = useState(0);
   const [threadId, setThreadId] = useState<string | null>(null);
+
+  // One writer for both, so the tab's stored id can never disagree with the one the
+  // next request will send.
+  const rememberThread = useCallback((id: string | null) => {
+    setThreadId(id);
+    writeThreadId(id);
+  }, []);
   const [draftToken, setDraftToken] = useState("");
 
   const abort = useRef<AbortController | null>(null);
@@ -110,6 +131,46 @@ export function AssistantPanel() {
     return () => controller.abort();
   }, [token]);
 
+  // Redraw the conversation this tab was in. Without it a reload loses the
+  // transcript while the server still holds it -- the assistant remembers and the
+  // screen does not, which reads as a bug in the memory rather than in the UI.
+  useEffect(() => {
+    if (!token) return;
+    const stored = readThreadId();
+    if (!stored) return;
+    const controller = new AbortController();
+
+    fetch(`${AI_BASE_URL}/ai/threads/${stored}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!alive.current) return;
+        if (!response.ok) {
+          // Expired, swept, or not this account's any more. Drop it quietly and
+          // start clean: an error about a conversation the user never asked to
+          // resume is noise.
+          writeThreadId(null);
+          return;
+        }
+        const rows = (await response.json()) as StoredMessage[];
+        if (!rows.length) return;
+        setThreadId(stored);
+        setMessages(rows.map((row) => ({
+          id: nextId(row.author === "user" ? "u" : "a"),
+          author: row.author,
+          text: row.text,
+          tools: row.tools.map((name) => ({ name, status: "done" as const })),
+        })));
+        setState("idle");
+      })
+      .catch(() => {
+        /* offline or aborted: the panel still works, it just starts a new thread */
+      });
+
+    return () => controller.abort();
+  }, [token]);
+
   // The rate-limit countdown. One interval, cleared on unmount, and it stops itself
   // at zero rather than running for the life of the page.
   useEffect(() => {
@@ -162,7 +223,7 @@ export function AssistantPanel() {
 
           switch (event.type) {
             case "meta":
-              setThreadId(event.data.thread_id);
+              rememberThread(event.data.thread_id);
               break;
 
             case "tool": {
@@ -230,7 +291,7 @@ export function AssistantPanel() {
             // The conversation is gone -- expired, or the service's state was
             // reset. Holding the dead id would 404 every message from here on, so
             // it is dropped and the next question opens a new one.
-            setThreadId(null);
+            rememberThread(null);
             patch((message) => ({
               ...message,
               note: "That conversation expired. Ask again to start a new one.",
@@ -251,7 +312,7 @@ export function AssistantPanel() {
         abort.current = null;
       }
     },
-    [token, threadId],
+    [token, threadId, rememberThread],
   );
 
   // ---------------------------------------------------------------- no token yet
@@ -316,6 +377,21 @@ export function AssistantPanel() {
           <h1 className="truncate text-sm font-semibold">
             {identity ? identity.gym : "Gym assistant"}
           </h1>
+          <div className="flex shrink-0 items-center gap-3">
+            {messages.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  abort.current?.abort();
+                  rememberThread(null);
+                  setMessages([]);
+                  setState("empty");
+                }}
+                className="rounded-lg border border-black/15 px-2.5 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+              >
+                New chat
+              </button>
+            ) : null}
           <p className="shrink-0 text-xs text-black/45 dark:text-white/45">
             {identity
               ? identity.role === "ADMIN"
@@ -325,6 +401,7 @@ export function AssistantPanel() {
                 ? "Not signed in"
                 : "Connecting…"}
           </p>
+          </div>
         </div>
       </header>
 

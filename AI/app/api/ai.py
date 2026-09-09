@@ -21,7 +21,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
-from typing import Final
+from typing import Final, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Response
@@ -37,7 +37,13 @@ from app.db import scope as sc
 from app.db.models import Role
 from app.db.profile import ProfileUnavailable, load_profile
 from app.db.scope import Scope, ScopeViolation
-from app.state.threads import ThreadNotFound, open_thread
+from app.state.threads import (
+    ThreadNotFound,
+    assert_owned,
+    list_threads,
+    load_history,
+    open_thread,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +112,96 @@ async def me(ctx: CurrentUser) -> Identity:
         member_name = mine[0].full_name
 
     return Identity(role=ctx.role, gym=gym_name, member_name=member_name)
+
+
+class ThreadSummary(BaseModel):
+    thread_id: str
+    last_used_at: float
+    messages: int
+    # The first thing the person asked, so a list of conversations reads as a list of
+    # subjects rather than of UUIDs.
+    opening: str
+
+
+class ThreadMessage(BaseModel):
+    """One row of a redrawn transcript, in the shape the panel already renders.
+
+    The merge happens here rather than in the browser: a stored conversation is an
+    assistant message *with tool calls* followed by tool results followed by an
+    assistant message with text, and the UI draws that as one turn. Doing the
+    flattening in two places is how a restored conversation ends up looking subtly
+    unlike a live one.
+    """
+
+    author: Literal["user", "assistant"]
+    text: str
+    tools: list[str] = []
+
+
+@router.get("/threads", response_model=list[ThreadSummary])
+async def threads(ctx: CurrentUser) -> list[ThreadSummary]:
+    """This caller's recent conversations.
+
+    Filtered by subject in the query, not after it. Without this the panel loses the
+    conversation on every page reload while the server still holds the transcript --
+    the assistant remembers and the screen does not, which is worse than no memory.
+    """
+    rows = await list_threads(ctx.subject, ctx.role.value)
+    return [ThreadSummary(**row) for row in rows]
+
+
+@router.get("/threads/{thread_id}", response_model=list[ThreadMessage])
+async def thread_messages(thread_id: str, ctx: CurrentUser) -> list[ThreadMessage]:
+    """One conversation, for redrawing it after a reload.
+
+    Same ownership rule as resuming it, and the same `404` for a thread that is not
+    the caller's. `tool` messages are included but carry no text: the UI shows what
+    ran, and the raw JSON of a tool result is neither useful to a person nor
+    something to hand back out of the database.
+    """
+    try:
+        UUID(thread_id)
+    except ValueError as exc:
+        raise ApiError(400, "invalid_request", "thread_id must be a UUID.") from exc
+    try:
+        await assert_owned(thread_id, ctx.subject, ctx.role.value)
+    except ThreadNotFound as exc:
+        raise ApiError(404, "not_found", "No such conversation.") from exc
+
+    history = await load_history(thread_id, get_settings().AGENT_HISTORY_MESSAGES)
+
+    redrawn: list[ThreadMessage] = []
+    pending_tools: list[str] = []
+    for message in history:
+        if message.type == "human":
+            redrawn.append(ThreadMessage(author="user", text=_plain(message)))
+            pending_tools = []
+        elif message.type == "ai":
+            calls = [str(call.get("name", "")) for call in
+                     (getattr(message, "tool_calls", None) or [])]
+            if calls:
+                # The turn is not over: this message asked for tools and the text
+                # comes in the next one.
+                pending_tools.extend(calls)
+                continue
+            redrawn.append(ThreadMessage(author="assistant", text=_plain(message),
+                                         tools=pending_tools))
+            pending_tools = []
+        # `tool` messages are dropped: their content is raw JSON, which is neither
+        # useful to a person nor something to hand back out of the database. What
+        # ran is already recorded on the message that asked for it.
+
+    return redrawn
+
+
+def _plain(message: object) -> str:
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(part if isinstance(part, str) else str(part.get("text", ""))
+                       for part in content if isinstance(part, (str, dict)))
+    return str(content)
 
 
 class ChatRequest(BaseModel):
