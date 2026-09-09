@@ -48,6 +48,16 @@ class Settings(BaseSettings):
     # A ceiling on one Gemini call. The agent may make several per answer, so this
     # is not the request budget -- it is how long a dead upstream may hang a stream.
     GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, gt=0, le=120)
+    # How many messages of a conversation are re-sent to the model each turn. A
+    # thread is unbounded and every turn re-sends all of it, so this is the cost of
+    # question twenty. Counted in messages rather than tokens on purpose: one tool
+    # response is one message, and the window has to be able to hold a whole
+    # question-plus-tools-plus-answer cycle without cutting into one.
+    AGENT_HISTORY_MESSAGES: int = Field(default=24, ge=4, le=200)
+    # A conversation is a cache of context, not a record -- the gym's data lives in
+    # Dahani's Postgres and nothing here is the only copy of anything. 90 days so
+    # history survives to the demo (AI_SPECS 2.2).
+    THREAD_TTL_DAYS: int = Field(default=90, ge=1, le=365)
     # AI_SPECS 3.2 requires the length limit in the frontend *and* here: the browser
     # is not the only thing that can POST to this endpoint. Sized for a long question,
     # not an essay -- every character is billed and re-sent on every tool round.

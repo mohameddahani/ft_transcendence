@@ -20,6 +20,7 @@ from app.db import engine as db
 from app.db.schema import verify_schema
 from app.state import db as state_db
 from app.state.limits import sweep_expired
+from app.state.threads import sweep_expired_threads
 
 # Read and validate configuration at import time. A missing or malformed setting
 # now kills the process during startup with a readable pydantic error, instead of
@@ -47,6 +48,9 @@ async def lifespan(_: FastAPI):
         # never returns leaves rows behind. One sweep at boot keeps the table
         # proportional to recent traffic rather than to all traffic ever.
         await sweep_expired(settings.RATE_LIMIT_WINDOW_SECONDS)
+        # A thread and its messages go together: an orphaned transcript is a whole
+        # conversation nothing can reach and nothing will ever delete.
+        await sweep_expired_threads(settings.THREAD_TTL_DAYS)
         yield
     finally:
         await state_db.close_state_db()

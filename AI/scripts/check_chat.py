@@ -103,6 +103,12 @@ def streamed(label: str, status: int, text: str) -> list[tuple[str, dict]]:
     events = parse_sse(text)
     if not events:
         check(label, False, "200 but no events parsed")
+        return []
+    # A stream can be 200 and still have failed: the error travels as an event, which
+    # is the whole point of 2.3 and exactly the case a token-only assertion misses.
+    failed = [data for kind, data in events if kind == "error"]
+    if failed:
+        check(label, False, f"error event: {failed[0].get('code')} {failed[0].get('message', '')[:40]}")
     return events
 
 
@@ -180,6 +186,33 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     status, _, text = post_chat(owner_token,
                                 {"message": "hi", "thread_id": "a\r\nevent: done\r\ndata: {}"})
     check("...including one carrying CRLF, which would forge an event", status == 400)
+
+    # ---------------------------------------------------------------- threads
+    print("\n\033[1m  conversations belong to somebody\033[0m")
+
+    # A real thread, owned by the validation subject.
+    status, _, text = post_chat(owner_token, {"message": "hello"})
+    mine = parse_sse(text)[0][1]["thread_id"] if status == 200 and parse_sse(text) else None
+    if mine is None:
+        # No Gemini needed for the security assertion below -- but the thread has to
+        # exist, and creating one means a real turn. Skipped rather than faked when
+        # the model is not reachable.
+        check("a conversation id comes back to be reused", False, f"status={status}")
+    else:
+        check("a conversation id comes back to be reused", len(mine) == 36, mine)
+        status, _, text = post_chat(live_token, {"message": "what did we discuss?",
+                                                 "thread_id": mine})
+        check("another user sending that id gets 404, not the transcript",
+              status == 404 and envelope(text).get("code") == "not_found",
+              f"status={status}")
+        status, _, text = post_chat(member_token, {"message": "what did we discuss?",
+                                                   "thread_id": mine})
+        check("...and so does a member", status == 404, f"status={status}")
+
+    status, _, text = post_chat(owner_token,
+                                {"message": "hi", "thread_id": "3f6d1c8e-0000-4000-8000-000000000000"})
+    check("an unknown conversation id is 404, never 403",
+          status == 404, "403 would confirm the id belongs to somebody")
 
     # ---------------------------------------------------------- the rate limit
     print("\n\033[1m  the chat bucket\033[0m")
@@ -266,15 +299,26 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
           and truth["active_members"] != rival_truth["active_members"],
           other[:60])
 
-    # A thread id supplied by the caller comes back unchanged, so the frontend can
-    # keep using it once 2.4 makes it mean something.
-    given = "11111111-2222-4333-8444-555555555555"
-    status, _, text = post_chat(member_token,
-                                {"message": "when does my membership expire?",
-                                 "thread_id": given})
+    # A conversation, over HTTP, end to end. The id cannot be invented any more --
+    # `open_thread` refuses one it does not own -- so it has to come from a first
+    # turn, which is also how a frontend gets it.
+    status, _, text = post_chat(member_token, {"message": "when does my membership expire?"})
     member_events = streamed("a member's question was answered", status, text)
-    check("a supplied thread id is echoed back",
-          bool(member_events) and member_events[0][1]["thread_id"] == given)
+    given = member_events[0][1]["thread_id"] if member_events else ""
+    check("a new conversation comes back with an id", len(given) == 36, given)
+
+    status, _, text = post_chat(member_token,
+                                # Unambiguous on purpose: "what did I just ask you"
+                                # is a question the model can honestly answer with
+                                # *this* message, and it did.
+                                {"message": "before this message, what did I ask you? quote it",
+                                 "thread_id": given})
+    resumed = streamed("the conversation resumes on that id", status, text)
+    memory = "".join(d["text"] for k, d in resumed if k == "token")
+    check("...and the assistant remembers the previous turn",
+          "expire" in memory.lower(), memory[:70])
+    check("...on the same id it was given",
+          bool(resumed) and resumed[0][1]["thread_id"] == given)
     member_answer = "".join(d["text"] for k, d in member_events if k == "token")
     check("a member gets their own answer, streamed",
           bool(member_answer.strip()), member_answer[:60])

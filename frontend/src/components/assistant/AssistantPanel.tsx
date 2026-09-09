@@ -226,6 +226,18 @@ export function AssistantPanel() {
             setState("error");
             return;
           }
+          if (error.status === 404) {
+            // The conversation is gone -- expired, or the service's state was
+            // reset. Holding the dead id would 404 every message from here on, so
+            // it is dropped and the next question opens a new one.
+            setThreadId(null);
+            patch((message) => ({
+              ...message,
+              note: "That conversation expired. Ask again to start a new one.",
+            }));
+            setState("idle");
+            return;
+          }
           patch((message) => ({ ...message, error: error.message }));
           setState("idle");
           return;

@@ -69,6 +69,51 @@ _SCHEMA: Final = (
     CREATE INDEX IF NOT EXISTS idx_rate_events_key
         ON rate_events (subject, bucket, ts)
     """,
+    # One row per conversation (AI_SPECS 2.2). The LangGraph checkpointer keeps its
+    # own tables keyed by the same id; this one exists for the thing the checkpointer
+    # has no concept of -- **who the thread belongs to**.
+    #
+    # `thread_id` arrives from the client. Without an owner recorded here, resuming a
+    # conversation would be "send any id and read what is in it", which is a stranger
+    # reading somebody's chat about their own gym. `subject_id` is the verified JWT
+    # subject, and every resume checks it.
+    """
+    CREATE TABLE IF NOT EXISTS threads (
+        id           TEXT PRIMARY KEY,
+        subject_id   TEXT NOT NULL,
+        role         TEXT NOT NULL,
+        admin_id     TEXT NOT NULL,
+        created_at   REAL NOT NULL,
+        last_used_at REAL NOT NULL
+    )
+    """,
+    # Ownership is checked on the id, which is the primary key; this index is for the
+    # TTL sweep and for "this user's threads" when the frontend grows a history list.
+    """
+    CREATE INDEX IF NOT EXISTS idx_threads_owner
+        ON threads (subject_id, last_used_at)
+    """,
+    # The conversation itself, one row per message, in order.
+    #
+    # A table rather than one serialised blob per thread, and rows rather than a
+    # LangGraph checkpoint, because the question this has to answer on demand is
+    # "what does the assistant actually remember about me?" -- and `SELECT role,
+    # substr(payload,1,80) FROM thread_messages WHERE thread_id = ?` answers it. A
+    # checkpoint answers it with msgpack.
+    #
+    # `payload` is the LangChain serialisation of the message: content, tool calls
+    # and tool-call ids all survive it, and a plain content column would lose the
+    # half that makes a tool round replayable.
+    """
+    CREATE TABLE IF NOT EXISTS thread_messages (
+        thread_id  TEXT NOT NULL,
+        seq        INTEGER NOT NULL,
+        role       TEXT NOT NULL,
+        payload    TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        PRIMARY KEY (thread_id, seq)
+    )
+    """,
 )
 
 

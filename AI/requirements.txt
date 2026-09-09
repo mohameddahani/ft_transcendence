@@ -9,5 +9,3 @@ aiosqlite>=0.20.0,<0.21.0
 langgraph>=1.0,<2.0
 langchain-core>=1.0,<2.0
 langchain-google-genai>=4.4,<5.0
-# The checkpointer's own storage (task 2.4). Same SQLite file as our state.
-langgraph-checkpoint-sqlite>=2.0,<3.0

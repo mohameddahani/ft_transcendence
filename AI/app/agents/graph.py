@@ -37,13 +37,19 @@ from __future__ import annotations
 
 import json
 import logging
-import operator
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Annotated, Any, TypedDict
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+    trim_messages,
+)
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from pydantic import ValidationError
@@ -53,7 +59,9 @@ from app.agents.prompts import build_system_prompt
 from app.agents.tools import Tool, build_admin_tools, build_member_tools
 from app.config import get_settings
 from app.core.errors import ApiError, upstream
+from app.db.profile import Profile
 from app.db.scope import Scope
+from app.state.threads import append_messages, load_history
 
 logger = logging.getLogger(__name__)
 
@@ -66,22 +74,40 @@ MAX_TOOL_CALLS_PER_STEP = 8
 
 
 class AgentState(TypedDict):
-    """What flows along the edges.
+    """What flows along the edges -- and, since 2.4, what is written to disk.
 
-    Every field with a reducer makes a node's return value a *delta* rather than a
-    snapshot: `add_messages` appends, `operator.add` sums and concatenates. Nodes
-    that read-modify-write shared state are how two branches quietly overwrite each
-    other, and the two counters are exactly the fields that would.
+    **One field.** The checkpointer persists this whole dict per thread, so anything
+    in it outlives the turn, and almost nothing here should. The counters were in it
+    until the checkpointer arrived and made the bug obvious: `operator.add` reducers
+    accumulate, so turn two would have started with turn one's `tool_rounds` already
+    spent and the budget would have been exhausted by the second question. They live
+    in a per-request `Turn` now, which cannot outlive the request that made it.
+
+    `add_messages` is a reducer for the opposite reason: a node's return is a *delta*,
+    and appending is exactly what a conversation does.
+
+    The system prompt is deliberately absent. It is rebuilt and prepended on each
+    model call, so a thread resumed tomorrow is told tomorrow's date rather than the
+    one frozen into it the day it started.
     """
 
     messages: Annotated[list[BaseMessage], add_messages]
-    tools_used: Annotated[list["ToolCall"], operator.add]
-    # Two counters, because they answer two different questions: `tool_rounds` is
-    # the budget the router spends, `model_calls` is what the turn cost.
-    tool_rounds: Annotated[int, operator.add]
-    model_calls: Annotated[int, operator.add]
-    # No reducer: last write wins, and only `finish` ever writes it.
-    finish_reason: str
+
+
+@dataclass
+class Turn:
+    """Everything about *this* turn, which is everything that must not be persisted.
+
+    Mutable and per request, held in the closure the nodes are built in. Safe because
+    this graph has no parallel branches -- `agent`, `tools` and `finish` run one at a
+    time -- which is the condition that makes read-modify-write sound and is why the
+    persisted half still uses a reducer.
+    """
+
+    tools_used: list["ToolCall"] = field(default_factory=list)
+    tool_rounds: int = 0
+    model_calls: int = 0
+    finish_reason: str = "stop"
 
 
 @dataclass(frozen=True)
@@ -254,12 +280,13 @@ async def _run_tool_call(raw_call: dict[str, Any], tools: dict[str, Tool]) -> tu
 
 def _build_turn(
     scope: Scope,
-    gym_name: str,
+    profile: Profile,
     question: str,
     llm: Any | None,
     max_tool_rounds: int | None,
     now: datetime | None,
-) -> tuple[Any, dict[str, Any]]:
+    history: list[BaseMessage],
+) -> tuple[Any, dict[str, Any], Turn]:
     """Compile the graph for **one** request and return it with its opening state.
 
     Both entry points go through here, and nothing it produces is cached. The
@@ -271,6 +298,7 @@ def _build_turn(
     """
     settings = get_settings()
     budget = max_tool_rounds if max_tool_rounds is not None else settings.AGENT_MAX_TOOL_ROUNDS
+    turn = Turn()
 
     # Role dispatch. Both builders refuse the wrong kind of scope, so a mistake here
     # fails at wiring time rather than halfway through an answer.
@@ -279,6 +307,27 @@ def _build_turn(
 
     model = llm if llm is not None else get_llm()
     with_tools = model.bind_tools(declarations)
+
+    def _for_model(messages: list[BaseMessage]) -> list[BaseMessage]:
+        """The window this turn actually sends, with a fresh system prompt on top.
+
+        Trimmed, because a thread is unbounded and every turn re-sends all of it --
+        the cost of question twenty is the whole conversation, again. `start_on`
+        matters more than the size: cutting between an assistant's tool call and its
+        response leaves a function call with no answer, which Gemini rejects
+        outright, so the window is only ever allowed to begin at a human turn.
+        """
+        kept = trim_messages(
+            list(messages),
+            max_tokens=settings.AGENT_HISTORY_MESSAGES,
+            token_counter=len,
+            strategy="last",
+            start_on="human",
+            include_system=False,
+            allow_partial=False,
+        )
+        return [SystemMessage(content=build_system_prompt(
+            scope, profile, question=question, now=now)), *kept]
 
     async def _ask(model_to_use: Any, messages: list[BaseMessage]) -> AIMessage:
         try:
@@ -294,8 +343,9 @@ def _build_turn(
             raise upstream("The assistant is temporarily unavailable. Please try again.") from exc
 
     async def agent(state: AgentState) -> dict[str, Any]:
-        reply = await _ask(with_tools, list(state["messages"]))
-        return {"messages": [reply], "model_calls": 1}
+        reply = await _ask(with_tools, _for_model(state["messages"]))
+        turn.model_calls += 1
+        return {"messages": [reply]}
 
     async def run_tools(state: AgentState) -> dict[str, Any]:
         last = _latest_ai_message(list(state["messages"]))
@@ -314,7 +364,9 @@ def _build_turn(
             messages.append(message)
             record.append(entry)
 
-        return {"messages": messages, "tools_used": record, "tool_rounds": 1}
+        turn.tools_used.extend(record)
+        turn.tool_rounds += 1
+        return {"messages": messages}
 
     async def finish(state: AgentState) -> dict[str, Any]:
         """The budget ran out with the model still asking for tools.
@@ -325,13 +377,15 @@ def _build_turn(
         request malformed.
         """
         pending = _latest_ai_message(list(state["messages"]))
-        history = [m for m in state["messages"] if m is not pending]
+        history = _for_model([m for m in state["messages"] if m is not pending])
         history.append(HumanMessage(content=(
             "You have used all the tool calls available for this question. Answer now "
             "using only what the tools have already returned, and state plainly which "
             "part you could not determine.")))
         reply = await _ask(model, history)
-        return {"messages": [reply], "model_calls": 1, "finish_reason": "max_tool_rounds"}
+        turn.model_calls += 1
+        turn.finish_reason = "max_tool_rounds"
+        return {"messages": [reply]}
 
     def route(state: AgentState) -> str:
         last = _latest_ai_message(list(state["messages"]))
@@ -340,7 +394,7 @@ def _build_turn(
             return END
         # Checked after `wants_tools`, so an answer that arrives exactly at the cap
         # ends the turn instead of paying for a redundant `finish` call.
-        if state["tool_rounds"] >= budget:
+        if turn.tool_rounds >= budget:
             return "finish"
         return "tools"
 
@@ -353,17 +407,11 @@ def _build_turn(
     workflow.add_edge("tools", "agent")
     workflow.add_edge("finish", END)
 
-    opening: dict[str, Any] = {
-        "messages": [
-            SystemMessage(content=build_system_prompt(scope, gym_name, now=now)),
-            HumanMessage(content=question),
-        ],
-        "tools_used": [],
-        "tool_rounds": 0,
-        "model_calls": 0,
-        "finish_reason": "stop",
-    }
-    return workflow.compile(), opening
+    # The conversation, then this turn's question. The history was read once, before
+    # the graph was built, rather than being restored inside it -- so the ownership
+    # check in `state/threads.py` happens strictly before anything is loaded.
+    opening: dict[str, Any] = {"messages": [*history, HumanMessage(content=question)]}
+    return workflow.compile(), opening, turn
 
 
 def _clean_question(question: str) -> str:
@@ -378,6 +426,41 @@ def _clean_question(question: str) -> str:
     if not cleaned:
         raise ApiError(400, "invalid_request", "message must not be empty.")
     return cleaned
+
+
+async def _history_for(thread_id: str | None) -> list[BaseMessage]:
+    """The conversation so far, or nothing.
+
+    `thread_id is None` is a one-shot turn with no memory -- how the acceptance tests
+    and, later, the sentiment worker call the agent, and the reason memory is opt-in
+    rather than ambient. Ownership of the id was settled in `state/threads.py` before
+    this is reached; by here it is already the caller's.
+    """
+    if thread_id is None:
+        return []
+    return await load_history(thread_id, get_settings().AGENT_HISTORY_MESSAGES)
+
+
+def _replayable(messages: list[BaseMessage]) -> list[BaseMessage]:
+    """Drop any tool call that never got an answer, before the turn is stored.
+
+    The `finish` node leaves exactly this behind: it abandons the model's pending
+    call rather than executing it. Storing that message would poison the *next* turn
+    -- a history containing a function call with no response is rejected outright by
+    Gemini, so one truncated answer would break the conversation from then on.
+    """
+    answered = {
+        message.tool_call_id for message in messages if isinstance(message, ToolMessage)
+    }
+    return [
+        message
+        for message in messages
+        if not (
+            isinstance(message, AIMessage)
+            and message.tool_calls
+            and any(call.get("id") not in answered for call in message.tool_calls)
+        )
+    ]
 
 
 def _log_turn(tools_used: tuple[ToolCall, ...], rounds: int, calls: int, reason: str) -> None:
@@ -395,11 +478,12 @@ def _log_turn(tools_used: tuple[ToolCall, ...], rounds: int, calls: int, reason:
 async def run_turn(
     *,
     scope: Scope,
-    gym_name: str,
+    profile: Profile,
     question: str,
     llm: Any | None = None,
     max_tool_rounds: int | None = None,
     now: datetime | None = None,
+    thread_id: str | None = None,
 ) -> TurnResult:
     """One question in, one whole answer out. The non-streaming entry point.
 
@@ -411,27 +495,33 @@ async def run_turn(
     call -- a paid, nondeterministic dependency in `verify.sh` produces a suite that
     fails for reasons that are not bugs, and a suite people learn to ignore.
     """
-    graph, opening = _build_turn(scope, gym_name, _clean_question(question),
-                                 llm, max_tool_rounds, now)
+    history = await _history_for(thread_id)
+    graph, opening, turn = _build_turn(scope, profile, _clean_question(question),
+                                       llm, max_tool_rounds, now, history)
     final = await graph.ainvoke(opening)
 
-    used = tuple(final["tools_used"])
-    _log_turn(used, final["tool_rounds"], final["model_calls"], final["finish_reason"])
+    if thread_id is not None:
+        # Everything after the history is this turn: the question, the tool round
+        # trips and the answer.
+        await append_messages(thread_id, _replayable(list(final["messages"])[len(history):]))
+
+    used = tuple(turn.tools_used)
+    _log_turn(used, turn.tool_rounds, turn.model_calls, turn.finish_reason)
 
     reply = _latest_ai_message(list(final["messages"]))
     return TurnResult(
         answer=_message_text(reply) if reply is not None else "",
         tools_used=used,
-        tool_rounds=final["tool_rounds"],
-        model_calls=final["model_calls"],
-        finish_reason=final["finish_reason"],
+        tool_rounds=turn.tool_rounds,
+        model_calls=turn.model_calls,
+        finish_reason=turn.finish_reason,
     )
 
 
 async def stream_turn(
     *,
     scope: Scope,
-    gym_name: str,
+    profile: Profile,
     question: str,
     thread_id: str,
     llm: Any | None = None,
@@ -453,17 +543,17 @@ async def stream_turn(
     its tenant, which is a bug and not a message for a user, and the route logs it
     and closes the stream.
     """
-    graph, opening = _build_turn(scope, gym_name, _clean_question(question),
-                                 llm, max_tool_rounds, now)
+    history = await _history_for(thread_id)
+    graph, opening, turn = _build_turn(scope, profile, _clean_question(question),
+                                       llm, max_tool_rounds, now, history)
+    produced: list[BaseMessage] = list(opening["messages"][len(history):])
 
     # `route` is `structured` until phase 3 adds retrieval; the field exists now so
     # the frontend never has to learn a new event shape to get it.
     yield AgentEvent("meta", {"thread_id": thread_id, "route": "structured"})
 
-    used: list[ToolCall] = []
-    rounds = model_calls = 0
-    reason = "stop"
     text_seen = False
+    reported: list[ToolCall] = []
     # Tokens emitted since the last node finished. LangGraph produces them by
     # streaming the model inside the node, which is a mechanism that can be absent --
     # a model that does not stream, a test double that is not a LangChain model, a
@@ -476,7 +566,8 @@ async def stream_turn(
         # Two modes at once: `updates` is what a node returned (tool activity),
         # `messages` is what the model is emitting token by token. LangGraph turns a
         # node's `ainvoke` into a streaming call for this, so the nodes stay simple.
-        async for mode, chunk in graph.astream(opening, stream_mode=["updates", "messages"]):
+        async for mode, chunk in graph.astream(opening,
+                                               stream_mode=["updates", "messages"]):
             if mode == "messages":
                 message, meta = chunk
                 # Only the nodes that speak to the user. A tool-call message streams
@@ -493,8 +584,7 @@ async def stream_turn(
 
             for node, update in chunk.items():
                 if node in {"agent", "finish"}:
-                    model_calls += update.get("model_calls", 0)
-                    reason = update.get("finish_reason", reason)
+                    produced.extend(update.get("messages", []))
                     for message in update.get("messages", []):
                         # Announced before the tools node runs them, which is the
                         # whole point of the event: the UI shows what is happening,
@@ -508,17 +598,22 @@ async def stream_turn(
                             yield AgentEvent("token", {"text": text})
                     streamed_here = ""
                 elif node == "tools":
-                    rounds += update.get("tool_rounds", 0)
-                    for record in update.get("tools_used", []):
-                        used.append(record)
+                    produced.extend(update.get("messages", []))
+                    # Read off the turn rather than the node's return: the counters
+                    # and the record are per request now, not persisted state.
+                    for record in turn.tools_used[len(reported):]:
+                        reported.append(record)
                         yield AgentEvent("tool", {"name": record.name,
                                                   "status": "done" if record.ok else "error"})
     except ApiError as exc:
-        _log_turn(tuple(used), rounds, model_calls, "error")
+        _log_turn(tuple(turn.tools_used), turn.tool_rounds, turn.model_calls, "error")
         yield AgentEvent("error", dict(exc.detail["error"]))
         return
 
-    _log_turn(tuple(used), rounds, model_calls, reason)
+    _log_turn(tuple(turn.tools_used), turn.tool_rounds, turn.model_calls, turn.finish_reason)
+
+    if thread_id is not None:
+        await append_messages(thread_id, _replayable(produced))
 
     if not text_seen:
         # Gemini can finish with no text at all -- a refusal, a safety stop, or a
@@ -528,4 +623,4 @@ async def stream_turn(
                                    "message": "The assistant did not produce an answer."})
         return
 
-    yield AgentEvent("done", {"finish_reason": reason})
+    yield AgentEvent("done", {"finish_reason": turn.finish_reason})

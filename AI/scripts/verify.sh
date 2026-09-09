@@ -80,6 +80,10 @@ if [ -x .venv/bin/python ]; then
   .venv/bin/python -m scripts.check_history || FAIL=1
   .venv/bin/python -m scripts.check_attendance || FAIL=1
   .venv/bin/python -m scripts.check_corpus || FAIL=1
+  # Language detection is measured against the seeded comments, which carry the
+  # language they were generated in -- a labelled corpus that only exists on the host,
+  # because seeder/ is kept out of the image.
+  .venv/bin/python -m scripts.check_language || FAIL=1
 else
   printf "  \033[33m⋯\033[0m %-38s %s\n" "seeder checks" "no .venv (see DEV_SETUP.md)"
 fi
@@ -228,6 +232,20 @@ docker compose cp scripts/check_agent.py ai:/tmp/check_agent.py >/dev/null 2>&1
 # the real model without anyone editing a script.
 docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
   ai python /tmp/check_agent.py 2>/dev/null || FAIL=1
+
+echo "── profile + language (tasks 2.5, 2.6) ──"
+# The profile is read per turn and never stored. The check proves that from the
+# source, because no single response can demonstrate the absence of a cache.
+docker compose cp scripts/check_profile.py ai:/tmp/check_profile.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_profile.py 2>/dev/null || FAIL=1
+
+echo "── conversation memory (task 2.4) ──"
+# The transcript is a table this service writes, not a LangGraph checkpoint: the
+# official sqlite saver (2.0.10) cannot run against the checkpoint protocol langgraph
+# 1.2 ships (4.2) -- it raises AttributeError on every super-step. The table is also
+# the better answer to "what does the assistant remember about me?".
+docker compose cp scripts/check_memory.py ai:/tmp/check_memory.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_memory.py 2>/dev/null || FAIL=1
 
 echo "── streaming chat endpoint (task 2.3) ──"
 # The stream's own grammar is asserted in check_agent.py against `stream_turn`, with

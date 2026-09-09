@@ -22,7 +22,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from typing import Final
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Response
 from fastapi.responses import StreamingResponse
@@ -35,7 +35,9 @@ from app.core.errors import ApiError, unauthorized
 from app.core.ratelimit import ChatRateLimited, DocsRateLimited, carry_rate_headers
 from app.db import scope as sc
 from app.db.models import Role
+from app.db.profile import ProfileUnavailable, load_profile
 from app.db.scope import Scope, ScopeViolation
+from app.state.threads import ThreadNotFound, open_thread
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +76,9 @@ async def _gym_name(scope: Scope) -> str:
     in `require_auth`, but it can be deleted between that lookup and this one; answer
     401 rather than letting an IndexError become a 500 with a stack trace in it.
 
-    Task 2.5 replaces this with a fuller profile. Until then it is one extra round
-    trip on a request that is about to spend several seconds talking to Gemini.
+    `/ai/chat` uses `load_profile` instead (task 2.5), which reads the plans and the
+    caller's own membership as well. This stays because the identity probe wants one
+    column and should not pay for the rest.
     """
     rows = await sc.select_models(scope, "users")
     if not rows:
@@ -170,16 +173,37 @@ async def chat(body: ChatRequest, ctx: ChatRateLimited,
     failures a client can still read as a status code, so they are the ones that must
     not be deferred into the stream.
 
-    `thread_id` is generated and returned, but nothing is remembered between turns
-    yet -- the checkpointer is task 2.4. Returning it now means the frontend is
-    written against the final protocol and gains memory without a change.
+    `thread_id` now means something (task 2.4): omit it and a conversation is
+    created, send it back and the previous turns are restored.
+
+    **Ownership is resolved before anything else happens.** The id comes from the
+    client, and the checkpointer will return whatever is stored under it without
+    asking whose it is -- so `open_thread` checks it against the verified JWT subject
+    first, and a thread that is not the caller's answers `404`, exactly as one that
+    does not exist. A 403 would confirm the id belongs to somebody, which is the
+    single bit worth having if you are guessing ids.
     """
-    gym_name = await _gym_name(ctx.scope)
-    thread_id = body.thread_id or str(uuid4())
+    # Read fresh, every turn (task 2.5). The membership state in it is the reason:
+    # a profile carried in the conversation would still be calling a lapsed member
+    # active a week later, in the first line of every answer.
+    try:
+        profile = await load_profile(ctx.scope)
+    except ProfileUnavailable as exc:
+        raise unauthorized("Invalid or expired token.") from exc
+
+    try:
+        thread_id, _created = await open_thread(
+            thread_id=body.thread_id,
+            subject_id=ctx.subject,
+            role=ctx.role.value,
+            admin_id=ctx.scope.admin_id,
+        )
+    except ThreadNotFound as exc:
+        raise ApiError(404, "not_found", "No such conversation.") from exc
 
     async def events() -> AsyncIterator[bytes]:
         try:
-            async for event in stream_turn(scope=ctx.scope, gym_name=gym_name,
+            async for event in stream_turn(scope=ctx.scope, profile=profile,
                                            question=body.message, thread_id=thread_id):
                 yield _sse(event)
         except ApiError as exc:
