@@ -23,6 +23,7 @@ enum Gender {
 enum Role {
   OWNER
   ADMIN
+  STAFF
   MEMBER
 }
 
