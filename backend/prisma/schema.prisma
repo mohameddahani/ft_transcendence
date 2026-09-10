@@ -108,6 +108,7 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  staffs    Staff[]
 
   @@index([firstName, lastName])
   @@index([role])
@@ -179,6 +180,48 @@ model Subscription {
   @@index([userId, subscriptionStatus])
   @@index([planId, subscriptionStatus])
   @@map("subscriptions")
+}
+
+// * Table of users
+model Staff {
+  id          String   @id @default(uuid())
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  gender      Gender
+  birthDate   DateTime @map("birth_date")
+  userName    String   @unique @map("user_name")
+  email       String   @unique
+  password    String
+  phoneNumber String   @unique @map("phone_number")
+  companyName String   @map("company_name")
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  role                 Role              @default(STAFF)
+  profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
+  profileImagePublicId String?           @map("profile_image_public_id")
+  isAccountVerified    Boolean           @default(false) @map("is_account_verified")
+  accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
+
+  // subscription      Subscription[]
+  // members           Member[]
+  // memberships       Membership[]
+  // membershipPlans   MembershipPlan[]
+  // payments          Payment[]
+  // userRefreshTokens UserRefreshToken[]
+  // userActionTokens  UserActionToken[]
+  // notifications     AdminNotification[]
+  staffNotifications StaffNotification[]
+  staffRefreshTokens StaffRefreshToken[]
+  staffActionTokens  StaffActionToken[]
+
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@index([firstName, lastName])
+  @@index([role])
+  @@map("staffs")
 }
 
 // * Table of Members
@@ -333,6 +376,25 @@ model AdminNotification {
   @@map("admin_notifications")
 }
 
+// * Table of Notifications of Staff
+model StaffNotification {
+  id String @id @default(uuid())
+
+  staffId String @map("staff_id")
+  staff   Staff  @relation(fields: [staffId], references: [id])
+
+  notificationType NotificationType @map("notification_type")
+  title            String
+  message          String
+
+  isRead Boolean @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([staffId])
+  @@map("staff_notifications")
+}
+
 // * Table of Notifications of Admin
 model MemberNotification {
   id String @id @default(uuid())
@@ -376,6 +438,30 @@ model UserRefreshToken {
   @@map("user_refresh_tokens")
 }
 
+// * Table of Staff Refresh Token
+model StaffRefreshToken {
+  id String @id @default(uuid())
+
+  jti  String @unique
+  hash String
+
+  staffId String @map("staff_id")
+  staff   Staff  @relation(fields: [staffId], references: [id])
+
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  ip        String?
+  userAgent String? @map("user_agent")
+  device    String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([staffId])
+  @@map("staff_refresh_tokens")
+}
+
 // * Table of Member Refresh Token
 model MemberRefreshToken {
   id String @id @default(uuid())
@@ -417,6 +503,25 @@ model UserActionToken {
 
   @@index([userId])
   @@map("user_action_tokens")
+}
+
+// * Table of Staff Action Token
+model StaffActionToken {
+  id String @id @default(uuid())
+
+  StaffId String @map("staff_id")
+  staff   Staff  @relation(fields: [StaffId], references: [id])
+
+  tokenHash String          @unique @map("token_hash")
+  type      ActionTokenType
+  expiresAt DateTime        @map("expires_at")
+  usedAt    DateTime?       @map("used_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([StaffId])
+  @@map("staff_action_tokens")
 }
 
 // * Table of Member Action Token
