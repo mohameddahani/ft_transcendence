@@ -62,6 +62,14 @@
 
 // * add props of all routes in swagger
 
+// ! Create Staff by admin
+// ! Add Staff role
+// ! Make company name added auto
+// ! Add default image profile to staff
+
+// ! Check All Crons is Work
+// ! Check All Crons of Notifications is Work
+
 // Common Types
 // Type	Meaning
 // feat	New feature

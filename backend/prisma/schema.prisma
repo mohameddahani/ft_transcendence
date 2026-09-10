@@ -182,7 +182,7 @@ model Subscription {
   @@map("subscriptions")
 }
 
-// * Table of users
+// * Table of staffs
 model Staff {
   id          String   @id @default(uuid())
   firstName   String   @map("first_name")
@@ -191,7 +191,7 @@ model Staff {
   birthDate   DateTime @map("birth_date")
   userName    String   @unique @map("user_name")
   email       String   @unique
-  password    String
+  password    String?
   phoneNumber String   @unique @map("phone_number")
   companyName String   @map("company_name")
 
@@ -201,23 +201,18 @@ model Staff {
   role                 Role              @default(STAFF)
   profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
   profileImagePublicId String?           @map("profile_image_public_id")
-  isAccountVerified    Boolean           @default(false) @map("is_account_verified")
   accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
 
-  // subscription      Subscription[]
-  // members           Member[]
-  // memberships       Membership[]
+  members            Member[]
+  memberships        Membership[]
   // membershipPlans   MembershipPlan[]
-  // payments          Payment[]
-  // userRefreshTokens UserRefreshToken[]
-  // userActionTokens  UserActionToken[]
-  // notifications     AdminNotification[]
+  payments           Payment[]
   staffNotifications StaffNotification[]
   staffRefreshTokens StaffRefreshToken[]
   staffActionTokens  StaffActionToken[]
 
-  createdAt          DateTime            @default(now()) @map("created_at")
-  updatedAt          DateTime            @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([firstName, lastName])
   @@index([role])
@@ -230,6 +225,9 @@ model Member {
 
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id])
 
   firstName            String              @map("first_name")
   lastName             String              @map("last_name")
@@ -258,6 +256,9 @@ model Member {
   @@index([adminId])
   @@index([adminId, firstName, lastName])
   @@index([adminId, email, phoneNumber])
+  @@index([staffId])
+  @@index([staffId, firstName, lastName])
+  @@index([staffId, email, phoneNumber])
   @@map("members")
 }
 
@@ -267,6 +268,9 @@ model Membership {
 
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id])
 
   memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
@@ -342,6 +346,9 @@ model Payment {
 
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id])
 
   amount        Decimal       @db.Decimal(10, 2)
   paidAt        DateTime      @map("paid_at")
