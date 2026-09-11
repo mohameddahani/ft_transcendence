@@ -57,6 +57,22 @@ export class JwtProvider {
           ),
         };
       }
+    } else if (role === Role.STAFF) {
+      if (type === JwtTokenType.ACCESS) {
+        return {
+          secret: this.config.getOrThrow<string>('JWT_STAFF_ACCESS_SECRET'),
+          expiresIn: this.config.getOrThrow<string>(
+            'JWT_STAFF_ACCESS_EXPIRES_IN',
+          ),
+        };
+      } else if (type === JwtTokenType.REFRESH) {
+        return {
+          secret: this.config.getOrThrow<string>('JWT_STAFF_REFRESH_SECRET'),
+          expiresIn: this.config.getOrThrow<string>(
+            'JWT_STAFF_REFRESH_EXPIRES_IN',
+          ),
+        };
+      }
     }
     throw new Error('Invalid JWT configuration');
   }

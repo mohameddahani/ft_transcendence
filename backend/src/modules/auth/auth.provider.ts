@@ -29,6 +29,7 @@ import ms, { StringValue } from 'ms';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
+import { LoginStaffDto } from './dto/login-staff.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -408,6 +409,108 @@ export class AuthProvider {
     });
   }
 
+  // * Login Staff
+  async loginStaff(request: Request, data: LoginStaffDto) {
+    // * Check if staff already exist by userName before login
+    const staff = await this.prisma.staff.findUnique({
+      where: { userName: data.userName },
+    });
+    if (!staff) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Check status of account
+    if (staff.accountStatus === UserAccountStatus.PENDING) {
+      throw new UnauthorizedException(
+        'Your account is pending verification. Please contact admin for assistance.',
+      );
+    }
+
+    if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Send Email verification to new user if he try to login without activating his account
+      try {
+        // * Generate Action Token
+        const { rawToken, tokenHash } = this.generateActionToken();
+
+        // * Send email of verification to user
+        await this.emailService.sendVerificationEmail(staff.email, rawToken);
+      } catch {
+        throw new RequestTimeoutException('Failed to send verification email');
+      }
+      throw new UnauthorizedException(
+        'Your account is inactive. Please activate your account through the email we sent.',
+      );
+    }
+
+    if (staff.accountStatus === UserAccountStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact admin for assistance.',
+      );
+    }
+
+    // * Check the member if he set a password
+    if (!staff.password) {
+      throw new UnauthorizedException(
+        'Your account has not been activated yet. Please check your email and set your password to continue.',
+      );
+    }
+
+    // * Check the password is match
+    const passwordIsMatch = await bcrypt.compare(data.password, staff.password);
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Generate Access Token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: staff.id,
+      role: staff.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    // * Generate Refresh Token
+    // * Generate UUID for jti
+    const jti = randomUUID();
+
+    const refreshTokenPayload: RefreshTokenPayload = {
+      id: staff.id,
+      role: staff.role,
+      jti: jti,
+    };
+    const refreshToken =
+      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_STAFF_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.staffRefreshToken.create({
+      data: {
+        jti: jti,
+        hash: refreshTokenHash,
+        staff: { connect: { id: staff.id } },
+        expiresAt: expiresAt,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+        device: this.getDevice(request.headers['user-agent']),
+      },
+    });
+
+    // * Exclude Some Fields
+    const { id, password, createdAt, updatedAt, ...safeStaff } = staff;
+    return { staff: safeStaff, accessToken, refreshToken, refreshExpiresIn };
+  }
+
   // * Login Member
   async loginMember(request: Request, data: LoginMemberDto) {
     // * Check if member already exist by userName before login
@@ -456,7 +559,7 @@ export class AuthProvider {
       this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
-    // *  Generate UUID for jti
+    // * Generate UUID for jti
     const jti = randomUUID();
 
     const refreshTokenPayload: RefreshTokenPayload = {

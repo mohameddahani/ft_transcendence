@@ -16,7 +16,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import type { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { ForgotPasswordUserDto } from './dto/forgot-password-user.dto';
 import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
-import type { Request, Response } from 'express';
+import { type Request, type Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
@@ -34,6 +34,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { OwnerAccessTokenAuthGuard } from './guards/owner-access-token-auth.guard';
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { MemberAccessTokenAuthGuard } from './guards/member-access-token-auth.guard';
+import { LoginStaffDto } from './dto/login-staff.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -220,6 +221,36 @@ export class AuthController {
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
   ) {
     return this.authService.refreshMember(refreshToken, refreshTokenPayload);
+  }
+
+  /* 
+  =========================
+  ! Staff Auth
+  =========================
+  */
+  // * Login Member
+  @Post('staffs/login')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async loginStaff(
+    @Body() body: LoginStaffDto,
+    @Req() request: Request,
+    // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { staff, accessToken, refreshToken, refreshExpiresIn } =
+      await this.authService.loginStaff(request, body);
+
+    // * Store the refresh token in a secure HttpOnly cookie
+    response.cookie('refresh_token', refreshToken, {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+      maxAge: ms(refreshExpiresIn), // * Expires after 30 days
+    });
+
+    return { staff, accessToken };
   }
 
   /* 
