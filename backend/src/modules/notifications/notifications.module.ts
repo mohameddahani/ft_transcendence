@@ -7,4 +7,4 @@ import { AdminNotificationsController } from './admin-notifications.controller';
   controllers: [MemberNotificationsController, AdminNotificationsController],
   providers: [NotificationsService],
 })
-export class NotificationModule {}
+export class NotificationsModule {}
