@@ -31,6 +31,7 @@ import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 import { LoginStaffDto } from './dto/login-staff.dto';
 import { generateActionToken } from '@/core/utils/generate-action-token';
+import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -510,6 +511,68 @@ export class AuthProvider {
     // * Exclude Some Fields
     const { id, password, createdAt, updatedAt, ...safeStaff } = staff;
     return { staff: safeStaff, accessToken, refreshToken, refreshExpiresIn };
+  }
+
+  // * Set Password Staff
+  async setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.staffActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { staff: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have staff already in DB
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: token.staff.id },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Check if staff has already password
+    if (staff.password) {
+      throw new BadRequestException('Staff has already password');
+    }
+
+    // * Hash the password
+    const salt = await bcrypt.genSalt(10);
+    data.password = await bcrypt.hash(data.password, salt);
+
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Set The Password
+      this.prisma.staff.update({
+        where: { id: staff.id },
+        data: {
+          password: data.password,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.staffActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
   }
 
   // * Login Member

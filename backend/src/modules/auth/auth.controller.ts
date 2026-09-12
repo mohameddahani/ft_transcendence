@@ -35,6 +35,7 @@ import { OwnerAccessTokenAuthGuard } from './guards/owner-access-token-auth.guar
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { MemberAccessTokenAuthGuard } from './guards/member-access-token-auth.guard';
 import { LoginStaffDto } from './dto/login-staff.dto';
+import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -226,6 +227,16 @@ export class AuthController {
     });
 
     return { staff, accessToken };
+  }
+
+  // * Set Password (Staff)
+  @Post('staffs/set-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  setPasswordStaff(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: SetPasswordStaffDto,
+  ) {
+    return this.authService.setPasswordStaff(rawToken.token, body);
   }
 
   /* 

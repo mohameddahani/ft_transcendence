@@ -7,6 +7,7 @@ import { Request } from 'express';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 import { LoginStaffDto } from './dto/login-staff.dto';
+import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +41,11 @@ export class AuthService {
   // * Login Staff
   loginStaff(request: Request, data: LoginStaffDto) {
     return this.authProvider.loginStaff(request, data);
+  }
+
+  // * Set Password Staff
+  setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
+    return this.authProvider.setPasswordStaff(rawToken, data);
   }
 
   // * Login Member
