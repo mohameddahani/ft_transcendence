@@ -53,6 +53,16 @@ export class AuthService {
     return this.authProvider.setPasswordStaff(rawToken, data);
   }
 
+  // * Forgot password (Staff)
+  forgotPasswordStaff(username: string) {
+    return this.authProvider.forgotPasswordStaff(username);
+  }
+
+  // * Password reset (Staff)
+  resetPasswordStaff(rawToken: string, password: string) {
+    return this.authProvider.resetPasswordStaff(rawToken, password);
+  }
+
   // * Login Member
   loginMember(request: Request, data: LoginMemberDto) {
     return this.authProvider.loginMember(request, data);

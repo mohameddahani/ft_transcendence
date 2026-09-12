@@ -633,6 +633,104 @@ export class AuthProvider {
     ]);
   }
 
+  // * Forgot password (Staff)
+  async forgotPasswordStaff(username: string) {
+    // * Check if staff already exist by username
+    const staff = await this.prisma.staff.findUnique({
+      where: { userName: username },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Send Email of reset password to Staff
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.staffActionToken.create({
+        data: {
+          staff: { connect: { id: staff.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.RESET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email
+      await this.emailService.sendResetPasswordMemberEmail(
+        staff.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException('Failed to send reset password email');
+    }
+  }
+
+  // * Password reset (Staff)
+  async resetPasswordStaff(rawToken: string, password: string) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.staffActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { staff: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have staff already in DB
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: token.staff.id },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Hash new Password
+    const salt = await bcrypt.genSalt(10);
+    const newPassword = await bcrypt.hash(password, salt);
+
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Save new password
+      this.prisma.staff.update({
+        where: { id: staff.id },
+        data: {
+          password: newPassword,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.staffActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
+  }
+
   // * Login Member
   async loginMember(request: Request, data: LoginMemberDto) {
     // * Check if member already exist by userName before login

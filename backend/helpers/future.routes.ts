@@ -68,6 +68,7 @@
 // ! Add default image profile to staff
 // ! ban or freeze or ... a staff
 // ! edit profile of staff (like profile image ...)
+// ! Check emails of staffs is correct(reset password and confirmation ...)
 
 // ! Check All Crons is Work
 // ! Check All Crons of Notifications is Work

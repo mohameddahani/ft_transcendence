@@ -38,6 +38,8 @@ import { LoginStaffDto } from './dto/login-staff.dto';
 import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
 import { StaffAccessTokenAuthGuard } from './guards/staff-access-token-auth.guard';
 import { StaffRefreshTokenAuthGuard } from './guards/staff-refresh-token-auth.guard';
+import { ForgotPasswordStaffDto } from './dto/forgot-password-staff.dto';
+import { ResetPasswordStaffDto } from './dto/reset-password-staff.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -277,6 +279,24 @@ export class AuthController {
     @Body() body: SetPasswordStaffDto,
   ) {
     return this.authService.setPasswordStaff(rawToken.token, body);
+  }
+
+  // * Forgot password (Staff)
+  @Post('staffs/forgot-password')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  forgotPasswordStaff(@Body() body: ForgotPasswordStaffDto) {
+    return this.authService.forgotPasswordStaff(body.userName);
+  }
+
+  // * Password reset (Staff)
+  @Post('staffs/reset-password')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  resetPasswordStaff(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: ResetPasswordStaffDto,
+  ) {
+    return this.authService.resetPasswordStaff(rawToken.token, body.password);
   }
 
   /* 
