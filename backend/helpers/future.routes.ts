@@ -66,6 +66,8 @@
 // ! Add Staff role
 // ! Make company name added auto
 // ! Add default image profile to staff
+// ! ban or freeze or ... a staff
+// ! edit profile of staff (like profile image ...)
 
 // ! Check All Crons is Work
 // ! Check All Crons of Notifications is Work

@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
@@ -262,5 +263,37 @@ export class SubscriptionsService {
     }
 
     return subscriptions;
+  }
+
+  // ! Global Method
+  // * Check if admin has subscription
+  async checkIfAdminHasSubscription(adminId: string) {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
+      include: { plan: true, user: true },
+    });
+    if (!subscription || !subscription.plan.isActive) {
+      throw new UnauthorizedException(
+        'You don’t have an active subscription. Upgrade your plan to continue.',
+      );
+    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
+        throw new UnauthorizedException(
+          'Your account is inactive. Please activate your account to continue.',
+        );
+      } else if (
+        subscription.user.accountStatus === UserAccountStatus.PENDING
+      ) {
+        throw new UnauthorizedException(
+          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
+        );
+      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
+        throw new UnauthorizedException(
+          'Your account has been suspended. Please contact support for assistance.',
+        );
+      }
+    }
+
+    return subscription;
   }
 }

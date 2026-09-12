@@ -26,10 +26,11 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { LoginMemberDto } from './dto/login-member.dto';
 import { SetPasswordMemberDto } from './dto/set-password-member.dto';
 import { LoginStaffDto } from './dto/login-staff.dto';
+import { generateActionToken } from '@/core/utils/generate-action-token';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -106,7 +107,7 @@ export class AuthProvider {
     // * Generate Email Verification Token
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const emailVerificationTokenExpiresIn =
@@ -159,7 +160,7 @@ export class AuthProvider {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
-        const { rawToken, tokenHash } = this.generateActionToken();
+        const { rawToken, tokenHash } = generateActionToken();
 
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(user.email, rawToken);
@@ -430,7 +431,7 @@ export class AuthProvider {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
-        const { rawToken, tokenHash } = this.generateActionToken();
+        const { rawToken, tokenHash } = generateActionToken();
 
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(staff.email, rawToken);
@@ -841,7 +842,7 @@ export class AuthProvider {
     // * Send Email of reset password to user
     try {
       // * Generate Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
@@ -928,7 +929,7 @@ export class AuthProvider {
     // * Send Email of reset password to member
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
@@ -1023,12 +1024,5 @@ export class AuthProvider {
     const result = parser.getResult();
 
     return `${result.device.vendor ?? 'Unknown'} ${result.device.model ?? 'Desktop'}`;
-  }
-
-  // * Generate Action Token
-  private generateActionToken() {
-    const rawToken = randomBytes(32).toString('hex'); // * sent to user
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
-    return { rawToken, tokenHash };
   }
 }

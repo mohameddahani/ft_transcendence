@@ -10,6 +10,6 @@ import { AdminSubscriptionsController } from './admin-subscriptions.controller';
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
   ],
-  exports: [],
+  exports: [SubscriptionsService],
 })
 export class SubscriptionsModule {}

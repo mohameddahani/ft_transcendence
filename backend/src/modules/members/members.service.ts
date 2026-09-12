@@ -11,18 +11,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  UserAccountStatus,
   ActionTokenType,
   MembershipStatus,
   MemberAccountStatus,
   PaymentStatus,
-  SubscriptionStatus,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 import { EmailService } from '@/infrastructure/email/email.service';
-import { createHash, randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
 
 @Injectable()
 export class MembersService {
@@ -30,12 +29,14 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   // * Add Member by Admin
   async addMember(adminId: string, data: AddMemberDto) {
     // * Check if admin is has already a subscription
-    const subscription = await this.checkIfAdminHasSubscription(adminId);
+    const subscription =
+      await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -151,7 +152,7 @@ export class MembersService {
     // * Send Email of Set password to member
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
@@ -185,7 +186,7 @@ export class MembersService {
   // * Update data of member
   async update(adminId: string, memberId: string, data: UpdateMemberDto) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if we have member already in DB
     await this.findOne(adminId, memberId);
@@ -308,7 +309,7 @@ export class MembersService {
   // * Active a Member
   async activeMember(adminId: string, memberId: string) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member is exist
     const member = await this.findOne(adminId, memberId);
@@ -330,7 +331,7 @@ export class MembersService {
   // * Freeze a Member
   async freezeMember(adminId: string, memberId: string) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
@@ -359,7 +360,7 @@ export class MembersService {
   // * Ban a Member
   async banMember(adminId: string, memberId: string) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(adminId, memberId);
@@ -382,7 +383,7 @@ export class MembersService {
   // * Get all Members
   async findAll(adminId: string, page: number, limit: number) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -422,7 +423,7 @@ export class MembersService {
   // * Get one Member
   async findOne(adminId: string, memberId: string) {
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     const member = await this.prisma.member.findFirst({
       where: {
@@ -459,37 +460,6 @@ export class MembersService {
   }
 
   // ! Private Attributes
-  // * Check if admin has subscription
-  private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
-      include: { plan: true, user: true },
-    });
-    if (!subscription || !subscription.plan.isActive) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new UnauthorizedException(
-          'Your account is inactive. Please activate your account to continue.',
-        );
-      } else if (
-        subscription.user.accountStatus === UserAccountStatus.PENDING
-      ) {
-        throw new UnauthorizedException(
-          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
-        );
-      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
-        throw new UnauthorizedException(
-          'Your account has been suspended. Please contact support for assistance.',
-        );
-      }
-    }
-
-    return subscription;
-  }
-
   // * Check if Admin Has Membership Plan With Duration
   private async checkIfAdminHasMembershipPlanWithDuration(
     adminId: string,
@@ -522,12 +492,5 @@ export class MembersService {
     }
 
     return { duration, membershipPlan };
-  }
-
-  // * Generate Action Token
-  private generateActionToken() {
-    const rawToken = randomBytes(32).toString('hex'); // * sent to user
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
-    return { rawToken, tokenHash };
   }
 }

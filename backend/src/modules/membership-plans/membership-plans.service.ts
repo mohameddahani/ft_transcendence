@@ -8,22 +8,22 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
-import {
-  MembershipStatus,
-  SubscriptionStatus,
-  UserAccountStatus,
-} from '@/generated/prisma/enums';
+import { MembershipStatus } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
+import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
 
 @Injectable()
 export class MembershipPlansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly subscriptionsService: SubscriptionsService,
+  ) {}
 
   // * Add Membership plan
   async addMembershipPlan(adminId: string, data: AddMembershipPlanDto) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if membership plan already exist
     const membershipPlan = await this.prisma.membershipPlan.findFirst({
@@ -52,7 +52,7 @@ export class MembershipPlansService {
     data: AddMembershipPlanDurationDto,
   ) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if membership plan exist
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
@@ -94,7 +94,7 @@ export class MembershipPlansService {
   // * Update Membership Plan
   async update(adminId: string, id: string, data: UpdateMembershipPlanDto) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if this membership plan already exist
     const membershipPlan = await this.findOne(adminId, id);
@@ -152,7 +152,7 @@ export class MembershipPlansService {
     data: UpdateMembershipPlanDurationDto,
   ) {
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check the membership plan if already exist
     const membershipPlan = await this.findOne(adminId, data.membershipPlanId);
@@ -263,38 +263,5 @@ export class MembershipPlansService {
     }
 
     return membershipPlan;
-  }
-
-  // ! Private Attributes
-  // * Check if admin has subscription
-  private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
-      include: {
-        plan: true,
-        user: true,
-      },
-    });
-    if (!subscription || !subscription.plan.isActive) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new UnauthorizedException(
-          'Your account is inactive. Please activate your account to continue.',
-        );
-      } else if (
-        subscription.user.accountStatus === UserAccountStatus.PENDING
-      ) {
-        throw new UnauthorizedException(
-          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
-        );
-      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
-        throw new UnauthorizedException(
-          'Your account has been suspended. Please contact support for assistance.',
-        );
-      }
-    }
   }
 }
