@@ -68,6 +68,11 @@ export class AuthService {
     return this.authProvider.refresh(refreshToken, refreshTokenPayload);
   }
 
+  // * Refresh Staff
+  refreshStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.refreshStaff(refreshToken, refreshTokenPayload);
+  }
+
   // * Refresh Member
   refreshMember(
     refreshToken: string,

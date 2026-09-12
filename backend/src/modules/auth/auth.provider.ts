@@ -556,7 +556,7 @@ export class AuthProvider {
     }
 
     // * Verify the user type
-    if (storedToken.staff.role !== Role.MEMBER) {
+    if (storedToken.staff.role !== Role.STAFF) {
       throw new UnauthorizedException();
     }
 
@@ -834,6 +834,59 @@ export class AuthProvider {
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.user.id,
       role: storedToken.user.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    return { accessToken: accessToken };
+  }
+
+  // * Refresh Staff
+  async refreshStaff(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.staffRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { staff: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to log in
+    if (storedToken.staff.accountStatus !== MemberAccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.staff.role !== Role.STAFF) {
+      throw new UnauthorizedException();
+    }
+
+    // * generate new access token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: storedToken.staff.id,
+      role: storedToken.staff.role,
     };
     const accessToken =
       this.customJwtService.generateAccessToken(accessTokenPayload);

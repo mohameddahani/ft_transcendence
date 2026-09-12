@@ -188,6 +188,19 @@ export class AuthController {
     return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
+  // * Refresh Staff
+  @Post('staffs/refresh')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(StaffRefreshTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.STAFF])
+  refreshStaff(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authService.refreshStaff(refreshToken, refreshTokenPayload);
+  }
+
   // * Refresh Member
   @Post('members/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
