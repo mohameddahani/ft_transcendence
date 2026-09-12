@@ -36,6 +36,8 @@ import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guar
 import { MemberAccessTokenAuthGuard } from './guards/member-access-token-auth.guard';
 import { LoginStaffDto } from './dto/login-staff.dto';
 import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
+import { StaffAccessTokenAuthGuard } from './guards/staff-access-token-auth.guard';
+import { StaffRefreshTokenAuthGuard } from './guards/staff-refresh-token-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -227,6 +229,31 @@ export class AuthController {
     });
 
     return { staff, accessToken };
+  }
+
+  // * Logout (Staff)
+  @Post('staffs/logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(
+    StaffAccessTokenAuthGuard,
+    StaffRefreshTokenAuthGuard,
+    AuthRolesGuard,
+  )
+  @Roles([Role.STAFF])
+  logoutStaff(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // * Clear the secure HttpOnly cookie
+    response.clearCookie('refresh_token', {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+    });
+    return this.authService.logoutStaff(refreshToken, refreshTokenPayload);
   }
 
   // * Set Password (Staff)

@@ -43,6 +43,11 @@ export class AuthService {
     return this.authProvider.loginStaff(request, data);
   }
 
+  // * Logout (Staff)
+  logoutStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutStaff(refreshToken, refreshTokenPayload);
+  }
+
   // * Set Password Staff
   setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
     return this.authProvider.setPasswordStaff(rawToken, data);
