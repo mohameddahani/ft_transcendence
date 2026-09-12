@@ -128,31 +128,6 @@ export class AuthController {
     return this.authService.logoutOwner(refreshToken, refreshTokenPayload);
   }
 
-  // * Logout (Member)
-  @Post('members/logout')
-  @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(
-    MemberAccessTokenAuthGuard,
-    MemberRefreshTokenAuthGuard,
-    AuthRolesGuard,
-  )
-  @Roles([Role.MEMBER])
-  logoutMember(
-    @GetCookies('refresh_token') refreshToken: string,
-    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    // * Clear the secure HttpOnly cookie
-    response.clearCookie('refresh_token', {
-      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
-      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
-      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
-      path: '/api/auth', // * Send only to the refresh endpoint
-    });
-    return this.authService.logoutMember(refreshToken, refreshTokenPayload);
-  }
-
   // * Activate user account
   @Post('email-verification')
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
@@ -180,7 +155,7 @@ export class AuthController {
 
   /* 
   =========================
-  ! Admin / Owner / Member Refresh
+  ! Admin / Owner / Staff / Member Refresh
   =========================
   */
 
@@ -281,6 +256,31 @@ export class AuthController {
     });
 
     return { member, accessToken };
+  }
+
+  // * Logout (Member)
+  @Post('members/logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(
+    MemberAccessTokenAuthGuard,
+    MemberRefreshTokenAuthGuard,
+    AuthRolesGuard,
+  )
+  @Roles([Role.MEMBER])
+  logoutMember(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // * Clear the secure HttpOnly cookie
+    response.clearCookie('refresh_token', {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+    });
+    return this.authService.logoutMember(refreshToken, refreshTokenPayload);
   }
 
   // * Set Password (Member)
