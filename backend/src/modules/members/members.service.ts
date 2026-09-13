@@ -15,6 +15,7 @@ import {
   MembershipStatus,
   MemberAccountStatus,
   PaymentStatus,
+  Role,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 import { EmailService } from '@/infrastructure/email/email.service';
@@ -22,6 +23,7 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 
 @Injectable()
 export class MembersService {
@@ -32,8 +34,12 @@ export class MembersService {
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
-  // * Add Member by Admin
-  async addMember(adminId: string, data: AddMemberDto) {
+  // * Add Member by Admin or Staff
+  async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     const subscription =
       await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
@@ -45,7 +51,7 @@ export class MembersService {
         adminId,
       },
     });
-    if (membersCount > subscription.plan.maxMembers) {
+    if (membersCount >= subscription.plan.maxMembers) {
       throw new ForbiddenException(
         `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
       );
@@ -75,11 +81,11 @@ export class MembersService {
     });
     if (existingMember) {
       if (existingMember.email === data.email) {
-        throw new UnauthorizedException('Email already exists');
+        throw new ConflictException('Email already exists');
       }
 
       if (existingMember.phoneNumber === data.phoneNumber) {
-        throw new UnauthorizedException('Phone number already exists');
+        throw new ConflictException('Phone number already exists');
       }
     }
 
@@ -105,6 +111,10 @@ export class MembersService {
       const member = await tx.member.create({
         data: {
           admin: { connect: { id: adminId } },
+          staff:
+            accessTokenPayload.role === Role.STAFF
+              ? { connect: { id: accessTokenPayload.id } }
+              : undefined,
           firstName: data.firstName,
           lastName: data.lastName,
           gender: data.gender,
@@ -184,12 +194,20 @@ export class MembersService {
   }
 
   // * Update data of member
-  async update(adminId: string, memberId: string, data: UpdateMemberDto) {
+  async update(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+    data: UpdateMemberDto,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check if we have member already in DB
-    await this.findOne(adminId, memberId);
+    await this.findOne(accessTokenPayload, memberId);
 
     // * Check if member data duplicate
     const existingData = await this.prisma.member.findFirst({
@@ -307,12 +325,16 @@ export class MembersService {
   }
 
   // * Active a Member
-  async activeMember(adminId: string, memberId: string) {
+  async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member is exist
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
     if (member.accountStatus === MemberAccountStatus.ACTIVE) {
       throw new ConflictException('The Member is already Active!');
     }
@@ -329,12 +351,16 @@ export class MembersService {
   }
 
   // * Freeze a Member
-  async freezeMember(adminId: string, memberId: string) {
+  async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
 
     if (member.accountStatus === MemberAccountStatus.FROZEN) {
       throw new ConflictException('The member is already frozen.');
@@ -358,12 +384,16 @@ export class MembersService {
   }
 
   // * Ban a Member
-  async banMember(adminId: string, memberId: string) {
+  async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
 
     if (member.accountStatus === MemberAccountStatus.BANNED) {
       throw new ConflictException('The member is already banned.');
@@ -381,7 +411,15 @@ export class MembersService {
   }
 
   // * Get all Members
-  async findAll(adminId: string, page: number, limit: number) {
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
@@ -421,7 +459,11 @@ export class MembersService {
   }
 
   // * Get one Member
-  async findOne(adminId: string, memberId: string) {
+  async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
 
@@ -460,6 +502,31 @@ export class MembersService {
   }
 
   // ! Private Attributes
+  // * Get Admin Id from Access Token Payload
+  private async getAdminIdFromAccessTokenPayload(
+    accessTokenPayload: AccessTokenPayload,
+  ) {
+    // * Get Admin id
+    let adminId: string;
+
+    if (accessTokenPayload.role === Role.STAFF) {
+      const staff = await this.prisma.staff.findUnique({
+        where: { id: accessTokenPayload.id },
+      });
+      if (!staff) {
+        throw new NotFoundException('Staff Not Found');
+      }
+
+      adminId = staff.adminId;
+    } else if (accessTokenPayload.role === Role.ADMIN) {
+      adminId = accessTokenPayload.id;
+    } else {
+      throw new UnauthorizedException();
+    }
+
+    return adminId;
+  }
+
   // * Check if Admin Has Membership Plan With Duration
   private async checkIfAdminHasMembershipPlanWithDuration(
     adminId: string,

@@ -20,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { MembershipNotificationCron } from './jobs/membership-notification.cron';
 import { SubscriptionNotificationCron } from './jobs/subscription-notification.cron';
 import { StaffsModule } from './modules/staffs/staffs.module';
+import { StaffMembersModule } from './modules/staff-members/staff-members.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { StaffsModule } from './modules/staffs/staffs.module';
     MembershipsModule,
     NotificationsModule,
     StaffsModule,
+    StaffMembersModule,
   ],
 
   providers: [

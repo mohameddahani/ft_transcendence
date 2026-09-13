@@ -15,6 +15,6 @@ import { SubscriptionsModule } from '../platform/subscriptions/subscriptions.mod
     CustomJwtModule,
     SubscriptionsModule,
   ],
-  exports: [],
+  exports: [MembersService],
 })
 export class MembersModule {}

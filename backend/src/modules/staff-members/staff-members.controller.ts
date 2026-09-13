@@ -1,4 +1,4 @@
-import { AddMemberDto } from './dtos/add-member.dto';
+import { Role } from '@/generated/prisma/enums';
 import {
   Body,
   Controller,
@@ -11,27 +11,27 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
-import { MembersService } from './members.service';
-import { Role } from '@/generated/prisma/enums';
-import { Roles } from '@/core/decorators/user-role.decorator';
+import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { UpdateMemberDto } from './dtos/update-member.dto';
-import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
-import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { Roles } from '@/core/decorators/user-role.decorator';
+import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
+import { AddMemberDto } from '../members/dtos/add-member.dto';
+import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { UpdateMemberDto } from '../members/dtos/update-member.dto';
+import { MembersService } from '../members/members.service';
 
-@Controller('/api/admins/members')
+@Controller('/api/staffs/members')
 // * Make Authorazation Golbal on this route
-@UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([Role.ADMIN])
-export class MembersController {
+@UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.STAFF])
+export class StaffMembersController {
   constructor(private readonly membersService: MembersService) {}
 
-  // * Add Member by Admin
+  // * Add Member by Staff
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  addMember(
+  addMemberByStaff(
     @Body() body: AddMemberDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
