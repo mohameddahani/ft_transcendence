@@ -69,6 +69,9 @@
 // ! ban or freeze or ... a staff
 // ! edit profile of staff (like profile image ...)
 // ! Check emails of staffs is correct(reset password and confirmation ...)
+// ! Get all staffs
+// ! Get one staff
+// ! edit one staff
 
 // ! Check All Crons is Work
 // ! Check All Crons of Notifications is Work
