@@ -8,7 +8,6 @@ import {
   Injectable,
   NotFoundException,
   RequestTimeoutException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ActionTokenType,
@@ -22,8 +21,8 @@ import { EmailService } from '@/infrastructure/email/email.service';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
-import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class MembersService {
@@ -31,18 +30,20 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
-    private readonly subscriptionsService: SubscriptionsService,
+    private readonly accessesService: AccessesService,
   ) {}
 
   // * Add Member by Admin or Staff
   async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
     const subscription =
-      await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+      await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -201,10 +202,12 @@ export class MembersService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check if we have member already in DB
     await this.findOne(accessTokenPayload, memberId);
@@ -328,10 +331,12 @@ export class MembersService {
   async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -354,10 +359,12 @@ export class MembersService {
   async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -387,10 +394,12 @@ export class MembersService {
   async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -418,10 +427,12 @@ export class MembersService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -462,10 +473,12 @@ export class MembersService {
   async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.getAdminIdFromAccessTokenPayload(accessTokenPayload);
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
 
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const member = await this.prisma.member.findFirst({
       where: {
@@ -502,31 +515,6 @@ export class MembersService {
   }
 
   // ! Private Attributes
-  // * Get Admin Id from Access Token Payload
-  private async getAdminIdFromAccessTokenPayload(
-    accessTokenPayload: AccessTokenPayload,
-  ) {
-    // * Get Admin id
-    let adminId: string;
-
-    if (accessTokenPayload.role === Role.STAFF) {
-      const staff = await this.prisma.staff.findUnique({
-        where: { id: accessTokenPayload.id },
-      });
-      if (!staff) {
-        throw new NotFoundException('Staff Not Found');
-      }
-
-      adminId = staff.adminId;
-    } else if (accessTokenPayload.role === Role.ADMIN) {
-      adminId = accessTokenPayload.id;
-    } else {
-      throw new UnauthorizedException();
-    }
-
-    return adminId;
-  }
-
   // * Check if Admin Has Membership Plan With Duration
   private async checkIfAdminHasMembershipPlanWithDuration(
     adminId: string,

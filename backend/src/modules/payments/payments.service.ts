@@ -5,19 +5,30 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly subscriptionsService: SubscriptionsService,
+    private readonly accessesService: AccessesService,
   ) {}
 
   // * Get all Payments
-  async findAllPaymentsAdmin(adminId: string, page: number, limit: number) {
+  async findAllPayments(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
+
     // * Check if admin has subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -66,9 +77,15 @@ export class PaymentsService {
   }
 
   // * Get one payment
-  async findOnePaymentAdmin(adminId: string, id: string) {
+  async findOnePayment(accessTokenPayload: AccessTokenPayload, id: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
+
     // * Check if admin has subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -217,7 +234,6 @@ export class PaymentsService {
   }
 
   // ! Private
-
   // * Check if member has membership
   private async checkIfMemberHasMembership(memberId: string) {
     // * Check if member already exist

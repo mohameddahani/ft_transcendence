@@ -3,14 +3,18 @@ import { AdminPaymentsController } from './admin-payments.controller';
 import { AuthModule } from '../auth/auth.module';
 import { MemberPaymentsController } from './member-payments.controller';
 import { PaymentsService } from './payments.service';
-import { SubscriptionsModule } from '../platform/subscriptions/subscriptions.module';
+import { SatffPaymentsController } from './staff-payments.controller';
+import { AccessesService } from '@/core/services/access.service';
 
 @Module({
-  controllers: [AdminPaymentsController, MemberPaymentsController],
-  providers: [PaymentsService],
+  controllers: [
+    AdminPaymentsController,
+    MemberPaymentsController,
+    SatffPaymentsController,
+  ],
+  providers: [PaymentsService, AccessesService],
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
-    SubscriptionsModule,
   ],
   exports: [],
 })

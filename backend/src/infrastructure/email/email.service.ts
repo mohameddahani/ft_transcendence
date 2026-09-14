@@ -86,7 +86,6 @@ export class EmailService {
   ) {
     const link = `${this.frontendUrl}/auth/members/set-password?token=${token}`;
 
-    console.log(token);
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
 
@@ -105,7 +104,6 @@ export class EmailService {
   ) {
     const link = `${this.frontendUrl}/auth/staffs/set-password?token=${token}`;
 
-    console.log(token);
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',
 

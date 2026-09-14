@@ -14,16 +14,16 @@ import { PaymentsService } from './payments.service';
 import { Throttle } from '@nestjs/throttler';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
-import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
+import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 
-@Controller('/api/admins/payments')
+@Controller('/api/staffs/payments')
 // * Make Authorazation Golbal on this route
-@UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([Role.ADMIN])
-export class AdminPaymentsController {
+@UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.STAFF])
+export class SatffPaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  // * Get all Payments (Admin)
+  // * Get all Payments (Staff)
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
@@ -38,7 +38,7 @@ export class AdminPaymentsController {
     );
   }
 
-  // * Get one payment (Admin)
+  // * Get one payment (Staff)
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(

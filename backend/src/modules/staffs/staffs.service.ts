@@ -18,8 +18,8 @@ import {
 import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
-import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class StaffsService {
@@ -27,14 +27,14 @@ export class StaffsService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
-    private readonly subscriptionsService: SubscriptionsService,
+    private readonly accessesService: AccessesService,
   ) {}
 
   // * Add Staff by Admin
   async addStaff(adminId: string, data: AddStaffDto) {
     // * Check if admin is has already a subscription
     const subscription =
-      await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+      await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check if staff already exist
     const existingStaff = await this.prisma.staff.findFirst({
@@ -121,7 +121,7 @@ export class StaffsService {
   // * Update Data of Staff
   async update(adminId: string, staffId: string, data: UpdateStaffDto) {
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     // * Check if we have staff already in DB
     await this.findOne(adminId, staffId);
@@ -166,7 +166,7 @@ export class StaffsService {
   // * Get All Staffs
   async findAll(adminId: string, page: number, limit: number) {
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const staffs = await this.prisma.staff.findMany({
       where: {
@@ -202,7 +202,7 @@ export class StaffsService {
   // * Get One Staff
   async findOne(adminId: string, staffId: string) {
     // * Check if admin is has already a subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const staff = await this.prisma.staff.findFirst({
       where: {

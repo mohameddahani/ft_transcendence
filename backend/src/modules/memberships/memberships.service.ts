@@ -1,19 +1,19 @@
 import { MembershipStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class MembershipsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly subscriptionsService: SubscriptionsService,
+    private readonly accessesService: AccessesService,
   ) {}
 
   // * Get All Memberships
   async findAll(adminId: string, page: number, limit: number) {
     // * Check if admin has subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const memberships = await this.prisma.membership.findMany({
       where: {
@@ -45,7 +45,7 @@ export class MembershipsService {
   // * Get One Membership
   async findOne(adminId: string, membershipId: string) {
     // * Check if admin has subscription
-    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.checkIfAdminHasSubscription(adminId);
 
     const membership = await this.prisma.membership.findFirst({
       where: {
