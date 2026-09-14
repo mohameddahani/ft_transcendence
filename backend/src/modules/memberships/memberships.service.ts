@@ -2,6 +2,7 @@ import { MembershipStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessesService } from '@/core/services/access.service';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 
 @Injectable()
 export class MembershipsService {
@@ -11,7 +12,17 @@ export class MembershipsService {
   ) {}
 
   // * Get All Memberships
-  async findAll(adminId: string, page: number, limit: number) {
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
+
     // * Check if admin has subscription
     await this.accessesService.checkIfAdminHasSubscription(adminId);
 
@@ -43,7 +54,13 @@ export class MembershipsService {
   }
 
   // * Get One Membership
-  async findOne(adminId: string, membershipId: string) {
+  async findOne(accessTokenPayload: AccessTokenPayload, membershipId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
+        accessTokenPayload,
+      );
+
     // * Check if admin has subscription
     await this.accessesService.checkIfAdminHasSubscription(adminId);
 

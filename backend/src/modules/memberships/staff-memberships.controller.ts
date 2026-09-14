@@ -14,13 +14,13 @@ import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
-import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
+import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 
-@Controller('/api/admins/memberships')
+@Controller('/api/staffs/memberships')
 // * Make Authorazation Golbal on this route
-@UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([Role.ADMIN])
-export class AdminMembershipsController {
+@UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.STAFF])
+export class StaffMembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
   // * Get All Memberships
