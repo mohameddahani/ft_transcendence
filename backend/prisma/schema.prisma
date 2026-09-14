@@ -201,7 +201,7 @@ model Staff {
   role                 Role              @default(STAFF)
   profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
   profileImagePublicId String?           @map("profile_image_public_id")
-  accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
+  accountStatus        UserAccountStatus @default(ACTIVE) @map("account_status")
 
   members            Member[]
   memberships        Membership[]

@@ -106,7 +106,7 @@ export class StaffsService {
       });
 
       // * Send email of Password Set to staff
-      await this.emailService.sendSetPasswordEmail(
+      await this.emailService.sendSetPasswordStaffEmail(
         result.userName,
         result.email,
         rawToken,

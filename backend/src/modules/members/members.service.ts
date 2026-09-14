@@ -181,7 +181,7 @@ export class MembersService {
       });
 
       // * Send email of Password Set to member
-      await this.emailService.sendSetPasswordEmail(
+      await this.emailService.sendSetPasswordMemberEmail(
         result.userName,
         result.email,
         rawToken,
