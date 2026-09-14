@@ -1,0 +1,142 @@
+import {
+  BadRequestException,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ProfilesService } from './profiles.service';
+import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
+import { Roles } from '@/core/decorators/user-role.decorator';
+import { Role } from '@/generated/prisma/enums';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
+import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
+
+@Controller('/api/users/staffs')
+@UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.STAFF])
+export class StaffProfilesController {
+  constructor(private readonly profilesService: ProfilesService) {}
+
+  /* 
+  =========================
+  ! Staffs Profile
+  =========================
+  */
+
+  // * Get current staff
+  @Get('me')
+  // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
+  @SkipThrottle() // * Skip Rate Limiting
+  // * @GetAccessTokenPayload(): this is Custom parameter decorator
+  findMeStaff(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.profilesService.findMeStaff(accessTokenPayload.id);
+  }
+
+  // * Upload profile image
+  @Post('profile-image')
+  // * Interceptors: are NestJS classes that run BEFORE and AFTER the route handler.
+  //   They can transform requests, handle files, logging, or modify responses.
+  //
+  // * @UseInterceptors: is a NestJS decorator used to attach one or more interceptors
+  //   to a route handler so they run during request processing.
+  //
+  // * FileInterceptor: is a built-in NestJS interceptor (based on Multer)
+  //   that handles SINGLE file upload from a specific form field name.
+  @UseInterceptors(
+    FileInterceptor('image', {
+      // * diskStorage: is a Multer storage engine that saves uploaded files
+      //   directly to the local filesystem (your server disk).
+
+      // ! This Options if we need to store image inside Server
+      // storage: diskStorage({
+      //   // * destination: is the folder path where uploaded files will be saved.
+      //   destination: './images/users/profile',
+
+      //   // * req: is the HTTP request object (contains headers, body, user, etc.)
+      //   // * file: is the uploaded file object (originalname, mimetype, buffer, etc.)
+      //   // * cb: is a callback function used by Multer to return the filename or error
+
+      //   filename: (req, file, cb) => {
+      //     // * Date.now(): returns current timestamp (used to avoid filename collisions)
+      //     // * Math.random(): generates random number to further ensure uniqueness
+      //     const prefix = `${Date.now()}-${Math.round(Math.random() * 1000000000)}`;
+
+      //     // * file.originalname: is the original filename from the user (e.g. avatar.png)
+      //     const filename = `${prefix}-${file.originalname}`;
+
+      //     // * cb(null, filename): sends final generated filename back to Multer
+      //     //   null = no error, filename = saved file name
+      //     cb(null, filename);
+      //   },
+      // }),
+
+      fileFilter: (req, file, cb) => {
+        // * file.mimetype: represents file type sent by browser (e.g. image/png, image/jpeg)
+        // * startsWith('image'): checks if mimetype begins with "image"
+        //   meaning only image files are allowed
+
+        if (file.mimetype.startsWith('image')) {
+          cb(null, true); // accept file
+        } else {
+          cb(new BadRequestException('Unsupported File Format'), false); // reject file
+        }
+      },
+
+      // * limits: restricts file upload size to prevent large or malicious uploads
+      // * fileSize: 1024 * 1024 = 1MB maximum file size
+      limits: { fileSize: 1024 * 1024 },
+    }),
+  )
+
+  // * UseGuards: applies authentication/authorization guards to protect the route
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  uploadProfileImageStaff(
+    // * @UploadedFile: extracts the uploaded file from the request
+    @UploadedFile() file: Express.Multer.File,
+
+    // * @GetAccessTokenPayload: custom decorator that retrieves logged-in user from request (JWT payload)
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    // * validation: ensures file exists before continuing
+    if (!file) {
+      throw new BadRequestException('No Image Provided');
+    }
+
+    return this.profilesService.uploadProfileImageStaff(
+      accessTokenPayload.id,
+      file,
+    );
+  }
+
+  // * Remove profile image
+  @Delete('profile-image')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  removeProfileImageSatff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.profilesService.removeProfileImageStaff(accessTokenPayload.id);
+  }
+
+  // ! with Cloudinary architecture, this method is essentially unnecessary.
+  // // * Get image
+  // @Get('profile-image/:image')
+  // @Throttle({ default: { limit: 300, ttl: 60_000 } })
+  // findImageMember(
+  //   @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  //   @Param('image') image: string,
+  //   @Res() res: Response,
+  // ) {
+  //   return this.profilesService.findImageMember(
+  //     accessTokenPayload.id,
+  //     image,
+  //     res,
+  //   );
+  // }
+}

@@ -5,12 +5,14 @@ import { AuthModule } from '../auth/auth.module';
 import { OwnerProfilesController } from './owner-profiles.controller';
 import { MemberProfilesController } from './member-profiles.controller';
 import { CloudinaryModule } from '@/infrastructure/cloudinary/cloudinary.module';
+import { StaffProfilesController } from './staff-profiles.controller';
 
 @Module({
   controllers: [
     AdminProfilesController,
     OwnerProfilesController,
     MemberProfilesController,
+    StaffProfilesController,
   ],
   providers: [ProfilesService],
   imports: [
