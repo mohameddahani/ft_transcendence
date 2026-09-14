@@ -1,6 +1,7 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EmailService } from '@/infrastructure/email/email.service';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -9,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AddStaffDto } from './dtos/add-staff.dto';
-import { ActionTokenType } from '@/generated/prisma/enums';
+import {
+  ActionTokenType,
+  Role,
+  UserAccountStatus,
+} from '@/generated/prisma/enums';
 import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
@@ -227,5 +232,88 @@ export class StaffsService {
     }
 
     return staff;
+  }
+
+  // ! Change Status Staff
+  // * Active a Staff
+  async ActiveStaff(adminId: string, staffId: string) {
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus === UserAccountStatus.ACTIVE) {
+      throw new BadRequestException('This account is already active.');
+    }
+
+    await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: UserAccountStatus.ACTIVE,
+      },
+    });
+  }
+
+  // * Pending a Staff
+  async pendingStaff(adminId: string, staffId: string) {
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+        throw new BadRequestException(
+          'Only active accounts can be moved to pending status.',
+        );
+      } else if (staff.accountStatus === UserAccountStatus.PENDING) {
+        throw new BadRequestException('This account is already pending.');
+      } else if (staff.accountStatus === UserAccountStatus.BANNED) {
+        throw new BadRequestException(
+          'A banned account cannot be moved to pending. Please reactivate the account first if appropriate.',
+        );
+      }
+    }
+
+    await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: UserAccountStatus.PENDING,
+      },
+    });
+  }
+
+  // * Ban a Staff
+  async banStaff(adminId: string, staffId: string) {
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus !== UserAccountStatus.ACTIVE) {
+      if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+        throw new BadRequestException(
+          'Only active accounts can be moved to banned status.',
+        );
+      } else if (staff.accountStatus === UserAccountStatus.BANNED) {
+        throw new BadRequestException('This account is already banned.');
+      }
+    }
+
+    await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: UserAccountStatus.BANNED,
+      },
+    });
   }
 }

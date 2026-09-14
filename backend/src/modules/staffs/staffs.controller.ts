@@ -69,4 +69,35 @@ export class StaffsController {
   ) {
     return this.staffsService.findOne(accessTokenPayload.id, id);
   }
+
+  // ! Change Status Staff
+  // * Active a Staff
+  @Patch('active/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  ActiveStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.staffsService.ActiveStaff(accessTokenPayload.id, id);
+  }
+
+  // * Pending a Staff
+  @Patch('pending/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  pendingStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.staffsService.pendingStaff(accessTokenPayload.id, id);
+  }
+
+  // * Ban a Staff
+  @Patch('ban/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  banStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.staffsService.banStaff(accessTokenPayload.id, id);
+  }
 }
