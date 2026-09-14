@@ -2,6 +2,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EmailService } from '@/infrastructure/email/email.service';
 import {
   Injectable,
+  NotFoundException,
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -108,5 +109,76 @@ export class StaffsService {
         'Failed to send set password of member email',
       );
     }
+  }
+
+  // * Get All Staffs
+  async findAll(adminId: string, page: number, limit: number) {
+    // * Check if admin is has already a subscription
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+
+    const staffs = await this.prisma.staff.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        admin: true,
+        role: true,
+        profileImageUrl: true,
+        accountStatus: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (staffs.length === 0) {
+      throw new NotFoundException('Staffs Not Found!');
+    }
+
+    return staffs;
+  }
+
+  // * Get One Staff
+  async findOne(adminId: string, staffId: string) {
+    // * Check if admin is has already a subscription
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        adminId,
+        id: staffId,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        admin: true,
+        role: true,
+        profileImageUrl: true,
+        accountStatus: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found!');
+    }
+
+    return staff;
   }
 }

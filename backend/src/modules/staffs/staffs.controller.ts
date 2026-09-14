@@ -1,4 +1,14 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
@@ -24,5 +34,26 @@ export class StaffsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.staffsService.addStaff(accessTokenPayload.id, body);
+  }
+
+  // * Get All Staffs
+  @Get()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAll(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.staffsService.findAll(accessTokenPayload.id, page, limit);
+  }
+
+  // * Get one member
+  @Get(':id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  findOne(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.staffsService.findOne(accessTokenPayload.id, id);
   }
 }
