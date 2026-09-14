@@ -1,6 +1,7 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { EmailService } from '@/infrastructure/email/email.service';
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   RequestTimeoutException,
@@ -13,6 +14,7 @@ import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { SubscriptionsService } from '../platform/subscriptions/subscriptions.service';
+import { UpdateStaffDto } from './dtos/update-staff.dto';
 
 @Injectable()
 export class StaffsService {
@@ -109,6 +111,51 @@ export class StaffsService {
         'Failed to send set password of member email',
       );
     }
+  }
+
+  // * Update Data of Staff
+  async update(adminId: string, staffId: string, data: UpdateStaffDto) {
+    // * Check if admin is has already a subscription
+    await this.subscriptionsService.checkIfAdminHasSubscription(adminId);
+
+    // * Check if we have staff already in DB
+    await this.findOne(adminId, staffId);
+
+    // * Check if staff data duplicate
+    const existingData = await this.prisma.staff.findFirst({
+      where: {
+        id: { not: staffId },
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Save new Data to Staff
+    await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+      },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+      },
+    });
   }
 
   // * Get All Staffs

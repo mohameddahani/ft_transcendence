@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -18,6 +19,7 @@ import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddStaffDto } from './dtos/add-staff.dto';
+import { UpdateStaffDto } from './dtos/update-staff.dto';
 
 @Controller('/api/admins/staffs')
 // * Make Authorazation Golbal on this route
@@ -34,6 +36,17 @@ export class StaffsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.staffsService.addStaff(accessTokenPayload.id, body);
+  }
+
+  // * Update Datat Of Staff
+  @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateStaffDto,
+  ) {
+    return this.staffsService.update(accessTokenPayload.id, id, body);
   }
 
   // * Get All Staffs
