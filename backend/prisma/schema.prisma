@@ -294,6 +294,8 @@ model Membership {
   startDate        DateTime         @default(now()) @map("start_date")
   expiresAt        DateTime         @map("expires_at")
 
+  attendances Attendance[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -319,7 +321,6 @@ model MembershipPlan {
 
   membershipPlanDurations MembershipPlanDuration[]
   memberships             Membership[]
-  attendances             Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -339,8 +340,8 @@ model Attendance {
   memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  MembershipPlanId String         @map("membership_plan_id")
-  MembershipPlan   MembershipPlan @relation(fields: [MembershipPlanId], references: [id])
+  membershipId String     @map("membership_id")
+  membership   Membership @relation(fields: [membershipId], references: [id])
 
   staffId String?
   staff   Staff?  @relation(fields: [staffId], references: [id])
@@ -355,7 +356,8 @@ model Attendance {
 
   @@index([adminId, checkedInAt])
   @@index([memberId, checkedInAt])
-  @@index([MembershipPlanId, checkedInAt])
+  @@index([adminId, memberId, checkedInAt])
+  @@index([membershipId, checkedInAt])
   @@map("attendances")
 }
 

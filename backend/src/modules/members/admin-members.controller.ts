@@ -25,7 +25,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
-export class MembersController {
+export class AdminMembersController {
   constructor(private readonly membersService: MembersService) {}
 
   // * Add Member by Admin

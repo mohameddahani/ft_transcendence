@@ -115,7 +115,7 @@ export class MembersService {
           staff:
             accessTokenPayload.role === Role.STAFF
               ? { connect: { id: accessTokenPayload.id } }
-              : undefined,
+              : undefined, // Ignore this field. Don't do anything with staff.
           firstName: data.firstName,
           lastName: data.lastName,
           gender: data.gender,
