@@ -78,10 +78,18 @@ enum ActionTokenType {
   SET_PASSWORD
 }
 
-// * this enum had AttendanceMethod Type
+// * this enum had Attendance Method Type
 enum AttendanceMethod {
   QR_CODE
   MANUAL
+}
+
+// * this enum had Attendance Status Type
+enum VisitStatus {
+  READY
+  CHECKED_IN
+  CANCELLED
+  EXPIRED
 }
 
 // * Table of users
@@ -113,6 +121,7 @@ model User {
   notifications     AdminNotification[]
   staffs            Staff[]
   attendances       Attendance[]
+  visits            Visit[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -257,6 +266,7 @@ model Member {
   notifications       MemberNotification[]
   memberRefreshTokens MemberRefreshToken[]
   memberActionTokens  MemberActionToken[]
+  visits              Visit[]
   attendances         Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -294,6 +304,7 @@ model Membership {
   startDate        DateTime         @default(now()) @map("start_date")
   expiresAt        DateTime         @map("expires_at")
 
+  visits      Visit[]
   attendances Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -346,10 +357,12 @@ model Attendance {
   staffId String?
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
+  visitId String @unique @map("visit_id")
+  visit   Visit  @relation(fields: [visitId], references: [id])
+
   attendanceMethod AttendanceMethod @map("attendance_method")
-  checkedInAt      DateTime         @default(now()) @map("checked_in_at")
-  checkedOutAt     DateTime?        @map("checked_out_at")
-  expiresAt        DateTime?        @map("expires_at")
+
+  checkedInAt DateTime @default(now()) @map("checked_in_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -359,6 +372,37 @@ model Attendance {
   @@index([adminId, memberId, checkedInAt])
   @@index([membershipId, checkedInAt])
   @@map("attendances")
+}
+
+// * Table of Visit
+model Visit {
+  id String @id @default(uuid())
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  memberId String @map("member_id")
+  member   Member @relation(fields: [memberId], references: [id])
+
+  membershipId String     @map("membership_id")
+  membership   Membership @relation(fields: [membershipId], references: [id])
+
+  visitDate DateTime @map("visit_date")
+
+  visitStatus VisitStatus @default(READY) @map("visit_status")
+
+  qrTokenHash String?   @map("qr_token_hash")
+  qrExpiresAt DateTime? @map("qr_expires_at")
+
+  attendance Attendance?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([adminId, visitDate])
+  @@index([memberId, visitDate])
+  @@index([adminId, visitStatus, visitDate])
+  @@map("visits")
 }
 
 // * Table of Membership plan Duration

@@ -23,14 +23,25 @@ import { Roles } from '@/core/decorators/user-role.decorator';
 export class StaffAttendancesController {
   constructor(private readonly attendancesService: AttendancesService) {}
 
-  // * Confirm Attendance By Staff
-  @Post('check-in')
+  // * Check in a member manually
+  @Post('check-in/manual')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  checkIn(
+  checkInManually(
     @Body() body: AttendanceCheckInDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.attendancesService.checkIn(accessTokenPayload, body);
+    return this.attendancesService.checkInManually(accessTokenPayload, body);
   }
+
+  // // * Check in a member using QR code
+  // @Post('check-in/qr')
+  // @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  // @HttpCode(HttpStatus.OK)
+  // checkInWithQr(
+  //   @Body() body: AttendanceQrCheckInDto,
+  //   @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  // ) {
+  //   return this.attendancesService.checkInWithQr(accessTokenPayload, body);
+  // }
 }

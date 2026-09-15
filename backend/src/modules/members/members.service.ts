@@ -23,6 +23,7 @@ import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AccessesService } from '@/core/services/access.service';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class MembersService {
@@ -128,8 +129,7 @@ export class MembersService {
         },
       });
       // * Add Membership of member
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+      const expiresAt = addDays(new Date(), duration.durationDays);
       const membership = await tx.membership.create({
         data: {
           admin: { connect: { id: adminId } },
@@ -290,8 +290,7 @@ export class MembersService {
         });
 
         // * Add new Membership to member
-        const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-        expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+        const expiresAt = addDays(new Date(), duration.durationDays);
         const newMembership = await this.prisma.membership.create({
           data: {
             admin: { connect: { id: adminId } },

@@ -11,6 +11,7 @@ import {
   SubscriptionStatus,
   Role,
 } from '@/generated/prisma/enums';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class SubscriptionsService {
@@ -87,8 +88,7 @@ export class SubscriptionsService {
     // * Has already subscription
 
     // * Create date of expiration
-    const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-    expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+    const expiresAt = addDays(new Date(), duration.durationDays);
     if (subscription) {
       // * Already same plan
       if (

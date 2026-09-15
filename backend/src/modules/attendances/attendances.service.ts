@@ -1,4 +1,7 @@
-import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import {
+  AccessTokenPayload,
+  MembershipWithPlan,
+} from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   ForbiddenException,
@@ -7,7 +10,12 @@ import {
 } from '@nestjs/common';
 import { AttendanceCheckInDto } from './dtos/attendance-check-in.dto';
 import { AccessesService } from '@/core/services/access.service';
-import { MembershipStatus, Role } from '@/generated/prisma/enums';
+import {
+  AttendanceMethod,
+  MembershipStatus,
+  Role,
+} from '@/generated/prisma/enums';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 @Injectable()
 export class AttendancesService {
@@ -17,7 +25,7 @@ export class AttendancesService {
   ) {}
 
   // * Confirm Attendance
-  async checkIn(
+  async checkInManually(
     accessTokenPayload: AccessTokenPayload,
     data: AttendanceCheckInDto,
   ) {
@@ -35,56 +43,13 @@ export class AttendancesService {
       data.memberId,
       adminId,
     );
-
-    // * Check if Member use all Visit Limit in the Week
-    const now = new Date();
-
-    // Sunday     = 0
-    // Monday     = 1
-    // Tuesday    = 2
-    // Wednesday  = 3
-    // Thursday   = 4
-    // Friday     = 5
-    // Saturday   = 6
-    const day = now.getDay();
-
-    const monday = new Date(now);
-
-    // (15th - (2 - 1) = 14th and this is monday
-    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    monday.setHours(0, 0, 0, 0);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6); // monday + 6 days = sunday
-    sunday.setHours(23, 59, 59, 999);
-
-    const attendanceCount = await this.prisma.attendance.count({
-      where: {
-        adminId: adminId,
-        memberId: data.memberId,
-        checkedInAt: { gte: monday, lte: sunday },
-      },
-    });
-    if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
-      throw new ForbiddenException(
-        'Weekly attendance limit has been reached for this membership.',
-      );
-    }
-
-    // * Save Attendance
-    await this.prisma.attendance.create({
-      data: {
-        admin: { connect: { id: adminId } },
-        member: { connect: { id: data.memberId } },
-        membership: { connect: { id: membership.id } },
-        staff:
-          accessTokenPayload.role === Role.STAFF
-            ? { connect: { id: accessTokenPayload.id } }
-            : undefined, // Ignore this field. Don't do anything with staff.
-        attendanceMethod: data.attendanceMethod,
-        checkedInAt: new Date(),
-      },
-    });
+    return this.confirmCheckIn(
+      accessTokenPayload,
+      adminId,
+      data.memberId,
+      membership,
+      AttendanceMethod.MANUAL,
+    );
   }
 
   // ! Private
@@ -105,5 +70,74 @@ export class AttendancesService {
       throw new NotFoundException('This Member Has No Membership');
     }
     return membership;
+  }
+
+  // * ConfirmCheckIn
+  private async confirmCheckIn(
+    accessTokenPayload: AccessTokenPayload,
+    adminId: string,
+    memberId: string,
+    membership: MembershipWithPlan,
+    attendanceMethod: AttendanceMethod,
+  ) {
+    // * Check If Member try to checkin two times in one day
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+
+    const alreadyCheckedIn = await this.prisma.attendance.findFirst({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        checkedInAt: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+    });
+
+    if (alreadyCheckedIn) {
+      throw new ForbiddenException('you already checked in today.');
+    }
+
+    // * Check if Member use all Visit Limit in the Week
+    // Monday = first day of the week
+    const monday = startOfWeek(now, {
+      weekStartsOn: 1,
+    });
+
+    // Sunday = last day of the week
+    const sunday = endOfWeek(now, {
+      weekStartsOn: 1,
+    });
+
+    const attendanceCount = await this.prisma.attendance.count({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        checkedInAt: { gte: monday, lte: sunday },
+      },
+    });
+    if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
+      throw new ForbiddenException(
+        'Weekly attendance limit has been reached for this membership.',
+      );
+    }
+
+    // * Save Attendance
+    await this.prisma.attendance.create({
+      data: {
+        admin: { connect: { id: adminId } },
+        member: { connect: { id: memberId } },
+        membership: { connect: { id: membership.id } },
+        staff:
+          accessTokenPayload.role === Role.STAFF
+            ? { connect: { id: accessTokenPayload.id } }
+            : undefined, // Ignore this field. Don't do anything with staff.
+        visit: { connect: { id: 'id' } }, // ! Visit id here
+        attendanceMethod: attendanceMethod,
+        checkedInAt: new Date(),
+      },
+    });
   }
 }
