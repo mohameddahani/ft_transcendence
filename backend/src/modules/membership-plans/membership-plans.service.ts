@@ -42,6 +42,7 @@ export class MembershipPlansService {
         admin: { connect: { id: adminId } },
         planName: data.planName,
         description: data.description,
+        weeklyVisitLimit: data.weeklyVisitLimit,
       },
     });
   }

@@ -78,6 +78,12 @@ enum ActionTokenType {
   SET_PASSWORD
 }
 
+// * this enum had AttendanceMethod Type
+enum AttendanceMethod {
+  QR_CODE
+  MANUAL
+}
+
 // * Table of users
 model User {
   id                   String            @id @default(uuid())
@@ -105,10 +111,11 @@ model User {
   userRefreshTokens UserRefreshToken[]
   userActionTokens  UserActionToken[]
   notifications     AdminNotification[]
+  staffs            Staff[]
+  attendances       Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  staffs    Staff[]
 
   @@index([firstName, lastName])
   @@index([role])
@@ -210,6 +217,7 @@ model Staff {
   staffNotifications StaffNotification[]
   staffRefreshTokens StaffRefreshToken[]
   staffActionTokens  StaffActionToken[]
+  attendances        Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -249,6 +257,7 @@ model Member {
   notifications       MemberNotification[]
   memberRefreshTokens MemberRefreshToken[]
   memberActionTokens  MemberActionToken[]
+  attendances         Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -303,12 +312,14 @@ model MembershipPlan {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  planName    String  @map("plan_name")
-  description String?
-  isActive    Boolean @default(true) @map("is_active")
+  planName         String  @map("plan_name")
+  description      String?
+  weeklyVisitLimit Int     @map("weekly_visit_limit")
+  isActive         Boolean @default(true) @map("is_active")
 
   membershipPlanDurations MembershipPlanDuration[]
   memberships             Membership[]
+  attendances             Attendance[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -316,6 +327,36 @@ model MembershipPlan {
   @@index([adminId])
   @@index([adminId, planName])
   @@map("membership_plans")
+}
+
+// * Table of Attendance
+model Attendance {
+  id String @id @default(uuid())
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  memberId String @map("member_id")
+  member   Member @relation(fields: [memberId], references: [id])
+
+  MembershipPlanId String         @map("membership_plan_id")
+  MembershipPlan   MembershipPlan @relation(fields: [MembershipPlanId], references: [id])
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+
+  attendanceMethod AttendanceMethod @map("attendance_method")
+  checkedInAt      DateTime         @default(now()) @map("checked_in_at")
+  checkedOutAt     DateTime?        @map("checked_out_at")
+  expiresAt        DateTime?        @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([adminId, checkedInAt])
+  @@index([memberId, checkedInAt])
+  @@index([MembershipPlanId, checkedInAt])
+  @@map("attendances")
 }
 
 // * Table of Membership plan Duration

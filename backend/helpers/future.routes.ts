@@ -62,16 +62,16 @@
 
 // * add props of all routes in swagger
 
-// ! Create Staff by admin
-// ! Add Staff role
-// ! Make company name added auto
+// * Create Staff by admin
+// * Add Staff role
+// * Make company name added auto
 // ! Add default image profile to staff
-// ! ban or freeze or ... a staff
-// ! edit profile of staff (like profile image ...)
+// * ban or freeze or ... a staff
+// * edit profile of staff (like profile image ...)
 // ! Check emails of staffs is correct(reset password and confirmation ...)
-// ! Get all staffs
-// ! Get one staff
-// ! edit one staff
+// * Get all staffs
+// * Get one staff
+// * edit one staff
 
 // ! Check All Crons is Work
 // ! Check All Crons of Notifications is Work
@@ -79,6 +79,8 @@
 // ! Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
 
 // ! When a staff or admin update the membership of member with same data the server create multiple memberships
+
+// ! test all Notifications
 
 // Common Types
 // Type	Meaning

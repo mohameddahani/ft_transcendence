@@ -1,6 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class AddMembershipPlanDto {
   // * Plan Name
@@ -27,4 +35,16 @@ export class AddMembershipPlanDto {
     description: 'Membership Plan Description',
   }) // * Swagger Document
   description!: string;
+
+  // * weekly Visit Limit
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  @ApiProperty({
+    example: 3,
+    description: 'Maximum number of visits a member can make per week.',
+    minimum: 1,
+    maximum: 7,
+  })
+  weeklyVisitLimit!: number;
 }
