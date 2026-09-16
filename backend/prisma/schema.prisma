@@ -391,7 +391,7 @@ model Visit {
 
   visitStatus VisitStatus @default(READY) @map("visit_status")
 
-  qrTokenHash String   @map("qr_token_hash")
+  qrTokenHash String   @unique @map("qr_token_hash")
   qrExpiresAt DateTime @map("qr_expires_at")
 
   attendance Attendance?
@@ -513,7 +513,7 @@ model UserRefreshToken {
   id String @id @default(uuid())
 
   jti  String @unique
-  hash String
+  hash String @unique
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
@@ -537,7 +537,7 @@ model StaffRefreshToken {
   id String @id @default(uuid())
 
   jti  String @unique
-  hash String
+  hash String @unique
 
   staffId String @map("staff_id")
   staff   Staff  @relation(fields: [staffId], references: [id])
@@ -561,7 +561,7 @@ model MemberRefreshToken {
   id String @id @default(uuid())
 
   jti  String @unique
-  hash String
+  hash String @unique
 
   memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])

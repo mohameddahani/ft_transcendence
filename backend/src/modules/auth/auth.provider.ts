@@ -5,14 +5,14 @@ import {
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import {
   AccessTokenPayload,
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
-import { LoginUserDto } from './dto/login-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import {
   UserAccountStatus,
   ActionTokenType,
@@ -27,11 +27,11 @@ import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
 import { createHash, randomUUID } from 'node:crypto';
-import { LoginMemberDto } from './dto/login-member.dto';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
-import { LoginStaffDto } from './dto/login-staff.dto';
+import { LoginMemberDto } from './dtos/login-member.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
 import { generateActionToken } from '@/core/utils/generate-action-token';
-import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()

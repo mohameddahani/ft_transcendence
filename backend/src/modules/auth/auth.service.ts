@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthProvider } from './auth.provider';
 import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
-import { LoginMemberDto } from './dto/login-member.dto';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
-import { LoginStaffDto } from './dto/login-staff.dto';
-import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
+import { LoginMemberDto } from './dtos/login-member.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 
 @Injectable()
 export class AuthService {

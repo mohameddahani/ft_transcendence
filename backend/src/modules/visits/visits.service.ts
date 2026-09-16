@@ -24,7 +24,7 @@ export class VisitsService {
     );
 
     // * Check if member is already visit today
-    const now = new Date();
+    const now = new Date(); // ! Get Date from member
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
 

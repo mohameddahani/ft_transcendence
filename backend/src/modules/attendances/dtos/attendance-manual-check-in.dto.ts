@@ -1,7 +1,7 @@
 import { IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AttendanceCheckInDto {
+export class AttendanceManualCheckInDto {
   // * Member Id
   @IsUUID()
   @ApiProperty({

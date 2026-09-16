@@ -83,6 +83,10 @@
 // ! test all Notifications
 
 // ! GET /api/admins/visits/today
+// ! GET All or one visits for admin/staff/member
+// ! GET All or one attendance for admin/staff/member
+
+// ! Cron for attendance
 
 // Common Types
 // Type	Meaning

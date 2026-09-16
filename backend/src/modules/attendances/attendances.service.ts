@@ -8,10 +8,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AttendanceCheckInDto } from './dtos/attendance-check-in.dto';
 import { AccessesService } from '@/core/services/access.service';
 import { AttendanceMethod, Role, VisitStatus } from '@/generated/prisma/enums';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
+import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
+import { createHash } from 'node:crypto';
 
 @Injectable()
 export class AttendancesService {
@@ -20,10 +22,10 @@ export class AttendancesService {
     private readonly accessesService: AccessesService,
   ) {}
 
-  // * Confirm Attendance
+  // * Confirm Attendance Manually
   async checkInManually(
     accessTokenPayload: AccessTokenPayload,
-    data: AttendanceCheckInDto,
+    data: AttendanceManualCheckInDto,
   ) {
     // * Get Admin id
     const adminId =
@@ -32,7 +34,7 @@ export class AttendancesService {
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
 
-    // * Chekc if Member has Membership
+    // * Check if Member has Membership
     const membership = await this.accessesService.validateActiveMembership(
       data.memberId,
       adminId,
@@ -43,6 +45,56 @@ export class AttendancesService {
       data.memberId,
       membership,
       AttendanceMethod.MANUAL,
+    );
+  }
+
+  // * Confirm Attendance Qr
+  async checkInWithQr(
+    accessTokenPayload: AccessTokenPayload,
+    data: AttendanceQrCheckInDto,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Hash the Token from Qr
+    const qrTokenHash = createHash('sha256')
+      .update(data.rowToken)
+      .digest('hex');
+
+    // * Check the visit by token
+    const now = new Date();
+    const endOfToday = endOfDay(now);
+
+    const visit = await this.prisma.visit.findFirst({
+      where: {
+        adminId: adminId,
+        qrTokenHash: qrTokenHash,
+        qrExpiresAt: {
+          lte: endOfToday,
+        },
+        visitStatus: VisitStatus.READY,
+      },
+    });
+
+    if (!visit) {
+      throw new NotFoundException('Invalid or expired QR code.');
+    }
+
+    // * Chekc if Member has Membership
+    const membership = await this.accessesService.validateActiveMembership(
+      visit.memberId,
+      adminId,
+    );
+    return this.confirmCheckIn(
+      accessTokenPayload,
+      adminId,
+      visit.memberId,
+      membership,
+      AttendanceMethod.QR_CODE,
     );
   }
 

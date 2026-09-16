@@ -11,35 +11,35 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import type { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
-import { ForgotPasswordUserDto } from './dto/forgot-password-user.dto';
-import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
+import { ForgotPasswordUserDto } from './dtos/forgot-password-user.dto';
+import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
 import { type Request, type Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
-import { LoginMemberDto } from './dto/login-member.dto';
+import { LoginMemberDto } from './dtos/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
-import { ForgotPasswordMemberDto } from './dto/forgot-password-member.dto';
-import { ResetPasswordMemberDto } from './dto/reset-password-member.dto';
-import { QueryTokenDto } from './dto/query-token.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { ForgotPasswordMemberDto } from './dtos/forgot-password-member.dto';
+import { ResetPasswordMemberDto } from './dtos/reset-password-member.dto';
+import { QueryTokenDto } from './dtos/query-token.dto';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { OwnerAccessTokenAuthGuard } from './guards/owner-access-token-auth.guard';
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { MemberAccessTokenAuthGuard } from './guards/member-access-token-auth.guard';
-import { LoginStaffDto } from './dto/login-staff.dto';
-import { SetPasswordStaffDto } from './dto/set-password-staff.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 import { StaffAccessTokenAuthGuard } from './guards/staff-access-token-auth.guard';
 import { StaffRefreshTokenAuthGuard } from './guards/staff-refresh-token-auth.guard';
-import { ForgotPasswordStaffDto } from './dto/forgot-password-staff.dto';
-import { ResetPasswordStaffDto } from './dto/reset-password-staff.dto';
+import { ForgotPasswordStaffDto } from './dtos/forgot-password-staff.dto';
+import { ResetPasswordStaffDto } from './dtos/reset-password-staff.dto';
 
 @Controller('api/auth')
 export class AuthController {
