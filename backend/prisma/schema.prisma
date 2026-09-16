@@ -402,6 +402,9 @@ model Visit {
   @@index([adminId, visitDate])
   @@index([memberId, visitDate])
   @@index([adminId, visitStatus, visitDate])
+  @@index([adminId, memberId, visitDate])
+  @@index([adminId, memberId, visitDate, visitStatus])
+  @@index([adminId, qrTokenHash, qrExpiresAt])
   @@map("visits")
 }
 
