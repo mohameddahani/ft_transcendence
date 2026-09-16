@@ -82,6 +82,8 @@
 
 // ! test all Notifications
 
+// ! GET /api/admins/visits/today
+
 // Common Types
 // Type	Meaning
 // feat	New feature

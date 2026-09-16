@@ -106,6 +106,7 @@ export class MembersService {
     }
 
     // * Interactive transaction (function)
+    // * tx is the prisma client inside a transaction
     const result = await this.prisma.$transaction(async (tx) => {
       // * Add members to database
       const member = await tx.member.create({
@@ -278,6 +279,7 @@ export class MembersService {
       }
 
       // * Interactive transaction (function)
+      // * tx is the prisma client inside a transaction
       await this.prisma.$transaction(async (tx) => {
         // * make old membership expired
         await tx.membership.update({

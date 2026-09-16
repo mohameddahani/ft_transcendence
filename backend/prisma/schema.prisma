@@ -391,8 +391,8 @@ model Visit {
 
   visitStatus VisitStatus @default(READY) @map("visit_status")
 
-  qrTokenHash String?   @map("qr_token_hash")
-  qrExpiresAt DateTime? @map("qr_expires_at")
+  qrTokenHash String   @map("qr_token_hash")
+  qrExpiresAt DateTime @map("qr_expires_at")
 
   attendance Attendance?
 
