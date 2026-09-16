@@ -3,18 +3,10 @@ import {
   MembershipWithPlan,
 } from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { AttendanceCheckInDto } from './dtos/attendance-check-in.dto';
 import { AccessesService } from '@/core/services/access.service';
-import {
-  AttendanceMethod,
-  MembershipStatus,
-  Role,
-} from '@/generated/prisma/enums';
+import { AttendanceMethod, Role } from '@/generated/prisma/enums';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 @Injectable()
@@ -31,15 +23,13 @@ export class AttendancesService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Chekc if Member has Membership
-    const membership = await this.checkIfMemberHasMembership(
+    const membership = await this.accessesService.validateActiveMembership(
       data.memberId,
       adminId,
     );
@@ -53,25 +43,6 @@ export class AttendancesService {
   }
 
   // ! Private
-  // * Chekc if Member has Membership
-  private async checkIfMemberHasMembership(memberId: string, adminId: string) {
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        adminId: adminId,
-        memberId: memberId,
-        membershipStatus: MembershipStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
-      },
-      include: {
-        membershipPlan: true,
-      },
-    });
-    if (!membership) {
-      throw new NotFoundException('This Member Has No Membership');
-    }
-    return membership;
-  }
-
   // * ConfirmCheckIn
   private async confirmCheckIn(
     accessTokenPayload: AccessTokenPayload,

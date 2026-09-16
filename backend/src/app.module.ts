@@ -21,6 +21,7 @@ import { MembershipNotificationCron } from './jobs/membership-notification.cron'
 import { SubscriptionNotificationCron } from './jobs/subscription-notification.cron';
 import { StaffsModule } from './modules/staffs/staffs.module';
 import { AttendancesModule } from './modules/attendances/attendances.module';
+import { VisitsModule } from './modules/visits/visits.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { AttendancesModule } from './modules/attendances/attendances.module';
     MembershipsModule,
     NotificationsModule,
     StaffsModule,
+    VisitsModule,
     AttendancesModule,
   ],
 

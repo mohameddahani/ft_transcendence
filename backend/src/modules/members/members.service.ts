@@ -38,13 +38,11 @@ export class MembersService {
   async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
     const subscription =
-      await this.accessesService.checkIfAdminHasSubscription(adminId);
+      await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -202,12 +200,10 @@ export class MembersService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if we have member already in DB
     await this.findOne(accessTokenPayload, memberId);
@@ -330,12 +326,10 @@ export class MembersService {
   async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -358,12 +352,10 @@ export class MembersService {
   async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -393,12 +385,10 @@ export class MembersService {
   async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -426,12 +416,10 @@ export class MembersService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -472,12 +460,10 @@ export class MembersService {
   async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin is has already a subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const member = await this.prisma.member.findFirst({
       where: {

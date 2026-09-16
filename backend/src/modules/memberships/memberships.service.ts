@@ -19,12 +19,10 @@ export class MembershipsService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const memberships = await this.prisma.membership.findMany({
       where: {
@@ -57,12 +55,10 @@ export class MembershipsService {
   async findOne(accessTokenPayload: AccessTokenPayload, membershipId: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const membership = await this.prisma.membership.findFirst({
       where: {

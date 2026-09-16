@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AccessTokenPayload } from '../types/jwt-payload.type';
 import {
+  MembershipStatus,
   Role,
   SubscriptionStatus,
   UserAccountStatus,
@@ -17,7 +18,7 @@ export class AccessesService {
 
   // ! Global Methods
   // * Check if admin has subscription
-  async checkIfAdminHasSubscription(adminId: string) {
+  async validateActiveSubscription(adminId: string) {
     const subscription = await this.prisma.subscription.findFirst({
       where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
       include: { plan: true, user: true },
@@ -47,28 +48,61 @@ export class AccessesService {
     return subscription;
   }
 
-  // * Get Admin Id from Access Token Payload Of Staff
-  async getAdminIdFromAccessTokenPayloadOfStaff(
-    accessTokenPayload: AccessTokenPayload,
-  ) {
-    // * Get Admin id
-    let adminId: string;
+  // * Chekc if Member has Membership
+  async validateActiveMembership(memberId: string, adminId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        membershipStatus: MembershipStatus.ACTIVE,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        membershipPlan: true,
+      },
+    });
+    if (!membership) {
+      throw new NotFoundException('This Member Has No Membership');
+    }
+    return membership;
+  }
+
+  // * Resolve Admin Id
+  async resolveAdminId(accessTokenPayload: AccessTokenPayload) {
+    if (accessTokenPayload.role === Role.ADMIN) {
+      return accessTokenPayload.id;
+    }
 
     if (accessTokenPayload.role === Role.STAFF) {
       const staff = await this.prisma.staff.findUnique({
         where: { id: accessTokenPayload.id },
+        select: {
+          adminId: true,
+        },
       });
+
       if (!staff) {
-        throw new NotFoundException('Staff Not Found');
+        throw new NotFoundException('Staff not found');
       }
 
-      adminId = staff.adminId;
-    } else if (accessTokenPayload.role === Role.ADMIN) {
-      adminId = accessTokenPayload.id;
-    } else {
-      throw new UnauthorizedException();
+      return staff.adminId;
     }
 
-    return adminId;
+    throw new UnauthorizedException();
+  }
+
+  // * Get Admin Id from Access Token Payload Of Member
+  async resolveAdminIdFromMemberId(memberId: string) {
+    const member = await this.prisma.member.findUnique({
+      where: { id: memberId },
+      select: {
+        adminId: true,
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found');
+    }
+
+    return member.adminId;
   }
 }

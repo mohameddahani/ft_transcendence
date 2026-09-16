@@ -1,10 +1,5 @@
-import { MembershipStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AccessesService } from '@/core/services/access.service';
 
@@ -23,12 +18,10 @@ export class PaymentsService {
   ) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -80,12 +73,10 @@ export class PaymentsService {
   async findOnePayment(accessTokenPayload: AccessTokenPayload, id: string) {
     // * Get Admin id
     const adminId =
-      await this.accessesService.getAdminIdFromAccessTokenPayloadOfStaff(
-        accessTokenPayload,
-      );
+      await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -134,8 +125,12 @@ export class PaymentsService {
 
   // * Get all Payments
   async findAllPaymentsMember(memberId: string, page: number, limit: number) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
     // * Check if member has membership
-    await this.checkIfMemberHasMembership(memberId);
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -185,8 +180,12 @@ export class PaymentsService {
 
   // * Get one payment
   async findOnePaymentMember(memberId: string, id: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
     // * Check if member has membership
-    await this.checkIfMemberHasMembership(memberId);
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -231,35 +230,5 @@ export class PaymentsService {
     }
 
     return payment;
-  }
-
-  // ! Private
-  // * Check if member has membership
-  private async checkIfMemberHasMembership(memberId: string) {
-    // * Check if member already exist
-    const member = await this.prisma.member.findUnique({
-      where: { id: memberId },
-      include: {
-        payments: true,
-      },
-    });
-    if (!member) {
-      throw new NotFoundException('Member Not Found !');
-    }
-
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        memberId: member.id,
-        adminId: member.adminId,
-        membershipStatus: MembershipStatus.ACTIVE,
-      },
-    });
-    if (!membership) {
-      throw new UnauthorizedException(
-        'You don’t have an membership. Upgrade your plan to continue.',
-      );
-    }
-
-    return { member, membership };
   }
 }

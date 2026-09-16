@@ -23,7 +23,7 @@ export class MembershipPlansService {
   // * Add Membership plan
   async addMembershipPlan(adminId: string, data: AddMembershipPlanDto) {
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if membership plan already exist
     const membershipPlan = await this.prisma.membershipPlan.findFirst({
@@ -53,7 +53,7 @@ export class MembershipPlansService {
     data: AddMembershipPlanDurationDto,
   ) {
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if membership plan exist
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
@@ -95,7 +95,7 @@ export class MembershipPlansService {
   // * Update Membership Plan
   async update(adminId: string, id: string, data: UpdateMembershipPlanDto) {
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if this membership plan already exist
     const membershipPlan = await this.findOne(adminId, id);
@@ -153,7 +153,7 @@ export class MembershipPlansService {
     data: UpdateMembershipPlanDurationDto,
   ) {
     // * Check if admin has subscription
-    await this.accessesService.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check the membership plan if already exist
     const membershipPlan = await this.findOne(adminId, data.membershipPlanId);
