@@ -3,6 +3,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AccessesService } from '@/core/services/access.service';
 import { endOfDay, startOfDay } from 'date-fns';
 import { generateActionToken } from '@/core/utils/generate-action-token';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 
 @Injectable()
 export class VisitsService {
@@ -58,4 +59,17 @@ export class VisitsService {
     });
     return { rawToken: rawToken };
   }
+
+  // * Get all visits
+  async findAllVisitsToday(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {}
+
+  // * Get one visit
+  async findOneVisitToday(
+    accessTokenPayload: AccessTokenPayload,
+    visitId: string,
+  ) {}
 }
