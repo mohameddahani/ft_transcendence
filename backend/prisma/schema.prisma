@@ -84,12 +84,27 @@ enum AttendanceMethod {
   MANUAL
 }
 
-// * this enum had Attendance Status Type
+// * this enum had Visit Status
 enum VisitStatus {
   READY
   CHECKED_IN
   CANCELLED
   EXPIRED
+}
+
+// * this enum had Sentiment Type 
+enum SentimentType {
+  NEGATIVE
+  NEUTRAL
+  POSITIVE
+}
+
+// * this enum had Feedback Status
+enum FeedbackStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
 }
 
 // * Table of users
@@ -122,6 +137,7 @@ model User {
   staffs            Staff[]
   attendances       Attendance[]
   visits            Visit[]
+  feedbacks         Feedback[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -227,6 +243,7 @@ model Staff {
   staffRefreshTokens StaffRefreshToken[]
   staffActionTokens  StaffActionToken[]
   attendances        Attendance[]
+  feedbacks          Feedback[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -243,7 +260,7 @@ model Member {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  staffId String?
+  staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
   firstName            String              @map("first_name")
@@ -268,6 +285,8 @@ model Member {
   memberActionTokens  MemberActionToken[]
   visits              Visit[]
   attendances         Attendance[]
+  feedbacks           Feedback[]
+  feedbackLikes       FeedbackLike[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -288,7 +307,7 @@ model Membership {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  staffId String?
+  staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
   memberId String @map("member_id")
@@ -354,7 +373,7 @@ model Attendance {
   membershipId String     @map("membership_id")
   membership   Membership @relation(fields: [membershipId], references: [id])
 
-  staffId String?
+  staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
   visitId String @unique @map("visit_id")
@@ -387,7 +406,7 @@ model Visit {
   membershipId String     @map("membership_id")
   membership   Membership @relation(fields: [membershipId], references: [id])
 
-  visitDate DateTime @map("visit_date")
+  visitDateAndTime DateTime @map("visit_date_and_time")
 
   visitStatus VisitStatus @default(READY) @map("visit_status")
 
@@ -399,11 +418,11 @@ model Visit {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([adminId, visitDate])
-  @@index([memberId, visitDate])
-  @@index([adminId, visitStatus, visitDate])
-  @@index([adminId, memberId, visitDate])
-  @@index([adminId, memberId, visitDate, visitStatus])
+  @@index([adminId, visitDateAndTime])
+  @@index([memberId, visitDateAndTime])
+  @@index([adminId, visitStatus, visitDateAndTime])
+  @@index([adminId, memberId, visitDateAndTime])
+  @@index([adminId, memberId, visitDateAndTime, visitStatus])
   @@index([adminId, qrTokenHash, qrExpiresAt])
   @@map("visits")
 }
@@ -437,12 +456,12 @@ model Payment {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  staffId String?
+  staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
   amount        Decimal       @db.Decimal(10, 2)
-  paidAt        DateTime      @map("paid_at")
-  dueDate       DateTime      @map("due_date")
+  paidAt        DateTime?     @map("paid_at")
+  dueDate       DateTime?     @map("due_date")
   paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
@@ -452,6 +471,59 @@ model Payment {
   @@index([paymentStatus])
   @@index([paymentStatus, dueDate])
   @@map("payments")
+}
+
+// * Table of Feedbacks of Member
+model Feedback {
+  id String @id @default(uuid())
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  memberId String @map("member_id")
+  member   Member @relation(fields: [memberId], references: [id])
+
+  staffId String? @map("staff_id")
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+
+  content String
+
+  rating Int
+
+  sentiment      SentimentType?
+  sentimentScore Decimal?       @map("sentiment_score") @db.Decimal(3, 2)
+
+  feedbackStatus FeedbackStatus @default(OPEN) @map("feedback_status")
+
+  resolvedAt     DateTime? @map("resolved_at")
+  resolvedBy     String?   @map("resolved_by")
+  resolutionNote String?   @map("resolution_note")
+
+  likes FeedbackLike[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([adminId, createdAt])
+  @@index([adminId, feedbackStatus])
+  @@index([staffId])
+  @@map("feedbacks")
+}
+
+model FeedbackLike {
+  id String @id @default(uuid())
+
+  feedbackId String   @map("feedback_id")
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  memberId String @map("member_id")
+  member   Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([feedbackId, memberId])
+  @@index([feedbackId])
+  @@map("feedback_likes")
 }
 
 // * Table of Notifications of Admin

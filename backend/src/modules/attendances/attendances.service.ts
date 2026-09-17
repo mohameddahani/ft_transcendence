@@ -99,7 +99,7 @@ export class AttendancesService {
   }
 
   // ! Private
-  // * ConfirmCheckIn
+  // * Confirm Check In
   private async confirmCheckIn(
     accessTokenPayload: AccessTokenPayload,
     adminId: string,
@@ -109,11 +109,12 @@ export class AttendancesService {
   ) {
     // * tx is the prisma client inside a transaction
     await this.prisma.$transaction(async (tx) => {
-      // * Check If Member try to checkin two times in one day
+      // * Get current date and today's boundaries
       const now = new Date();
       const startOfToday = startOfDay(now);
       const endOfToday = endOfDay(now);
 
+      // * Check if member already checked in today
       const alreadyCheckedIn = await tx.attendance.findFirst({
         where: {
           adminId: adminId,
@@ -126,27 +127,43 @@ export class AttendancesService {
       });
 
       if (alreadyCheckedIn) {
-        throw new ForbiddenException('you already checked in today.');
+        throw new ForbiddenException(
+          'The member has already checked in today.',
+        );
       }
 
-      // * Check if Member Take Two vists today
-      const alreadyVisited = await tx.visit.findFirst({
+      // * Find today's visit
+      const visit = await tx.visit.findFirst({
         where: {
           adminId: adminId,
           memberId: memberId,
-          visitDate: {
+          visitDateAndTime: {
             gte: startOfToday,
             lte: endOfToday,
           },
-          visitStatus: VisitStatus.CHECKED_IN,
         },
       });
 
-      if (alreadyVisited) {
-        throw new ForbiddenException('you already visited in today.');
+      if (!visit) {
+        throw new NotFoundException('No visit found for today.');
       }
 
-      // * Check if Member use all Visit Limit in the Week
+      // * Check visit status
+      if (visit.visitStatus === VisitStatus.CHECKED_IN) {
+        throw new ForbiddenException(
+          'The member has already checked in today.',
+        );
+      } else if (visit.visitStatus === VisitStatus.CANCELLED) {
+        throw new ForbiddenException(
+          'The member already has a cancelled visit for today.',
+        );
+      } else if (visit.visitStatus === VisitStatus.EXPIRED) {
+        throw new ForbiddenException(
+          'The member already has an expired visit for today.',
+        );
+      }
+
+      // * Calculate current week
       // Monday = first day of the week
       const monday = startOfWeek(now, {
         weekStartsOn: 1,
@@ -157,40 +174,26 @@ export class AttendancesService {
         weekStartsOn: 1,
       });
 
-      const attendanceCount = await this.prisma.attendance.count({
+      // * Check weekly visit limit
+      const attendanceCount = await tx.attendance.count({
         where: {
           adminId: adminId,
           memberId: memberId,
-          checkedInAt: { gte: monday, lte: sunday },
+          checkedInAt: {
+            gte: monday,
+            lte: sunday,
+          },
         },
       });
+
       if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
         throw new ForbiddenException(
           'Weekly attendance limit has been reached for this membership.',
         );
       }
 
-      // * Find today's READY Visit
-      const visit = await tx.visit.findFirst({
-        where: {
-          adminId: adminId,
-          memberId: memberId,
-
-          visitDate: {
-            gte: startOfToday,
-            lte: endOfToday,
-          },
-
-          visitStatus: VisitStatus.READY,
-        },
-      });
-
-      if (!visit) {
-        throw new NotFoundException('No ready visit found for today.');
-      }
-
-      // * Update Visit Status
-      await this.prisma.visit.update({
+      // * Update visit status
+      await tx.visit.update({
         where: {
           id: visit.id,
         },
@@ -199,17 +202,20 @@ export class AttendancesService {
         },
       });
 
-      // * Create Attendance
-      await this.prisma.attendance.create({
+      // * Create attendance
+      await tx.attendance.create({
         data: {
           admin: { connect: { id: adminId } },
           member: { connect: { id: memberId } },
           membership: { connect: { id: membership.id } },
+
           staff:
             accessTokenPayload.role === Role.STAFF
               ? { connect: { id: accessTokenPayload.id } }
               : undefined, // Ignore this field. Don't do anything with staff.
+
           visit: { connect: { id: visit.id } },
+
           attendanceMethod: attendanceMethod,
           checkedInAt: now,
         },

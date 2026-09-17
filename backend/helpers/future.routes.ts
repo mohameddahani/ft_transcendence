@@ -86,7 +86,7 @@
 // ! GET All or one visits for admin/staff/member
 // ! GET All or one attendance for admin/staff/member
 
-// ! Cron for attendance
+// ! Cron for attendance by Date and time
 
 // Common Types
 // Type	Meaning

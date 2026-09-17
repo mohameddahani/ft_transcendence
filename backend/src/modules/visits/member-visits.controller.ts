@@ -7,6 +7,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 import { VisitsService } from './visits.service';
+import { CreateVisitDto } from './dtos/create-visit.dto';
 
 @Controller('/api/members/visits')
 // * Make Authorazation Golbal on this route
@@ -18,7 +19,10 @@ export class MemberVisitsController {
   // * Create A Visit
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  createVisit(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
-    return this.visitsService.createVisit(accessTokenPayload.id);
+  createVisit(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: CreateVisitDto,
+  ) {
+    return this.visitsService.createVisit(accessTokenPayload.id, body);
   }
 }
