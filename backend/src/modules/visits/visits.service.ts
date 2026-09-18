@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { AccessesService } from '@/core/services/access.service';
-import { endOfDay, startOfDay } from 'date-fns';
+import { endOfDay, endOfWeek, startOfDay, startOfWeek } from 'date-fns';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
@@ -27,9 +27,10 @@ export class VisitsService {
     const membership = await this.accessesService.validateActiveMembership(
       memberId,
       adminId,
+      data.visitDateAndTime,
     );
 
-    // * Check if member is already visit today
+    // * Check if member is already visit twice on choosen day
     const startOfToday = startOfDay(data.visitDateAndTime);
     const endOfToday = endOfDay(data.visitDateAndTime);
 
@@ -46,6 +47,35 @@ export class VisitsService {
 
     if (alreadyVisited) {
       throw new ForbiddenException('you already visited in today.');
+    }
+
+    // * Calculate choosen week
+    // Monday = first day of the week
+    const monday = startOfWeek(data.visitDateAndTime, {
+      weekStartsOn: 1,
+    });
+
+    // Sunday = last day of the week
+    const sunday = endOfWeek(data.visitDateAndTime, {
+      weekStartsOn: 1,
+    });
+
+    // * Check weekly visit limit
+    const attendanceCount = await this.prisma.attendance.count({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        checkedInAt: {
+          gte: monday,
+          lte: sunday,
+        },
+      },
+    });
+
+    if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
+      throw new ForbiddenException(
+        'Weekly attendance limit has been reached for this membership.',
+      );
     }
 
     // * Create Visit

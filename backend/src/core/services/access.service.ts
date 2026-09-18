@@ -18,9 +18,16 @@ export class AccessesService {
 
   // ! Global Methods
   // * Check if admin has subscription
-  async validateActiveSubscription(adminId: string) {
+  async validateActiveSubscription(
+    adminId: string,
+    checkDate: Date = new Date(),
+  ) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
+      where: {
+        userId: adminId,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        expiresAt: { gt: checkDate },
+      },
       include: { plan: true, user: true },
     });
     if (!subscription || !subscription.plan.isActive) {
@@ -49,13 +56,17 @@ export class AccessesService {
   }
 
   // * Chekc if Member has Membership
-  async validateActiveMembership(memberId: string, adminId: string) {
+  async validateActiveMembership(
+    memberId: string,
+    adminId: string,
+    checkDate: Date = new Date(),
+  ) {
     const membership = await this.prisma.membership.findFirst({
       where: {
         adminId: adminId,
         memberId: memberId,
         membershipStatus: MembershipStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
+        expiresAt: { gt: checkDate },
       },
       include: {
         membershipPlan: true,

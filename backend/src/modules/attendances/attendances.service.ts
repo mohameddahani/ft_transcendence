@@ -67,14 +67,13 @@ export class AttendancesService {
 
     // * Check the visit by token
     const now = new Date();
-    const endOfToday = endOfDay(now);
 
     const visit = await this.prisma.visit.findFirst({
       where: {
         adminId: adminId,
         qrTokenHash: qrTokenHash,
         qrExpiresAt: {
-          lte: endOfToday,
+          gte: now,
         },
         visitStatus: VisitStatus.READY,
       },
