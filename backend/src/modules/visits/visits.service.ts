@@ -50,7 +50,7 @@ export class VisitsService {
     // * Check Special Hours
     const dateOfVisit = startOfDay(data.visitDateAndTime);
     const visitTime = format(data.visitDateAndTime, 'HH:mm');
-    const specialHour = await this.prisma.specialHour.findFirst({
+    const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
         startDate: { lte: dateOfVisit },
@@ -58,17 +58,53 @@ export class VisitsService {
       },
     });
 
-    if (specialHour) {
+    // That's why I use findMany() instead of findFirst():
+    // findMany() allows us to check all special closure periods
+    // that apply to the requested date.
+
+    // Example: The gym has two closure periods:
+    //
+    // 1. SpecialHour #1: 14:00 to 16:00
+    //    Requested time: 19:00. Not inside (false).
+    //
+    // 2. SpecialHour #2: 18:00 to 20:00
+    //    Requested time: 19:00. Inside (true).
+    //
+    // 3. Throw an exception because the requested time
+    //    falls within a closure period.
+    //
+    // Result: Visit rejected.
+    for (const specialHour of specialHours) {
       // * Closed for the whole day
       if (!specialHour.startTime || !specialHour.endTime) {
         throw new ForbiddenException('The gym is closed on this date.');
       }
 
       // * Closed during the special period
-      if (
-        visitTime >= specialHour.startTime &&
-        visitTime <= specialHour.endTime
-      ) {
+      const startTime = specialHour.startTime;
+      const endTime = specialHour.endTime;
+
+      let isClosed = false;
+
+      if (startTime < endTime) {
+        // * Normal period: 14:00 to 18:00
+        // 15:00 >= 14:00 true
+        // &&
+        // 15:00 <= 18:00 true
+        // Result: CLOSED
+
+        isClosed = visitTime >= startTime && visitTime <= endTime;
+      } else {
+        // * Overnight period: 22:00 to 02:00
+        // 01:00 >= 23:00 false
+        // ||
+        // 01:00 <= 02:00 true
+        // Result: CLOSED
+
+        isClosed = visitTime >= startTime || visitTime <= endTime;
+      }
+
+      if (isClosed) {
         throw new ForbiddenException('The gym is closed at this time.');
       }
     }
@@ -91,7 +127,7 @@ export class VisitsService {
       );
     }
 
-    // * Check if member is already visit twice on choosen day
+    // * Check if member already has a visit on the chosen day
     const startOfToday = startOfDay(data.visitDateAndTime);
     const endOfToday = endOfDay(data.visitDateAndTime);
 
