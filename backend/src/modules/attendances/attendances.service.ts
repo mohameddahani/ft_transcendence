@@ -66,21 +66,16 @@ export class AttendancesService {
       .digest('hex');
 
     // * Check the visit by token
-    const now = new Date();
-
-    const visit = await this.prisma.visit.findFirst({
+    const visit = await this.prisma.visit.findUnique({
       where: {
         adminId: adminId,
         qrTokenHash: qrTokenHash,
-        qrExpiresAt: {
-          gte: now,
-        },
-        visitStatus: VisitStatus.READY,
+        // visitStatus: VisitStatus.READY,
       },
     });
 
     if (!visit) {
-      throw new NotFoundException('Invalid or expired QR code.');
+      throw new NotFoundException('Invalid QR code.');
     }
 
     // * Chekc if Member has Membership

@@ -135,12 +135,14 @@ model User {
   userActionTokens  UserActionToken[]
   notifications     AdminNotification[]
   staffs            Staff[]
+  workingHours      WorkingHour[]
   attendances       Attendance[]
   visits            Visit[]
   feedbacks         Feedback[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  specialHours SpecialHour[]
 
   @@index([firstName, lastName])
   @@index([role])
@@ -360,6 +362,47 @@ model MembershipPlan {
   @@map("membership_plans")
 }
 
+// * Table of Working Hour
+model WorkingHour {
+  id String @id @default(uuid())
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  dayOfWeek Int    @map("day_of_week") // 1 = Monday ... 7 = Sunday
+  startTime String @map("start_time")
+  endTime   String @map("end_time")
+
+  isClosed Boolean @default(false) @map("is_closed")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([adminId, dayOfWeek, startTime])
+  @@index([adminId, dayOfWeek])
+  @@map("working_hours")
+}
+
+// * Table of Special Hour
+model SpecialHour {
+  id String @id @default(uuid())
+
+  adminId String @map("admin_id")
+  admin   User   @relation(fields: [adminId], references: [id])
+
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+
+  startTime String? @map("start_time")
+  endTime   String? @map("end_time")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([adminId, startDate, endDate])
+  @@map("special_hours")
+}
+
 // * Table of Attendance
 model Attendance {
   id String @id @default(uuid())
@@ -406,12 +449,12 @@ model Visit {
   membershipId String     @map("membership_id")
   membership   Membership @relation(fields: [membershipId], references: [id])
 
-  visitDateAndTime DateTime @map("visit_date_and_time")
+  visitDateAndTime          DateTime @map("visit_date_and_time")
+  visitDateAndTimeExpiresAt DateTime @map("visit_date_and_time_expires_at")
 
   visitStatus VisitStatus @default(READY) @map("visit_status")
 
-  qrTokenHash String   @unique @map("qr_token_hash")
-  qrExpiresAt DateTime @map("qr_expires_at")
+  qrTokenHash String @unique @map("qr_token_hash")
 
   attendance Attendance?
 
@@ -423,7 +466,6 @@ model Visit {
   @@index([adminId, visitStatus, visitDateAndTime])
   @@index([adminId, memberId, visitDateAndTime])
   @@index([adminId, memberId, visitDateAndTime, visitStatus])
-  @@index([adminId, qrTokenHash, qrExpiresAt])
   @@map("visits")
 }
 
