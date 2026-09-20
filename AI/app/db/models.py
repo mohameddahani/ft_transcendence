@@ -85,6 +85,23 @@ class PaymentStatus(StrEnum):
     OVERDUE = "OVERDUE"
 
 
+class AttendanceMethod(StrEnum):
+    """How the member got through the door. Dahani's booking system (2026-09-20)."""
+
+    QR_CODE = "QR_CODE"
+    MANUAL = "MANUAL"
+
+
+class FeedbackStatus(StrEnum):
+    """The staff workflow on a comment, independent of its sentiment. A complaint
+    can be NEGATIVE and RESOLVED at the same time, and the owner cares about both."""
+
+    OPEN = "OPEN"
+    IN_REVIEW = "IN_REVIEW"
+    RESOLVED = "RESOLVED"
+    DISMISSED = "DISMISSED"
+
+
 class Sentiment(StrEnum):
     """Written by the sentiment module (task 5.1) through Dahani's backend, then read
     back here. Nullable in the schema: a feedback that has not been scored yet is a
@@ -168,6 +185,10 @@ class MembershipPlan(ReadModel):
     plan_name: str
     description: str | None
     is_active: bool
+    # Sessions a week this plan allows. Dahani's booking and check-in paths refuse
+    # past it, so a member asking "how many do I have left?" is asking about a rule
+    # that will actually be enforced on them at the door.
+    weekly_visit_limit: int
 
 
 class MembershipPlanDuration(ReadModel):
@@ -197,19 +218,33 @@ class Membership(ReadModel):
     )
 
     def status_at(self, now: datetime | None = None) -> DerivedMembershipStatus:
-        """Rule #6 says never derive *expiry* from `membership_status`, because a
-        cron job maintains it and a missed run leaves it stale.
+        """Valid means `membership_status = 'ACTIVE'` **and** `expires_at` in the
+        future. Both halves are load-bearing, in opposite directions.
 
-        Cancellation is the exception, and the distinction matters: nothing else in
-        the schema records that a member cancelled. `expires_at` is unchanged when
-        they do -- so a cancelled membership with a future expiry would otherwise be
-        reported ACTIVE, and the owner would be told that someone who quit last week
-        is still a member. The stored column is untrusted for expiry and is the only
-        source for cancellation; both statements are true at once.
+        Rule #6 says never derive *expiry* from the stored column, because a cron job
+        maintains it (hourly) and a missed run leaves it saying ACTIVE after the date
+        has passed. That is still true, and the date check below is what enforces it.
+
+        The other direction was wrong until 2026-09-20. A stored status of EXPIRED or
+        CANCELLED is written by a *person*, not by the cron -- changing a member's
+        plan supersedes the old membership immediately, while its `expires_at` may
+        still be weeks away (`members.service.ts:267`). Deriving purely from the date
+        therefore reported two valid memberships for anyone who ever changed plan:
+        they appeared twice in the renewal-chase list, and a downgrade told the member
+        they were still on the old, longer plan.
+
+        So: the cron can only ever be stale in the "still valid" direction, which
+        makes the stored column safe as a filter that **narrows** and unsafe as one
+        that **widens**. Dahani's own `AccessesService.validateActiveMembership`
+        requires exactly this pair, so the assistant and the app now agree on who may
+        train today.
         """
         if self.membership_status == StoredMembershipStatus.CANCELLED:
             return DerivedMembershipStatus.CANCELLED
         now = _utc(now or datetime.now(UTC))
+        # Superseded by a plan change: dead now, whatever the date still claims.
+        if self.membership_status == StoredMembershipStatus.EXPIRED:
+            return DerivedMembershipStatus.EXPIRED
         if self.expires_at < now:
             return DerivedMembershipStatus.EXPIRED
         if self.expires_at < now + EXPIRING_SOON:
@@ -236,23 +271,33 @@ class Membership(ReadModel):
 
     @computed_field
     @property
+    def superseded(self) -> bool:
+        """Terminated by hand while its paid-for date is still in the future.
+
+        Almost always a plan change: the old membership is set EXPIRED the moment
+        the new one is created. Not an error, and not drift -- but worth being able
+        to see, because the row keeps advertising an end date that no longer means
+        anything. (The open ask to Dahani is to set `expires_at = now` as well.)
+        """
+        return (self.membership_status == StoredMembershipStatus.EXPIRED
+                and self.expires_at > datetime.now(UTC))
+
+    @computed_field
+    @property
     def status_drifted(self) -> bool:
-        """True when the cron column disagrees with reality -- worth surfacing to
-        the owner, and the reason rule #6 exists."""
-        # CANCELLED is set by a person, not by the cron job, so it cannot drift.
-        # Including it here would flag every cancelled-but-not-yet-expired
-        # membership as a cron failure.
-        if self.membership_status == StoredMembershipStatus.CANCELLED:
-            return False
-        # `==` not `is`: these are StrEnums, so equality also holds for a raw
-        # string that skipped validation (model_copy, a hand-built fixture). An
-        # identity check would silently report "no drift" in exactly the case
-        # this method exists to catch.
-        stored_expired = self.membership_status == StoredMembershipStatus.EXPIRED
-        # Straight from expires_at, not from `self.status`: that property now
-        # short-circuits on CANCELLED and would make this comparison meaningless.
-        really_expired = self.expires_at < datetime.now(UTC)
-        return stored_expired != really_expired
+        """True when the cron job is behind: still ACTIVE after the date has passed.
+
+        Only that one direction is drift. The reverse -- EXPIRED with a future date
+        -- is a person superseding the membership (see `superseded`), and counting it
+        here would have reported every plan change in the gym as a failed cron run.
+
+        `==` not `is`: these are StrEnums, so equality also holds for a raw string
+        that skipped validation (`model_copy`, a hand-built fixture). An identity
+        check would silently report "no drift" in exactly the case this exists to
+        catch.
+        """
+        return (self.membership_status == StoredMembershipStatus.ACTIVE
+                and self.expires_at < datetime.now(UTC))
 
 
 class Payment(ReadModel):
@@ -260,33 +305,53 @@ class Payment(ReadModel):
     admin_id: str
     member_id: str
     amount: Decimal
-    # NOT NULL in the schema, so an unpaid row still carries a date. Revenue must
-    # therefore filter on payment_status, not merely sum by paid_at
-    # (Dahani ask #9: make this nullable).
-    paid_at: datetime
-    due_date: datetime
+    # Nullable since 2026-09-20 (ask #9, delivered). Every consumer must cope with
+    # None: these were required until that migration, and a required field here
+    # turns the first NULL row into a validation error *inside a tool call*, which
+    # the boot check cannot catch because it verifies types, not nullability.
+    #
+    # Nothing in the backend writes NULL yet -- both write paths still set both
+    # dates unconditionally -- so this is defensive until an unpaid flow exists.
+    paid_at: datetime | None
+    due_date: datetime | None
     payment_status: PaymentStatus
 
-    _norm = field_validator("paid_at", "due_date")(classmethod(lambda cls, v: _utc(v)))
+    _norm = field_validator("paid_at", "due_date")(
+        classmethod(lambda cls, v: v if v is None else _utc(v))
+    )
 
     @computed_field
     @property
     def is_collected(self) -> bool:
-        """The only safe basis for revenue: money actually received."""
+        """The only safe basis for revenue: money actually received.
+
+        **Still open with Dahani** (`BACKEND_CHANGES_REVIEW.md` finding 1): his cron
+        rewrites a collected payment to OVERDUE and then UNPAID as its membership
+        period ends, so on his data this under-reports historical revenue. Now that
+        `paid_at` is nullable, the clean fix is "collected means `paid_at IS NOT
+        NULL`" -- but that is his call to make, not ours to assume.
+        """
         return self.payment_status == PaymentStatus.PAID
 
 
-class CheckIn(ReadModel):
-    """One visit. The whole attendance module is built on counting these.
+class Attendance(ReadModel):
+    """One visit that actually happened. The attendance module counts these.
 
-    Deliberately thin -- the table carries `created_at` and `updated_at` too, but a
-    check-in has exactly one interesting fact, and widening the read model would
-    mean widening the grant.
+    Was `CheckIn` against our shadow table until 2026-09-20. Dahani's `attendances`
+    carries more: the booking it came from (`visit_id`), the staff member who waved
+    it through (`staff_id`), and the membership it was taken under.
+
+    Still deliberately thin. `visit_id` and `staff_id` answer no question we have,
+    and every field here is a column granted to `ai_readonly` -- widening the model
+    means widening the grant, which is a decision and not a convenience.
     """
 
     id: str
     admin_id: str
     member_id: str
+    # New, and the useful one: attendance can be attributed to a plan.
+    membership_id: str
+    attendance_method: AttendanceMethod
     checked_in_at: datetime
 
     _norm = field_validator("checked_in_at")(classmethod(lambda cls, v: _utc(v)))
@@ -314,11 +379,16 @@ class Feedback(ReadModel):
     admin_id: str
     member_id: str
     content: str
+    # NOT NULL in Dahani's schema: every comment carries a star rating. Kept
+    # optional here anyway -- a rating that stops being mandatory is a schema change
+    # that should not take the assistant down with it.
     rating: int | None
     # Both nullable: the row is written when the member submits and scored
     # afterwards by POST /internal/sentiment.
     sentiment: Sentiment | None
     sentiment_score: Decimal | None
+    # The staff workflow on this comment, independent of its sentiment.
+    feedback_status: FeedbackStatus
     created_at: datetime
 
     _norm = field_validator("created_at")(classmethod(lambda cls, v: _utc(v)))
@@ -327,3 +397,12 @@ class Feedback(ReadModel):
     @property
     def is_scored(self) -> bool:
         return self.sentiment is not None
+
+    @computed_field
+    @property
+    def needs_attention(self) -> bool:
+        """Open, and either negative or poorly rated. The owner's actual worklist."""
+        if self.feedback_status != FeedbackStatus.OPEN:
+            return False
+        return self.sentiment == Sentiment.NEGATIVE or (
+            self.rating is not None and self.rating <= 2)

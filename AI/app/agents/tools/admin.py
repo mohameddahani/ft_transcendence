@@ -101,7 +101,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             where="member_id = :mid", params={"mid": args.member_id},
             order_by="paid_at desc", limit=10)
         visits = (await aggregate(
-            scope, "check_ins",
+            scope, "attendances",
             [("COUNT", "id", "total"), ("MAX", "checked_in_at", "last")],
             where="member_id = :mid", params={"mid": args.member_id}))[0]
 
@@ -120,18 +120,25 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
                     "membership_id": m["id"],
                     "starts": m["start_date"].date().isoformat(),
                     "expires": m["expires_at"].date().isoformat(),
-                    # Derived, not read: `membership_status` is cron-maintained and a
-                    # missed run would have this reporting a lapsed member as current.
+                    # Both halves, per `Membership.status_at`: the date because the
+                    # status column is cron-maintained, and the status because a plan
+                    # change supersedes a membership while its date is still future.
                     "currently_valid": (m["expires_at"] > now
                                         and m["membership_status"]
-                                        != StoredMembershipStatus.CANCELLED),
+                                        == StoredMembershipStatus.ACTIVE),
                     "cancelled": m["membership_status"] == StoredMembershipStatus.CANCELLED,
+                    # EXPIRED with a future date: superseded by a plan change.
+                    "superseded": (m["membership_status"] == StoredMembershipStatus.EXPIRED
+                                   and m["expires_at"] > now),
                 }
                 for m in memberships
             ],
             "payments": [
+                # `paid_at` is nullable since 2026-09-20: an unpaid row need no
+                # longer claim a payment date, so None is a normal value here.
                 {"payment_id": p["id"], "amount_mad": str(p["amount"]),
-                 "status": p["payment_status"], "paid_at": p["paid_at"].date().isoformat()}
+                 "status": p["payment_status"],
+                 "paid_at": p["paid_at"].date().isoformat() if p["paid_at"] else None}
                 for p in payments
             ],
             "attendance": {
@@ -142,7 +149,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
 
     @tool("list_expiring_memberships",
           "Memberships due to expire in the next N days - the renewal-chase list. "
-          "Cancelled memberships are excluded.",
+          "Cancelled and superseded memberships are excluded.",
           schemas.ListExpiringMembershipsArgs)
     async def list_expiring_memberships(
         args: schemas.ListExpiringMembershipsArgs,
@@ -152,9 +159,12 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             scope, "memberships", ["id", "member_id", "expires_at"],
             # Bound parameters, not SQL literals: `INTERVAL '7 days'` cannot pass the
             # fragment grammar, and a window computed here is testable besides.
-            where="expires_at BETWEEN :now AND :until AND membership_status::text <> :cancelled",
+            # ACTIVE, not "not cancelled": a membership superseded by a plan change
+            # is stored EXPIRED with its old future date, and listing it would send
+            # staff to chase somebody who has already renewed.
+            where="expires_at BETWEEN :now AND :until AND membership_status::text = :active",
             params={"now": now, "until": now + timedelta(days=args.within_days),
-                    "cancelled": StoredMembershipStatus.CANCELLED.value},
+                    "active": StoredMembershipStatus.ACTIVE.value},
             order_by="expires_at asc", limit=100)
         return {
             "within_days": args.within_days,
@@ -222,7 +232,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             where, params = "checked_in_at >= :since", {"since": since}
 
         rows = await aggregate(
-            scope, "check_ins", [("COUNT", "id", "check_ins")],
+            scope, "attendances", [("COUNT", "id", "check_ins")],
             group_by=[args.group_by], date_column="checked_in_at",
             where=where, params=params, limit=120)
         return {"period": args.period, "group_by": args.group_by,

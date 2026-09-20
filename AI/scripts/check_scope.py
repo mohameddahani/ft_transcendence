@@ -89,7 +89,7 @@ async def main() -> None:  # noqa: C901 - a flat list of assertions reads better
 
     # ---------------------------------------------------- 0.3 cross-gym isolation
     for table in ("members", "memberships", "payments", "membership_plans",
-                  "check_ins", "feedbacks"):
+                  "attendances", "feedbacks"):
         mine = await sc.select(a, table, ["id"], limit=500)
         theirs = await sc.select(o, table, ["id"], limit=500)
         overlap = {r["id"] for r in mine} & {r["id"] for r in theirs}
@@ -271,28 +271,28 @@ async def main() -> None:  # noqa: C901 - a flat list of assertions reads better
                   sc.aggregate(a, "payments", [("COUNT", "*", "n")], where="1=1) OR (1=1"))
 
     # ----------------------------------------------- the two shadow-schema tables
-    # check_ins and feedbacks arrived from seeder/pending/, not from a Prisma
+    # attendances and feedbacks are Dahani's own tables since 2026-09-20, not a
     # migration. They go through exactly the same guardrails as everything else --
     # being locally created is not a reason for them to be less scoped.
-    visits = await sc.select_models(a, "check_ins", order_by="checked_in_at desc", limit=20)
-    check("check_ins: a scoped read parses into the model",
+    visits = await sc.select_models(a, "attendances", order_by="checked_in_at desc", limit=20)
+    check("attendances: a scoped read parses into the model",
           len(visits) == 20 and all(v.admin_id == atlas for v in visits),
           f"latest at {visits[0].hour}:00 local")
     # A member who actually HAS visits. Omar is a fixture member and the generator
     # skips those, so scoping to him would return an empty set and the assertion
     # would hold without proving anything.
     busiest = (await db._fetch_all(
-        "SELECT member_id, COUNT(*) AS n FROM check_ins WHERE admin_id = :a"
+        "SELECT member_id, COUNT(*) AS n FROM attendances WHERE admin_id = :a"
         " GROUP BY 1 ORDER BY 2 DESC LIMIT 1", {"a": atlas}))[0]
     regular = sc.Scope(admin_id=atlas, member_id=busiest["member_id"])
-    mine_visits = await sc.select(regular, "check_ins", ["member_id"], limit=500)
-    check("check_ins: a member sees only their own visits",
+    mine_visits = await sc.select(regular, "attendances", ["member_id"], limit=500)
+    check("attendances: a member sees only their own visits",
           len(mine_visits) == min(busiest["n"], 500) > 0
           and {r["member_id"] for r in mine_visits} == {busiest["member_id"]},
           f"{len(mine_visits)} rows, all theirs")
-    counted = (await sc.aggregate(a, "check_ins", [("COUNT", "*", "n")]))[0]["n"]
-    everyones_visits = (await db._fetch_all("SELECT COUNT(*) AS n FROM check_ins"))[0]["n"]
-    check("check_ins: an aggregate counts one gym, not all four",
+    counted = (await sc.aggregate(a, "attendances", [("COUNT", "*", "n")]))[0]["n"]
+    everyones_visits = (await db._fetch_all("SELECT COUNT(*) AS n FROM attendances"))[0]["n"]
+    check("attendances: an aggregate counts one gym, not all four",
           0 < counted < everyones_visits, f"{counted} of {everyones_visits}")
 
     comments = await sc.select_models(a, "feedbacks", order_by="created_at desc", limit=10)
@@ -315,7 +315,7 @@ async def main() -> None:  # noqa: C901 - a flat list of assertions reads better
     await refuses("feedbacks: a nested SELECT is refused",
                   sc.select(a, "feedbacks", ["id"],
                             where="rating = (SELECT max(rating) FROM feedbacks)"))
-    for table in ("check_ins", "feedbacks"):
+    for table in ("attendances", "feedbacks"):
         owner_sql, _ = sc._scope_sql(TABLES[table], a, table)
         member_sql, _ = sc._scope_sql(TABLES[table], m, table)
         check(f"{table}: a member scope narrows twice, an owner scope once",

@@ -58,10 +58,11 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
     trips is the wrong default; and "active members" needs COUNT(DISTINCT member_id),
     which the aggregate builder deliberately does not expose.
 
-    Active means `expires_at` is in the future and the membership was not cancelled --
-    never `membership_status = 'ACTIVE'`. That column is maintained by a cron job
-    (guardrail #6), and a missed run would quietly report a stale number here, on the
-    first line of the first answer of the demo.
+    Active means `membership_status = 'ACTIVE'` **and** `expires_at` in the future --
+    see `Membership.status_at`. The date check is what guardrail #6 is about: the
+    status column is cron-maintained and a missed run would otherwise put a stale
+    number on the first line of the first answer of the demo. The status check is
+    what stops a membership superseded by a plan change from being counted twice.
     """
     _require_owner(scope, "gym_overview")
     moment = now or naive_utc_now()
@@ -73,17 +74,17 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
         SELECT
           (SELECT count(DISTINCT member_id) FROM memberships
             WHERE admin_id = :admin_id AND expires_at > :now
-              AND membership_status <> 'CANCELLED')                    AS active_members,
+              AND membership_status = 'ACTIVE')                        AS active_members,
           (SELECT count(*) FROM memberships
-            WHERE admin_id = :admin_id AND membership_status <> 'CANCELLED'
+            WHERE admin_id = :admin_id AND membership_status = 'ACTIVE'
               AND expires_at BETWEEN :now AND :in_7)                   AS expiring_7d,
           (SELECT count(*) FROM memberships
-            WHERE admin_id = :admin_id AND membership_status <> 'CANCELLED'
+            WHERE admin_id = :admin_id AND membership_status = 'ACTIVE'
               AND expires_at BETWEEN :now AND :in_30)                  AS expiring_30d,
           (SELECT coalesce(sum(amount), 0) FROM payments
             WHERE admin_id = :admin_id AND payment_status = 'PAID'
               AND paid_at >= :month_start)                             AS revenue_mtd,
-          (SELECT count(*) FROM check_ins
+          (SELECT count(*) FROM attendances
             WHERE admin_id = :admin_id AND checked_in_at >= :day_start) AS check_ins_today
         """,
         {"admin_id": scope.admin_id, "now": moment,
@@ -115,11 +116,11 @@ async def members_without_recent_checkin(
         FROM members m
         -- The join is scoped too. Without `AND c.admin_id`, a member id colliding
         -- across tenants would pull in another gym's visits.
-        LEFT JOIN check_ins c ON c.member_id = m.id AND c.admin_id = :admin_id
+        LEFT JOIN attendances c ON c.member_id = m.id AND c.admin_id = :admin_id
         WHERE m.admin_id = :admin_id
           AND EXISTS (SELECT 1 FROM memberships ms
                       WHERE ms.member_id = m.id AND ms.admin_id = :admin_id
-                        AND ms.expires_at > :now AND ms.membership_status <> 'CANCELLED')
+                        AND ms.expires_at > :now AND ms.membership_status = 'ACTIVE')
         GROUP BY m.id, m.first_name, m.last_name, m.phone_number
         HAVING max(c.checked_in_at) IS NULL OR max(c.checked_in_at) < :cutoff
         ORDER BY last_check_in ASC NULLS FIRST

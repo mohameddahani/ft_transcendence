@@ -141,7 +141,7 @@ async def main() -> None:  # noqa: C901
     check("list_inactive_members finds people to chase", inactive["count"] > 0,
           f"{inactive['count']} members")
     still_visiting = await db._fetch_all(
-        """SELECT 1 FROM check_ins WHERE admin_id = :a AND member_id = ANY(:ids)
+        """SELECT 1 FROM attendances WHERE admin_id = :a AND member_id = ANY(:ids)
            AND checked_in_at > now() - interval '21 days'""",
         {"a": atlas, "ids": [m["member_id"] for m in inactive["members"]]})
     check("...and every one of them really has stopped coming", not still_visiting)
@@ -177,7 +177,7 @@ async def main() -> None:  # noqa: C901
 
     # ------------------------------------------------------------ member tools
     busiest = (await db._fetch_all(
-        "SELECT member_id, count(*) n FROM check_ins WHERE admin_id = :a"
+        "SELECT member_id, count(*) n FROM attendances WHERE admin_id = :a"
         " GROUP BY 1 ORDER BY 2 DESC LIMIT 1", {"a": atlas}))[0]
     member = Scope(admin_id=atlas, member_id=busiest["member_id"])
     member_tools = build_member_tools(member)
@@ -282,7 +282,7 @@ async def main() -> None:  # noqa: C901
 
     # date_column is an identifier formatted into SQL, so it is allowlisted too.
     try:
-        await aggregate(owner, "check_ins", [("COUNT", "*", "n")],
+        await aggregate(owner, "attendances", [("COUNT", "*", "n")],
                         group_by=["hour"], date_column="id) OR 1=1 --")
         check("a derived grouping cannot inject through date_column", False, "EXECUTED")
     except ScopeViolation:

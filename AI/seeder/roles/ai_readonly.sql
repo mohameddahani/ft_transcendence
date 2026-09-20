@@ -52,20 +52,32 @@ GRANT SELECT (
     id, first_name, last_name, company_name, role, email
 ) ON users TO ai_readonly;
 
--- check_ins and feedbacks do not exist yet (Dahani, ask #1). Grant them the moment
--- the migration lands; until then this block is a no-op instead of an error.
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables
-               WHERE table_schema = 'public' AND table_name = 'check_ins') THEN
-        GRANT SELECT ON check_ins TO ai_readonly;
-    END IF;
-    IF EXISTS (SELECT 1 FROM information_schema.tables
-               WHERE table_schema = 'public' AND table_name = 'feedbacks') THEN
-        GRANT SELECT ON feedbacks TO ai_readonly;
-    END IF;
-END
-$$;
+-- `attendances` and `feedbacks` arrived in Dahani's migrations on 2026-09-20 (they
+-- were a local shadow copy named `check_ins` before that). Both are granted at table
+-- level: neither holds credential material.
+--
+-- Column-level on attendances anyway, for one reason: `visit_id` and `staff_id` are
+-- not in the schema contract, and the grant is the second place that says so. If a
+-- query ever wants them, two files have to change on purpose.
+GRANT SELECT (
+    id, admin_id, member_id, membership_id, attendance_method, checked_in_at
+) ON attendances TO ai_readonly;
+
+GRANT SELECT ON feedbacks TO ai_readonly;
+
+-- NOT granted, deliberately, and each for its own reason:
+--
+--   visits            `qr_token_hash` is a credential that opens a gym door -- the
+--                     same category as the refresh-token tables. If the no-show
+--                     question is ever worth answering, grant the other columns
+--                     one by one, the way `members` is done, and never that one.
+--   staffs            holds a password hash.
+--   working_hours     no tool reads them yet. They are the right answer to "are you
+--   special_hours     open on Sunday?" and will be granted when that tool exists.
+--   feedback_likes    nothing asks.
+--
+-- Nothing here needs a REVOKE: a table that was never granted is already unreadable,
+-- and the ALTER DEFAULT PRIVILEGES below keeps future ones that way.
 
 -- 6. Future tables must not be auto-granted. Prisma migrations create tables as `admin`;
 --    without this, a later ALTER DEFAULT PRIVILEGES elsewhere could widen access silently.

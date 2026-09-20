@@ -28,7 +28,7 @@ from typing import Final
 
 from app.db import engine as _engine
 from app.db.models import (
-    CheckIn,
+    Attendance,
     Feedback,
     GymOwner,
     Member,
@@ -152,6 +152,10 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         columns={
             "id": TEXT, "admin_id": TEXT, "plan_name": TEXT,
             "description": TEXT, "is_active": BOOLEAN,
+            # How many visits a week this plan allows. Enforced by Dahani's booking
+            # and check-in paths; read here so a member can be told how many
+            # sessions they have left rather than being refused at the door.
+            "weekly_visit_limit": INTEGER,
         },
         model=MembershipPlan,
     ),
@@ -190,14 +194,26 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         },
         model=Payment,
     ),
-    "check_ins": TableSpec(
+    # Was `check_ins` in our shadow copy until 2026-09-20. Dahani shipped it as
+    # `attendances`, and richer: a check-in is now tied to the booking that produced
+    # it (`visit_id`, NOT NULL and unique) and to the membership it was taken under.
+    #
+    # `visit_id` and `staff_id` are deliberately NOT allowlisted. We have no question
+    # that needs them, and the columns in this dict are exactly the columns granted
+    # to `ai_readonly` -- widening either is a deliberate edit in two places.
+    "attendances": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
         member_column="member_id",
         columns={
-            "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "checked_in_at": TIMESTAMP,
+            "id": TEXT, "admin_id": TEXT, "member_id": TEXT,
+            # New, and worth having: attendance can now be attributed to a plan,
+            # so "do VIP members come more often than Basic ones?" is answerable.
+            "membership_id": TEXT,
+            "attendance_method": ENUM,
+            "checked_in_at": TIMESTAMP,
         },
-        model=CheckIn,
+        model=Attendance,
     ),
     "feedbacks": TableSpec(
         rule=ScopeRule.DIRECT,
@@ -206,17 +222,21 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         columns={
             "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "content": TEXT,
             "rating": INTEGER, "sentiment": ENUM, "sentiment_score": NUMERIC,
+            # Dahani's addition: OPEN / IN_REVIEW / RESOLVED / DISMISSED. "Show me
+            # the open complaints" is a better question than "show me recent
+            # feedback", and it gives the sentiment panel something to act on.
+            "feedback_status": ENUM,
             "created_at": TIMESTAMP,
         },
         model=Feedback,
     ),
 }
 
-# Both tables come from `seeder/pending/001_check_ins_feedbacks.sql`, not from a
-# Prisma migration -- Dahani has not shipped his versions yet (AI_PLAN 7). Listing
-# them here is deliberate: if his eventual shape differs from the shadow copy in any
-# column or type, this contract fails the boot and names the column, which is far
-# better than discovering it inside a tool call during the demo.
+# `attendances` and `feedbacks` were a local shadow copy until 2026-09-20; they now
+# come from Dahani's own migrations, and the shadow SQL is gone. That handover is
+# exactly what this contract exists for: his shapes differed from our guesses -- the
+# table is `attendances`, not `check_ins` -- and the boot check refused to start and
+# named the columns, instead of the service failing inside a tool call mid-demo.
 
 _SCHEMA_SQL = """
 SELECT table_name, column_name, data_type

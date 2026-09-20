@@ -69,12 +69,19 @@ async def main() -> None:
     check("status derived from expires_at",
           {"active", "expired", "expiring_soon"} <= seen, ", ".join(sorted(seen)))
     check("no cron drift right now", not any(m.status_drifted for m in ms))
-    # Not ms[0]: a CANCELLED membership cannot drift by design, so flipping its
-    # stored status would prove nothing.
-    live = next(m for m in ms if m.membership_status != "CANCELLED")
-    stale = live.model_copy(update={
-        "membership_status": "ACTIVE" if live.status.value == "expired" else "EXPIRED"})
-    check("drift detector fires when stale", stale.status_drifted)
+    # Drift is one direction only: the hourly cron is *behind*, so the row still says
+    # ACTIVE after its date has passed. Build exactly that.
+    past = next(m for m in ms if m.status.value == "expired")
+    check("drift detector fires when the cron is behind",
+          past.model_copy(update={"membership_status": "ACTIVE"}).status_drifted)
+    # The opposite pairing is not drift and must not be reported as it: EXPIRED with
+    # a future date is a person superseding the membership (a plan change writes
+    # exactly this), and counting it as a failed cron run would have flagged every
+    # plan change in the gym. This is the assertion that keeps the two apart.
+    future = next(m for m in ms if m.status.value in ("active", "expiring_soon"))
+    superseded = future.model_copy(update={"membership_status": "EXPIRED"})
+    check("a superseded membership is not reported as drift", not superseded.status_drifted)
+    check("...and it is not valid either", not superseded.is_valid and superseded.superseded)
 
     ds = [MembershipPlanDuration(**r) for r in await db._fetch_all(
         "SELECT d.id, d.membership_plan_id, d.duration_days, d.price"

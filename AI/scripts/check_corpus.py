@@ -149,7 +149,7 @@ async def check_feedback(conn: asyncpg.Connection) -> None:
 
     row = await conn.fetchrow(
         """SELECT id, admin_id, member_id, content, rating, sentiment, sentiment_score,
-                  created_at FROM feedbacks WHERE sentiment IS NOT NULL LIMIT 1""")
+                  feedback_status, created_at FROM feedbacks WHERE sentiment IS NOT NULL LIMIT 1""")
     model = Feedback(**dict(row))
     check("Feedback parses from a real row",
           model.is_scored and isinstance(model.sentiment, Sentiment)
@@ -157,7 +157,7 @@ async def check_feedback(conn: asyncpg.Connection) -> None:
           f"{model.sentiment.value} {model.sentiment_score}")
     unscored_row = await conn.fetchrow(
         """SELECT id, admin_id, member_id, content, rating, sentiment, sentiment_score,
-                  created_at FROM feedbacks WHERE sentiment IS NULL LIMIT 1""")
+                  feedback_status, created_at FROM feedbacks WHERE sentiment IS NULL LIMIT 1""")
     check("...and from an unscored one", not Feedback(**dict(unscored_row)).is_scored)
     check("all three polarities are wired up", len(POLARITY_WEIGHTS) == 3)
 

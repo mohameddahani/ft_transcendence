@@ -1,0 +1,390 @@
+# AI Layer — Technical Specification
+
+**Companion to `AI_PLAN.md`.** The plan says what to build and in what order; this file says
+exactly what it looks like. Anything the frontend or Dahani's backend depends on is defined here
+and should not change without updating both sides.
+
+*Last updated 2026-09-03. Owner: Oussama.*
+
+---
+
+## 1. Environment
+
+`.env.example` (committed; `.env` is gitignored — both are mandatory subject requirements):
+
+```bash
+APP_ENV=development
+LOG_LEVEL=info
+PORT=8000
+FRONTEND_URL=http://localhost:3000
+
+# Gemini (paid tier) — confirm exact model IDs in AI Studio, don't guess them
+GEMINI_API_KEY=
+GEMINI_CHAT_MODEL=
+GEMINI_EMBED_MODEL=
+GEMINI_RERANK_MODEL=
+
+# Dahani's Postgres — READ ONLY role, SELECT on named tables
+GYM_DB_HOST=localhost
+GYM_DB_PORT=5432
+GYM_DB_NAME=ft_transcendence
+GYM_DB_USER=ai_readonly
+GYM_DB_PASSWORD=
+
+# JWT verification — separate secret per role (getJwtConfig(role, type))
+JWT_ADMIN_ACCESS_SECRET=
+JWT_MEMBER_ACCESS_SECRET=
+
+# Nest -> FastAPI internal calls
+INTERNAL_API_KEY=
+
+# Storage
+SQLITE_PATH=/data/ai_state.db
+CHROMA_PATH=/data/chroma
+
+# Limits
+RATE_LIMIT_CHAT_PER_MIN=20
+RATE_LIMIT_DOCS_PER_MIN=10
+MAX_MESSAGE_CHARS=2000
+MAX_UPLOAD_MB=10
+THREAD_TTL_DAYS=90
+```
+
+---
+
+## 2. Data contracts
+
+### 2.1 Read models — Dahani's Postgres
+
+Read only. Columns actually used, so a startup check can verify exactly these (task 0.4).
+
+| Table | Columns read |
+|---|---|
+| `users` | `id`, `first_name`, `last_name`, `company_name`, `role`, `email` |
+| `members` | `id`, `admin_id`, `first_name`, `last_name`, `phone_number`, `email`, `gender`, `birth_date`, `account_status`, `created_at` |
+| `memberships` | `id`, `admin_id`, `member_id`, `membership_plan_id`, `membership_plan_duration_id`, `membership_status`, `start_date`, `expires_at`, `created_at` |
+| `membership_plans` | `id`, `admin_id`, `plan_name`, `description`, `weekly_visit_limit`, `is_active` |
+| `membership_plan_durations` | `id`, `membership_plan_id`, `duration_days`, `price` |
+| `payments` | `id`, `admin_id`, `member_id`, `amount`, `paid_at?`, `due_date?`, `payment_status` |
+| `attendances` | `id`, `admin_id`, `member_id`, `membership_id`, `attendance_method`, `checked_in_at` |
+| `feedbacks` | `id`, `admin_id`, `member_id`, `content`, `rating`, `sentiment`, `sentiment_score`, `feedback_status`, `created_at` |
+
+**`admin_id` is on only 5 of the 15 tables.** Scoping is therefore not one rule but four, and
+`scope.py` must encode all of them:
+
+| Kind | Tables | Scoped by |
+|---|---|---|
+| Direct | `members`, `memberships`, `membership_plans`, `payments` | `admin_id = :admin_id` |
+| Transitive | `membership_plan_durations` | join `membership_plan_id` → `membership_plans.admin_id` |
+| The tenant itself | `users` | `id = :admin_id` |
+| Platform-level | `plans`, `plan_durations`, `subscriptions` | not gym-scoped; `subscriptions.user_id` *is* the admin |
+
+`membership_plan_durations` is the leak risk — it looks harmless and has no `admin_id` to forget.
+
+**Never grant access to:** `user_refresh_tokens`, `member_refresh_tokens`, `user_action_tokens`,
+`member_action_tokens`, `staff_refresh_tokens`, `staff_action_tokens` (hashed credentials),
+`members.password`, `staffs.password`, or **`visits.qr_token_hash`** -- that one opens a gym
+door, so it belongs in the same category as a refresh token. The read-only role gets
+`GRANT SELECT` on the 8 tables listed above and nothing else.
+
+**Rules that override the schema:**
+
+- Validity is `membership_status = 'ACTIVE'` **and** `expires_at > now`, and both halves matter.
+  The date, because the status column is cron-maintained and a missed run leaves it saying ACTIVE
+  after expiry. The status, because a *person* can end a membership before its date: a plan change
+  supersedes the old one immediately (`members.service.ts:267`) while its `expires_at` stays weeks
+  away, and deriving from the date alone reported two live memberships for anyone who ever changed
+  plan. Dahani's own `validateActiveMembership` requires exactly this pair.
+- `amount` and `price` are Postgres `NUMERIC`. Read as `Decimal`, never `float`.
+- Every query passes through `db/scope.py`, which applies the correct scoping rule above. No raw
+  SQL in a tool.
+- **`members.phone_number` is not unique and must not be made unique** — families share numbers.
+  `search_members` returns a list and never assumes a single match.
+
+### 2.2 AI state — SQLite
+
+```sql
+threads(id TEXT PK, subject_id TEXT, role TEXT, admin_id TEXT,
+        created_at REAL, last_used_at REAL)
+-- `subject_id` is the verified JWT subject and is checked on every resume: a
+-- thread_id arrives from the client, so without it, replaying a conversation is
+-- "send any id and read what is in it".  No `title` column yet.
+
+thread_messages(thread_id TEXT, seq INTEGER, role TEXT, payload TEXT,
+                created_at REAL, PRIMARY KEY (thread_id, seq))
+-- The transcript, written by this service.  NOT a LangGraph checkpointer:
+-- langgraph-checkpoint-sqlite 2.0.10 cannot run against the checkpoint 4.2 that
+-- langgraph 1.2 ships (AttributeError on every super-step).  A table is also the
+-- better answer to "what does the assistant remember about me?".
+-- `payload` is the LangChain serialisation, so tool calls and tool-call ids survive.
+
+documents(id TEXT PK, admin_id TEXT, filename TEXT, mime TEXT,
+          visibility TEXT CHECK(visibility IN ('staff','member')),
+          chunk_count INT, bytes INT, uploaded_by TEXT, created_at TS)
+
+rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start))
+```
+
+`threads` is pruned after `THREAD_TTL_DAYS` (90 days — history must survive to the demo).
+
+### 2.3 Chroma collections
+
+| Collection | Scope | Metadata |
+|---|---|---|
+| `gym_docs` (A) | per-tenant | `admin_id`, `visibility`, `doc_id`, `source_name`, `chunk_index`, `created_at` |
+| `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `chunk_index` |
+
+**`gym_docs` is never queried without an `admin_id` filter.** The member agent additionally filters
+`visibility = "member"`. Both filters go through one retrieval function — not composed at call sites.
+
+---
+
+## 3. HTTP API
+
+### 3.1 Authentication
+
+| Surface | Header | Notes |
+|---|---|---|
+| `/ai/*` | `Authorization: Bearer <access token>` | Dahani's JWT, HS256. Try the ADMIN secret, then the MEMBER secret. **Never read the unverified `role` claim to choose the key.** |
+| `/internal/*` | `X-API-Key: <INTERNAL_API_KEY>` | Constant-time comparison. |
+| `/health` | none | |
+
+Resolving tenant from the token:
+
+- `role = ADMIN` → `admin_id = payload.id`
+- `role = MEMBER` → `member_id = payload.id`, then look up `members.admin_id`
+- `role = OWNER` → **rejected.** Platform operators are out of scope for the assistant.
+
+### 3.2 `POST /ai/chat` — streaming chat
+
+```jsonc
+// request
+{
+  "message": "who hasn't come in three weeks and expires soon?",
+  "thread_id": "b1f2…"   // omit on the first message; the server creates and returns one
+}
+// `thread_id` must be a UUID and must be one this caller owns.  Anything else is
+// 404 `not_found` — the same answer as a thread that does not exist, because a 403
+// would confirm the id belongs to somebody.  It is echoed back in `meta` unchanged.
+```
+
+Response is `text/event-stream`. Event sequence:
+
+```
+event: meta
+data: {"thread_id":"b1f2…","route":"structured"}
+
+event: tool
+data: {"name":"list_inactive_members","status":"running"}
+
+event: tool
+data: {"name":"list_inactive_members","status":"done"}
+
+event: token
+data: {"text":"You have 14 members"}
+
+event: sources
+data: {"sources":[{"doc_id":"d7","source_name":"refund-policy.pdf","chunk_index":2,"score":0.81}]}
+
+event: done
+data: {"finish_reason":"stop"}
+```
+
+- `meta` is always first; `route` is `structured` | `knowledge` | `advisory`.
+- `tool` events exist so the UI can show activity instead of a dead spinner.
+  `status` is `running` | `done` | `error` — a tool that failed still closes its own
+  event, or the UI leaves a spinner turning forever.
+- `done`'s `finish_reason` is `stop` | `max_tool_rounds`. The second means the agent
+  spent its `AGENT_MAX_TOOL_ROUNDS` budget and answered with what it had; the UI says
+  so rather than presenting a partial answer as complete.
+- `sources` is emitted only for `knowledge` and `advisory`.
+- Every response carries the rate-limit headers, including this one. FastAPI does not
+  merge them onto a `Response` the endpoint returns itself, so the route re-attaches
+  them explicitly (`carry_rate_headers`).
+- On failure, an `error` event is sent and the stream closes — the HTTP status is already 200 by
+  then, so **the frontend must handle errors from the event stream, not just from status codes.**
+
+Validation: `message` is 1–`MAX_MESSAGE_CHARS`, trimmed, non-empty. Enforced in the frontend *and*
+here — the subject requires both.
+
+### 3.3 Documents (admin only)
+
+| Method | Path | Notes |
+|---|---|---|
+| `POST` | `/ai/documents` | multipart: `file`, `visibility` (`staff`\|`member`). Returns `{doc_id, filename, chunk_count}` |
+| `GET` | `/ai/documents` | List for this `admin_id` |
+| `DELETE` | `/ai/documents/{doc_id}` | Removes the row and all its chunks from Chroma |
+
+Accepted types: **PDF, TXT, Markdown** (`pypdf` only — no DOCX, to avoid another parser).
+Max `MAX_UPLOAD_MB`. A member token calling any of these gets `403`.
+
+### 3.4 `POST /internal/sentiment`
+
+```jsonc
+// request                                  // response
+{ "feedback_id": "f_123",                   { "feedback_id": "f_123",
+  "content": "The new coach is great…" }      "sentiment": "positive",
+                                              "score": 0.87 }
+```
+
+`sentiment` ∈ `positive` | `neutral` | `negative`. `score` is 0–1 confidence. Dahani calls this on
+feedback creation and stores the result — the AI service never writes to his tables.
+
+### 3.5 `GET /health`
+
+`{"status":"ok","db":"ok","chroma":"ok","version":"…"}` — 200 if all dependencies respond, 503 otherwise.
+
+### 3.6 Errors
+
+Every non-stream error returns:
+
+```jsonc
+{ "error": { "code": "rate_limited", "message": "Too many requests. Try again in 12s." } }
+```
+
+| Code | HTTP | When |
+|---|---|---|
+| `invalid_request` | 400 | Validation failure |
+| `unauthorized` | 401 | Missing/invalid/expired token |
+| `forbidden` | 403 | Valid token, wrong role |
+| `not_found` | 404 | Unknown `doc_id` or `thread_id` |
+| `payload_too_large` | 413 | Upload over the limit |
+| `rate_limited` | 429 | Includes `Retry-After` |
+| `upstream_error` | 502 | Gemini failed or timed out |
+| `internal_error` | 500 | Everything else — never leaks a stack trace |
+
+### 3.7 Rate limiting
+
+Hand-written sliding window, keyed by JWT subject (`sub`/`id`), stored in SQLite. Not a library —
+it is a graded criterion and has to be explainable.
+
+- `/ai/chat`: `RATE_LIMIT_CHAT_PER_MIN` per user
+- `/ai/documents`: `RATE_LIMIT_DOCS_PER_MIN` per user
+- `/internal/*`: exempt
+
+Every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`.
+**A 429 must be demonstrable on demand** — it is on the evaluator's checklist.
+
+### 3.8 Endpoints not in the tables above
+
+Written down in D18, after existing undocumented since week 1.
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `GET` | `/ai/me` | member/admin | Identity probe: `{role, gym, member_name}`. **No ids** — a tenant key echoed to a browser ends up in a query string or a bug report. Not rate limited. |
+| `GET` | `/internal/ping` | API key | Dahani's key check. |
+| `GET` | `/internal/boom` | API key | Raises on purpose, to exercise the 500 path. **Development only.** |
+| `GET` | `/ai/rate-probe` | member/admin | Spends the `chat` bucket without calling Gemini. **Development only.** |
+| `GET` | `/ai/rate-probe-docs` | member/admin | Same, for the `docs` bucket. **Development only.** |
+
+The two probes are how the rate limiter is tested: `check_ratelimit.py` fires forty
+parallel requests and restarts the container, and pointing that at `/ai/chat` would
+make the limiter's own suite paid, networked and slow. They share the bucket with
+`/ai/chat` rather than shadowing it, and `check_chat.py` exhausts the budget through
+the probe and then asserts `/ai/chat` answers 429 without ever reaching Gemini.
+
+### 3.9 Conversations
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/ai/threads` | This caller's recent conversations, newest first: `{thread_id, last_used_at, messages, opening}`. `opening` is the first question asked, so a list reads as subjects rather than UUIDs. Threads with no stored messages are omitted. |
+| `GET` | `/ai/threads/{thread_id}` | One transcript, **already flattened into the shape the panel renders**: `[{author: "user"\|"assistant", text, tools: [name]}]`. `tool` rows are dropped — their content is raw JSON, useful to neither a person nor an API — and the tools that ran are attached to the answer they produced. |
+
+Both filter on the verified JWT subject **in the query**, and both answer `404` for a
+thread that is not the caller's — the same answer as one that does not exist. Reading
+a transcript deliberately does **not** renew `last_used_at`: a read is not a use, and
+a tab left open must not keep a dead conversation alive past its TTL.
+
+They exist because without them a page reload loses the conversation while the server
+still holds it — the assistant remembers and the screen does not, which reads as a bug
+in the memory rather than in the UI.
+
+---
+
+## 4. Agent tools
+
+Every tool receives `admin_id` from the verified token via `scope.py`. **No tool accepts a tenant
+or member identifier as a model-supplied argument.** This is what makes prompt injection
+unexpressible rather than merely discouraged.
+
+### 4.1 Admin tools
+
+| Tool | Parameters | Returns |
+|---|---|---|
+| `get_gym_overview` | — | active members, expiring in 7/30d, revenue MTD, check-ins today |
+| `search_members` | `query`, `limit=10` | matches on name or phone |
+| `get_member_detail` | `member_id` | membership, payment history, attendance summary |
+| `list_expiring_memberships` | `within_days=7` | members and expiry dates |
+| `list_inactive_members` | `days_since_last_checkin=21`, `limit=25` | the churn question |
+| `get_revenue` | `period`, `group_by` (`month`\|`plan`) | totals in MAD |
+| `get_attendance_stats` | `period`, `group_by` (`weekday`\|`hour`) | counts |
+| `list_recent_feedback` | `limit=20`, `sentiment?` | feedback with sentiment |
+
+### 4.2 Member tools
+
+`member_id` comes from the token in all three.
+
+| Tool | Parameters | Returns |
+|---|---|---|
+| `get_my_membership` | — | plan, start, expiry, days remaining |
+| `get_my_payments` | `limit=10` | own payments only |
+| `get_my_attendance` | `period="month"` | own check-in count and last visit |
+
+---
+
+## 5. RAG parameters
+
+| Parameter | Value | Note |
+|---|---|---|
+| Chunk size | ~1000 chars | Sentence-boundary aware, not a hard cut |
+| Overlap | 150 chars | |
+| Retrieve | top 20 | Before reranking |
+| Rerank to | top 5 | LLM-based, phase 4 |
+| Distance threshold | start 0.35, **tune with the eval set** | Above it → "that isn't in your documents" |
+| Embeddings | Gemini | No PyTorch anywhere in the image |
+
+Query rewriting runs before embedding and does two jobs: resolve follow-ups against thread history,
+and translate the question into the corpus language so Arabic and French questions retrieve from an
+English corpus.
+
+Eval set: `eval/retrieval_set.csv` — `question, expected_doc_id, expected_chunk, language`.
+30–50 rows. Scored on recall@5.
+
+---
+
+## 6. Frontend
+
+Assisted mode. Components live in the team's Next.js app and use their layout, auth context and
+design system.
+
+| Component | Responsibility |
+|---|---|
+| `AssistantPanel` | Root. Props: `role`. Owns thread state and the SSE connection. |
+| `ChatMessageList` | History; auto-scroll unless the user has scrolled up |
+| `StreamingMessage` | Renders `token` events progressively; markdown |
+| `ToolActivity` | Renders `tool` events — "checking memberships…" |
+| `SourceList` | Renders `sources`; collapsible |
+| `ChatInput` | Validation, Enter to send, disabled while streaming |
+| `DocumentManager` | Upload, list, delete, visibility toggle (admin only) |
+| `SentimentPanel` | Feedback list + trend over time (admin only) |
+
+Required states: `idle`, `streaming`, `error`, `rate_limited` (show `Retry-After`), `empty`.
+
+Non-negotiable, because they are mandatory subject requirements:
+
+- **Zero console errors or warnings.**
+- **Responsive** — the chat has to work on a phone.
+- Inputs validated here *and* server-side.
+
+---
+
+## 7. Decisions made — change these if you disagree
+
+1. **PDF, TXT and Markdown only** for uploads. DOCX would add another parser for little gain.
+2. **Rate limits: 20 chat / 10 upload per minute per user.** Generous enough not to annoy, low
+   enough to demo a 429 on demand.
+3. **The server creates `thread_id`** on the first message and returns it in `meta`; the client
+   sends it back thereafter.
+4. **`OWNER` role is rejected** by the assistant — platform operators aren't a gym audience.
+5. **Thread history is pruned after 90 days** — long enough that seeded and demo conversations survive to evaluation.
+6. **`sources` is not emitted for structured questions**, since SQL answers have no documents to cite.

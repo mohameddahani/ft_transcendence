@@ -23,8 +23,10 @@ generates are removed -- except the five hand-written fixture members, which are
 explicitly in `catalogue.FIXTURE_MEMBER_USERNAMES` and never touched. Every test in
 `scripts/` names one of them.
 
-Both `check_ins` and `feedbacks` come from `seeder/pending/`, not from a Prisma
-migration -- see that directory for why. The policy documents in `seeder/documents/`
+Both `attendances` and `feedbacks` come from Dahani's own migrations since
+2026-09-20; they were a local shadow copy named `check_ins` before that. An
+attendance now requires the booking that produced it (`visits.id`, NOT NULL and
+UNIQUE), so this seeder writes the pair. The policy documents in `seeder/documents/`
 are rewritten on every run, because the prices inside them come from `catalogue.py`.
 """
 
@@ -32,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import os
 import random
 import sys
@@ -134,6 +137,16 @@ def resolve_dsn(explicit: str | None) -> str:
 
 def weighted_choice(rng: random.Random, options: tuple[tuple[str, int], ...]) -> str:
     return rng.choices([o for o, _ in options], weights=[w for _, w in options], k=1)[0]
+
+
+def now_hour() -> datetime:
+    """The current hour, naive UTC. The cutoff for "has this visit happened yet?".
+
+    Truncated to the hour rather than taken raw so that the seeder stays
+    deterministic in practice: two runs a minute apart produce identical attendance,
+    and `scripts/check_attendance.py` compares exactly that.
+    """
+    return datetime.now(UTC).replace(minute=0, second=0, microsecond=0, tzinfo=None)
 
 
 def today_utc() -> datetime:
@@ -305,10 +318,18 @@ async def ensure_plans(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
         if plan_id is None:
             plan_id = await conn.fetchval(
                 """INSERT INTO membership_plans (id, admin_id, plan_name, description,
-                                                 is_active, created_at, updated_at)
-                   VALUES (gen_random_uuid()::text, $1, $2, $3, true, NOW(), NOW())
+                                                 weekly_visit_limit, is_active,
+                                                 created_at, updated_at)
+                   VALUES (gen_random_uuid()::text, $1, $2, $3, $4, true, NOW(), NOW())
                    RETURNING id""",
-                admin_id, plan.name, plan.description)
+                admin_id, plan.name, plan.description, plan.weekly_visit_limit)
+        else:
+            # The column arrived after some plans already existed (2026-09-20), and
+            # it is NOT NULL, so Postgres backfilled a value nobody chose. Keep the
+            # catalogue authoritative.
+            await conn.execute(
+                "UPDATE membership_plans SET weekly_visit_limit = $2 WHERE id = $1",
+                plan_id, plan.weekly_visit_limit)
         for days, price in plan.durations:
             existing = await conn.fetchval(
                 """SELECT id FROM membership_plan_durations
@@ -351,7 +372,7 @@ async def sync_members(
         ids = [row["id"] for row in stale]
         # Children first: these tables gain rows in tasks 1.3-1.4, and a seeder that
         # only works before those exist is a seeder that breaks next week.
-        for table in ("check_ins", "feedbacks", "payments", "memberships",
+        for table in ("attendances", "visits", "feedbacks", "payments", "memberships",
                       "member_notifications", "member_refresh_tokens",
                       "member_action_tokens"):
             await conn.execute(f"DELETE FROM {table} WHERE member_id = ANY($1::text[])", ids)
@@ -409,6 +430,13 @@ async def sync_history(
         admin_id, sorted(FIXTURE_MEMBER_USERNAMES))
     ids = [m["id"] for m in members]
 
+    # Children before parents. Since 2026-09-20 both `attendances` and `visits` hold
+    # a foreign key onto `memberships`, so rebuilding history has to clear them
+    # first -- `sync_attendance` regenerates both a few steps later, from the new
+    # membership windows. Postgres refuses the delete otherwise, which is the
+    # constraint doing its job rather than a bug to work around.
+    await conn.execute("DELETE FROM attendances WHERE member_id = ANY($1::text[])", ids)
+    await conn.execute("DELETE FROM visits WHERE member_id = ANY($1::text[])", ids)
     await conn.execute("DELETE FROM payments WHERE member_id = ANY($1::text[])", ids)
     await conn.execute("DELETE FROM memberships WHERE member_id = ANY($1::text[])", ids)
 
@@ -440,10 +468,12 @@ async def sync_attendance(
     could contain, and an owner would spot it in the first demo question.
     """
     rows = await conn.fetch(
-        """SELECT m.member_id, m.start_date, m.expires_at,
-                  m.membership_status = 'CANCELLED' AS cancelled
+        """SELECT m.id AS membership_id, m.member_id, m.start_date, m.expires_at,
+                  m.membership_status = 'CANCELLED' AS cancelled,
+                  p.weekly_visit_limit
            FROM memberships m
            JOIN members mm ON mm.id = m.member_id
+           JOIN membership_plans p ON p.id = m.membership_plan_id
            WHERE m.admin_id = $1 AND mm.user_name <> ALL($2::text[])
            ORDER BY mm.user_name, m.start_date""",
         admin_id, sorted(FIXTURE_MEMBER_USERNAMES))
@@ -451,39 +481,89 @@ async def sync_attendance(
     by_member: dict[str, list[Window]] = {}
     for row in rows:
         by_member.setdefault(row["member_id"], []).append(Window(
-            member_id=row["member_id"], start=row["start_date"],
-            end=row["expires_at"], cancelled=row["cancelled"]))
+            member_id=row["member_id"], membership_id=row["membership_id"],
+            start=row["start_date"], end=row["expires_at"],
+            cancelled=row["cancelled"], weekly_visit_limit=row["weekly_visit_limit"]))
 
-    await conn.execute("DELETE FROM check_ins WHERE member_id = ANY($1::text[])",
+    # Attendance first: `attendances.visit_id` has a foreign key onto `visits`, so
+    # the children go before the parents on the way out and after them on the way in.
+    await conn.execute("DELETE FROM attendances WHERE member_id = ANY($1::text[])",
+                       list(by_member))
+    await conn.execute("DELETE FROM visits WHERE member_id = ANY($1::text[])",
                        list(by_member))
 
-    records = []
+    # Every attendance needs the booking that produced it: `visit_id` is NOT NULL and
+    # UNIQUE in Dahani's schema, because his flow is book-then-scan. So the seeder
+    # writes the pair -- a visit at the same moment, already CHECKED_IN.
+    visits: list[tuple] = []
+    attendances: list[tuple] = []
     for member_id, windows in by_member.items():
-        for _member, moment in build_check_ins(windows, pick_archetype(rng), rng, now):
-            # copy_records_to_table takes tuples in column order and no defaults, so
-            # created_at and updated_at are supplied explicitly.
-            records.append((new_id(rng), member_id, admin_id, moment, moment, moment))
+        for _member, membership_id, moment in build_check_ins(
+                windows, pick_archetype(rng), rng, now):
+            visit_id = new_id(rng)
+            # The QR token is hashed in his schema and never stored raw. Ours is a
+            # random id hashed the same way: the column is UNIQUE, and a seeded value
+            # must never be a token anybody could present.
+            qr_hash = hashlib.sha256(new_id(rng).encode()).hexdigest()
+            visits.append((visit_id, admin_id, member_id, membership_id, moment,
+                           moment + timedelta(minutes=30), "CHECKED_IN", qr_hash,
+                           moment, moment))
+            # QR is the common path; MANUAL is the front desk waving somebody
+            # through. Both exist in the data so an answer can tell them apart.
+            method = "MANUAL" if rng.random() < 0.18 else "QR_CODE"
+            attendances.append((new_id(rng), admin_id, member_id, membership_id,
+                                visit_id, method, moment, moment, moment))
 
-    if records:
+    if visits:
         # COPY rather than executemany: this is the only table in the corpus with
         # six figures of rows, and the difference is seconds versus minutes.
         await conn.copy_records_to_table(
-            "check_ins", records=records,
-            columns=["id", "member_id", "admin_id", "checked_in_at",
-                     "created_at", "updated_at"])
+            "visits", records=visits,
+            columns=["id", "admin_id", "member_id", "membership_id",
+                     "visit_date_and_time", "visit_date_and_time_expires_at",
+                     "visit_status", "qr_token_hash", "created_at", "updated_at"])
+        await conn.copy_records_to_table(
+            "attendances", records=attendances,
+            columns=["id", "admin_id", "member_id", "membership_id", "visit_id",
+                     "attendance_method", "checked_in_at", "created_at", "updated_at"])
         # COPY does not update the planner's statistics, and autovacuum may not get
         # to it for minutes. Until it does, Postgres plans against a guess and
         # sequential-scans the largest table in the corpus -- which looks exactly
         # like "the index Dahani added does nothing".
-        await conn.execute("ANALYZE check_ins")
-    return len(records)
+        await conn.execute("ANALYZE attendances")
+        await conn.execute("ANALYZE visits")
+    return len(attendances)
+
+
+# Dahani's `feedback_status` is the staff workflow on a comment, and it is
+# independent of its sentiment: a complaint can be NEGATIVE and RESOLVED at once.
+# Generated so that "show me the open complaints" has a real, short answer -- old
+# negatives are mostly dealt with, recent ones mostly are not.
+_RESOLVED_AFTER_DAYS = 21
+
+
+def _feedback_status(row, rng: random.Random) -> str:
+    """OPEN / IN_REVIEW / RESOLVED / DISMISSED for one comment."""
+    if row.sentiment is None:
+        # Not scored yet, so nobody has triaged it either.
+        return "OPEN"
+    age_days = (today_utc() - row.created_at).days
+    if row.sentiment == "NEGATIVE":
+        if age_days > _RESOLVED_AFTER_DAYS:
+            return weighted_choice(rng, (("RESOLVED", 65), ("DISMISSED", 15), ("IN_REVIEW", 20)))
+        return weighted_choice(rng, (("OPEN", 70), ("IN_REVIEW", 30)))
+    return weighted_choice(rng, (("OPEN", 85), ("RESOLVED", 15)))
 
 
 _FEEDBACK_INSERT = """
 INSERT INTO feedbacks (
     id, member_id, admin_id, content, rating, sentiment, sentiment_score,
-    created_at, updated_at
-) VALUES ($1, $2, $3, $4, $5, $6::"Sentiment", $7, $8, $8)
+    feedback_status, created_at, updated_at
+)
+-- The enum is "SentimentType" in Dahani's schema (we guessed "Sentiment" in the
+-- shadow copy). Values are the same three words, so only the cast changed.
+-- `feedback_status` is his: a comment starts OPEN and staff work it from there.
+VALUES ($1, $2, $3, $4, $5, $6::"SentimentType", $7, $8::"FeedbackStatus", $9, $9)
 """
 
 
@@ -503,7 +583,7 @@ async def sync_feedback(
            ORDER BY mm.user_name, m.start_date""",
         admin_id, sorted(FIXTURE_MEMBER_USERNAMES))
     visits = dict(await conn.fetch(
-        "SELECT member_id, count(*) FROM check_ins WHERE admin_id = $1 GROUP BY 1", admin_id))
+        "SELECT member_id, count(*) FROM attendances WHERE admin_id = $1 GROUP BY 1", admin_id))
 
     windows: dict[str, list[tuple[datetime, datetime]]] = {}
     for row in memberships:
@@ -518,7 +598,7 @@ async def sync_feedback(
 
     await conn.executemany(_FEEDBACK_INSERT, [
         (new_id(rng), r.member_id, admin_id, r.content, r.rating,
-         r.sentiment, r.sentiment_score, r.created_at)
+         r.sentiment, r.sentiment_score, _feedback_status(r, rng), r.created_at)
         for r in rows
     ])
     return len(rows), sum(1 for r in rows if r.sentiment is None)
@@ -558,7 +638,10 @@ async def main() -> int:
                 written, _removed = await sync_members(
                     conn, admin_id, generate_members(gym, count, rng))
                 memberships, payments = await sync_history(conn, admin_id, rng, anchor)
-                check_ins = await sync_attendance(conn, admin_id, rng, anchor)
+                # Attendance is cut off at the current *hour*, not at midnight:
+                # today's visits are part of the corpus, and truncating to the hour
+                # keeps two runs in the same hour byte-identical.
+                check_ins = await sync_attendance(conn, admin_id, rng, now_hour())
                 comments, _unscored = await sync_feedback(conn, admin_id, rng, anchor)
 
             print(f"{gym.company_name:<28}{len(gym.plans):>7}"
@@ -570,7 +653,7 @@ async def main() -> int:
                       (SELECT count(*) FROM members) AS members,
                       (SELECT count(*) FROM memberships) AS memberships,
                       (SELECT count(*) FROM payments) AS payments,
-                      (SELECT count(*) FROM check_ins) AS check_ins,
+                      (SELECT count(*) FROM attendances) AS check_ins,
                       (SELECT count(*) FROM feedbacks) AS feedbacks,
                       (SELECT coalesce(sum(amount), 0) FROM payments
                         WHERE payment_status = 'PAID') AS collected""")

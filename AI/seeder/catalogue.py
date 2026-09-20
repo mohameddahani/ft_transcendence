@@ -28,6 +28,15 @@ class PlanSpec:
     name: str
     description: str
     durations: tuple[tuple[int, Decimal], ...]  # (duration_days, price MAD)
+    # Visits a week the plan allows (Dahani's `weekly_visit_limit`, NOT NULL since
+    # 2026-09-20). His booking and check-in paths refuse past it, so the seeder's
+    # attendance generator clamps to it too -- otherwise the corpus would contain
+    # weeks his own API would never have allowed.
+    #
+    # Cheap plans cap it, premium ones effectively do not (7 = every day). That
+    # spread is deliberate: "how many sessions do I have left this week?" is only an
+    # interesting question if the answer differs by plan.
+    weekly_visit_limit: int = 7
 
 
 @dataclass(frozen=True)
@@ -60,13 +69,13 @@ CATALOGUE: tuple[GymSpec, ...] = (
             # Reproduces the D1 fixture's plan exactly. The seeder must find this one
             # rather than create a second "Basic Monthly" at a different price.
             PlanSpec("Basic Monthly", "Standard gym access",
-                     ((30, Decimal("300.00")),)),
+                     ((30, Decimal("300.00")),), 4),
             PlanSpec("Basic Quarterly", "Standard access, three months",
-                     ((90, Decimal("800.00")),)),
+                     ((90, Decimal("800.00")),), 4),
             PlanSpec("Basic Annual", "Standard access, twelve months",
-                     ((365, Decimal("2800.00")),)),
+                     ((365, Decimal("2800.00")),), 5),
             PlanSpec("Student Monthly", "Reduced rate, student card required",
-                     ((30, Decimal("200.00")),)),
+                     ((30, Decimal("200.00")),), 3),
         ),
     ),
     GymSpec(
@@ -80,11 +89,11 @@ CATALOGUE: tuple[GymSpec, ...] = (
         phone_number="+212600000002",
         plans=(
             PlanSpec("Premium Annual", "Full access, 12 months",
-                     ((365, Decimal("4500.00")),)),
+                     ((365, Decimal("4500.00")),), 7),
             PlanSpec("Premium Monthly", "Full access, pool and sauna",
-                     ((30, Decimal("450.00")),)),
+                     ((30, Decimal("450.00")),), 7),
             PlanSpec("Premium Half-Year", "Full access, six months",
-                     ((180, Decimal("2400.00")),)),
+                     ((180, Decimal("2400.00")),), 7),
         ),
     ),
     GymSpec(
@@ -98,13 +107,13 @@ CATALOGUE: tuple[GymSpec, ...] = (
         phone_number="+212600000003",
         plans=(
             PlanSpec("Standard Monthly", "Weights, cardio and classes",
-                     ((30, Decimal("350.00")),)),
+                     ((30, Decimal("350.00")),), 5),
             PlanSpec("Standard Quarterly", "Weights, cardio and classes, 3 months",
-                     ((90, Decimal("950.00")),)),
+                     ((90, Decimal("950.00")),), 5),
             PlanSpec("Standard Annual", "Weights, cardio and classes, 12 months",
-                     ((365, Decimal("3400.00")),)),
+                     ((365, Decimal("3400.00")),), 6),
             PlanSpec("Couples Monthly", "Two people, one membership",
-                     ((30, Decimal("600.00")),)),
+                     ((30, Decimal("600.00")),), 4),
         ),
     ),
     GymSpec(
@@ -118,11 +127,11 @@ CATALOGUE: tuple[GymSpec, ...] = (
         phone_number="+212600000004",
         plans=(
             PlanSpec("Wellness Monthly", "Studio classes and open gym",
-                     ((30, Decimal("280.00")),)),
+                     ((30, Decimal("280.00")),), 4),
             PlanSpec("Wellness Quarterly", "Studio classes, three months",
-                     ((90, Decimal("750.00")),)),
+                     ((90, Decimal("750.00")),), 5),
             PlanSpec("Wellness Annual", "Studio classes, twelve months",
-                     ((365, Decimal("2600.00")),)),
+                     ((365, Decimal("2600.00")),), 6),
         ),
     ),
 )

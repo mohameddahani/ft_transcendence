@@ -108,12 +108,21 @@ CANCELLED_ACTIVE_SHARE = 0.4
 
 @dataclass(frozen=True)
 class Window:
-    """A period during which a member could actually have visited."""
+    """A period during which a member could actually have visited.
+
+    Carries its membership since 2026-09-20: Dahani's `attendances` rows point at the
+    membership they were taken under, and his booking path refuses more than
+    `weekly_visit_limit` visits in a week. Generating past that limit would put rows
+    in the corpus that his own API would have rejected -- the seeded data has to obey
+    the rules the app enforces, or the assistant reports impossible weeks.
+    """
 
     member_id: str
+    membership_id: str
     start: datetime
     end: datetime
     cancelled: bool
+    weekly_visit_limit: int
 
 
 def pick_archetype(rng: random.Random) -> Archetype:
@@ -142,14 +151,14 @@ def build_check_ins(
     archetype: Archetype,
     rng: random.Random,
     now: datetime,
-) -> list[tuple[str, datetime]]:
-    """(member_id, checked_in_at) for one member across every window they paid for.
+) -> list[tuple[str, str, datetime]]:
+    """(member_id, membership_id, checked_in_at) for every window they paid for.
 
     Windows are the member's memberships. Nobody checks in without a valid one, and
     generating outside them would produce the single most obviously wrong row in the
     corpus: attendance from someone who was not a member that day.
     """
-    visits: list[tuple[str, datetime]] = []
+    visits: list[tuple[str, str, datetime]] = []
     profile = PROFILES[archetype.value]
     # The decay clock runs from the member's first membership, not from each one:
     # a fader who renews does not become enthusiastic again.
@@ -172,7 +181,9 @@ def build_check_ins(
             # Gaussian around the rate, so weeks vary the way real ones do. Never
             # more visits than there are eligible days -- one check-in per day.
             wanted = round(rng.gauss(rate, 0.8))
-            wanted = max(0, min(wanted, len(profile.days)))
+            # Never more than the plan allows: the booking path counts the week's
+            # attendances against `weekly_visit_limit` and refuses past it.
+            wanted = max(0, min(wanted, len(profile.days), window.weekly_visit_limit))
             if wanted:
                 # Distinct days: `sample`, not `choices`. One check-in per day.
                 for weekday in rng.sample(profile.days, k=wanted):
@@ -183,18 +194,27 @@ def build_check_ins(
                     day = week_start + timedelta(days=(weekday - week_start.weekday()) % 7)
                     if not (window.start <= day < end) or day > now:
                         continue
-                    visits.append((window.member_id, _visit_time(rng, day, archetype, profile)))
+                    moment = _visit_time(rng, day, archetype, profile)
+                    # Today counts, up to the hour. The old guard was on the *day*
+                    # against midnight, so today was always excluded and
+                    # "check-ins today" answered 0 every time -- a dead number on
+                    # the first line of the overview, every day of the demo.
+                    # Comparing the moment instead keeps today's morning visits and
+                    # drops this evening's, which have not happened yet.
+                    if moment > now:
+                        continue
+                    visits.append((window.member_id, window.membership_id, moment))
             week_start += timedelta(days=7)
 
     # One check-in per day, and chronological. Duplicates are possible when two
     # windows abut or a week straddles a renewal.
     seen: set[str] = set()
-    unique: list[tuple[str, datetime]] = []
-    for member_id, moment in sorted(visits, key=lambda v: v[1]):
+    unique: list[tuple[str, str, datetime]] = []
+    for member_id, membership_id, moment in sorted(visits, key=lambda v: v[2]):
         key = moment.date().isoformat()
         if key not in seen:
             seen.add(key)
-            unique.append((member_id, moment))
+            unique.append((member_id, membership_id, moment))
     return unique
 
 

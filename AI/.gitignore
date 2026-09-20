@@ -14,5 +14,3 @@ data/
 .env
 .env.*
 !.env.example
-
-docs/

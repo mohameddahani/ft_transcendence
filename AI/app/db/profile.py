@@ -81,11 +81,15 @@ async def load_profile(scope: Scope) -> Profile:
         raise ProfileUnavailable("the caller's member record no longer exists")
     person = people[0]
 
-    # Latest first: a member who lapsed and came back has several, and the current
-    # one is the one that matters.
+    # A few, not one. A member who lapsed and came back has several, and the live
+    # one is what belongs in the prompt -- but "latest expiry" alone picks the wrong
+    # row after a *downgrade*: the superseded membership keeps its longer date and
+    # is stored EXPIRED, so the member would be greeted with the plan they just left.
     memberships = await sc.select_models(
-        scope, "memberships", order_by="expires_at desc", limit=1)
-    current: Membership | None = memberships[0] if memberships else None
+        scope, "memberships", order_by="expires_at desc", limit=5)
+    live = [m for m in memberships if m.is_valid]
+    current: Membership | None = (
+        live[0] if live else (memberships[0] if memberships else None))
 
     plan = None
     if current is not None:

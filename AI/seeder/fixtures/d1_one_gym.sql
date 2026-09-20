@@ -51,8 +51,8 @@ platform_subscription AS (
 
 -- ---------------------------------------------------------------- what the gym sells
 gym_plan AS (
-    INSERT INTO membership_plans (id, admin_id, plan_name, description, is_active, created_at, updated_at)
-    SELECT gen_random_uuid()::text, id, 'Basic Monthly', 'Standard gym access', true, NOW(), NOW()
+    INSERT INTO membership_plans (id, admin_id, plan_name, description, weekly_visit_limit, is_active, created_at, updated_at)
+    SELECT gen_random_uuid()::text, id, 'Basic Monthly', 'Standard gym access', 4, true, NOW(), NOW()
     FROM admin_user
     RETURNING id, admin_id
 ),

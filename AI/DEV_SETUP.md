@@ -23,6 +23,33 @@ docker compose up -d         # once AI/docker-compose.yml exists (task 1.1)
 
 `colima stop` when you are done — it holds 6 GB of RAM.
 
+## Running the Chat UI in Browser
+
+1. **Start the backend stack:**
+   ```bash
+   colima start
+   cd ft_transcendence/AI && docker compose up -d
+   ```
+
+2. **Mint a dev token (Admin or Member):**
+   ```bash
+   # Admin (Atlas Fitness)
+   docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py
+   docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/mint_token.py admin Atlas
+
+   # Member (Omar)
+   docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/mint_token.py member omar.ait.ali@gmail.com
+   ```
+
+3. **Start the frontend:**
+   ```bash
+   cd ft_transcendence/frontend && npm run dev
+   ```
+
+4. **Chat:**
+   Open `http://localhost:3000/assistant`, paste the token, and click **Save token**.
+
+
 ## When a change does not take effect
 
 Four different things look identical from the outside — the code you just edited is not

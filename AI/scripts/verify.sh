@@ -17,22 +17,26 @@ chk "postgres container healthy" "$(docker inspect gym_postgres --format '{{.Sta
 chk "bound to loopback only"     "$(docker port gym_postgres 5432/tcp 2>/dev/null | head -1)" "127.0.0.1:5432"
 
 echo "── schema ──"
-chk "migrations applied"  "$(q 'select count(*) from _prisma_migrations where finished_at is not null')" "24"
-chk "tables present"      "$(q "select count(*) from information_schema.tables where table_schema='public' and table_name not like '_prisma%'")" "17"
-# check_ins and feedbacks come from seeder/pending/, not from a Prisma migration:
-# Dahani has not shipped his versions yet (AI_PLAN §7 asks 1-2). The shadow copies
-# match what `prisma migrate dev` will generate, and app/db/schema.py fails the boot
-# loudly if his real ones differ. Nothing in backend/ is touched.
-for t in check_ins feedbacks; do
+# Counts, not exact numbers: Dahani migrates this database continuously (24 -> 45
+# migrations and 17 -> 25 tables on 2026-09-20 alone), and a suite that has to be
+# edited on every one of his commits is a suite people switch off. What must hold is
+# that migrations ran and that the tables this service reads are there.
+chk "migrations applied" \
+    "$(q 'select count(*) >= 24 from _prisma_migrations where finished_at is not null')" "t"
+# `attendances` and `feedbacks` are his since 2026-09-20 -- they were a local shadow
+# copy (`check_ins`) until then, and the handover is what app/db/schema.py's boot
+# check exists for: his shapes differed from our guesses and the service refused to
+# start, naming the columns, instead of failing inside a tool call mid-demo.
+for t in users members memberships membership_plans membership_plan_durations payments attendances feedbacks; do
   n=$(q "select count(*) from information_schema.tables where table_schema='public' and table_name='$t'")
-  [ "$n" = "1" ] && ok "$t present" "shadow (seeder/pending/)" \
-                 || bad "$t present" "run seeder/pending/001_check_ins_feedbacks.sql"
+  [ "$n" = "1" ] && ok "$t present" "" \
+                 || bad "$t present" "run: cd ../backend && npx prisma migrate deploy"
 done
 # The indexes ARE the ask. Without them every attendance question seq-scans a table
 # that will hold ~100k rows, and the agent runs several per streamed answer.
 chk "attendance indexes present" \
     "$(q "select count(*) from pg_indexes where indexname in (
-           'check_ins_admin_id_checked_in_at_idx','check_ins_member_id_checked_in_at_idx',
+           'attendances_admin_id_checked_in_at_idx','attendances_member_id_checked_in_at_idx',
            'feedbacks_admin_id_created_at_idx')")" "3"
 
 echo "── fixture data ──"
@@ -67,7 +71,7 @@ chk "feedback exists in every gym, all three sentiments" \
            select 1 from feedbacks f where f.admin_id = u.id and f.sentiment='POSITIVE')")" "t"
 chk "policy documents on disk" "$(ls seeder/documents/*/*.md 2>/dev/null | wc -l | tr -d ' ')" "16"
 chk "attendance exists in every gym" \
-    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (select 1 from check_ins c where c.admin_id = u.id)")" "t"
+    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (select 1 from attendances c where c.admin_id = u.id)")" "t"
 chk "revenue spans 12+ months" \
     "$(q "select count(distinct date_trunc('month', paid_at)) >= 12 from payments where payment_status='PAID'")" "t"
 
@@ -98,7 +102,7 @@ ro() { PGPASSWORD="${AI_DB_PASSWORD:-ai_readonly_dev_pw}" psql -q -t -A \
 if ro "select 1" | grep -q "^1$"; then
   ok "ai_readonly can connect"
   chk "can read members read-model" "$(ro 'select count(*) from members')" "$MEMBERS"
-  chk "can read check_ins" "$(ro 'select count(*) from check_ins')" "$(q 'select count(*) from check_ins')"
+  chk "can read attendances" "$(ro 'select count(*) from attendances')" "$(q 'select count(*) from attendances')"
   chk "can read feedbacks" "$(ro 'select count(*) from feedbacks')" "$(q 'select count(*) from feedbacks')"
   for probe in \
       "members.password|select password from members limit 1" \
@@ -108,7 +112,13 @@ if ro "select 1" | grep -q "^1$"; then
       "member_refresh_tokens|select 1 from member_refresh_tokens limit 1" \
       "user_action_tokens|select 1 from user_action_tokens limit 1" \
       "member_action_tokens|select 1 from member_action_tokens limit 1" \
-      "write to check_ins|insert into check_ins (id) values ('x')" \
+      "staff_refresh_tokens|select 1 from staff_refresh_tokens limit 1" \
+      "staff_action_tokens|select 1 from staff_action_tokens limit 1" \
+      "staffs.password|select password from staffs limit 1" \
+      "visits.qr_token_hash|select qr_token_hash from visits limit 1" \
+      "visits at all|select 1 from visits limit 1" \
+      "select * on attendances|select * from attendances limit 1" \
+      "write to attendances|insert into attendances (id) values ('x')" \
       "write to feedbacks|update feedbacks set content='x'" \
       "write to members|update members set first_name='x'" \
       "create table|create table _evil(i int)" ; do

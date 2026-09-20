@@ -40,24 +40,31 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
           "many days are left.")
     async def get_my_membership() -> dict[str, Any]:
         now = naive_utc_now()
+        # Several, not one. "Latest expiry" is the wrong pick after a *downgrade*:
+        # the plan change leaves the old, longer membership stored EXPIRED with its
+        # original future date, so ordering by date alone would tell the member they
+        # are still on the plan they just left.
         rows = await select(
             scope, "memberships",
             ["id", "membership_status", "start_date", "expires_at"],
-            order_by="expires_at desc", limit=1)
+            order_by="expires_at desc", limit=5)
         if not rows:
             return {"has_membership": False,
                     "message": "There is no membership on your account yet."}
 
-        row = rows[0]
+        live = [r for r in rows
+                if r["membership_status"] == StoredMembershipStatus.ACTIVE
+                and r["expires_at"] > now]
+        row = live[0] if live else rows[0]
         cancelled = row["membership_status"] == StoredMembershipStatus.CANCELLED
         return {
             "has_membership": True,
             "starts": row["start_date"].date().isoformat(),
             "expires": row["expires_at"].date().isoformat(),
-            # Derived from the date, never read from the cron-maintained column.
-            # Cancellation is the one thing only that column records, so it is read
-            # for that and nothing else.
-            "currently_valid": row["expires_at"] > now and not cancelled,
+            # Valid needs both halves: the date, because the status column is
+            # cron-maintained and can be stale; and the status, because a person can
+            # end a membership before its date (plan change, cancellation).
+            "currently_valid": bool(live),
             "cancelled": cancelled,
             "days_remaining": max(0, (row["expires_at"] - now).days),
         }
@@ -72,13 +79,14 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
         return {
             "count": len(rows),
             "payments": [
+                # Both dates are nullable since 2026-09-20, and `paid_at` is still
+                # written on rows that were never collected, so it is reported only
+                # when the status agrees that money arrived.
                 {"payment_id": r["id"], "amount_mad": str(r["amount"]),
                  "status": r["payment_status"],
-                 "due": r["due_date"].date().isoformat(),
-                 # Only meaningful when it was actually paid: the column is NOT NULL,
-                 # so an unpaid row still carries a date.
+                 "due": r["due_date"].date().isoformat() if r["due_date"] else None,
                  "paid_on": (r["paid_at"].date().isoformat()
-                             if r["payment_status"] == "PAID" else None)}
+                             if r["payment_status"] == "PAID" and r["paid_at"] else None)}
                 for r in rows
             ],
         }
@@ -93,11 +101,11 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
             where, params = "checked_in_at >= :since", {"since": since}
 
         summary = (await aggregate(
-            scope, "check_ins",
+            scope, "attendances",
             [("COUNT", "id", "visits"), ("MAX", "checked_in_at", "last")],
             where=where, params=params))[0]
         by_weekday = await aggregate(
-            scope, "check_ins", [("COUNT", "id", "visits")],
+            scope, "attendances", [("COUNT", "id", "visits")],
             group_by=["weekday"], date_column="checked_in_at",
             where=where, params=params, limit=7)
         return {

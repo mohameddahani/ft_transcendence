@@ -44,8 +44,8 @@ admin_user AS (
 
 -- A price no query scoped to gym 1 may ever return.
 gym_plan AS (
-    INSERT INTO membership_plans (id, admin_id, plan_name, description, is_active, created_at, updated_at)
-    SELECT gen_random_uuid()::text, id, 'Premium Annual', 'Full access, 12 months', true, NOW(), NOW()
+    INSERT INTO membership_plans (id, admin_id, plan_name, description, weekly_visit_limit, is_active, created_at, updated_at)
+    SELECT gen_random_uuid()::text, id, 'Premium Annual', 'Full access, 12 months', 7, true, NOW(), NOW()
     FROM admin_user
     RETURNING id, admin_id
 ),
