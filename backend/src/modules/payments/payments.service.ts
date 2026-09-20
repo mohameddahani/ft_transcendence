@@ -1,23 +1,27 @@
-import {
-  MembershipStatus,
-  SubscriptionStatus,
-  UserAccountStatus,
-} from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class PaymentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessesService: AccessesService,
+  ) {}
 
   // * Get all Payments
-  async findAllPaymentsAdmin(adminId: string, page: number, limit: number) {
+  async findAllPayments(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -66,9 +70,13 @@ export class PaymentsService {
   }
 
   // * Get one payment
-  async findOnePaymentAdmin(adminId: string, id: string) {
+  async findOnePayment(accessTokenPayload: AccessTokenPayload, id: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin has subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -117,8 +125,12 @@ export class PaymentsService {
 
   // * Get all Payments
   async findAllPaymentsMember(memberId: string, page: number, limit: number) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
     // * Check if member has membership
-    await this.checkIfMemberHasMembership(memberId);
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -168,8 +180,12 @@ export class PaymentsService {
 
   // * Get one payment
   async findOnePaymentMember(memberId: string, id: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
     // * Check if member has membership
-    await this.checkIfMemberHasMembership(memberId);
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -214,67 +230,5 @@ export class PaymentsService {
     }
 
     return payment;
-  }
-
-  // ! Private
-
-  // * Check if admin has subscription
-  private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
-      include: { plan: true, user: true },
-    });
-    if (!subscription || !subscription.plan.isActive) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new UnauthorizedException(
-          'Your account is inactive. Please activate your account to continue.',
-        );
-      } else if (
-        subscription.user.accountStatus === UserAccountStatus.PENDING
-      ) {
-        throw new UnauthorizedException(
-          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
-        );
-      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
-        throw new UnauthorizedException(
-          'Your account has been suspended. Please contact support for assistance.',
-        );
-      }
-    }
-
-    return subscription;
-  }
-
-  // * Check if member has membership
-  private async checkIfMemberHasMembership(memberId: string) {
-    // * Check if member already exist
-    const member = await this.prisma.member.findUnique({
-      where: { id: memberId },
-      include: {
-        payments: true,
-      },
-    });
-    if (!member) {
-      throw new NotFoundException('Member Not Found !');
-    }
-
-    const membership = await this.prisma.membership.findFirst({
-      where: {
-        memberId: member.id,
-        adminId: member.adminId,
-        membershipStatus: MembershipStatus.ACTIVE,
-      },
-    });
-    if (!membership) {
-      throw new UnauthorizedException(
-        'You don’t have an membership. Upgrade your plan to continue.',
-      );
-    }
-
-    return { member, membership };
   }
 }

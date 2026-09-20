@@ -31,7 +31,7 @@ export class AdminMembershipsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.membershipsService.findAll(accessTokenPayload.id, page, limit);
+    return this.membershipsService.findAll(accessTokenPayload, page, limit);
   }
 
   // * Get One Membership
@@ -41,6 +41,6 @@ export class AdminMembershipsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membershipsService.findOne(accessTokenPayload.id, id);
+    return this.membershipsService.findOne(accessTokenPayload, id);
   }
 }

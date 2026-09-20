@@ -2,6 +2,7 @@ import { PaymentStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { endOfTomorrow, startOfTomorrow } from 'date-fns';
 
 @Injectable()
 export class PaymentCron {
@@ -10,13 +11,8 @@ export class PaymentCron {
   @Cron(CronExpression.EVERY_DAY_AT_NOON)
   async updatePaidPayments() {
     // * Create Range Of Date
-    const start = new Date();
-    start.setDate(start.getDate() + 1);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date();
-    end.setDate(end.getDate() + 1);
-    end.setHours(23, 59, 59, 999);
+    const start = startOfTomorrow();
+    const end = endOfTomorrow();
 
     // * Change Status of Payments that will be late on 1 day from Paid to Overdue
     await this.prisma.payment.updateMany({

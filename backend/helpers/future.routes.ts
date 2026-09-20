@@ -62,6 +62,44 @@
 
 // * add props of all routes in swagger
 
+// * Create Staff by admin
+// * Add Staff role
+// * Make company name added auto
+// ! Add default image profile to staff
+// * ban or freeze or ... a staff
+// * edit profile of staff (like profile image ...)
+// ! Check emails of staffs is correct(reset password and confirmation ...)
+// * Get all staffs
+// * Get one staff
+// * edit one staff
+
+// ! Check All Crons is Work
+// ! Check All Crons of Notifications is Work
+
+// ! Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
+
+// ! When a staff or admin update the membership of member with same data the server create multiple memberships
+
+// ! test all Notifications
+
+// ! GET /api/admins/visits/today
+// ! GET All or one visits for admin/staff/member
+// ! GET All or one attendance for admin/staff/member
+
+// ! Cron for attendance by Date and time
+// ! Cron for visits by Date and time
+
+// ! cancel the visit
+
+// ! so i need to do a if condition that check if start date and end date is same and start time and end should only in range of this day
+// ! Like:
+// ! 09:00 to 22:00
+// ! not like
+// ! 08:00 to 00:00
+// ! so end day should has as max time is 23:59
+
+// so this solution will fix the problam ?
+
 // Common Types
 // Type	Meaning
 // feat	New feature

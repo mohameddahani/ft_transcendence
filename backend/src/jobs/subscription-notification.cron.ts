@@ -2,6 +2,7 @@ import { NotificationType, SubscriptionStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { endOfTomorrow, startOfTomorrow } from 'date-fns';
 
 @Injectable()
 export class SubscriptionNotificationCron {
@@ -10,13 +11,8 @@ export class SubscriptionNotificationCron {
   @Cron(CronExpression.EVERY_DAY_AT_NOON)
   async createNotification() {
     // * Create Range Of Date
-    const start = new Date();
-    start.setDate(start.getDate() + 1);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date();
-    start.setDate(end.getDate() + 1);
-    start.setHours(23, 59, 59, 999);
+    const start = startOfTomorrow();
+    const end = endOfTomorrow();
 
     // * Get All subscriptions that will exipred after 1 day
     const subscriptions = await this.prisma.subscription.findMany({

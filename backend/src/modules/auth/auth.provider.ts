@@ -5,14 +5,14 @@ import {
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import {
   AccessTokenPayload,
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
-import { LoginUserDto } from './dto/login-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import {
   UserAccountStatus,
   ActionTokenType,
@@ -26,9 +26,12 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UAParser } from 'ua-parser-js';
 import ms, { StringValue } from 'ms';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { LoginMemberDto } from './dto/login-member.dto';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
+import { createHash, randomUUID } from 'node:crypto';
+import { LoginMemberDto } from './dtos/login-member.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
@@ -105,7 +108,7 @@ export class AuthProvider {
     // * Generate Email Verification Token
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const emailVerificationTokenExpiresIn =
@@ -158,7 +161,7 @@ export class AuthProvider {
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
-        const { rawToken, tokenHash } = this.generateActionToken();
+        const { rawToken, tokenHash } = generateActionToken();
 
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(user.email, rawToken);
@@ -408,6 +411,326 @@ export class AuthProvider {
     });
   }
 
+  // * Login Staff
+  async loginStaff(request: Request, data: LoginStaffDto) {
+    // * Check if staff already exist by userName before login
+    const staff = await this.prisma.staff.findUnique({
+      where: { userName: data.userName },
+    });
+    if (!staff) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Check status of account
+    if (staff.accountStatus === UserAccountStatus.PENDING) {
+      throw new UnauthorizedException(
+        'Your account is pending verification. Please contact admin for assistance.',
+      );
+    }
+
+    if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Send Email verification to new user if he try to login without activating his account
+      try {
+        // * Generate Action Token
+        const { rawToken, tokenHash } = generateActionToken();
+
+        // * Send email of verification to user
+        await this.emailService.sendVerificationEmail(staff.email, rawToken);
+      } catch {
+        throw new RequestTimeoutException('Failed to send verification email');
+      }
+      throw new UnauthorizedException(
+        'Your account is inactive. Please activate your account through the email we sent.',
+      );
+    }
+
+    if (staff.accountStatus === UserAccountStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact admin for assistance.',
+      );
+    }
+
+    // * Check the member if he set a password
+    if (!staff.password) {
+      throw new UnauthorizedException(
+        'Your account has not been activated yet. Please check your email and set your password to continue.',
+      );
+    }
+
+    // * Check the password is match
+    const passwordIsMatch = await bcrypt.compare(data.password, staff.password);
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Generate Access Token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: staff.id,
+      role: staff.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    // * Generate Refresh Token
+    // * Generate UUID for jti
+    const jti = randomUUID();
+
+    const refreshTokenPayload: RefreshTokenPayload = {
+      id: staff.id,
+      role: staff.role,
+      jti: jti,
+    };
+    const refreshToken =
+      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_STAFF_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.staffRefreshToken.create({
+      data: {
+        jti: jti,
+        hash: refreshTokenHash,
+        staff: { connect: { id: staff.id } },
+        expiresAt: expiresAt,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+        device: this.getDevice(request.headers['user-agent']),
+      },
+    });
+
+    // * Exclude Some Fields
+    const { id, password, createdAt, updatedAt, ...safeStaff } = staff;
+    return { staff: safeStaff, accessToken, refreshToken, refreshExpiresIn };
+  }
+
+  // * Logout (Staff)
+  async logoutStaff(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.staffRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { staff: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the JWT payload matches the database
+    if (storedToken.staffId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to logout
+    if (storedToken.staff.accountStatus !== MemberAccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.staff.role !== Role.STAFF) {
+      throw new UnauthorizedException();
+    }
+
+    // * Revoke the refresh Token
+    await this.prisma.staffRefreshToken.update({
+      where: {
+        id: storedToken.id,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+  }
+
+  // * Set Password Staff
+  async setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.staffActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { staff: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have staff already in DB
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: token.staff.id },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Check if staff has already password
+    if (staff.password) {
+      throw new BadRequestException('Staff has already password');
+    }
+
+    // * Hash the password
+    const salt = await bcrypt.genSalt(10);
+    data.password = await bcrypt.hash(data.password, salt);
+
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Set The Password
+      this.prisma.staff.update({
+        where: { id: staff.id },
+        data: {
+          password: data.password,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.staffActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
+  }
+
+  // * Forgot password (Staff)
+  async forgotPasswordStaff(username: string) {
+    // * Check if staff already exist by username
+    const staff = await this.prisma.staff.findUnique({
+      where: { userName: username },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Send Email of reset password to Staff
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.staffActionToken.create({
+        data: {
+          staff: { connect: { id: staff.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.RESET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email
+      await this.emailService.sendResetPasswordMemberEmail(
+        staff.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException('Failed to send reset password email');
+    }
+  }
+
+  // * Password reset (Staff)
+  async resetPasswordStaff(rawToken: string, password: string) {
+    // * Hash this raw token and check if exist in DB
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.staffActionToken.findUnique({
+      where: { tokenHash: tokenHash },
+      include: { staff: true },
+    });
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if Token is used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if Token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Check if we have staff already in DB
+    const staff = await this.prisma.staff.findUnique({
+      where: { id: token.staff.id },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Hash new Password
+    const salt = await bcrypt.genSalt(10);
+    const newPassword = await bcrypt.hash(password, salt);
+
+    // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
+    // * ensuring that either all operations succeed and are committed, or if any operation fails,
+    // * all previous operations are rolled back, leaving the database unchanged.
+    await this.prisma.$transaction([
+      // * Save new password
+      this.prisma.staff.update({
+        where: { id: staff.id },
+        data: {
+          password: newPassword,
+        },
+      }),
+
+      // * Make this token used
+      this.prisma.staffActionToken.update({
+        where: { id: token.id },
+        data: {
+          usedAt: new Date(),
+        },
+      }),
+    ]);
+  }
+
   // * Login Member
   async loginMember(request: Request, data: LoginMemberDto) {
     // * Check if member already exist by userName before login
@@ -456,7 +779,7 @@ export class AuthProvider {
       this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
-    // *  Generate UUID for jti
+    // * Generate UUID for jti
     const jti = randomUUID();
 
     const refreshTokenPayload: RefreshTokenPayload = {
@@ -616,6 +939,59 @@ export class AuthProvider {
     return { accessToken: accessToken };
   }
 
+  // * Refresh Staff
+  async refreshStaff(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    // * Check if Refresh Token is already exist in DB
+    const storedToken = await this.prisma.staffRefreshToken.findUnique({
+      where: { jti: refreshTokenPayload.jti },
+      include: { staff: true },
+    });
+
+    if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check is Refresh Token valid from BD
+    const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
+
+    if (!isValid) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if Refresh token is expired
+    if (storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException();
+    }
+
+    // * Check if token is revoked
+    if (storedToken.revokedAt) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the account is still allowed to log in
+    if (storedToken.staff.accountStatus !== MemberAccountStatus.ACTIVE) {
+      throw new UnauthorizedException();
+    }
+
+    // * Verify the user type
+    if (storedToken.staff.role !== Role.STAFF) {
+      throw new UnauthorizedException();
+    }
+
+    // * generate new access token
+    const accessTokenPayload: AccessTokenPayload = {
+      id: storedToken.staff.id,
+      role: storedToken.staff.role,
+    };
+    const accessToken =
+      this.customJwtService.generateAccessToken(accessTokenPayload);
+
+    return { accessToken: accessToken };
+  }
+
   // * Refresh Member
   async refreshMember(
     refreshToken: string,
@@ -738,7 +1114,7 @@ export class AuthProvider {
     // * Send Email of reset password to user
     try {
       // * Generate Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
@@ -825,7 +1201,7 @@ export class AuthProvider {
     // * Send Email of reset password to member
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
@@ -920,12 +1296,5 @@ export class AuthProvider {
     const result = parser.getResult();
 
     return `${result.device.vendor ?? 'Unknown'} ${result.device.model ?? 'Desktop'}`;
-  }
-
-  // * Generate Action Token
-  private generateActionToken() {
-    const rawToken = randomBytes(32).toString('hex'); // * sent to user
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
-    return { rawToken, tokenHash };
   }
 }

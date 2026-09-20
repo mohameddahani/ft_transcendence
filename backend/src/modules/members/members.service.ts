@@ -8,21 +8,22 @@ import {
   Injectable,
   NotFoundException,
   RequestTimeoutException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import {
-  UserAccountStatus,
   ActionTokenType,
   MembershipStatus,
   MemberAccountStatus,
   PaymentStatus,
-  SubscriptionStatus,
+  Role,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
 import { EmailService } from '@/infrastructure/email/email.service';
-import { createHash, randomBytes } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/services/access.service';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class MembersService {
@@ -30,12 +31,18 @@ export class MembersService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly accessesService: AccessesService,
   ) {}
 
-  // * Add Member by Admin
-  async addMember(adminId: string, data: AddMemberDto) {
+  // * Add Member by Admin or Staff
+  async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    const subscription = await this.checkIfAdminHasSubscription(adminId);
+    const subscription =
+      await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -44,7 +51,7 @@ export class MembersService {
         adminId,
       },
     });
-    if (membersCount > subscription.plan.maxMembers) {
+    if (membersCount >= subscription.plan.maxMembers) {
       throw new ForbiddenException(
         `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
       );
@@ -74,11 +81,11 @@ export class MembersService {
     });
     if (existingMember) {
       if (existingMember.email === data.email) {
-        throw new UnauthorizedException('Email already exists');
+        throw new ConflictException('Email already exists');
       }
 
       if (existingMember.phoneNumber === data.phoneNumber) {
-        throw new UnauthorizedException('Phone number already exists');
+        throw new ConflictException('Phone number already exists');
       }
     }
 
@@ -99,11 +106,16 @@ export class MembersService {
     }
 
     // * Interactive transaction (function)
+    // * tx is the prisma client inside a transaction
     const result = await this.prisma.$transaction(async (tx) => {
       // * Add members to database
       const member = await tx.member.create({
         data: {
           admin: { connect: { id: adminId } },
+          staff:
+            accessTokenPayload.role === Role.STAFF
+              ? { connect: { id: accessTokenPayload.id } }
+              : undefined, // Ignore this field. Don't do anything with staff.
           firstName: data.firstName,
           lastName: data.lastName,
           gender: data.gender,
@@ -116,8 +128,7 @@ export class MembersService {
         },
       });
       // * Add Membership of member
-      const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-      expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+      const expiresAt = addDays(new Date(), duration.durationDays);
       const membership = await tx.membership.create({
         data: {
           admin: { connect: { id: adminId } },
@@ -151,7 +162,7 @@ export class MembersService {
     // * Send Email of Set password to member
     try {
       // * Generate Action Token
-      const { rawToken, tokenHash } = this.generateActionToken();
+      const { rawToken, tokenHash } = generateActionToken();
 
       // * Calc the expir
       const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
@@ -170,7 +181,7 @@ export class MembersService {
       });
 
       // * Send email of Password Set to member
-      await this.emailService.sendSetPasswordEmail(
+      await this.emailService.sendSetPasswordMemberEmail(
         result.userName,
         result.email,
         rawToken,
@@ -183,12 +194,20 @@ export class MembersService {
   }
 
   // * Update data of member
-  async update(adminId: string, memberId: string, data: UpdateMemberDto) {
+  async update(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+    data: UpdateMemberDto,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check if we have member already in DB
-    await this.findOne(adminId, memberId);
+    await this.findOne(accessTokenPayload, memberId);
 
     // * Check if member data duplicate
     const existingData = await this.prisma.member.findFirst({
@@ -260,6 +279,7 @@ export class MembersService {
       }
 
       // * Interactive transaction (function)
+      // * tx is the prisma client inside a transaction
       await this.prisma.$transaction(async (tx) => {
         // * make old membership expired
         await tx.membership.update({
@@ -268,8 +288,7 @@ export class MembersService {
         });
 
         // * Add new Membership to member
-        const expiresAt = new Date(); // ex: 2026-06-19 20:30:15
-        expiresAt.setDate(expiresAt.getDate() + duration.durationDays); // 19 + 30 => July 19th
+        const expiresAt = addDays(new Date(), duration.durationDays);
         const newMembership = await this.prisma.membership.create({
           data: {
             admin: { connect: { id: adminId } },
@@ -306,12 +325,16 @@ export class MembersService {
   }
 
   // * Active a Member
-  async activeMember(adminId: string, memberId: string) {
+  async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member is exist
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
     if (member.accountStatus === MemberAccountStatus.ACTIVE) {
       throw new ConflictException('The Member is already Active!');
     }
@@ -328,12 +351,16 @@ export class MembersService {
   }
 
   // * Freeze a Member
-  async freezeMember(adminId: string, memberId: string) {
+  async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member exists
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
 
     if (member.accountStatus === MemberAccountStatus.FROZEN) {
       throw new ConflictException('The member is already frozen.');
@@ -357,12 +384,16 @@ export class MembersService {
   }
 
   // * Ban a Member
-  async banMember(adminId: string, memberId: string) {
+  async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check member exists
-    const member = await this.findOne(adminId, memberId);
+    const member = await this.findOne(accessTokenPayload, memberId);
 
     if (member.accountStatus === MemberAccountStatus.BANNED) {
       throw new ConflictException('The member is already banned.');
@@ -380,9 +411,17 @@ export class MembersService {
   }
 
   // * Get all Members
-  async findAll(adminId: string, page: number, limit: number) {
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -420,9 +459,13 @@ export class MembersService {
   }
 
   // * Get one Member
-  async findOne(adminId: string, memberId: string) {
+  async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
-    await this.checkIfAdminHasSubscription(adminId);
+    await this.accessesService.validateActiveSubscription(adminId);
 
     const member = await this.prisma.member.findFirst({
       where: {
@@ -459,37 +502,6 @@ export class MembersService {
   }
 
   // ! Private Attributes
-  // * Check if admin has subscription
-  private async checkIfAdminHasSubscription(adminId: string) {
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: adminId, subscriptionStatus: SubscriptionStatus.ACTIVE },
-      include: { plan: true, user: true },
-    });
-    if (!subscription || !subscription.plan.isActive) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
-      );
-    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new UnauthorizedException(
-          'Your account is inactive. Please activate your account to continue.',
-        );
-      } else if (
-        subscription.user.accountStatus === UserAccountStatus.PENDING
-      ) {
-        throw new UnauthorizedException(
-          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
-        );
-      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
-        throw new UnauthorizedException(
-          'Your account has been suspended. Please contact support for assistance.',
-        );
-      }
-    }
-
-    return subscription;
-  }
-
   // * Check if Admin Has Membership Plan With Duration
   private async checkIfAdminHasMembershipPlanWithDuration(
     adminId: string,
@@ -522,12 +534,5 @@ export class MembersService {
     }
 
     return { duration, membershipPlan };
-  }
-
-  // * Generate Action Token
-  private generateActionToken() {
-    const rawToken = randomBytes(32).toString('hex'); // * sent to user
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex'); // * stored in DB
-    return { rawToken, tokenHash };
   }
 }

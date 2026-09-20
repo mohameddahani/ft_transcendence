@@ -16,9 +16,12 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { OwnersModule } from './modules/platform/owners/owners.module';
-import { NotificationModule } from './modules/notifications/notifications.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MembershipNotificationCron } from './jobs/membership-notification.cron';
 import { SubscriptionNotificationCron } from './jobs/subscription-notification.cron';
+import { StaffsModule } from './modules/staffs/staffs.module';
+import { AttendancesModule } from './modules/attendances/attendances.module';
+import { VisitsModule } from './modules/visits/visits.module';
 
 @Module({
   imports: [
@@ -66,7 +69,10 @@ import { SubscriptionNotificationCron } from './jobs/subscription-notification.c
     SubscriptionsModule,
     PaymentsModule,
     MembershipsModule,
-    NotificationModule,
+    NotificationsModule,
+    StaffsModule,
+    VisitsModule,
+    AttendancesModule,
   ],
 
   providers: [

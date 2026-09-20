@@ -11,29 +11,35 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import type { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
-import { ForgotPasswordUserDto } from './dto/forgot-password-user.dto';
-import { ResetPasswordUserDto } from './dto/reset-passworf-user.dto';
-import type { Request, Response } from 'express';
+import { ForgotPasswordUserDto } from './dtos/forgot-password-user.dto';
+import { ResetPasswordUserDto } from './dtos/reset-passworf-user.dto';
+import { type Request, type Response } from 'express';
 import { GetCookies } from '@/core/decorators/get-cookies.decorator';
 import ms from 'ms';
 import { AdminRefreshTokenAuthGuard } from './guards/admin-refresh-token-auth.guard';
 import { GetRefreshTokenPayload } from '@/core/decorators/get-refresh-token-payload.decorator';
 import { OwnerRefreshTokenAuthGuard } from './guards/owner-refresh-token-auth.guard';
-import { LoginMemberDto } from './dto/login-member.dto';
+import { LoginMemberDto } from './dtos/login-member.dto';
 import { MemberRefreshTokenAuthGuard } from './guards/member-refresh-token-auth.guard';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
-import { ForgotPasswordMemberDto } from './dto/forgot-password-member.dto';
-import { ResetPasswordMemberDto } from './dto/reset-password-member.dto';
-import { QueryTokenDto } from './dto/query-token.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { ForgotPasswordMemberDto } from './dtos/forgot-password-member.dto';
+import { ResetPasswordMemberDto } from './dtos/reset-password-member.dto';
+import { QueryTokenDto } from './dtos/query-token.dto';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { OwnerAccessTokenAuthGuard } from './guards/owner-access-token-auth.guard';
 import { AdminAccessTokenAuthGuard } from './guards/admin-access-token-auth.guard';
 import { MemberAccessTokenAuthGuard } from './guards/member-access-token-auth.guard';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
+import { StaffAccessTokenAuthGuard } from './guards/staff-access-token-auth.guard';
+import { StaffRefreshTokenAuthGuard } from './guards/staff-refresh-token-auth.guard';
+import { ForgotPasswordStaffDto } from './dtos/forgot-password-staff.dto';
+import { ResetPasswordStaffDto } from './dtos/reset-password-staff.dto';
 
 @Controller('api/auth')
 export class AuthController {
@@ -127,31 +133,6 @@ export class AuthController {
     return this.authService.logoutOwner(refreshToken, refreshTokenPayload);
   }
 
-  // * Logout (Member)
-  @Post('members/logout')
-  @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  @UseGuards(
-    MemberAccessTokenAuthGuard,
-    MemberRefreshTokenAuthGuard,
-    AuthRolesGuard,
-  )
-  @Roles([Role.MEMBER])
-  logoutMember(
-    @GetCookies('refresh_token') refreshToken: string,
-    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    // * Clear the secure HttpOnly cookie
-    response.clearCookie('refresh_token', {
-      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
-      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
-      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
-      path: '/api/auth', // * Send only to the refresh endpoint
-    });
-    return this.authService.logoutMember(refreshToken, refreshTokenPayload);
-  }
-
   // * Activate user account
   @Post('email-verification')
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
@@ -179,7 +160,7 @@ export class AuthController {
 
   /* 
   =========================
-  ! Admin / Owner / Member Refresh
+  ! Admin / Owner / Staff / Member Refresh
   =========================
   */
 
@@ -209,6 +190,19 @@ export class AuthController {
     return this.authService.refresh(refreshToken, refreshTokenPayload);
   }
 
+  // * Refresh Staff
+  @Post('staffs/refresh')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(StaffRefreshTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.STAFF])
+  refreshStaff(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authService.refreshStaff(refreshToken, refreshTokenPayload);
+  }
+
   // * Refresh Member
   @Post('members/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
@@ -220,6 +214,89 @@ export class AuthController {
     @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
   ) {
     return this.authService.refreshMember(refreshToken, refreshTokenPayload);
+  }
+
+  /* 
+  =========================
+  ! Staff Auth
+  =========================
+  */
+  // * Login Member
+  @Post('staffs/login')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async loginStaff(
+    @Body() body: LoginStaffDto,
+    @Req() request: Request,
+    // * passthrough: true: Let me access and modify the response object, but NestJS should still handle sending the response automatically
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { staff, accessToken, refreshToken, refreshExpiresIn } =
+      await this.authService.loginStaff(request, body);
+
+    // * Store the refresh token in a secure HttpOnly cookie
+    response.cookie('refresh_token', refreshToken, {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+      maxAge: ms(refreshExpiresIn), // * Expires after 30 days
+    });
+
+    return { staff, accessToken };
+  }
+
+  // * Logout (Staff)
+  @Post('staffs/logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(
+    StaffAccessTokenAuthGuard,
+    StaffRefreshTokenAuthGuard,
+    AuthRolesGuard,
+  )
+  @Roles([Role.STAFF])
+  logoutStaff(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // * Clear the secure HttpOnly cookie
+    response.clearCookie('refresh_token', {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+    });
+    return this.authService.logoutStaff(refreshToken, refreshTokenPayload);
+  }
+
+  // * Set Password (Staff)
+  @Post('staffs/set-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  setPasswordStaff(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: SetPasswordStaffDto,
+  ) {
+    return this.authService.setPasswordStaff(rawToken.token, body);
+  }
+
+  // * Forgot password (Staff)
+  @Post('staffs/forgot-password')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  forgotPasswordStaff(@Body() body: ForgotPasswordStaffDto) {
+    return this.authService.forgotPasswordStaff(body.userName);
+  }
+
+  // * Password reset (Staff)
+  @Post('staffs/reset-password')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  resetPasswordStaff(
+    @Query() rawToken: QueryTokenDto,
+    @Body() body: ResetPasswordStaffDto,
+  ) {
+    return this.authService.resetPasswordStaff(rawToken.token, body.password);
   }
 
   /* 
@@ -250,6 +327,31 @@ export class AuthController {
     });
 
     return { member, accessToken };
+  }
+
+  // * Logout (Member)
+  @Post('members/logout')
+  @HttpCode(HttpStatus.OK) // * set default status code
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @UseGuards(
+    MemberAccessTokenAuthGuard,
+    MemberRefreshTokenAuthGuard,
+    AuthRolesGuard,
+  )
+  @Roles([Role.MEMBER])
+  logoutMember(
+    @GetCookies('refresh_token') refreshToken: string,
+    @GetRefreshTokenPayload() refreshTokenPayload: RefreshTokenPayload,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // * Clear the secure HttpOnly cookie
+    response.clearCookie('refresh_token', {
+      httpOnly: true, // * Prevent JavaScript from accessing the cookie (protects against XSS)
+      secure: process.env.NODE_ENV === 'production', // * Send the cookie only over HTTPS in production
+      sameSite: 'strict', // * Prevent the cookie from being sent with cross-site requests (protects against CSRF)
+      path: '/api/auth', // * Send only to the refresh endpoint
+    });
+    return this.authService.logoutMember(refreshToken, refreshTokenPayload);
   }
 
   // * Set Password (Member)

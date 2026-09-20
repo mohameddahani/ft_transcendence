@@ -25,17 +25,17 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
-export class MembersController {
+export class AdminMembersController {
   constructor(private readonly membersService: MembersService) {}
 
-  // * Add Member by User
+  // * Add Member by Admin
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   addMember(
     @Body() body: AddMemberDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
-    return this.membersService.addMember(accessTokenPayload.id, body);
+    return this.membersService.addMember(accessTokenPayload, body);
   }
 
   // * Update data of Member
@@ -46,7 +46,7 @@ export class MembersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateMemberDto,
   ) {
-    return this.membersService.update(accessTokenPayload.id, id, body);
+    return this.membersService.update(accessTokenPayload, id, body);
   }
 
   // * Active a Member
@@ -56,7 +56,7 @@ export class MembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membersService.activeMember(accessTokenPayload.id, id);
+    return this.membersService.activeMember(accessTokenPayload, id);
   }
 
   // * Freeze a Member
@@ -66,7 +66,7 @@ export class MembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membersService.freezeMember(accessTokenPayload.id, id);
+    return this.membersService.freezeMember(accessTokenPayload, id);
   }
 
   // * Ban a Member
@@ -76,7 +76,7 @@ export class MembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membersService.banMember(accessTokenPayload.id, id);
+    return this.membersService.banMember(accessTokenPayload, id);
   }
 
   // * Get all Members
@@ -87,7 +87,7 @@ export class MembersController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.membersService.findAll(accessTokenPayload.id, page, limit);
+    return this.membersService.findAll(accessTokenPayload, page, limit);
   }
 
   // * Get one member
@@ -97,6 +97,6 @@ export class MembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membersService.findOne(accessTokenPayload.id, id);
+    return this.membersService.findOne(accessTokenPayload, id);
   }
 }

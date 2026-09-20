@@ -341,6 +341,151 @@ export class ProfilesService {
   //   return res.sendFile(imagePath);
   // }
 
+  /* 
+  =========================
+  ! Staffs Profile
+  =========================
+  */
+
+  // * Get current Staff
+  async findMeStaff(id: string) {
+    const staff = await this.prisma.staff.findUnique({
+      where: { id },
+      select: {
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        companyName: true,
+        admin: true,
+        profileImageUrl: true,
+        role: true,
+        accountStatus: true,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    return staff;
+  }
+
+  // * Upload profile image (Staff)
+  async uploadProfileImageStaff(id: string, file: Express.Multer.File) {
+    // * Get Staff to check image
+    const staff = await this.findOneStaff(id);
+
+    // ! Only if we storage the file in Server
+    // // * Remove old image
+    // if (member.profileImageUrl !== DEFAULT_PROFILE_IMAGE_MEMBER) {
+    //   // * Create path of image
+    //   const oldImagePath = join(
+    //     process.cwd(),
+    //     `./images/users/profile/${member.profileImageUrl}`,
+    //   );
+
+    //   // * Check if image already in server
+    //   if (!existsSync(oldImagePath)) {
+    //     throw new BadRequestException('There is No Profile Image In DataBase');
+    //   }
+
+    //   // * Remove image
+    //   unlinkSync(oldImagePath);
+    // }
+
+    // * Get Old Profile Image Public Id of image
+    const oldProfileImagePublicId = staff.profileImagePublicId;
+
+    try {
+      // * Upload Image To Cloudinary
+      const uploadedImage = await this.cloudinaryService.upload(
+        file,
+        'images/staffs/profile',
+      );
+
+      // * Set new image name in DB
+      await this.prisma.staff.update({
+        where: { id },
+        data: {
+          profileImageUrl: uploadedImage.secure_url,
+          profileImagePublicId: uploadedImage.public_id,
+        },
+      });
+
+      // * Remove Old Image
+      if (oldProfileImagePublicId) {
+        await this.cloudinaryService.delete(oldProfileImagePublicId);
+      }
+    } catch {
+      throw new InternalServerErrorException('Could not update profile image');
+    }
+  }
+
+  // * Remove profile image (Staff)
+  async removeProfileImageStaff(id: string) {
+    // * Get Staff to check image
+    const staff = await this.findOneStaff(id);
+
+    // * Check staff if already set image
+    if (!staff.profileImagePublicId) {
+      throw new BadRequestException('There is No Profile Image');
+    }
+
+    // ! Only if we storage the file in Server
+    // * Create path of image
+    // const imagePath = join(
+    //   process.cwd(),
+    //   `./images/users/profile/${member.profileImageUrl}`,
+    // );
+
+    // // * Check if image already in server
+    // if (!existsSync(imagePath)) {
+    //   throw new BadRequestException('There is No Profile Image To Remove');
+    // }
+
+    // // * Remove image
+    // unlinkSync(imagePath);
+
+    try {
+      // * Delete Image
+      await this.cloudinaryService.delete(staff.profileImagePublicId);
+
+      // * Update data of staff
+      await this.prisma.staff.update({
+        where: { id },
+        data: {
+          profileImageUrl: DEFAULT_PROFILE_IMAGE,
+          profileImagePublicId: null,
+        },
+      });
+    } catch {
+      throw new InternalServerErrorException('Could not delete profile image');
+    }
+  }
+
+  // ! with Cloudinary architecture, this method is essentially unnecessary.
+  // // * Get Image (Member)
+  // async findImageMember(id: string, image: string, res: Response) {
+  //   // * Check the member has this image
+  //   const member = await this.findOneMember(id);
+  //   if (member.profileImageUrl !== image) {
+  //     throw new NotFoundException('There is No Profile Image To Show');
+  //   }
+
+  //   // * Check if image is already exist
+  //   const imagePath = join(process.cwd(), 'images/users/profile', image);
+  //   if (!existsSync(imagePath)) {
+  //     throw new BadRequestException('There is No Profile Image');
+  //   }
+
+  //   // * Send file to client
+  //   return res.sendFile(imagePath);
+  // }
+
   // ! Private Attributes
   // * Get one user
   private async findOne(id: string) {
@@ -415,5 +560,39 @@ export class ProfilesService {
     }
 
     return member;
+  }
+
+  // * Get one Staff
+  private async findOneStaff(id: string) {
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        id,
+        role: { notIn: [Role.OWNER, Role.ADMIN] },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+        birthDate: true,
+        userName: true,
+        email: true,
+        phoneNumber: true,
+        profileImageUrl: true,
+        profileImagePublicId: true,
+        admin: true,
+        companyName: true,
+        role: true,
+        accountStatus: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found');
+    }
+
+    return staff;
   }
 }

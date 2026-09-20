@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { RegisterUserDto } from './dto/register-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
 import { AuthProvider } from './auth.provider';
 import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
 import { Request } from 'express';
-import { LoginMemberDto } from './dto/login-member.dto';
-import { SetPasswordMemberDto } from './dto/set-password-member.dto';
+import { LoginMemberDto } from './dtos/login-member.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 
 @Injectable()
 export class AuthService {
@@ -36,6 +38,31 @@ export class AuthService {
     return this.authProvider.logoutMember(refreshToken, refreshTokenPayload);
   }
 
+  // * Login Staff
+  loginStaff(request: Request, data: LoginStaffDto) {
+    return this.authProvider.loginStaff(request, data);
+  }
+
+  // * Logout (Staff)
+  logoutStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutStaff(refreshToken, refreshTokenPayload);
+  }
+
+  // * Set Password Staff
+  setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
+    return this.authProvider.setPasswordStaff(rawToken, data);
+  }
+
+  // * Forgot password (Staff)
+  forgotPasswordStaff(username: string) {
+    return this.authProvider.forgotPasswordStaff(username);
+  }
+
+  // * Password reset (Staff)
+  resetPasswordStaff(rawToken: string, password: string) {
+    return this.authProvider.resetPasswordStaff(rawToken, password);
+  }
+
   // * Login Member
   loginMember(request: Request, data: LoginMemberDto) {
     return this.authProvider.loginMember(request, data);
@@ -49,6 +76,11 @@ export class AuthService {
   // * Refresh
   refresh(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
     return this.authProvider.refresh(refreshToken, refreshTokenPayload);
+  }
+
+  // * Refresh Staff
+  refreshStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.refreshStaff(refreshToken, refreshTokenPayload);
   }
 
   // * Refresh Member

@@ -11,6 +11,8 @@ import { OwnerAccessTokenStrategy } from './strategies/owner-access-token.strate
 import { OwnerRefreshTokenStrategy } from './strategies/owner-refresh-token.strategy';
 import { MemberAccessTokenStrategy } from './strategies/member-access-token.strategy';
 import { MemberRefreshTokenStrategy } from './strategies/member-refresh-token.strategy';
+import { StaffAccessTokenStrategy } from './strategies/staff-access-token.strategy';
+import { StaffRefreshTokenStrategy } from './strategies/staff-refresh-token.strategy';
 
 @Module({
   controllers: [AuthController],
@@ -23,6 +25,8 @@ import { MemberRefreshTokenStrategy } from './strategies/member-refresh-token.st
     AdminAccessTokenStrategy,
     MemberAccessTokenStrategy,
     MemberRefreshTokenStrategy,
+    StaffAccessTokenStrategy,
+    StaffRefreshTokenStrategy,
   ],
   imports: [PassportModule, EmailModule, CustomJwtModule],
   exports: [],

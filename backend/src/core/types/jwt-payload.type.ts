@@ -1,3 +1,4 @@
+import { Prisma } from '@/generated/prisma/client';
 import { Role } from '@/generated/prisma/enums';
 
 export type AccessTokenPayload = {
@@ -10,3 +11,9 @@ export type RefreshTokenPayload = {
   role: Role;
   jti: string;
 };
+
+export type MembershipWithPlan = Prisma.MembershipGetPayload<{
+  include: {
+    membershipPlan: true;
+  };
+}>;

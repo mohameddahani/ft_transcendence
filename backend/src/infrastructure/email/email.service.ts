@@ -65,8 +65,44 @@ export class EmailService {
     });
   }
 
-  async sendSetPasswordEmail(username: string, email: string, token: string) {
+  async sendResetPasswordStaffEmail(email: string, token: string) {
+    const link = `${this.frontendUrl}/auth/staffs/reset-password?token=${token}`;
+
+    await this.resend.emails.send({
+      from: 'onboarding@resend.dev',
+
+      to: email,
+
+      subject: 'Reset your password',
+
+      html: resetPasswordEmailTemplate(link),
+    });
+  }
+
+  async sendSetPasswordMemberEmail(
+    username: string,
+    email: string,
+    token: string,
+  ) {
     const link = `${this.frontendUrl}/auth/members/set-password?token=${token}`;
+
+    await this.resend.emails.send({
+      from: 'onboarding@resend.dev',
+
+      to: email,
+
+      subject: 'Set your password',
+
+      html: setPasswordEmailTemplate(link, username),
+    });
+  }
+
+  async sendSetPasswordStaffEmail(
+    username: string,
+    email: string,
+    token: string,
+  ) {
+    const link = `${this.frontendUrl}/auth/staffs/set-password?token=${token}`;
 
     await this.resend.emails.send({
       from: 'onboarding@resend.dev',

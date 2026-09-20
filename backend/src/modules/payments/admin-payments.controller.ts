@@ -31,8 +31,8 @@ export class AdminPaymentsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.paymentsService.findAllPaymentsAdmin(
-      accessTokenPayload.id,
+    return this.paymentsService.findAllPayments(
+      accessTokenPayload,
       page,
       limit,
     );
@@ -45,6 +45,6 @@ export class AdminPaymentsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.paymentsService.findOnePaymentAdmin(accessTokenPayload.id, id);
+    return this.paymentsService.findOnePayment(accessTokenPayload, id);
   }
 }

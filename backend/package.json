@@ -37,6 +37,7 @@
     "class-validator": "^0.15.1",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
+    "date-fns": "^4.4.0",
     "helmet": "^8.1.0",
     "nanoid": "^5.1.14",
     "passport": "^0.7.0",
