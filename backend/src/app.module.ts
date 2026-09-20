@@ -22,6 +22,7 @@ import { SubscriptionNotificationCron } from './jobs/subscription-notification.c
 import { StaffsModule } from './modules/staffs/staffs.module';
 import { AttendancesModule } from './modules/attendances/attendances.module';
 import { VisitsModule } from './modules/visits/visits.module';
+import { WorkingHoursModule } from './modules/working-hours/working-hours.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { VisitsModule } from './modules/visits/visits.module';
     MembershipsModule,
     NotificationsModule,
     StaffsModule,
+    WorkingHoursModule,
     VisitsModule,
     AttendancesModule,
   ],

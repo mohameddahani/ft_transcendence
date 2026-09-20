@@ -3,11 +3,11 @@ import {
   IsString,
   MinLength,
   MaxLength,
-  Matches,
   IsPhoneNumber,
   IsEnum,
   IsDate,
   IsUUID,
+  IsAlpha,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
@@ -18,17 +18,7 @@ export class AddMemberDto {
   @IsString()
   @MinLength(2)
   @MaxLength(30)
-  // ? / ... /: This defines a regular expression
-  // ? ^: Start from the beginning of the string
-  // ? a-z → lowercase letters
-  // ? A-Z → uppercase letters
-  // ? - → hyphen
-  // ? space " "
-  // ? +: One or more of the allowed characters
-  // ? $: End of the string
-  @Matches(/^[a-zA-Z\- ]+$/, {
-    message: 'First name can only contain letters, spaces, and hyphens',
-  })
+  @IsAlpha()
   // trim spaces from start and end
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
@@ -40,9 +30,7 @@ export class AddMemberDto {
   @IsString()
   @MinLength(2)
   @MaxLength(30)
-  @Matches(/^[a-zA-Z\- ]+$/, {
-    message: 'Last name can only contain letters, spaces, and hyphens',
-  })
+  @IsAlpha()
   // trim spaces from start and end
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,

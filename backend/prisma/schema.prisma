@@ -378,7 +378,7 @@ model WorkingHour {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([adminId, dayOfWeek, startTime])
+  @@unique([adminId, dayOfWeek])
   @@index([adminId, dayOfWeek])
   @@map("working_hours")
 }
