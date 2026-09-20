@@ -8,6 +8,8 @@ point of having a `Tool` object rather than a bare dict of callables.
 """
 
 import asyncio
+from datetime import UTC, datetime
+from decimal import Decimal
 import json
 import sys
 
@@ -149,13 +151,18 @@ async def main() -> None:  # noqa: C901
         {"a": atlas, "ids": [m["member_id"] for m in inactive["members"]]})
     check("...and every one of them really has stopped coming", not still_visiting)
 
-    everything = (await db._fetch_one(
-        "SELECT sum(amount) AS t FROM payments WHERE admin_id = :a", {"a": atlas}))["t"]
-    collected = await call(admin_tools, "get_revenue",
-                           schemas.GetRevenueArgs(period="all_time"))
-    total = collected["revenue"][0]["collected_mad"]
-    check("get_revenue counts money received, not money due",
-          float(total) < float(everything), f"{total} of {everything} MAD")
+    sold = await call(admin_tools, "get_revenue",
+                      schemas.GetRevenueArgs(period="all_time"))
+    billed = (await db._fetch_one(
+        """SELECT coalesce(sum(d.price), 0) AS t FROM memberships m
+           JOIN membership_plan_durations d ON d.id = m.membership_plan_duration_id
+           WHERE m.admin_id = :a""", {"a": atlas}))["t"]
+    check("get_revenue reports every period the gym sold",
+          Decimal(sold["revenue"][0]["billed_mad"]) == billed, f"{billed} MAD")
+    # The word matters: `billed` and `collected` are the same number today only
+    # because a membership is never created without a payment at the desk.
+    check("...and says so, rather than calling it collected",
+          "billed" in sold["basis"], sold["basis"])
 
     by_plan = await call(admin_tools, "get_revenue",
                          schemas.GetRevenueArgs(period="all_time", group_by="plan"))
@@ -257,7 +264,7 @@ async def main() -> None:  # noqa: C901
         check(f"reports.{name} under another gym's scope returns none of ours", not stray)
 
     for name, coro in (("gym_overview", reports.gym_overview(member)),
-                       ("revenue_by_plan", reports.revenue_by_plan(member))):
+                       ("revenue", reports.revenue(member))):
         try:
             await coro
             check(f"reports.{name} refuses a member scope", False, "RAN")
@@ -291,6 +298,42 @@ async def main() -> None:  # noqa: C901
     except ScopeViolation:
         check("a derived grouping cannot inject through date_column", True)
 
+    # --- revenue comes from memberships, not payments (2026-09-20) -----------
+    # Dahani's cron rewrites a collected payment to OVERDUE and then UNPAID as the
+    # period it bought runs out, so `payment_status` cannot carry revenue. Each
+    # membership row carries its own plan and price instead: exact, and it needs no
+    # column he has not shipped.
+    print("  -- revenue basis --")
+    by_plan = await reports.revenue(owner, None, "plan")
+    by_month = await reports.revenue(owner, None, "month")
+    total = (await reports.revenue(owner))[0]
+
+    check("revenue by plan names every plan that sold",
+          {r["plan_name"] for r in by_plan} and all(r["billed_mad"] for r in by_plan),
+          ", ".join(f"{r['plan_name']}={r['billed_mad']}" for r in by_plan[:2]))
+    check("the parts sum to the total",
+          sum(Decimal(r["billed_mad"]) for r in by_plan) == Decimal(total["billed_mad"])
+          and sum(Decimal(r["billed_mad"]) for r in by_month) == Decimal(total["billed_mad"]),
+          f"{total['billed_mad']} MAD over {total['periods_sold']} periods")
+
+    # The number it replaces. Summing PAID under-reports by however much the cron has
+    # rewritten -- this is the assertion that stops anyone quietly putting it back.
+    paid_only = (await db._fetch_one(
+        "SELECT coalesce(sum(amount), 0) AS n FROM payments"
+        " WHERE admin_id = :a AND payment_status = 'PAID'", {"a": atlas}))["n"]
+    check("...and it is more than summing PAID payments would have reported",
+          Decimal(total["billed_mad"]) > paid_only,
+          f"{total['billed_mad']} billed vs {paid_only} if we had trusted payment_status")
+
+    # One definition of revenue in the service: the overview's month-to-date figure
+    # must be the same number the breakdown reports for this month.
+    overview = await reports.gym_overview(owner)
+    this_month = datetime.now(UTC).strftime("%Y-%m")
+    month_row = next((r for r in by_month if r["month"] == this_month), None)
+    check("the overview agrees with the monthly breakdown",
+          month_row is not None and Decimal(month_row["billed_mad"]) == overview["revenue_mtd"],
+          f"{overview['revenue_mtd']} month-to-date")
+
     # --- staff: the admin's reach, minus the money (2026-09-20) --------------
     # Dahani's staff controllers give an employee the admin's routes for members,
     # memberships, payments, attendance and visits, and give them nothing for
@@ -313,10 +356,10 @@ async def main() -> None:  # noqa: C901
     # the list above changes what the model is *offered* -- it must not change what a
     # staff scope can *reach*.
     try:
-        await reports.revenue_by_plan(staff)
-        check("revenue_by_plan refuses a staff scope", False, "IT ANSWERED")
+        await reports.revenue(staff)
+        check("revenue refuses a staff scope", False, "IT ANSWERED")
     except ScopeViolation:
-        check("revenue_by_plan refuses a staff scope", True, "owner-only report")
+        check("revenue refuses a staff scope", True, "owner-only report")
     try:
         await sc_select(staff, "membership_plan_durations", ["price"], limit=1)
         check("prices are unreadable under a staff scope", False, "IT ANSWERED")

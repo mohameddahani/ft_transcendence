@@ -204,40 +204,25 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
                 "count": len(found), "members": [_safe_person(row) for row in found]}
 
     @tool("get_revenue",
-          "Collected revenue in MAD for a period, optionally broken down by month or "
-          "by plan. Only money actually received is counted.",
+          "Revenue in MAD for a period, optionally broken down by month or by plan. "
+          "This is what the gym SOLD in that period - memberships and renewals - "
+          "which is also what it took, since a membership is only created when the "
+          "member pays at the desk.",
           schemas.GetRevenueArgs)
     async def get_revenue(args: schemas.GetRevenueArgs) -> dict[str, Any]:
-        # Belt and braces with the registry above: the tool is not handed to a staff
-        # scope, and if it ever were, this is the line that refuses.
-        reports._require_owner(scope, "get_revenue")
+        # Belt and braces with the registry: the tool is not handed to a staff scope,
+        # and if it ever were, `reports.revenue` refuses one anyway.
         now = naive_utc_now()
         since = period_start(args.period, now)
-
-        if args.group_by == "plan":
-            return {"period": args.period, "group_by": "plan",
-                    "revenue": await reports.revenue_by_plan(scope, since)}
-
-        # PAID only. `paid_at` is NOT NULL even on an unpaid row, so summing by date
-        # alone counts money that never arrived (open ask #9 to Dahani).
-        where = "payment_status::text = :paid"
-        params: dict[str, Any] = {"paid": "PAID"}
-        if since is not None:
-            where += " AND paid_at >= :since"
-            params["since"] = since
-
-        rows = await aggregate(
-            scope, "payments", [("SUM", "amount", "collected"), ("COUNT", "*", "payments")],
-            group_by=["month"] if args.group_by == "month" else [],
-            date_column="paid_at", where=where, params=params, limit=120)
+        rows = await reports.revenue(scope, since, args.group_by)
         return {
             "period": args.period,
             "group_by": args.group_by,
-            "revenue": [
-                {**{k: v for k, v in r.items() if k not in ("collected",)},
-                 "collected_mad": str(r["collected"] or 0)}
-                for r in rows
-            ],
+            # Named so the model cannot quietly call it "collected". The two words
+            # mean the same thing today and will not the day Dahani adds a
+            # sell-now-pay-later path.
+            "basis": "billed: membership periods sold in this window",
+            "revenue": rows,
         }
 
     @tool("get_attendance_stats",
@@ -294,9 +279,9 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
         list_inactive_members, get_attendance_stats, list_recent_feedback,
     ]
     if scope.is_owner:
-        # Not offered to staff, and not merely hidden: `reports.revenue_by_plan` and
-        # the aggregate below both sit behind `_require_owner`, so a staff scope that
-        # somehow reached this tool would raise rather than answer.
+        # Not offered to staff, and not merely hidden: `reports.revenue` sits behind
+        # `_require_owner`, so a staff scope that somehow reached this tool raises
+        # rather than answers.
         registry.append(get_revenue)
     return {t.name: t for t in registry}
 

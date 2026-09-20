@@ -57,9 +57,12 @@ async def main() -> None:
         " FROM payments WHERE admin_id = :a", {"a": admin})]
     check("money is Decimal, never float", all(isinstance(p.amount, Decimal) for p in pays),
           f"{pays[0].amount}")
-    collected = sum(p.amount for p in pays if p.is_collected)
-    check("revenue excludes uncollected", collected < sum(p.amount for p in pays),
-          f"{collected} collected")
+    # `payment_status` answers "is this member paid up now?", not "did the money
+    # arrive" -- the cron rewrites collected rows as their period ends. Revenue is
+    # derived from memberships instead, and `check_tools.py` asserts that.
+    current = sum(p.amount for p in pays if p.is_current)
+    check("payment status narrows to the current period", current < sum(p.amount for p in pays),
+          f"{current} of {sum(p.amount for p in pays)} MAD is 'paid up'")
 
     ms = [Membership(**r) for r in await db._fetch_all(
         "SELECT id, admin_id, member_id, membership_plan_id, membership_plan_duration_id,"

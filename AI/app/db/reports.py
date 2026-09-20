@@ -86,10 +86,14 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
     # the `Scope` rather than an argument -- the same rule as the tenant predicate
     # itself. A staff overview does not *hide* the number afterwards; the subquery
     # never runs, so there is nothing to forget to strip.
+    # Same source as `revenue()` -- memberships, not payments. Two definitions of
+    # "revenue this month" in one service is how the overview and the breakdown come
+    # to disagree in front of the owner.
     revenue_line = """
-          (SELECT coalesce(sum(amount), 0) FROM payments
-            WHERE admin_id = :admin_id AND payment_status = 'PAID'
-              AND paid_at >= :month_start)                             AS revenue_mtd,"""
+          (SELECT coalesce(sum(d.price), 0)
+             FROM memberships m
+             JOIN membership_plan_durations d ON d.id = m.membership_plan_duration_id
+            WHERE m.admin_id = :admin_id AND m.start_date >= :month_start) AS revenue_mtd,"""
     params: dict[str, Any] = {
         "admin_id": scope.admin_id, "now": moment,
         "in_7": moment + timedelta(days=7), "in_30": moment + timedelta(days=30),
@@ -206,52 +210,81 @@ async def search_members(
     ]
 
 
-async def revenue_by_plan(scope: Scope, since: datetime | None = None) -> list[dict[str, Any]]:
-    """Collected revenue broken down by plan.
+async def revenue(
+    scope: Scope, since: datetime | None = None, group_by: str | None = None
+) -> list[dict[str, Any]]:
+    """Revenue, derived from **memberships** rather than from `payments`.
 
-    **This is a stopgap and should be read as one.** `payments` has no
-    `membership_id`, so there is no honest join from a payment to the plan it
-    settled -- that is ask #6 to Dahani and it is still open. Until it lands, the
-    amount is matched against the gym's own price list, which works only because
-    every price inside a gym is distinct (`scripts/check_seed.py` asserts it). The
-    day two plans in one gym cost the same, this silently double-counts.
+    Confirmed with Dahani on 2026-09-20, and right for two independent reasons.
 
-    Collected means PAID. `paid_at` is NOT NULL even on an unpaid row, so summing by
-    date alone counts money that never arrived.
+    **It is exact.** A membership row carries the plan it was sold on *and* the
+    duration it was sold at, so the price is one join away. The version this replaces
+    matched a payment to a plan by its *amount*, because `payments` has no
+    `membership_id` -- a labelled stopgap that would have silently double-counted the
+    day two plans in one gym cost the same. That whole class of wrongness is gone,
+    and so is the open ask for the column.
+
+    **`payments.payment_status` cannot carry this.** His cron rewrites a collected
+    payment to OVERDUE and then UNPAID as the period it bought runs out, so a member
+    who renews monthly for a year leaves eleven rows saying UNPAID for cash that was
+    handed over. Summing `PAID` reported roughly the last month and called it the year.
+
+    **What this measures is `billed`: what the gym sold.** Today that equals what it
+    collected, because a membership is only ever created together with a payment at
+    the desk -- there is no sell-now-pay-Friday path. The answer says `billed` anyway,
+    so that the day such a path exists this number is not quietly read as cash.
+
+    `group_by` is None (one total), "month", or "plan".
     """
-    _require_owner(scope, "revenue_by_plan")
+    _require_owner(scope, "revenue")
+
     # The window is appended rather than expressed as `(:since IS NULL OR ...)`.
     # SQLAlchemy's text() will not bind a `:name` immediately followed by `::`, so
     # `:since::timestamp` reaches Postgres verbatim and fails to parse -- and a NULL
     # parameter with no comparison to infer from has no type anyway.
-    params: dict[str, Any] = {"admin_id": scope.admin_id, "paid": "PAID"}
+    params: dict[str, Any] = {"admin_id": scope.admin_id}
     window = ""
     if since is not None:
-        window, params["since"] = "AND pay.paid_at >= :since", since
+        window, params["since"] = "AND m.start_date >= :since", since
+
+    # A cancelled membership was still sold and still paid for, so it counts. Dates
+    # come from `start_date`: that is when the period was bought.
+    if group_by == "plan":
+        projection = "pl.plan_name, d.duration_days, d.price,"
+        grouping = "GROUP BY pl.plan_name, d.duration_days, d.price ORDER BY billed DESC"
+    elif group_by == "month":
+        projection = "to_char(date_trunc('month', m.start_date), 'YYYY-MM') AS month,"
+        grouping = "GROUP BY 1 ORDER BY 1"
+    else:
+        projection = ""
+        grouping = ""
 
     rows = await _engine._fetch_all(
         f"""
-        SELECT pl.plan_name, d.duration_days, d.price,
-               count(*) AS payments, sum(pay.amount) AS collected
-        FROM payments pay
-        JOIN membership_plan_durations d ON d.price = pay.amount
+        SELECT {projection}
+               count(*) AS periods_sold,
+               coalesce(sum(d.price), 0) AS billed
+        FROM memberships m
+        JOIN membership_plan_durations d ON d.id = m.membership_plan_duration_id
         JOIN membership_plans pl
-          ON pl.id = d.membership_plan_id AND pl.admin_id = :admin_id
-        WHERE pay.admin_id = :admin_id
-          AND pay.payment_status::text = :paid
+          ON pl.id = m.membership_plan_id AND pl.admin_id = :admin_id
+        WHERE m.admin_id = :admin_id
           {window}
-        GROUP BY pl.plan_name, d.duration_days, d.price
-        ORDER BY collected DESC
+        {grouping}
         """,
         params,
     )
-    return [
-        {
-            "plan_name": r["plan_name"],
-            "duration_days": r["duration_days"],
-            "price_mad": str(r["price"]),
-            "payments": r["payments"],
-            "collected_mad": str(r["collected"]),
+
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        entry: dict[str, Any] = {
+            "periods_sold": r["periods_sold"],
+            "billed_mad": str(r["billed"]),
         }
-        for r in rows
-    ]
+        if group_by == "plan":
+            entry = {"plan_name": r["plan_name"], "duration_days": r["duration_days"],
+                     "price_mad": str(r["price"]), **entry}
+        elif group_by == "month":
+            entry = {"month": r["month"], **entry}
+        out.append(entry)
+    return out

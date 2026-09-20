@@ -349,14 +349,20 @@ class Payment(ReadModel):
 
     @computed_field
     @property
-    def is_collected(self) -> bool:
-        """The only safe basis for revenue: money actually received.
+    def is_current(self) -> bool:
+        """Whether this payment's period is the one the member is paid up for.
 
-        **Still open with Dahani** (`BACKEND_CHANGES_REVIEW.md` finding 1): his cron
-        rewrites a collected payment to OVERDUE and then UNPAID as its membership
-        period ends, so on his data this under-reports historical revenue. Now that
-        `paid_at` is nullable, the clean fix is "collected means `paid_at IS NOT
-        NULL`" -- but that is his call to make, not ours to assume.
+        **Not a revenue signal, and the name matters.** It was `is_collected` until
+        2026-09-20, which was wrong: Dahani's cron rewrites a collected payment to
+        OVERDUE and then UNPAID as the period it bought runs out, so a member who has
+        renewed monthly for a year leaves eleven rows saying UNPAID for cash that was
+        handed over. Summing `PAID` reported about the last month and called it the
+        year.
+
+        Revenue now comes from `memberships` instead -- each row carries its own plan
+        and price, which is exact and needs nothing from him (`reports.revenue`).
+        What this flag is still good for is the question the column actually answers:
+        is this member paid up right now?
         """
         return self.payment_status == PaymentStatus.PAID
 
