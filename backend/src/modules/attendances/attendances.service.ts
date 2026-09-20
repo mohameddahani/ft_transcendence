@@ -68,13 +68,11 @@ export class AttendancesService {
     // * Check the visit by token
     const visit = await this.prisma.visit.findUnique({
       where: {
-        adminId: adminId,
         qrTokenHash: qrTokenHash,
-        // visitStatus: VisitStatus.READY,
       },
     });
 
-    if (!visit) {
+    if (!visit || visit.adminId !== adminId) {
       throw new NotFoundException('Invalid QR code.');
     }
 
@@ -89,6 +87,7 @@ export class AttendancesService {
       visit.memberId,
       membership,
       AttendanceMethod.QR_CODE,
+      visit.id,
     );
   }
 
@@ -100,6 +99,7 @@ export class AttendancesService {
     memberId: string,
     membership: MembershipWithPlan,
     attendanceMethod: AttendanceMethod,
+    visitId?: string,
   ) {
     // * tx is the prisma client inside a transaction
     await this.prisma.$transaction(async (tx) => {
@@ -127,16 +127,28 @@ export class AttendancesService {
       }
 
       // * Find today's visit
-      const visit = await tx.visit.findFirst({
-        where: {
-          adminId: adminId,
-          memberId: memberId,
-          visitDateAndTime: {
-            gte: startOfToday,
-            lte: endOfToday,
-          },
-        },
-      });
+      const visit = visitId
+        ? await tx.visit.findFirst({
+            where: {
+              id: visitId,
+              adminId: adminId,
+              memberId: memberId,
+              visitDateAndTime: {
+                gte: startOfToday,
+                lte: endOfToday,
+              },
+            },
+          })
+        : await tx.visit.findFirst({
+            where: {
+              adminId: adminId,
+              memberId: memberId,
+              visitDateAndTime: {
+                gte: startOfToday,
+                lte: endOfToday,
+              },
+            },
+          });
 
       if (!visit) {
         throw new NotFoundException('No visit found for today.');
