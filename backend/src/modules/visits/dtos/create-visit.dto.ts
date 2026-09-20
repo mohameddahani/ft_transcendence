@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate } from 'class-validator';
+import { IsDate, IsNotEmpty } from 'class-validator';
 
 export class CreateVisitDto {
   @ApiProperty({
@@ -9,6 +9,7 @@ export class CreateVisitDto {
     type: Date,
     format: 'date-time',
   })
+  @IsNotEmpty()
   @Type(() => Date)
   @IsDate()
   visitDateAndTime!: Date;

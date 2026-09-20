@@ -64,11 +64,11 @@ export class VisitsService {
 
     // Example: The gym has two closure periods:
     //
-    // 1. SpecialHour #1: 14:00 to 16:00
-    //    Requested time: 19:00. Not inside (false).
+    // 1. SpecialHour #2: 18:00 to 20:00
+    //    Requested time: 15:00. not inside (false).
     //
-    // 2. SpecialHour #2: 18:00 to 20:00
-    //    Requested time: 19:00. Inside (true).
+    // 2. SpecialHour #1: 14:00 to 16:00
+    //    Requested time: 15:00. inside (true).
     //
     // 3. Throw an exception because the requested time
     //    falls within a closure period.
@@ -143,7 +143,9 @@ export class VisitsService {
     });
 
     if (alreadyVisited) {
-      throw new ForbiddenException('you already visited in today.');
+      throw new ForbiddenException(
+        'You already have a visit scheduled for this day.',
+      );
     }
 
     // * Calculate choosen week
@@ -251,7 +253,7 @@ export class VisitsService {
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
 
-    const visitToday = await this.prisma.visit.findUnique({
+    const visitToday = await this.prisma.visit.findFirst({
       where: {
         id: visitId,
         adminId: adminId,

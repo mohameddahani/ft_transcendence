@@ -91,6 +91,15 @@
 
 // ! cancel the visit
 
+// ! so i need to do a if condition that check if start date and end date is same and start time and end should only in range of this day
+// ! Like:
+// ! 09:00 to 22:00
+// ! not like
+// ! 08:00 to 00:00
+// ! so end day should has as max time is 23:59
+
+// so this solution will fix the problam ?
+
 // Common Types
 // Type	Meaning
 // feat	New feature
