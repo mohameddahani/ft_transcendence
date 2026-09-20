@@ -56,7 +56,7 @@ from pydantic import ValidationError
 
 from app.agents.llm import get_llm
 from app.agents.prompts import build_system_prompt
-from app.agents.tools import Tool, build_admin_tools, build_member_tools
+from app.agents.tools import Tool, build_admin_tools, build_member_tools, build_staff_tools
 from app.config import get_settings
 from app.core.errors import ApiError, upstream
 from app.db.profile import Profile
@@ -300,9 +300,14 @@ def _build_turn(
     budget = max_tool_rounds if max_tool_rounds is not None else settings.AGENT_MAX_TOOL_ROUNDS
     turn = Turn()
 
-    # Role dispatch. Both builders refuse the wrong kind of scope, so a mistake here
-    # fails at wiring time rather than halfway through an answer.
-    tools = build_member_tools(scope) if scope.is_member else build_admin_tools(scope)
+    # Role dispatch, three ways. Every builder refuses the wrong kind of scope, so a
+    # mistake here fails at wiring time rather than halfway through an answer.
+    if scope.is_member:
+        tools = build_member_tools(scope)
+    elif scope.is_staff:
+        tools = build_staff_tools(scope)
+    else:
+        tools = build_admin_tools(scope)
     declarations = build_declarations(tools)
 
     model = llm if llm is not None else get_llm()

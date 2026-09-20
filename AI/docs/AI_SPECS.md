@@ -67,6 +67,7 @@ Read only. Columns actually used, so a startup check can verify exactly these (t
 | `membership_plan_durations` | `id`, `membership_plan_id`, `duration_days`, `price` |
 | `payments` | `id`, `admin_id`, `member_id`, `amount`, `paid_at?`, `due_date?`, `payment_status` |
 | `attendances` | `id`, `admin_id`, `member_id`, `membership_id`, `attendance_method`, `checked_in_at` |
+| `staffs` | `id`, `admin_id`, `role`, `account_status` — read only to resolve a STAFF token's gym |
 | `feedbacks` | `id`, `admin_id`, `member_id`, `content`, `rating`, `sentiment`, `sentiment_score`, `feedback_status`, `created_at` |
 
 **`admin_id` is on only 5 of the 15 tables.** Scoping is therefore not one rule but four, and
@@ -152,6 +153,8 @@ rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start)
 Resolving tenant from the token:
 
 - `role = ADMIN` → `admin_id = payload.id`
+- `role = STAFF` → `staff_id = payload.id`, then look up `staffs.admin_id`. **Only an ACTIVE
+  employee is admitted** — stricter than the member rule, where FROZEN is let through.
 - `role = MEMBER` → `member_id = payload.id`, then look up `members.admin_id`
 - `role = OWNER` → **rejected.** Platform operators are out of scope for the assistant.
 
@@ -308,6 +311,13 @@ or member identifier as a model-supplied argument.** This is what makes prompt i
 unexpressible rather than merely discouraged.
 
 ### 4.1 Admin tools
+
+Also the **staff** registry, minus `get_revenue`; and `get_gym_overview` arrives without its
+revenue figure, because `reports.gym_overview` omits the subquery for a staff scope. The rule is
+*mirror Dahani's API*: his staff controllers cover members, memberships, payments, attendance and
+visits, and nothing covers pricing, staff management or the gym's own subscription. Pricing
+(`membership_plan_durations`) is refused to a staff scope by the schema contract itself.
+
 
 | Tool | Parameters | Returns |
 |---|---|---|

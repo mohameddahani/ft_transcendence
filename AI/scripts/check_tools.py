@@ -14,6 +14,7 @@ import sys
 from pydantic import ValidationError
 
 from app.agents.tools import (
+    build_staff_tools,
     FORBIDDEN_PARAMETERS,
     MEMBER_ID_ALLOWED_IN,
     build_admin_tools,
@@ -26,6 +27,8 @@ from app.config import get_settings
 from app.db import engine as db
 from app.db import reports
 from app.db.scope import Scope, ScopeViolation, aggregate
+from app.db.scope import select as sc_select
+from app.agents.tools.schemas import GetMemberDetailArgs
 
 FAIL = 0
 
@@ -287,6 +290,61 @@ async def main() -> None:  # noqa: C901
         check("a derived grouping cannot inject through date_column", False, "EXECUTED")
     except ScopeViolation:
         check("a derived grouping cannot inject through date_column", True)
+
+    # --- staff: the admin's reach, minus the money (2026-09-20) --------------
+    # Dahani's staff controllers give an employee the admin's routes for members,
+    # memberships, payments, attendance and visits, and give them nothing for
+    # pricing, staff management or the gym's own subscription. The assistant mirrors
+    # that, and these are the assertions that keep it mirrored.
+    print("  -- staff scope --")
+    staff = Scope(admin_id=atlas, staff_id="staff-under-test")
+    staff_tools = build_staff_tools(staff)
+    owner_tools = build_admin_tools(owner)
+
+    check("staff hold the gym-wide tools", {"get_gym_overview", "search_members",
+          "list_inactive_members", "list_expiring_memberships"} <= set(staff_tools))
+    check("...but not get_revenue", "get_revenue" not in staff_tools,
+          f"{len(owner_tools) - len(staff_tools)} tool fewer than the owner")
+    check("no staff tool lets the model choose a tenant",
+          not any(set(t.json_schema().get("properties", {})) & FORBIDDEN_PARAMETERS
+                  for name, t in staff_tools.items() if name not in MEMBER_ID_ALLOWED_IN))
+
+    # The registry is a convenience; these two are the enforcement. A wrong edit to
+    # the list above changes what the model is *offered* -- it must not change what a
+    # staff scope can *reach*.
+    try:
+        await reports.revenue_by_plan(staff)
+        check("revenue_by_plan refuses a staff scope", False, "IT ANSWERED")
+    except ScopeViolation:
+        check("revenue_by_plan refuses a staff scope", True, "owner-only report")
+    try:
+        await sc_select(staff, "membership_plan_durations", ["price"], limit=1)
+        check("prices are unreadable under a staff scope", False, "IT ANSWERED")
+    except ScopeViolation:
+        check("prices are unreadable under a staff scope", True,
+              "no staff controller for /api/membership-plans either")
+
+    # And the overview does not merely hide the number: the subquery never runs.
+    owner_overview = await reports.gym_overview(owner)
+    staff_overview = await reports.gym_overview(staff)
+    check("the owner overview carries revenue", "revenue_mtd" in owner_overview)
+    check("the staff overview has no revenue key at all",
+          "revenue_mtd" not in staff_overview, f"{sorted(staff_overview)}")
+    check("...and is otherwise the same report",
+          set(owner_overview) - {"revenue_mtd"} == set(staff_overview))
+
+    # Same gym, so the operational numbers must agree: the difference is money, not
+    # tenancy. A staff scope that quietly saw less would be a different bug.
+    check("staff see the same members as the owner",
+          staff_overview["active_members"] == owner_overview["active_members"],
+          f"{staff_overview['active_members']} active")
+
+    staff_detail = await staff_tools["get_member_detail"].run(
+        GetMemberDetailArgs(member_id=(await sc_select(
+            staff, "members", ["id"], limit=1))[0]["id"]))
+    check("staff may read a member's payment history",
+          staff_detail["found"] and "payments" in staff_detail,
+          "his /api/staffs/payments gives them the ledger too")
 
     await db.dispose_engine()
     sys.exit(FAIL)

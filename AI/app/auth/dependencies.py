@@ -47,6 +47,10 @@ class AuthContext:
     def is_admin(self) -> bool:
         return self.role is Role.ADMIN
 
+    @property
+    def is_staff(self) -> bool:
+        return self.role is Role.STAFF
+
 
 async def _claims(
     request: Request,
@@ -77,6 +81,13 @@ async def require_auth(claims: Annotated[TokenClaims, Depends(_claims)]) -> Auth
             raise unauthorized("Invalid or expired token.")
         return AuthContext(scope=admin.scope, role=Role.ADMIN, subject=claims.subject)
 
+    if claims.role is Role.STAFF:
+        staff = await tenancy.resolve_staff(claims.subject)
+        if staff is None:
+            logger.info("staff token for an unknown, non-staff or inactive account")
+            raise unauthorized("Invalid or expired token.")
+        return AuthContext(scope=staff.scope, role=Role.STAFF, subject=claims.subject)
+
     member = await tenancy.resolve_member(claims.subject)
     if member is None:
         logger.info("member token for an unknown or banned account")
@@ -92,7 +103,11 @@ async def require_admin(ctx: Annotated[AuthContext, Depends(require_auth)]) -> A
     know, and re-authenticating would not help.
     """
     if not ctx.is_admin:
-        logger.info("member token refused on an admin-only route")
+        # Staff are refused here as well as members. These routes are the gym's own
+        # account -- document management, and anything about the business rather than
+        # its members -- which is the owner's, exactly as in Dahani's API.
+        logger.info("non-admin token refused on an admin-only route",
+                    extra={"fields": {"role": ctx.role.value}})
         raise forbidden("This endpoint is for gym administrators.")
     return ctx
 

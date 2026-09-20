@@ -37,6 +37,7 @@ from app.db.models import (
     MembershipPlanDuration,
     Payment,
     ReadModel,
+    Staff,
 )
 
 logger = logging.getLogger(__name__)
@@ -73,12 +74,29 @@ class MemberAccess(StrEnum):
     DENIED = "denied"       # the member agent may not touch this table
 
 
+class StaffAccess(StrEnum):
+    """What a gym employee may see, mirroring Dahani's API exactly.
+
+    His staff controllers cover members, memberships, payments, attendance and
+    visits with the same routes an admin gets. There is no staff controller for
+    `/api/membership-plans`, so a staff token cannot reach pricing through his API
+    -- and must not reach it through the assistant either. Declared per table for
+    the same reason `MemberAccess` is: a default is how a boundary gets lost.
+
+    No OWN_ROWS: a staff member is not a row in any of these tables.
+    """
+
+    GYM_WIDE = "gym_wide"
+    DENIED = "denied"
+
+
 @dataclass(frozen=True)
 class TableSpec:
     rule: ScopeRule
     columns: Mapping[str, str]
     model: type[ReadModel]
     member_access: MemberAccess
+    staff_access: StaffAccess
     # OWN_ROWS only: the column holding the member's id on this table.
     member_column: str | None = None
     # TRANSITIVE only: `<local_key> IN (SELECT <parent_key> FROM <parent_table>
@@ -96,6 +114,8 @@ class TableSpec:
             raise TypeError(f"rule must be a ScopeRule, got {type(self.rule).__name__}")
         if not isinstance(self.member_access, MemberAccess):
             raise TypeError("member_access must be a MemberAccess")
+        if not isinstance(self.staff_access, StaffAccess):
+            raise TypeError("staff_access must be a StaffAccess")
         if not self.columns:
             raise ValueError("a table with no allowlisted columns is not queryable")
 
@@ -129,6 +149,7 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "users": TableSpec(
         rule=ScopeRule.TENANT,
         member_access=MemberAccess.GYM_WIDE,  # only ever their own gym's single row
+        staff_access=StaffAccess.GYM_WIDE,    # the gym they work for
         columns={
             "id": TEXT, "first_name": TEXT, "last_name": TEXT,
             "company_name": TEXT, "role": ENUM, "email": TEXT,
@@ -138,6 +159,8 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "members": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
+        # /api/staffs/members gives them the whole directory, and ban/freeze too.
+        staff_access=StaffAccess.GYM_WIDE,
         member_column="id",  # a member IS a row of this table
         columns={
             "id": TEXT, "admin_id": TEXT, "first_name": TEXT, "last_name": TEXT,
@@ -149,6 +172,9 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "membership_plans": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.GYM_WIDE,  # members may browse what their gym sells
+        # Plan NAMES are fine -- staff need them to talk about a membership at all.
+        # The prices live in `membership_plan_durations`, which they may not read.
+        staff_access=StaffAccess.GYM_WIDE,
         columns={
             "id": TEXT, "admin_id": TEXT, "plan_name": TEXT,
             "description": TEXT, "is_active": BOOLEAN,
@@ -166,6 +192,11 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         parent_table="membership_plans",
         local_key="membership_plan_id",
         member_access=MemberAccess.GYM_WIDE,
+        # The one table a staff token may not touch. Dahani has no staff controller
+        # for /api/membership-plans, so pricing is the owner's; mirroring that here
+        # makes "what do you charge for the annual plan?" unanswerable rather than
+        # merely discouraged.
+        staff_access=StaffAccess.DENIED,
         columns={
             "id": TEXT, "membership_plan_id": TEXT,
             "duration_days": INTEGER, "price": NUMERIC,
@@ -175,6 +206,7 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "memberships": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
+        staff_access=StaffAccess.GYM_WIDE,
         member_column="member_id",
         columns={
             "id": TEXT, "admin_id": TEXT, "member_id": TEXT,
@@ -187,6 +219,7 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "payments": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
+        staff_access=StaffAccess.GYM_WIDE,
         member_column="member_id",
         columns={
             "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "amount": NUMERIC,
@@ -204,6 +237,7 @@ TABLES: Final[Mapping[str, TableSpec]] = {
     "attendances": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
+        staff_access=StaffAccess.GYM_WIDE,
         member_column="member_id",
         columns={
             "id": TEXT, "admin_id": TEXT, "member_id": TEXT,
@@ -215,9 +249,23 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         },
         model=Attendance,
     ),
+    # Present for the boot check and the grant, not for querying: `tenancy.py`
+    # resolves a staff token through its own lookup, the way it does for members.
+    # DENIED on both agent axes because nothing should list a gym's employees --
+    # Dahani has no staff controller either, only `/api/admins/staffs`.
+    "staffs": TableSpec(
+        rule=ScopeRule.DIRECT,
+        member_access=MemberAccess.DENIED,
+        staff_access=StaffAccess.DENIED,
+        columns={
+            "id": TEXT, "admin_id": TEXT, "role": ENUM, "account_status": ENUM,
+        },
+        model=Staff,
+    ),
     "feedbacks": TableSpec(
         rule=ScopeRule.DIRECT,
         member_access=MemberAccess.OWN_ROWS,
+        staff_access=StaffAccess.GYM_WIDE,
         member_column="member_id",
         columns={
             "id": TEXT, "admin_id": TEXT, "member_id": TEXT, "content": TEXT,

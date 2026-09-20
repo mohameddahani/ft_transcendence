@@ -16,7 +16,7 @@ one-line copy-paste in a `.env` that would otherwise promote every member to adm
 (`Settings` also refuses to boot in that case; this is the second layer.)
 
 OWNER tokens are signed with a secret we deliberately do not hold, so they simply
-fail both attempts and get a 401. Platform operators are out of scope for the
+fail every attempt and get a 401. Platform operators are out of scope for the
 assistant (AI_SPECS 3.1), and not holding the key is a stronger way to say so than
 an `if` would be.
 """
@@ -44,8 +44,8 @@ _ALGORITHMS: Final = ["HS256"]
 _REQUIRED_CLAIMS: Final = ["exp", "iat"]
 
 # The roles this service accepts, each with the setting that verifies it. Order is
-# only a performance detail -- both are tried before giving up.
-_ACCEPTED_ROLES: Final = (Role.ADMIN, Role.MEMBER)
+# only a performance detail -- all of them are tried before giving up.
+_ACCEPTED_ROLES: Final = (Role.ADMIN, Role.STAFF, Role.MEMBER)
 
 
 class InvalidToken(Exception):
@@ -69,6 +69,8 @@ def _secret_for(role: Role, settings: Settings) -> str:
         return settings.JWT_ADMIN_ACCESS_SECRET.get_secret_value()
     if role is Role.MEMBER:
         return settings.JWT_MEMBER_ACCESS_SECRET.get_secret_value()
+    if role is Role.STAFF:
+        return settings.JWT_STAFF_ACCESS_SECRET.get_secret_value()
     raise InvalidToken(f"no access secret is configured for role {role}")
 
 

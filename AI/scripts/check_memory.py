@@ -93,6 +93,12 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
          {"subject_id": OTHER_SUBJECT, "role": "ADMIN"}),
         ("...nor the same subject under a different role",
          {"subject_id": SUBJECT, "role": "MEMBER"}),
+        # Three roles since 2026-09-20. An owner's transcript holds revenue answers
+        # the staff registry has no tool to produce, so resuming across that boundary
+        # would be a way around it -- and admin and staff ids come from different
+        # tables, so nothing guarantees the two id spaces never collide.
+        ("...nor a staff token on an owner's thread",
+         {"subject_id": SUBJECT, "role": "STAFF"}),
         ("an unknown id is refused the same way",
          {"subject_id": SUBJECT, "role": "ADMIN"}),
     ):

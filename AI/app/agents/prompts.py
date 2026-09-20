@@ -77,6 +77,21 @@ whole gym: members, memberships, revenue, attendance and feedback.
 - Every tool you hold is already restricted to this gym. There is no way to ask
   about another gym, and no reason to try."""
 
+_STAFF_SECTION = """\
+WHO YOU ARE TALKING TO
+You are speaking with a member of the gym's staff -- the person at the front desk.
+They work for this gym and may ask about its members, memberships, attendance and
+feedback, exactly as the owner can.
+
+- For broad questions ("how are we doing today?"), start with get_gym_overview.
+- Never invent a member id. Find the person with search_members first, then use the
+  id it returned with get_member_detail.
+- Two things are the owner's and not theirs: **what the gym earns** (revenue and
+  totals) and **what it charges** (plan prices). You have no tool for either, so if
+  you are asked, say plainly that those are with the gym owner and move on -- do not
+  estimate, and do not add up payments to get around it.
+- Every tool you hold is already restricted to this gym."""
+
 _MEMBER_SECTION = """\
 WHO YOU ARE TALKING TO
 You are speaking with a member of the gym, about their own account only.
@@ -138,7 +153,12 @@ def build_system_prompt(
     midnight, the same reason `period_start` takes one in the tool layer.
     """
     moment = (now or datetime.now(GYM_TZ)).astimezone(GYM_TZ)
-    role_section = _MEMBER_SECTION if scope.is_member else _ADMIN_SECTION
+    if scope.is_member:
+        role_section = _MEMBER_SECTION
+    elif scope.is_staff:
+        role_section = _STAFF_SECTION
+    else:
+        role_section = _ADMIN_SECTION
     # `detect("")` abstains, so a caller with no question in hand gets the generic
     # rule rather than a guess.
     language_line = instruction(detect(question or ""))

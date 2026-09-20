@@ -60,6 +60,7 @@ It reads **8 tables**, and only the columns it actually uses:
 | `membership_plan_durations` | `id`, `membership_plan_id`, `duration_days`, `price` | Prices |
 | `payments` | `id`, `admin_id`, `member_id`, `amount`, `paid_at?`, `due_date?`, `payment_status` | Revenue |
 | `attendances` | `id`, `admin_id`, `member_id`, `membership_id`, `attendance_method`, `checked_in_at` | Attendance, peak hours, who stopped coming |
+| `staffs` | `id`, `admin_id`, `role`, `account_status` | Resolving a staff token to its gym, and checking the employee is still active |
 | `feedbacks` | `id`, `admin_id`, `member_id`, `content`, `rating`, `sentiment`, `sentiment_score`, `feedback_status`, `created_at` | Feedback list, open complaints, sentiment trend |
 
 **It cannot read anything else — the database itself refuses:**
@@ -89,12 +90,29 @@ declared in one file (`AI/app/db/schema.py`) and applied in one place (`AI/app/d
 
 For a member's own chat, a second narrowing is applied on top: their own rows only.
 
+### Three audiences, and what separates them
+
+| | Owner | Staff | Member |
+|---|---|---|---|
+| The gym's members, memberships, attendance, feedback | ✅ | ✅ | own rows only |
+| A member's payment history | ✅ | ✅ | own rows only |
+| **Revenue and totals** | ✅ | ❌ | ❌ |
+| **Plan prices** | ✅ | ❌ | ✅ (their gym's price list) |
+
+The staff column is not a judgement call: it is read from Dahani's own controllers. He gives
+staff the admin's routes for members, memberships, payments, attendance and visits, and gives
+them no route at all for `/api/membership-plans`, `/api/admins/staffs` or the gym's subscription.
+The assistant mirrors that, so a divergence is a bug rather than an opinion.
+
+**If that boundary should move, it moves in the API first** — otherwise the assistant is stricter
+than the app, and someone will notice they can see a number in the UI that the assistant refuses.
+
 ## 4. Auth: the AI service adds no new login
 
 There is no separate account, no separate password, no second session. The browser sends the
 **same access token Nest issued at login**, as `Authorization: Bearer <token>`.
 
-- The AI service holds Dahani's two ACCESS secrets (ADMIN and MEMBER) and verifies the signature itself.
+- The AI service holds Dahani's three ACCESS secrets (ADMIN, STAFF, MEMBER) and verifies the signature itself. It refuses to boot if any two of them are equal.
 - It does **not** hold the OWNER secret or any refresh secret. Platform-owner tokens therefore fail, by construction rather than by an `if`.
 - After the signature verifies, it re-reads the account from the database to resolve the gym and to check the account is still allowed in — so a ban takes effect on the assistant immediately, not when the token expires.
 
@@ -102,7 +120,7 @@ There is no separate account, no separate password, no second session. The brows
 
 1. **The access token must stay in the JSON login response.** If it moves into an httpOnly
    cookie, the browser can no longer send it to a different service and streaming breaks.
-2. **The two ACCESS secrets must be identical** in `backend/.env` and `AI/.env`, byte for byte,
+2. **The three ACCESS secrets must be identical** in `backend/.env` and `AI/.env`, byte for byte,
    in every environment. If they drift, every request is a 401 with no other symptom.
 
 ## 5. The HTTP surface

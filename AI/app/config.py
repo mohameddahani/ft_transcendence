@@ -74,6 +74,10 @@ class Settings(BaseSettings):
     # is deliberately absent so a platform-operator token cannot verify here at all.
     JWT_ADMIN_ACCESS_SECRET: SecretStr = Field(min_length=32)
     JWT_MEMBER_ACCESS_SECRET: SecretStr = Field(min_length=32)
+    # Staff arrived with Dahani's 2026-09-20 release. They are gym employees, so the
+    # assistant gives them what his API gives them: everything an admin sees except
+    # what the business earns and what it charges.
+    JWT_STAFF_ACCESS_SECRET: SecretStr = Field(min_length=32)
     # Clock skew allowance between Dahani's container and ours. Seconds, small on
     # purpose: this widens the window in which an expired token is still accepted.
     JWT_LEEWAY_SECONDS: int = Field(default=10, ge=0, le=120)
@@ -136,12 +140,20 @@ class Settings(BaseSettings):
         # how it would happen -- and every member becomes an admin of their own gym.
         # `verify_access_token` also cross-checks the role claim, but a boot-time
         # refusal is the layer that makes the misconfiguration impossible to ship.
-        if (self.JWT_ADMIN_ACCESS_SECRET.get_secret_value()
-                == self.JWT_MEMBER_ACCESS_SECRET.get_secret_value()):
-            raise ValueError(
-                "JWT_ADMIN_ACCESS_SECRET and JWT_MEMBER_ACCESS_SECRET are identical; "
-                "that collapses the admin/member boundary"
-            )
+        # Pairwise, not just admin/member: with three roles there are three ways to
+        # collapse a boundary, and each one promotes somebody.
+        secrets = {
+            "JWT_ADMIN_ACCESS_SECRET": self.JWT_ADMIN_ACCESS_SECRET.get_secret_value(),
+            "JWT_MEMBER_ACCESS_SECRET": self.JWT_MEMBER_ACCESS_SECRET.get_secret_value(),
+            "JWT_STAFF_ACCESS_SECRET": self.JWT_STAFF_ACCESS_SECRET.get_secret_value(),
+        }
+        names = sorted(secrets)
+        for i, first in enumerate(names):
+            for second in names[i + 1:]:
+                if secrets[first] == secrets[second]:
+                    raise ValueError(
+                        f"{first} and {second} are identical; that collapses a role boundary"
+                    )
         return self
 
     @property

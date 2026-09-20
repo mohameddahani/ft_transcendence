@@ -35,6 +35,7 @@ BASE = "http://127.0.0.1:8000"
 settings = get_settings()
 ADMIN_SECRET = settings.JWT_ADMIN_ACCESS_SECRET.get_secret_value()
 MEMBER_SECRET = settings.JWT_MEMBER_ACCESS_SECRET.get_secret_value()
+STAFF_SECRET = settings.JWT_STAFF_ACCESS_SECRET.get_secret_value()
 
 
 def check(label: str, cond: bool, detail: str = "") -> None:
@@ -146,13 +147,29 @@ async def main() -> None:  # noqa: C901
 
     # ---------------------------------------------------- config: secrets must differ
     base_kwargs = dict(INTERNAL_API_KEY="x" * 16,
-                       AI_DATABASE_URL="postgresql+asyncpg://ai_readonly:p@h:5432/d")
+                       AI_DATABASE_URL="postgresql+asyncpg://ai_readonly:p@h:5432/d",
+                       JWT_STAFF_ACCESS_SECRET="c" * 40)
     try:
         Settings(_env_file=None, JWT_ADMIN_ACCESS_SECRET="s" * 40,
                  JWT_MEMBER_ACCESS_SECRET="s" * 40, **base_kwargs)
         check("boot refuses two identical role secrets", False, "ACCEPTED")
     except ValidationError as exc:
         check("boot refuses two identical role secrets", "identical" in str(exc))
+    # Three roles means three ways to collapse a boundary, and staff/admin is the
+    # one that would promote an employee to the owner's view of the money.
+    for first, second in (("JWT_ADMIN_ACCESS_SECRET", "JWT_STAFF_ACCESS_SECRET"),
+                          ("JWT_MEMBER_ACCESS_SECRET", "JWT_STAFF_ACCESS_SECRET")):
+        kwargs = {"JWT_ADMIN_ACCESS_SECRET": "a" * 40,
+                  "JWT_MEMBER_ACCESS_SECRET": "b" * 40,
+                  "JWT_STAFF_ACCESS_SECRET": "c" * 40,
+                  "INTERNAL_API_KEY": "x" * 16,
+                  "AI_DATABASE_URL": "postgresql+asyncpg://ai_readonly:p@h:5432/d"}
+        kwargs[first] = kwargs[second] = "z" * 40
+        try:
+            Settings(_env_file=None, **kwargs)
+            check(f"boot refuses {first[4:9]}=={second[4:9]}", False, "ACCEPTED")
+        except ValidationError as exc:
+            check(f"boot refuses {first[4:9]}=={second[4:9]}", "identical" in str(exc))
     # A boot log ends up in `docker compose logs`, in CI output, and in whatever
     # someone pastes into a chat asking why the container will not start. Pydantic's
     # own message would print the rejected secret verbatim.
@@ -181,6 +198,39 @@ async def main() -> None:  # noqa: C901
           ident.scope == Scope(admin_id=atlas) and ident.scope.member_id is None)
     check("a member id does not resolve as an admin", await tenancy.resolve_admin(omar) is None)
     check("an unknown id does not resolve", await tenancy.resolve_admin("no-such-id") is None)
+
+    # ------------------------------------------------------------------ staff
+    # The role/key cross-check has a third way to fail now: a token signed with one
+    # role's secret must never be accepted while claiming another.
+    check("a STAFF token verifies against the staff secret",
+          verify_access_token(mint("any-staff-id", "STAFF", STAFF_SECRET),
+                              settings).role is Role.STAFF)
+    for claimed, secret, label in (("ADMIN", STAFF_SECRET, "admin claim, staff key"),
+                                   ("STAFF", ADMIN_SECRET, "staff claim, admin key"),
+                                   ("STAFF", MEMBER_SECRET, "staff claim, member key")):
+        try:
+            verify_access_token(mint("x", claimed, secret), settings)
+            check(f"refused: {label}", False, "ACCEPTED")
+        except InvalidToken:
+            check(f"refused: {label}", True)
+
+    staff_row = await db._fetch_one(
+        "SELECT id FROM staffs WHERE admin_id = :a AND account_status = 'ACTIVE'"
+        " ORDER BY id LIMIT 1", {"a": atlas})
+    staff_ident = await tenancy.resolve_staff(staff_row["id"])
+    check("resolve_staff finds the gym they work for",
+          staff_ident is not None and staff_ident.admin_id == atlas)
+    check("resolve_staff builds a gym-wide scope carrying the staff id",
+          staff_ident.scope.is_staff and not staff_ident.scope.is_owner
+          and staff_ident.scope.admin_id == atlas)
+    banned = await db._fetch_one(
+        "SELECT id FROM staffs WHERE admin_id = :a AND account_status <> 'ACTIVE'"
+        " ORDER BY id LIMIT 1", {"a": atlas})
+    check("a non-ACTIVE employee does not resolve",
+          await tenancy.resolve_staff(banned["id"]) is None,
+          "suspended, pending or switched off -- refused at the door")
+    check("a member id does not resolve as staff", await tenancy.resolve_staff(omar) is None)
+    check("an admin id does not resolve as staff", await tenancy.resolve_staff(atlas) is None)
 
     mem = await tenancy.resolve_member(omar)
     check("resolve_member finds the member's gym", mem is not None and mem.admin_id == atlas)

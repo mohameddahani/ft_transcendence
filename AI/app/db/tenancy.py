@@ -22,12 +22,15 @@ from dataclasses import dataclass
 from typing import Final
 
 from app.db import engine as _engine
-from app.db.models import MemberAccountStatus, Role
+from app.db.models import MemberAccountStatus, Role, UserAccountStatus
 from app.db.scope import Scope
 
 # A row of `users`. `id` here IS the admin_id every gym-scoped table hangs off.
 _ADMIN_SQL: Final = "SELECT id, role, company_name FROM users WHERE id = :id"
 _MEMBER_SQL: Final = "SELECT id, admin_id, account_status FROM members WHERE id = :id"
+# A gym employee. Same shape as the member lookup: the tenancy pointer and the
+# account state, nothing else -- no name, no contact details, and never `password`.
+_STAFF_SQL: Final = "SELECT id, admin_id, role, account_status FROM staffs WHERE id = :id"
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,16 @@ class MemberIdentity:
         return Scope(admin_id=self.admin_id, member_id=self.member_id)
 
 
+@dataclass(frozen=True)
+class StaffIdentity:
+    staff_id: str
+    admin_id: str
+
+    @property
+    def scope(self) -> Scope:
+        return Scope(admin_id=self.admin_id, staff_id=self.staff_id)
+
+
 async def resolve_admin(admin_id: str) -> AdminIdentity | None:
     """The gym behind an ADMIN token, or None if it is gone or not an admin.
 
@@ -62,6 +75,27 @@ async def resolve_admin(admin_id: str) -> AdminIdentity | None:
     if row is None or row["role"] != Role.ADMIN:
         return None
     return AdminIdentity(admin_id=row["id"], company_name=row["company_name"])
+
+
+async def resolve_staff(staff_id: str) -> StaffIdentity | None:
+    """The gym behind a STAFF token, or None if they no longer work here.
+
+    Stricter than the member lookup, and deliberately: **only ACTIVE gets in.** A
+    member who is FROZEN still needs to ask why they are frozen and what they owe,
+    so they are let through. An employee who has been suspended, is pending
+    approval, or has simply been switched off has no such need -- and an access
+    token lives 15 minutes past the moment somebody clicks "ban", which is exactly
+    the window this closes.
+
+    The role is re-read too, not taken from the token: the row is authoritative
+    about what this account is now.
+    """
+    row = await _engine._fetch_one(_STAFF_SQL, {"id": staff_id})
+    if row is None or row["role"] != Role.STAFF:
+        return None
+    if row["account_status"] != UserAccountStatus.ACTIVE:
+        return None
+    return StaffIdentity(staff_id=row["id"], admin_id=row["admin_id"])
 
 
 async def resolve_member(member_id: str) -> MemberIdentity | None:

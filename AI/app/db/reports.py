@@ -41,9 +41,22 @@ MAX_ROWS: Final = 500
 _LIKE_SPECIALS: Final = str.maketrans({"\\": r"\\", "%": r"\%", "_": r"\_"})
 
 
-def _require_owner(scope: Scope, report: str) -> None:
+def _require_gym_scope(scope: Scope, report: str) -> None:
+    """Owner or staff. Both see the gym; only the owner sees what it earns."""
     if scope.is_member:
-        raise ScopeViolation(f"{report} is an owner report; a member scope may not run it")
+        raise ScopeViolation(f"{report} is a gym-wide report; a member scope may not run it")
+
+
+def _require_owner(scope: Scope, report: str) -> None:
+    """Owner only. Used by the money reports.
+
+    Staff are refused structurally rather than by leaving a tool out of their
+    registry: a registry is a list somebody edits, and this is the layer that holds
+    even if that edit is wrong.
+    """
+    if not scope.is_owner:
+        raise ScopeViolation(
+            f"{report} reports the gym's own finances; only the owner scope may run it")
 
 
 def _bounded(limit: int) -> int:
@@ -64,13 +77,31 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
     number on the first line of the first answer of the demo. The status check is
     what stops a membership superseded by a plan change from being counted twice.
     """
-    _require_owner(scope, "gym_overview")
+    _require_gym_scope(scope, "gym_overview")
     moment = now or naive_utc_now()
     day_start = moment.replace(hour=0, minute=0, second=0, microsecond=0)
     month_start = day_start.replace(day=1)
 
+    # The revenue line is built in only for the owner, and the condition reads off
+    # the `Scope` rather than an argument -- the same rule as the tenant predicate
+    # itself. A staff overview does not *hide* the number afterwards; the subquery
+    # never runs, so there is nothing to forget to strip.
+    revenue_line = """
+          (SELECT coalesce(sum(amount), 0) FROM payments
+            WHERE admin_id = :admin_id AND payment_status = 'PAID'
+              AND paid_at >= :month_start)                             AS revenue_mtd,"""
+    params: dict[str, Any] = {
+        "admin_id": scope.admin_id, "now": moment,
+        "in_7": moment + timedelta(days=7), "in_30": moment + timedelta(days=30),
+        "day_start": day_start,
+    }
+    if scope.is_owner:
+        params["month_start"] = month_start
+    else:
+        revenue_line = ""
+
     row = await _engine._fetch_one(
-        """
+        f"""
         SELECT
           (SELECT count(DISTINCT member_id) FROM memberships
             WHERE admin_id = :admin_id AND expires_at > :now
@@ -80,16 +111,11 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
               AND expires_at BETWEEN :now AND :in_7)                   AS expiring_7d,
           (SELECT count(*) FROM memberships
             WHERE admin_id = :admin_id AND membership_status = 'ACTIVE'
-              AND expires_at BETWEEN :now AND :in_30)                  AS expiring_30d,
-          (SELECT coalesce(sum(amount), 0) FROM payments
-            WHERE admin_id = :admin_id AND payment_status = 'PAID'
-              AND paid_at >= :month_start)                             AS revenue_mtd,
+              AND expires_at BETWEEN :now AND :in_30)                  AS expiring_30d,{revenue_line}
           (SELECT count(*) FROM attendances
             WHERE admin_id = :admin_id AND checked_in_at >= :day_start) AS check_ins_today
         """,
-        {"admin_id": scope.admin_id, "now": moment,
-         "in_7": moment + timedelta(days=7), "in_30": moment + timedelta(days=30),
-         "month_start": month_start, "day_start": day_start},
+        params,
     )
     return dict(row)
 
@@ -107,7 +133,7 @@ async def members_without_recent_checkin(
     expired four months ago has not "gone quiet"; they have left, and mixing the two
     makes the list useless for the thing it is for.
     """
-    _require_owner(scope, "members_without_recent_checkin")
+    _require_gym_scope(scope, "members_without_recent_checkin")
     moment = now or naive_utc_now()
     rows = await _engine._fetch_all(
         """
@@ -156,7 +182,7 @@ async def search_members(
     a handset, so a phone lookup legitimately matches several people and collapsing
     that to one would show a member the wrong person's record.
     """
-    _require_owner(scope, "search_members")
+    _require_gym_scope(scope, "search_members")
     # Bounded before it becomes a pattern: the model can be talked into passing a
     # very long string, and there is no name worth matching past 120 characters.
     pattern = f"%{query.strip()[:120].translate(_LIKE_SPECIALS)}%"

@@ -140,7 +140,7 @@ tool once the data exists.
 
 **Still to do:**
 
-5. **Decide STAFF.** If yes, it is a phase of its own: his staff ACCESS secret, a `resolve_staff` in `tenancy.py`, a gym-wide but revenue-blind `Scope`, and a third tool registry. Roughly a day.
+5. ✅ **STAFF is built** (2026-09-20). Decided as *mirror the API*: the owner's tools minus `get_revenue`, no revenue line in the overview, pricing refused by the schema contract, and only ACTIVE employees admitted. His secret was already in `backend/.env.example`, so nothing was blocked on him.
 6. **Add `get_opening_hours`** and stop stating hours in the generated documents. `working_hours` / `special_hours` are not granted yet — that grant is part of the task.
 7. **Revisit revenue** once he answers the `payment_status` question (finding 1).
 

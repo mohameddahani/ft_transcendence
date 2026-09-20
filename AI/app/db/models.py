@@ -70,12 +70,26 @@ class Gender(StrEnum):
 class Role(StrEnum):
     OWNER = "OWNER"
     ADMIN = "ADMIN"
+    # A gym employee (Dahani's 2026-09-20 release). Belongs to a gym through
+    # `staffs.admin_id`, and in his API has exactly the admin's reach over members,
+    # memberships, payments, attendance and visits -- but no access to plan pricing,
+    # to staff management, or to the gym's own subscription.
+    STAFF = "STAFF"
     MEMBER = "MEMBER"
 
 
 class MemberAccountStatus(StrEnum):
     ACTIVE = "ACTIVE"
     FROZEN = "FROZEN"
+    BANNED = "BANNED"
+
+
+class UserAccountStatus(StrEnum):
+    """The status on `users` and `staffs` -- a different set from a member's."""
+
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    PENDING = "PENDING"
     BANNED = "BANNED"
 
 
@@ -177,6 +191,19 @@ class Member(ReadModel):
         today = date.today()
         born = self.birth_date.date()
         return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
+class Staff(ReadModel):
+    """A gym employee. Read only to resolve their gym and confirm they still work here.
+
+    Deliberately four columns: the tenancy pointer and the account state, nothing
+    else. `staffs.password` is a hash and is neither modelled nor granted.
+    """
+
+    id: str
+    admin_id: str
+    role: Role
+    account_status: UserAccountStatus
 
 
 class MembershipPlan(ReadModel):

@@ -396,7 +396,9 @@ export function AssistantPanel() {
             {identity
               ? identity.role === "ADMIN"
                 ? "Owner view"
-                : `Signed in as ${identity.member_name ?? "member"}`
+                : identity.role === "STAFF"
+                  ? "Staff view"
+                  : `Signed in as ${identity.member_name ?? "member"}`
               : fatal
                 ? "Not signed in"
                 : "Connecting…"}

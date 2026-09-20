@@ -122,10 +122,20 @@ now and annotates it; Oussama reads alongside and takes it over.
   it, so the seeder clamps generated attendance to it.
 - **`visits.qr_token_hash` must never be granted** -- it opens a gym door, so it is in the same
   category as the refresh-token tables. Same for `staffs.password`.
-- A **STAFF** role exists since 2026-09-20 (`staffs.admin_id` is the tenancy). We hold no staff
-  secret, so a staff token gets a flat 401. Decision pending -- see `BACKEND_CHANGES_REVIEW.md` §1.4.
+- A **STAFF** role exists since 2026-09-20 (`staffs.admin_id` is the tenancy) and **is supported**:
+  a staff token gets the owner's tools minus the money. The rule is *mirror the API* -- see the
+  guardrail below. `staffs` is granted four columns only; `user_name`, `email` and `password` are not.
 - Prisma enums need quoted casts: `'MALE'::"Gender"`, and the sentiment type is
   `"SentimentType"` (we guessed `"Sentiment"` in the shadow copy).
+
+7. **Staff see what Dahani's API lets staff see.** His staff controllers cover members,
+   memberships, payments, attendance and visits with the admin's own routes, and there is no
+   staff controller for `/api/membership-plans`, `/api/admins/staffs` or the gym's subscription.
+   So the assistant gives a staff scope every gym-wide tool except `get_revenue`, drops the
+   revenue line from `gym_overview`, and refuses `membership_plan_durations` (pricing). Enforced
+   in three places, not one: `StaffAccess` in the schema contract, `_require_owner` in
+   `reports.py`, and the registry in `build_admin_tools`. The registry is the convenience layer --
+   a wrong edit there changes what the model is *offered*, never what it can *reach*.
 
 ## Settled — do not re-litigate
 
@@ -1232,6 +1242,42 @@ tables.
 **Delivered by Dahani 2026-09-20** (`0fbb196` → `5c2dc0c`, 21 migrations): `Feedback`,
 attendance (as `attendances`), nullable `paid_at`/`due_date`, the indexes as asked, plus a
 STAFF role, a booking system with QR check-in, and opening hours as data.
+
+**D19-prep — the staff agent (2026-09-20), done by Claude at Oussama's request.**
+`verify.sh` is **692 checks** with `AI_LIVE_TESTS=1`, passing.
+
+Oussama's call: *"staff should have the same thing as the admin except the access to
+financial things"*, resolved into a rule that needs no judgement at each new tool --
+**the assistant mirrors his API's permission boundary.** Read route by route from his
+controllers: staff get the admin's own routes for members (including ban/freeze),
+memberships, payments, attendance and visits; there is no staff controller for plans,
+staff management or the gym's subscription. What that produced:
+
+- **`JWT_STAFF_ACCESS_SECRET`** was already committed in `backend/.env.example`, so
+  nothing was blocked on him. Three secrets now, and the boot check refuses any
+  *pair* of them being equal -- three roles means three ways to collapse a boundary.
+- **`Scope` gained a third shape.** `staff_id` set means gym-wide like the owner, and
+  a `Scope` refuses to carry `member_id` and `staff_id` at once.
+- **`StaffAccess` on every table**, declared out loud like `MemberAccess`, because a
+  default is how a boundary gets lost. `membership_plan_durations` is DENIED: pricing
+  is the owner's, exactly as in his API.
+- **`_require_owner` now means owner**, not "not a member", and guards the money
+  reports. `gym_overview` builds its revenue subquery only for an owner scope -- the
+  staff overview does not hide the number, the query never asks for it.
+- **`resolve_staff` is stricter than `resolve_member`**: only ACTIVE gets in. A frozen
+  *member* still needs to ask why they are frozen; a suspended employee does not, and
+  an access token outlives the click that suspended them by 15 minutes.
+- **The seeder writes two employees per gym**, one ACTIVE and one BANNED, because the
+  assertion worth having is not "a staff token works" but "it stops working when the
+  account does".
+- Staff conversations cannot resume an owner's thread (role is checked with the
+  subject), and the panel says "Staff view".
+
+Measured, not assumed: a staff token asking *"how much revenue did we make this
+month?"* answers that it is the owner's and calls no tool; the same token asking who
+has lapsed returns the 25-name list. `mint_token.py staff atlas [BANNED]` mints either
+kind -- by gym and status, because `staffs.user_name` is ungranted, the same constraint
+the D8 members lookup hit.
 
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the

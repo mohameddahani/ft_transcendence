@@ -348,6 +348,52 @@ async def ensure_plans(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
     return durations
 
 
+# One employee per gym, plus one deliberately switched off. Two rows, because the
+# interesting assertion is not "a staff token works" but "a staff token stops working
+# the moment the account does" -- and that needs a non-ACTIVE row to point at.
+STAFF_PER_GYM = (
+    ("reception", "ACTIVE"),
+    ("ex.reception", "BANNED"),
+)
+
+
+async def ensure_staff(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) -> int:
+    """Create this gym's staff accounts, idempotently, found by user name.
+
+    Deliberately minimal: staff exist so the assistant's third role can be tested and
+    demonstrated. They own no members here -- `members.staff_id` stays NULL, which is
+    what the rows Dahani's own admin flow creates look like.
+    """
+    written = 0
+    for handle, status in STAFF_PER_GYM:
+        user_name = f"{handle}.{gym.key}"
+        existing = await conn.fetchval(
+            "SELECT id FROM staffs WHERE user_name = $1", user_name)
+        if existing is None:
+            await conn.execute(
+                """INSERT INTO staffs (id, admin_id, first_name, last_name, gender,
+                                       birth_date, user_name, email, phone_number,
+                                       company_name, role, account_status,
+                                       created_at, updated_at)
+                   VALUES (gen_random_uuid()::text, $1, $2, $3, 'FEMALE'::"Gender",
+                           $4, $5, $6, $7, $8, 'STAFF'::"Role",
+                           $9::"UserAccountStatus", NOW(), NOW())""",
+                admin_id, "Hafsa" if status == "ACTIVE" else "Yassine",
+                "Ouazzani" if status == "ACTIVE" else "Berrada",
+                today_utc() - timedelta(days=31 * 365),
+                user_name, f"{user_name}@{gym.email.split('@')[1]}",
+                f"+2126{gym.key_digit}9{'1' if status == 'ACTIVE' else '2'}00000",
+                gym.company_name, status)
+        else:
+            # Keep the catalogue authoritative, the same as plans: a test that flips
+            # a status must not leave the corpus changed for the next run.
+            await conn.execute(
+                'UPDATE staffs SET account_status = $2::"UserAccountStatus" WHERE id = $1',
+                existing, status)
+        written += 1
+    return written
+
+
 async def sync_members(
     conn: asyncpg.Connection, admin_id: str, members: list[GeneratedMember]
 ) -> tuple[int, int]:
@@ -635,6 +681,7 @@ async def main() -> int:
                 admin_id = await ensure_gym(conn, gym)
                 await ensure_subscription(conn, admin_id)
                 durations = await ensure_plans(conn, admin_id, gym)
+                await ensure_staff(conn, admin_id, gym)
                 written, _removed = await sync_members(
                     conn, admin_id, generate_members(gym, count, rng))
                 memberships, payments = await sync_history(conn, admin_id, rng, anchor)

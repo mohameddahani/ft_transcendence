@@ -92,6 +92,18 @@ else
   printf "  \033[33m⋯\033[0m %-38s %s\n" "seeder checks" "no .venv (see DEV_SETUP.md)"
 fi
 
+# Staff arrived with Dahani's 2026-09-20 release. Two rows per gym on purpose: an
+# ACTIVE employee, and one switched off -- the interesting assertion is not "a staff
+# token works" but "it stops working the moment the account does", and that needs a
+# non-ACTIVE row to point at.
+chk "every gym has an active employee" \
+    "$(q "select count(*) = 0 from users u where u.role='ADMIN' and not exists (
+           select 1 from staffs s where s.admin_id = u.id and s.account_status='ACTIVE')")" "t"
+chk "...and one that is switched off" \
+    "$(q "select count(*) > 0 from staffs where account_status <> 'ACTIVE'")" "t"
+chk "no employee belongs to two gyms" \
+    "$(q "select count(*) = count(distinct id) from staffs")" "t"
+
 echo "── read-only role ──"
 # Guardrail #1 is only real if the *database* refuses. Assert both directions:
 # the role can read what it needs, and is denied everything it must never see.
@@ -115,6 +127,8 @@ if ro "select 1" | grep -q "^1$"; then
       "staff_refresh_tokens|select 1 from staff_refresh_tokens limit 1" \
       "staff_action_tokens|select 1 from staff_action_tokens limit 1" \
       "staffs.password|select password from staffs limit 1" \
+      "staffs.user_name|select user_name from staffs limit 1" \
+      "select * on staffs|select * from staffs limit 1" \
       "visits.qr_token_hash|select qr_token_hash from visits limit 1" \
       "visits at all|select 1 from visits limit 1" \
       "select * on attendances|select * from attendances limit 1" \

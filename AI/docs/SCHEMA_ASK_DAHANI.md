@@ -1,5 +1,12 @@
 # Schema ask — Dahani
 
+> **Superseded 2026-09-20.** He shipped all of this and more: `feedbacks`, attendance (as
+> `attendances`, not `check_ins`), nullable payment dates, the indexes — plus a STAFF role, QR
+> bookings and opening hours as data. The shadow SQL described below is deleted. Kept as a record
+> of what was asked and when; the current picture is in `BACKEND_CHANGES_REVIEW.md`, and what is
+> still open is `Payment.membershipId` and the `/internal/sentiment` call.
+
+
 Everything here is additive. Nothing renames or drops an existing column, and no
 existing row is rewritten. Roughly **15 minutes**, plus one migration command.
 

@@ -39,17 +39,30 @@ def _safe_person(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_admin_tools(scope: Scope) -> dict[str, Tool]:
-    """The eight owner tools, each bound to this request's verified scope.
+    """The gym-wide tools, each bound to this request's verified scope.
+
+    Serves two audiences, and the difference is money:
+
+    * **owner** -- all eight tools.
+    * **staff** -- the same tools minus `get_revenue`, and the overview arrives
+      without its revenue line because `reports.gym_overview` never asks for it.
+
+    That split mirrors Dahani's API exactly: his staff controllers cover members,
+    memberships, payments, attendance and visits with the admin's own routes, while
+    pricing, staff management and the gym's subscription have no staff equivalent.
+    The registry is the *convenience* layer of that boundary -- the enforcing layer
+    is `_require_owner` in `reports.py` and `StaffAccess` in the schema contract, so
+    a wrong edit here changes what the model is offered, not what it can reach.
 
     Refuses a member scope, mirroring `build_member_tools` refusing an owner one.
     Nothing here would leak across tenants if a member scope got through --
     `scope.py` narrows twice and would simply return less -- but a member would be
     holding tools named for gym-wide questions, and the `reports.*` calls would raise
-    mid-answer instead of at wiring time. The router in D13 is one `if` away from
-    getting this wrong; better that it cannot.
+    mid-answer instead of at wiring time. The router is one `if` away from getting
+    this wrong; better that it cannot.
     """
     if scope.is_member:
-        raise ScopeViolation("admin tools require an owner scope, not a member one")
+        raise ScopeViolation("admin tools require an owner or staff scope, not a member one")
 
     @tool("get_gym_overview",
           "Headline numbers for the whole gym: active members, memberships expiring "
@@ -57,15 +70,18 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
           "this first for any broad 'how is the gym doing' question.")
     async def get_gym_overview() -> dict[str, Any]:
         row = await reports.gym_overview(scope)
-        return {
+        overview = {
             "active_members": row["active_members"],
             "expiring_within_7_days": row["expiring_7d"],
             "expiring_within_30_days": row["expiring_30d"],
-            # Money leaves as a string. Decimal will not JSON-encode, and float would
-            # undo the exactness the read models are built around.
-            "revenue_month_to_date_mad": str(row["revenue_mtd"]),
             "check_ins_today": row["check_ins_today"],
         }
+        if "revenue_mtd" in row:
+            # Money leaves as a string. Decimal will not JSON-encode, and float would
+            # undo the exactness the read models are built around. Absent entirely
+            # for a staff scope -- the query did not ask for it.
+            overview["revenue_month_to_date_mad"] = str(row["revenue_mtd"])
+        return overview
 
     @tool("search_members",
           "Find members by name, phone number or email. Returns several matches - "
@@ -192,6 +208,9 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
           "by plan. Only money actually received is counted.",
           schemas.GetRevenueArgs)
     async def get_revenue(args: schemas.GetRevenueArgs) -> dict[str, Any]:
+        # Belt and braces with the registry above: the tool is not handed to a staff
+        # scope, and if it ever were, this is the line that refuses.
+        reports._require_owner(scope, "get_revenue")
         now = naive_utc_now()
         since = period_start(args.period, now)
 
@@ -270,7 +289,22 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             ],
         }
 
-    return {t.name: t for t in (
+    registry = [
         get_gym_overview, search_members, get_member_detail, list_expiring_memberships,
-        list_inactive_members, get_revenue, get_attendance_stats, list_recent_feedback,
-    )}
+        list_inactive_members, get_attendance_stats, list_recent_feedback,
+    ]
+    if scope.is_owner:
+        # Not offered to staff, and not merely hidden: `reports.revenue_by_plan` and
+        # the aggregate below both sit behind `_require_owner`, so a staff scope that
+        # somehow reached this tool would raise rather than answer.
+        registry.append(get_revenue)
+    return {t.name: t for t in registry}
+
+
+def build_staff_tools(scope: Scope) -> dict[str, Tool]:
+    """The staff registry. Named separately so the role dispatch reads as three
+    audiences rather than two-and-a-flag, and so the security tests can assert over
+    it by name."""
+    if not scope.is_staff:
+        raise ScopeViolation("staff tools require a scope carrying a verified staff_id")
+    return build_admin_tools(scope)

@@ -65,13 +65,19 @@ GRANT SELECT (
 
 GRANT SELECT ON feedbacks TO ai_readonly;
 
+-- `staffs` is read for one purpose only: turning a STAFF token into the gym it
+-- belongs to, and checking the employee is still ACTIVE. Four columns, column-level,
+-- because the table also holds a password hash -- the same reasoning as `members`.
+GRANT SELECT (
+    id, admin_id, role, account_status
+) ON staffs TO ai_readonly;
+
 -- NOT granted, deliberately, and each for its own reason:
 --
 --   visits            `qr_token_hash` is a credential that opens a gym door -- the
 --                     same category as the refresh-token tables. If the no-show
 --                     question is ever worth answering, grant the other columns
 --                     one by one, the way `members` is done, and never that one.
---   staffs            holds a password hash.
 --   working_hours     no tool reads them yet. They are the right answer to "are you
 --   special_hours     open on Sunday?" and will be granted when that tool exists.
 --   feedback_likes    nothing asks.

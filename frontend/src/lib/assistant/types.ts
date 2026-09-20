@@ -6,7 +6,7 @@
  * that has to handle it.
  */
 
-export type Role = "ADMIN" | "MEMBER";
+export type Role = "ADMIN" | "STAFF" | "MEMBER";
 
 export interface Identity {
   role: Role;

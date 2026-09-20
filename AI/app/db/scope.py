@@ -35,7 +35,7 @@ from typing import Any, Final
 
 from app.db import engine as _engine
 from app.db.models import ReadModel
-from app.db.schema import TABLES, MemberAccess, ScopeRule, TableSpec
+from app.db.schema import TABLES, MemberAccess, ScopeRule, StaffAccess, TableSpec
 
 logger = logging.getLogger(__name__)
 
@@ -89,22 +89,44 @@ class Scope:
     Frozen on purpose: a scope that can be mutated after construction can be
     mutated by a tool, and then the language model is choosing its own tenant.
 
-    `member_id` set means the member agent -- it narrows the query a second time,
-    below the gym. Left None it is the owner agent, which sees the whole gym.
+    Three shapes, and the difference is which extra id is set:
+
+    * neither          -- the owner. The whole gym, including money.
+    * `member_id`      -- the member agent. Narrowed a second time, below the gym.
+    * `staff_id`       -- a gym employee. Gym-wide like the owner, but `StaffAccess`
+                          denies the pricing table, and the owner-only reports refuse
+                          the scope outright. Mirrors Dahani's staff controllers.
+
+    A scope can never be both: a staff member is not a member of the gym, and being
+    handed both ids would mean two different narrowings applied to one request.
     """
 
     admin_id: str
     member_id: str | None = None
+    staff_id: str | None = None
 
     def __post_init__(self) -> None:
         if not self.admin_id or not isinstance(self.admin_id, str):
             raise ValueError("Scope.admin_id must be a non-empty string from the JWT")
         if self.member_id is not None and not self.member_id:
             raise ValueError("Scope.member_id must be None or a non-empty string")
+        if self.staff_id is not None and not self.staff_id:
+            raise ValueError("Scope.staff_id must be None or a non-empty string")
+        if self.member_id is not None and self.staff_id is not None:
+            raise ValueError("a Scope is a member's or a staff member's, never both")
 
     @property
     def is_member(self) -> bool:
         return self.member_id is not None
+
+    @property
+    def is_staff(self) -> bool:
+        return self.staff_id is not None
+
+    @property
+    def is_owner(self) -> bool:
+        """The gym's own account. The only scope that may see money in aggregate."""
+        return self.member_id is None and self.staff_id is None
 
 
 def _spec(table: str) -> TableSpec:
@@ -144,6 +166,11 @@ def _scope_sql(spec: TableSpec, scope: Scope, table: str) -> tuple[str, dict[str
         if spec.member_access is MemberAccess.OWN_ROWS:
             predicate += f" AND {spec.member_column} = :{_MEMBER_PARAM}"
             params[_MEMBER_PARAM] = scope.member_id
+
+    if scope.is_staff and spec.staff_access is StaffAccess.DENIED:
+        # No extra predicate for staff -- they see the gym, like the owner. The only
+        # thing this branch does is refuse the tables Dahani's API refuses them.
+        raise ScopeViolation(f"a staff scope may not read {table!r}")
 
     return predicate, params
 

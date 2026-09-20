@@ -1,6 +1,7 @@
 """Mint a development access token, shaped exactly like Dahani's.
 
     docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/mint_token.py admin
+    docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/mint_token.py staff reception.atl
     docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/mint_token.py member omar@gmail.com
 
 The second argument matches `email` exactly, falling back to a name search. Use the
@@ -45,6 +46,24 @@ async def main() -> None:
         else:
             row = await db._fetch_one(
                 "SELECT id FROM users WHERE role = 'ADMIN' ORDER BY company_name LIMIT 1")
+    elif role == "STAFF":
+        secret = settings.JWT_STAFF_ACCESS_SECRET.get_secret_value()
+        # Picked by gym and status, not by name: this script reads through the
+        # service's own role, and `staffs.user_name` and `.email` are deliberately
+        # ungranted -- only the tenancy pointer and the account state are. The same
+        # constraint the D8 members lookup ran into, and the same fix: anchor on
+        # something the running service is actually allowed to see.
+        #
+        #   mint_token.py staff                  -> an ACTIVE employee, first gym
+        #   mint_token.py staff oasis            -> an ACTIVE employee of that gym
+        #   mint_token.py staff atlas BANNED     -> the switched-off one, to prove 401
+        status = (sys.argv[3] if len(sys.argv) > 3 else "ACTIVE").upper()
+        row = await db._fetch_one(
+            "SELECT s.id FROM staffs s JOIN users u ON u.id = s.admin_id"
+            " WHERE u.role = 'ADMIN' AND s.account_status::text = :status"
+            "   AND (:who = '' OR u.company_name ILIKE :like OR u.email ILIKE :like)"
+            " ORDER BY u.company_name, s.id LIMIT 1",
+            {"status": status, "who": who or "", "like": f"%{who}%"})
     elif role == "MEMBER":
         secret = settings.JWT_MEMBER_ACCESS_SECRET.get_secret_value()
         if who:
@@ -57,7 +76,7 @@ async def main() -> None:
         else:
             row = await db._fetch_one("SELECT id FROM members ORDER BY email LIMIT 1")
     else:
-        sys.exit(f"role must be admin or member, got {role!r}")
+        sys.exit(f"role must be admin, staff or member, got {role!r}")
 
     await db.dispose_engine()
     if row is None:
