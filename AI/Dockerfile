@@ -9,7 +9,24 @@ WORKDIR /app
 # Dependencies first, and in their own layer: application code changes on every
 # commit, requirements.txt almost never, so this pip install stays cached.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Two of Chroma's transitive dependencies are dead weight here and together they are
+# ~140 MB of a 929 MB image:
+#
+#   onnxruntime  backs Chroma's *default* embedding function, a local MiniLM model.
+#                We never use it -- embeddings come from Gemini and are passed in
+#                explicitly -- and downloading a model at runtime is exactly what the
+#                no-PyTorch rule (AI_PLAN §5) exists to avoid.
+#   kubernetes   a client for deploying Chroma into a cluster. We run a persistent
+#                client against a file on a volume.
+#
+# Removed after install rather than excluded, because pip has no way to decline a
+# transitive dependency. Verified, not assumed: a persistent client, a cosine
+# collection, an upsert and a metadata-filtered query all work without them, and if
+# a future version imports either eagerly the image fails to boot -- loudly, at
+# startup, which is the right place.
+RUN pip install --no-cache-dir -r requirements.txt \
+ && pip uninstall -y onnxruntime kubernetes \
+ && python -c "import chromadb; chromadb.PersistentClient"
 
 RUN adduser --disabled-password --gecos "" appuser
 

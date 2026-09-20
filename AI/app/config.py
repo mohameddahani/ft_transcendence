@@ -68,6 +68,26 @@ class Settings(BaseSettings):
     # fan-out of database reads and another full context window sent to Gemini.
     AGENT_MAX_TOOL_ROUNDS: int = Field(default=5, ge=1, le=12)
 
+    # --- RAG (phase 3) ---
+    # Confirmed against the API on 2026-09-20, not copied from memory: `models.list`
+    # offers gemini-embedding-001 (GA) and gemini-embedding-2, both 3072 dimensions
+    # by default and both accepting a taskType.
+    GEMINI_EMBED_MODEL: str = "gemini-embedding-001"
+    # Matryoshka truncation. 3072 floats per chunk is ~12 KB each, and at this corpus
+    # size the quality difference does not pay for the storage or the search time.
+    #
+    # **Measured, and it matters:** at 3072 the returned vector is unit length; at
+    # 768 it is NOT (|v| = 0.59). Truncated embeddings have to be normalised by hand
+    # or anything computing a dot product silently scores short vectors lower.
+    GEMINI_EMBED_DIMENSIONS: int = Field(default=768, ge=128, le=3072)
+    # Chroma lives on the same named volume as the SQLite state, not a second one:
+    # both are "state this service owns" and they share a lifecycle.
+    CHROMA_PATH: str = Field(default="/data/chroma", min_length=1)
+    # AI_SPECS §5. Sentence-boundary aware, so these are targets and not hard cuts.
+    RAG_CHUNK_CHARS: int = Field(default=1000, ge=200, le=4000)
+    RAG_CHUNK_OVERLAP: int = Field(default=150, ge=0, le=1000)
+    MAX_UPLOAD_MB: int = Field(default=10, ge=1, le=100)
+
     # --- JWT verification (task 0.5) ---
     # One secret per role, matching Dahani's getJwtConfig(role, type). We hold only
     # the two ACCESS secrets: refresh tokens are his to handle, and the OWNER secret
@@ -132,6 +152,18 @@ class Settings(BaseSettings):
                 "(see seeder/roles/ai_readonly.sql)."
             )
         return v
+
+    @model_validator(mode="after")
+    def _overlap_fits_inside_a_chunk(self) -> "Settings":
+        # An overlap at least as large as the chunk means every chunk starts where
+        # the last one did: the splitter makes no progress and ingestion hangs on
+        # the first document. Cheaper to refuse at boot than to debug at 2am.
+        if self.RAG_CHUNK_OVERLAP >= self.RAG_CHUNK_CHARS:
+            raise ValueError(
+                "RAG_CHUNK_OVERLAP must be smaller than RAG_CHUNK_CHARS, "
+                "or the splitter never advances"
+            )
+        return self
 
     @model_validator(mode="after")
     def _role_secrets_must_differ(self) -> "Settings":
