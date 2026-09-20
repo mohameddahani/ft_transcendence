@@ -49,10 +49,10 @@ def _param_names(schema: dict) -> set[str]:
 
 async def main() -> None:  # noqa: C901
     await db.init_engine(get_settings())
-    atlas = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "karim@atlasfitness.ma"}))["id"]
-    oasis = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "nadia@oasisgym.ma"}))["id"]
+    atlas = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Atlas Fitness Agadir"}))["id"]
+    oasis = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Oasis Gym Marrakech"}))["id"]
 
     owner = Scope(admin_id=atlas)
     admin_tools = build_admin_tools(owner)

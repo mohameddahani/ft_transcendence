@@ -144,16 +144,15 @@ class TableSpec:
 
 
 TABLES: Final[Mapping[str, TableSpec]] = {
-    # The tenant row. `users.password` is deliberately absent here and ungranted
-    # in the database -- two independent reasons it can never be read.
+    # The tenant row. `users.password` is deliberately absent and ungranted -- two
+    # independent reasons it can never be read. So, since 2026-09-20, are the owner's
+    # `first_name`, `last_name` and `email`: nothing in the service reads them, and a
+    # column nobody selects is a column that cannot leak through a tool written later.
     "users": TableSpec(
         rule=ScopeRule.TENANT,
         member_access=MemberAccess.GYM_WIDE,  # only ever their own gym's single row
         staff_access=StaffAccess.GYM_WIDE,    # the gym they work for
-        columns={
-            "id": TEXT, "first_name": TEXT, "last_name": TEXT,
-            "company_name": TEXT, "role": ENUM, "email": TEXT,
-        },
+        columns={"id": TEXT, "company_name": TEXT, "role": ENUM},
         model=GymOwner,
     ),
     "members": TableSpec(

@@ -34,7 +34,7 @@ async def main() -> None:
     # Pinned to one named gym. "The first ADMIN" was fine with two gyms; the seeder
     # makes four, and the membership-status assertions below only hold for this one.
     admin = (await db._fetch_one(
-        "SELECT id FROM users WHERE email = :e", {"e": "karim@atlasfitness.ma"}))["id"]
+        "SELECT id FROM users WHERE company_name = :e", {"e": "Atlas Fitness Agadir"}))["id"]
     expected_members = (await db._fetch_one(
         "SELECT COUNT(*) AS n FROM members WHERE admin_id = :a", {"a": admin}))["n"]
     expected_durations = (await db._fetch_one(

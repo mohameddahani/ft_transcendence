@@ -154,14 +154,19 @@ class ReadModel(BaseModel):
 
 
 class GymOwner(ReadModel):
-    """A row of `users`. `id` is the `admin_id` every other table scopes by."""
+    """A row of `users`. `id` is the `admin_id` every other table scopes by.
+
+    Three columns, narrowed on 2026-09-20 from six. The service only ever reads
+    `company_name` (the gym's name, for the prompt and `/ai/me`) and `role` (for
+    tenancy), so the owner's own name and email address were readable by every
+    scope -- including a staff one -- for no reason at all. Dahani's API exposes
+    neither to staff. Nothing surfaced them, but "no tool happens to return it" is
+    a weaker guarantee than "the role cannot select it", and phase 3 adds surfaces.
+    """
 
     id: str
-    first_name: str
-    last_name: str
     company_name: str
     role: Role
-    email: str
 
 
 class Member(ReadModel):

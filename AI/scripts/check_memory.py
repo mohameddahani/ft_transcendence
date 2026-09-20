@@ -67,8 +67,8 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     settings = get_settings()
     await db.init_engine(settings)
     await state_db.init_state_db(settings)
-    atlas = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "karim@atlasfitness.ma"}))["id"]
+    atlas = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Atlas Fitness Agadir"}))["id"]
     owner = Scope(admin_id=atlas)
 
     async def turn(thread_id: str | None, question: str, llm: Any, **kw: Any):

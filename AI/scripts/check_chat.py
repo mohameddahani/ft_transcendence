@@ -132,14 +132,14 @@ def envelope(text: str) -> dict:
 
 async def main() -> None:  # noqa: C901 -- a check script is a list, not a design
     await db.init_engine(settings)
-    atlas = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "karim@atlasfitness.ma"}))["id"]
-    oasis = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "nadia@oasisgym.ma"}))["id"]
-    medina = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                  {"e": "salma@medinawellness.ma"}))["id"]
-    titan = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "mehdi@titanfitness.ma"}))["id"]
+    atlas = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Atlas Fitness Agadir"}))["id"]
+    oasis = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Oasis Gym Marrakech"}))["id"]
+    medina = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                  {"e": "Medina Wellness Fes"}))["id"]
+    titan = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Titan Fitness Casablanca"}))["id"]
     # Siham, not Omar: check_ratelimit.py spends Omar's chat budget and leaves it
     # spent for a window, so a verify.sh run started inside that window found this
     # request 429ed -- and the script then crashed indexing an empty event list, with

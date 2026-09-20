@@ -34,10 +34,10 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 
 async def main() -> None:  # noqa: C901 -- a check script is a list, not a design
     await db.init_engine(get_settings())
-    atlas = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "karim@atlasfitness.ma"}))["id"]
-    oasis = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "nadia@oasisgym.ma"}))["id"]
+    atlas = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Atlas Fitness Agadir"}))["id"]
+    oasis = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Oasis Gym Marrakech"}))["id"]
     siham = await db._fetch_one("SELECT id, admin_id FROM members WHERE email = :e",
                                 {"e": "siham@gmail.com"})
     omar = await db._fetch_one("SELECT id, admin_id FROM members WHERE email = :e",

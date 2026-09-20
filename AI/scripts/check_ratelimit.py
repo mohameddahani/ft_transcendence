@@ -84,6 +84,22 @@ async def main() -> None:  # noqa: C901
     # Anchored on email: the seeder puts 150-400 members in each gym, so row order
     # and first names stopped identifying anyone. user_name would be unique but is
     # deliberately outside the ai_readonly column grant.
+    async def by_gym(company_name: str) -> str:
+        """A gym's admin_id, found by its name.
+
+        Not by email: `users.email` stopped being granted to `ai_readonly` on
+        2026-09-20 -- the service reads a gym's name and nothing else about its
+        owner, so the owner's own address is no longer readable by the role these
+        checks run as. `members.email` is still granted, which is why `by_email`
+        below is still the right anchor for a member.
+        """
+        row = await db._fetch_one(
+            "SELECT id FROM users WHERE company_name = :c", {"c": company_name})
+        if row is None:
+            print(f"\033[31m  x gym {company_name} missing - run the fixtures\033[0m")
+            sys.exit(1)
+        return row["id"]
+
     async def by_email(table: str, email: str) -> str:
         row = await db._fetch_one(f"SELECT id FROM {table} WHERE email = :e", {"e": email})
         if row is None:
@@ -91,7 +107,7 @@ async def main() -> None:  # noqa: C901
             sys.exit(1)
         return row["id"]
 
-    atlas = await by_email("users", "karim@atlasfitness.ma")
+    atlas = await by_gym("Atlas Fitness Agadir")
     omar = await by_email("members", "omar@gmail.com")
     rachid = await by_email("members", "rachid@gmail.com")
 

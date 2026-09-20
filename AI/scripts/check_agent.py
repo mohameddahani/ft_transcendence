@@ -152,10 +152,10 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     # database is a real dependency of these checks even though none of them is about
     # memory. `check_memory.py` owns the assertions; this just has to be able to run.
     await state_db.init_state_db(get_settings())
-    atlas = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "karim@atlasfitness.ma"}))["id"]
-    oasis = (await db._fetch_one("SELECT id FROM users WHERE email = :e",
-                                 {"e": "nadia@oasisgym.ma"}))["id"]
+    atlas = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Atlas Fitness Agadir"}))["id"]
+    oasis = (await db._fetch_one("SELECT id FROM users WHERE company_name = :e",
+                                 {"e": "Oasis Gym Marrakech"}))["id"]
     omar = (await db._fetch_one("SELECT id, admin_id FROM members WHERE email = :e",
                                 {"e": "omar@gmail.com"}))
 

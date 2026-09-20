@@ -48,8 +48,11 @@ GRANT SELECT (
     gender, birth_date, account_status, created_at
 ) ON members TO ai_readonly;
 
+-- Narrowed 2026-09-20: the service reads the gym's name and the role, and nothing
+-- else. The owner's own name and email address are PII this service has no question
+-- to ask about, so the role can no longer see them at all.
 GRANT SELECT (
-    id, first_name, last_name, company_name, role, email
+    id, company_name, role
 ) ON users TO ai_readonly;
 
 -- `attendances` and `feedbacks` arrived in Dahani's migrations on 2026-09-20 (they
