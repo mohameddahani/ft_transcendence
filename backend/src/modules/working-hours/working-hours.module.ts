@@ -1,12 +1,14 @@
 import { AccessesService } from '@/core/services/access.service';
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { WorkingHoursController } from './working-hours.controller';
+import { AdminWorkingHoursController } from './admin-working-hours.controller';
 import { WorkingHoursService } from './working-hours.service';
+import { StaffWorkingHoursController } from './staff-working-hours.controller';
 
 @Module({
   controllers: [
-    WorkingHoursController,
+    AdminWorkingHoursController,
+    StaffWorkingHoursController,
 
     // SpecialHoursController
   ],

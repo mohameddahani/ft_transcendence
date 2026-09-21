@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AddWorkingHourDto } from './dtos/add-working-hour.dto';
 import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 
 @Injectable()
 export class WorkingHoursService {
@@ -62,7 +63,15 @@ export class WorkingHoursService {
     await this.accessesService.validateActiveSubscription(adminId);
 
     // * Check this Working Hour is exist
-    await this.findOne(adminId, workingHourId);
+    const workingHour = await this.prisma.workingHour.findFirst({
+      where: {
+        id: workingHourId,
+        adminId: adminId,
+      },
+    });
+    if (!workingHour) {
+      throw new NotFoundException('Working Hour Not Found');
+    }
 
     // * Check that start time is before end time
     if (
@@ -100,8 +109,16 @@ export class WorkingHoursService {
     });
   }
 
-  // * Get All Working Hours By (Admin)
-  async findAll(adminId: string, page: number, limit: number) {
+  // * Get All Working Hours By (Admin / Staff)
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
 
@@ -119,8 +136,12 @@ export class WorkingHoursService {
     return workingHours;
   }
 
-  // * Get One Working Hour By (Admin)
-  async findOne(adminId: string, workingHourId: string) {
+  // * Get One Working Hour By (Admin / Staff)
+  async findOne(accessTokenPayload: AccessTokenPayload, workingHourId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminId(accessTokenPayload);
+
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
 

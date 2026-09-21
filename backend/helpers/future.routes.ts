@@ -98,6 +98,9 @@
 // ! 08:00 to 00:00
 // ! so end day should has as max time is 23:59
 
+// ! Get all work hours or one (staff)
+// ! Get all special hours or one (staff)
+
 // so this solution will fix the problam ?
 
 // Common Types

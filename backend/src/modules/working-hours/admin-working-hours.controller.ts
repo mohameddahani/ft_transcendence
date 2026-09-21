@@ -1,10 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
@@ -21,7 +25,7 @@ import { AddWorkingHourDto } from './dtos/add-working-hour.dto';
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
-export class WorkingHoursController {
+export class AdminWorkingHoursController {
   constructor(private readonly workingHoursService: WorkingHoursService) {}
 
   // * Add Working Hours By (Admin)
@@ -38,7 +42,7 @@ export class WorkingHoursController {
   }
 
   // * Update Working Hours By (Admin)
-  @Patch()
+  @Patch(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   updateWorkingHourByDay(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -50,5 +54,36 @@ export class WorkingHoursController {
       id,
       body,
     );
+  }
+
+  // * Get All Working Hours (Admin)
+  @Get()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAllWoringHours(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.workingHoursService.findAll(accessTokenPayload, page, limit);
+  }
+
+  // * Get One Working Hour (Admin)
+  @Get(':id')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findOneWoringHour(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.workingHoursService.findOne(accessTokenPayload, id);
+  }
+
+  // * Delete One Working Hour By (Admin)
+  @Delete(':id')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  deleteOneWorkingHour(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.workingHoursService.delete(accessTokenPayload.id, id);
   }
 }
