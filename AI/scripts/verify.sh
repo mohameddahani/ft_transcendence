@@ -275,7 +275,9 @@ echo "── RAG: chunking, Chroma store, /ai/documents (tasks 3.1, 3.2) ──"
 # The seeded policy documents are the chunker's test corpus. The script opens Chroma
 # in a temporary directory: /data/chroma belongs to the running server, and Chroma is
 # not safe to write from two processes at once.
-docker compose exec -T ai rm -rf /tmp/corpus >/dev/null 2>&1
+# -u root: `docker compose cp` writes files as root, so appuser cannot delete them, and
+# a second copy would land inside the first (/tmp/corpus/documents/...), stale.
+docker compose exec -T -u root ai rm -rf /tmp/corpus >/dev/null 2>&1
 docker compose cp seeder/documents ai:/tmp/corpus >/dev/null 2>&1
 docker compose cp scripts/check_rag.py ai:/tmp/check_rag.py >/dev/null 2>&1
 docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1

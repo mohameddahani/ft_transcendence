@@ -87,6 +87,11 @@ class Settings(BaseSettings):
     RAG_CHUNK_CHARS: int = Field(default=1000, ge=200, le=4000)
     RAG_CHUNK_OVERLAP: int = Field(default=150, ge=0, le=1000)
     MAX_UPLOAD_MB: int = Field(default=10, ge=1, le=100)
+    # Cosine distance above which a chunk is "not an answer" (D22). Measured on
+    # eval/retrieval_set.csv, not guessed: with the D23 rewrite, right answers in all
+    # four languages are <= 0.306, the nearest chunk to a question with no answer is
+    # >= 0.331. 0.32 sits between them. Re-measure when the eval set grows (D34).
+    RAG_MAX_DISTANCE: float = Field(default=0.32, gt=0, lt=2)
 
     # --- JWT verification (task 0.5) ---
     # One secret per role, matching Dahani's getJwtConfig(role, type). We hold only

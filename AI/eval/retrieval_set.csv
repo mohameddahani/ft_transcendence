@@ -1,0 +1,18 @@
+gym,role,question,expected_source,expected_section,language
+atl,owner,How many days notice do I need to give to cancel my membership?,membership-terms.md,## Cancelling,en
+oas,owner,How many guests can I bring each month?,membership-terms.md,## Guest passes,en
+med,owner,What time does the gym open on Saturday?,facilities-and-hours.md,## Opening hours,en
+tit,owner,What is the late fee if a payment is missed?,pricing-authority.md,## Late and failed payments,en
+atl,owner,Where is the key safe kept?,operations-manual.md,## Opening,en
+oas,owner,Combien de jours puis-je geler mon abonnement ?,membership-terms.md,## Freezing your membership,fr
+atl,owner,Quel est le délai de préavis pour résilier mon abonnement ?,membership-terms.md,## Cancelling,fr
+med,owner,Est-ce qu'un membre peut se faire rembourser ?,pricing-authority.md,## Refunds,fr
+tit,owner,À quelle heure ferme la salle le dimanche ?,facilities-and-hours.md,## Opening hours,fr
+atl,owner,chhal dyal liyam khassni n3lm bach nlghi l'abonnement dyali?,membership-terms.md,## Cancelling,darija
+oas,owner,wach n9der njib m3aya chi sa7bi l salle?,membership-terms.md,## Guest passes,darija
+med,owner,fo9ach kat7el salle nhar sebt?,facilities-and-hours.md,## Opening hours,darija
+atl,owner,كم يوما يجب أن أخبركم قبل إلغاء اشتراكي؟,membership-terms.md,## Cancelling,ar
+tit,owner,متى تفتح القاعة يوم السبت؟,facilities-and-hours.md,## Opening hours,ar
+atl,owner,Do you sell protein supplements at reception?,,,en
+oas,owner,Is there a swimming pool and a sauna?,,,en
+atl,member,What discount can reception give without asking the manager?,,,en

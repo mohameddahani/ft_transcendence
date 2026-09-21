@@ -371,15 +371,20 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 | Overlap | 150 chars | Whole sentences, inside a long section only |
 | Retrieve | top 20 | Before reranking |
 | Rerank to | top 5 | LLM-based, phase 4 |
-| Distance threshold | start 0.35, **tune with the eval set** | Above it → "that isn't in your documents" |
+| Distance threshold | **0.32** (`RAG_MAX_DISTANCE`), measured in D22 | Above it → "that isn't in your documents". With the D23 rewrite, right answers (en/fr/Darija/Arabic) ≤ 0.306, nearest no-answer ≥ 0.331 |
 | Embeddings | Gemini | No PyTorch anywhere in the image |
 
 Query rewriting runs before embedding and does two jobs: resolve follow-ups against thread history,
 and translate the question into the corpus language so Arabic and French questions retrieve from an
-English corpus.
+English corpus. Built (D23): `retrieve.rewrite_query(question, history)`, one structured-output call
+to the chat model (`{query: str}`), given the last 6 user/assistant turns as text -- never tool
+results, which can hold member-written text. Skipped for an English question with no history. On
+failure it searches the original words. It cannot widen access: the filter comes from the Scope.
 
-Eval set: `eval/retrieval_set.csv` — `question, expected_doc_id, expected_chunk, language`.
-30–50 rows. Scored on recall@5.
+Eval set: `eval/retrieval_set.csv` — `gym, role, question, expected_source, expected_section, language`.
+A file and section instead of a `doc_id`, because a `doc_id` is a new UUID on every upload; an empty
+`expected_source` means the answer is not in the corpus. 15 rows today (D22), 30–50 by D34.
+`eval/run_eval.py` prints each question's rank and distance, recall@5, and what the threshold keeps.
 
 ---
 

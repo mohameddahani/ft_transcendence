@@ -71,6 +71,7 @@ docker compose exec -T postgres psql -U admin -d ft_transcendence < seeder/fixtu
 .venv/bin/python -m seeder.seed              # 4 gyms, 150-400 members each
 docker compose restart ai
 ./scripts/load_corpus.sh                     # the 16 policy documents into Chroma (calls Gemini)
+# measure retrieval (rank, distance, threshold outcome) -- see eval/run_eval.py's docstring
 ```
 
 Host `psql` is installed (18.6): `PGPASSWORD=1234 psql -h 127.0.0.1 -U admin -d ft_transcendence`
@@ -1360,6 +1361,47 @@ and `app/rag/retrieve.py` (`retrieve(scope, question)` = embed + search, top 20)
 - **D22 input:** a member asking about staff discounts gets no staff chunk, but its best
   remaining match is "## If something is broken" at **0.355** -- irrelevant. Relevant hits sit
   at 0.23-0.24, off-topic at 0.436. That gap is where the threshold goes.
+
+**D22 (2026-09-21) — task 3.4 done by Claude at Oussama's request.** Similarity threshold.
+`verify.sh` is **787 checks** with `AI_LIVE_TESTS=1`, all passing.
+`retrieve()` drops chunks further than `RAG_MAX_DISTANCE` (0.32); an empty list means "not in
+your documents", and the caller must say so instead of letting the model improvise (D24 wires it).
+
+- **Chosen from numbers:** `eval/retrieval_set.csv` (15 rows: 5 en, 4 fr, 3 Darija, 3 with no
+  answer) and `eval/run_eval.py`. Right answers en/fr ≤ 0.305; nearest chunk to a no-answer
+  question ≥ 0.331. 0.32 is halfway: **9/12 answered, 3/3 no-answer refused, 0 wrong chunks
+  let through.** recall@5 is 12/12 -- the right chunk is always found, the threshold decides.
+- **The 3 misses, each with a planned fix:** 2 Darija questions (up to 0.362; the right chunk
+  and an unrelated one 0.001 apart -- the embedding barely reads Darija → D23 translates), and
+  "where is the key safe?" (0.404: one line in a long checklist section → reranking, phase 4).
+- **Rerun `run_eval.py` after D23** and move the threshold only if the numbers say so.
+- **Found by testing:** `docker compose cp` files are root-owned, so `rm -rf /tmp/corpus` as
+  appuser failed silently and new copies nested inside the stale one -- now `-u root`. And a
+  vacuous test: chunk ids are `doc_id:index` across all gyms, and Chroma's `add` silently
+  skips an existing id, so a test reusing a doc_id stored nothing and passed for the wrong
+  reason. Caught by running the checks against a retrieve with no threshold.
+
+**D23 (2026-09-21) — task 3.5 done by Claude at Oussama's request.** `verify.sh` is **799
+checks** with `AI_LIVE_TESTS=1`, all passing. Query rewriting, in
+`retrieve.py`: `rewrite_query(question, history)` turns the question into one standalone English
+query before it is embedded. One structured-output call (`{query: str}`) to the cached chat model.
+
+- **Skipped when there is nothing to do:** English (per `detect()`) with no history → no call.
+  Only *confident* English skips; Darija is "unknown" to the detector, so it is rewritten.
+- **The conversation goes in, tool results do not:** the last 6 user/assistant turns as text.
+  A tool result can carry member-written text (feedback, names), and the rewrite prompt is not
+  where it belongs. Asserted, and checked against a transcript that lets them in.
+- **A failed rewrite searches the original words** -- worse, not wrong. It cannot widen access:
+  the filter comes from the Scope, the rewrite only changes the words.
+- **Re-measured (`eval/run_eval.py`, now 17 rows with 2 in Arabic script):** 13/14 answered
+  (D22: 9/12), 3/3 no-answer refused. Darija 0.332 → 0.231 and 0.362 → 0.305; French improves
+  ~0.04-0.09. Worst right answer 0.306, closest no-answer 0.331: **0.32 stays**. Only miss left:
+  "key safe" (0.404, rank 2), a reranking problem.
+- **The rewrite is not free:** Arabic-script "Saturday opening" got slightly worse (0.280 →
+  0.306, still answered) -- Gemini embeds Arabic script well on its own. And the wording varies
+  a little between runs even at temperature 0 (one row 0.247 → 0.243).
+- **Gemini's per-minute quota is real:** a run of evals and live suites hit `429
+  RESOURCE_EXHAUSTED` on embeddings; the service turned it into the generic 502 as designed.
 
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the
