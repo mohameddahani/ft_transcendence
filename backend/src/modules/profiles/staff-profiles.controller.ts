@@ -118,7 +118,7 @@ export class StaffProfilesController {
   // * Remove profile image
   @Delete('profile-image')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  removeProfileImageSatff(
+  removeProfileImageStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.profilesService.removeProfileImageStaff(accessTokenPayload.id);

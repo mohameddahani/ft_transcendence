@@ -20,7 +20,7 @@ import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-aut
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])
-export class SatffPaymentsController {
+export class StaffPaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   // * Get all Payments (Staff)

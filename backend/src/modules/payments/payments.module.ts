@@ -3,14 +3,14 @@ import { AdminPaymentsController } from './admin-payments.controller';
 import { AuthModule } from '../auth/auth.module';
 import { MemberPaymentsController } from './member-payments.controller';
 import { PaymentsService } from './payments.service';
-import { SatffPaymentsController } from './staff-payments.controller';
+import { StaffPaymentsController } from './staff-payments.controller';
 import { AccessesService } from '@/core/services/access.service';
 
 @Module({
   controllers: [
     AdminPaymentsController,
     MemberPaymentsController,
-    SatffPaymentsController,
+    StaffPaymentsController,
   ],
   providers: [PaymentsService, AccessesService],
   imports: [

@@ -370,6 +370,9 @@ model WorkingHour {
   admin   User   @relation(fields: [adminId], references: [id])
 
   dayOfWeek Int    @map("day_of_week") // 1 = Monday ... 7 = Sunday
+  // * Stored as HH:mm strings because these represent clock times only,
+  // * while the date is stored separately in startDate/endDate.
+  // * Using String also makes time validation and comparison straightforward.
   startTime String @map("start_time")
   endTime   String @map("end_time")
 
@@ -393,6 +396,9 @@ model SpecialHour {
   startDate DateTime @map("start_date") @db.Date
   endDate   DateTime @map("end_date") @db.Date
 
+  // * Stored as HH:mm strings because these represent clock times only,
+  // * while the date is stored separately in startDate/endDate.
+  // * Using String also makes time validation and comparison straightforward.
   startTime String? @map("start_time")
   endTime   String? @map("end_time")
 

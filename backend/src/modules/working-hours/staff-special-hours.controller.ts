@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -17,35 +18,48 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { WorkingHoursService } from './working-hours.service';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 
-@Controller('/api/staffs/working-hours')
+@Controller('/api/staffs/special-hours')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])
-export class StaffWorkingHoursController {
+export class StaffSpecialHoursController {
   constructor(private readonly workingHoursService: WorkingHoursService) {}
 
-  // * Get All Working Hours (Staff)
+  // * Get All Special Hours (Staff)
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findAllWorkingHours(
+  findAllSpecialHours(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.workingHoursService.findAllWorkingHours(
+    return this.workingHoursService.findAllSpecialHours(
       accessTokenPayload,
       page,
       limit,
     );
   }
 
-  // * Get One Working Hour (Staff)
+  // * Get One Special Hour (Staff)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findOneWorkingHour(
+  findOneSpecialHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.workingHoursService.findOneWorkingHour(accessTokenPayload, id);
+    return this.workingHoursService.findOneSpecialHour(accessTokenPayload, id);
+  }
+
+  // * Delete One Special Hour By (Staff)
+  @Delete(':id')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  deleteOneSpecialHour(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.workingHoursService.deleteOneSpecialHour(
+      accessTokenPayload.id,
+      id,
+    );
   }
 }

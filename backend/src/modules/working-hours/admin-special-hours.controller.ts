@@ -19,77 +19,74 @@ import { Throttle } from '@nestjs/throttler';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { WorkingHoursService } from './working-hours.service';
-import { AddWorkingHourDto } from './dtos/add-working-hour.dto';
-import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
+import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
+import { AddSpecialHourDto } from './dtos/add-special-hour.dto';
 
-@Controller('/api/admins/working-hours')
+@Controller('/api/admins/special-hours')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
-export class AdminWorkingHoursController {
+export class AdminSpecialHoursController {
   constructor(private readonly workingHoursService: WorkingHoursService) {}
 
-  // * Add Working Hours By (Admin)
+  // * Add Special Hours By (Admin)
   @Post()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  addWorkingHourByDay(
+  addSpecialHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: AddWorkingHourDto,
+    @Body() body: AddSpecialHourDto,
   ) {
-    return this.workingHoursService.addWorkingHourByDay(
-      accessTokenPayload.id,
-      body,
-    );
+    return this.workingHoursService.addSpecialHour(accessTokenPayload.id, body);
   }
 
-  // * Update Working Hours By (Admin)
+  // * Update Special Hours By (Admin)
   @Patch(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  updateWorkingHourByDay(
+  updateSpecialHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateWorkingHourDto,
+    @Body() body: UpdateSpecialHourDto,
   ) {
-    return this.workingHoursService.updateWorkingHourByDay(
+    return this.workingHoursService.updateSpecialHour(
       accessTokenPayload.id,
       id,
       body,
     );
   }
 
-  // * Get All Working Hours (Admin)
+  // * Get All Special Hours (Admin)
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findAllWorkingHours(
+  findAllSpecialHours(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.workingHoursService.findAllWorkingHours(
+    return this.workingHoursService.findAllSpecialHours(
       accessTokenPayload,
       page,
       limit,
     );
   }
 
-  // * Get One Working Hour (Admin)
+  // * Get One Special Hour (Admin)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findOneWorkingHour(
+  findOneSpecialHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.workingHoursService.findOneWorkingHour(accessTokenPayload, id);
+    return this.workingHoursService.findOneSpecialHour(accessTokenPayload, id);
   }
 
-  // * Delete One Working Hour By (Admin)
+  // * Delete One Special Hour By (Admin)
   @Delete(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  deleteOneWorkingHour(
+  deleteOneSpecialHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.workingHoursService.deleteOneWorkingHour(
+    return this.workingHoursService.deleteOneSpecialHour(
       accessTokenPayload.id,
       id,
     );

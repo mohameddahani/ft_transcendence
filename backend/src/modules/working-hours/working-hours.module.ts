@@ -4,13 +4,15 @@ import { AuthModule } from '../auth/auth.module';
 import { AdminWorkingHoursController } from './admin-working-hours.controller';
 import { WorkingHoursService } from './working-hours.service';
 import { StaffWorkingHoursController } from './staff-working-hours.controller';
+import { AdminSpecialHoursController } from './admin-special-hours.controller';
+import { StaffSpecialHoursController } from './staff-special-hours.controller';
 
 @Module({
   controllers: [
     AdminWorkingHoursController,
     StaffWorkingHoursController,
-
-    // SpecialHoursController
+    AdminSpecialHoursController,
+    StaffSpecialHoursController,
   ],
   providers: [AccessesService, WorkingHoursService],
   imports: [
