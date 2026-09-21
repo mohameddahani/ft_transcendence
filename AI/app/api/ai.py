@@ -12,7 +12,7 @@ Everything that *can* fail before the stream opens does: authentication, the rat
 limit, and request validation all run as dependencies, so a 401, a 429 or a 400 is
 still an ordinary JSON envelope with the right status.
 
-`/ai/documents` arrives in phase 3.
+`/ai/documents` lives in `documents.py`.
 """
 
 from __future__ import annotations

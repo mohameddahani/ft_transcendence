@@ -271,15 +271,26 @@ echo "── conversation memory (task 2.4) ──"
 docker compose cp scripts/check_memory.py ai:/tmp/check_memory.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_memory.py 2>/dev/null || FAIL=1
 
-echo "── RAG ingestion: chunking, Chroma store (task 3.1) ──"
+echo "── RAG: chunking, Chroma store, /ai/documents (tasks 3.1, 3.2) ──"
 # The seeded policy documents are the chunker's test corpus. The script opens Chroma
 # in a temporary directory: /data/chroma belongs to the running server, and Chroma is
 # not safe to write from two processes at once.
 docker compose exec -T ai rm -rf /tmp/corpus >/dev/null 2>&1
 docker compose cp seeder/documents ai:/tmp/corpus >/dev/null 2>&1
 docker compose cp scripts/check_rag.py ai:/tmp/check_rag.py >/dev/null 2>&1
+docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
   ai python /tmp/check_rag.py || FAIL=1
+
+# Guardrail #3: every read of gym documents carries admin_id (and visibility for a
+# member). The filter is built in one place, store._readable_by, so nothing outside
+# store.py may query Chroma -- the same idea as the _fetch_all grep for Postgres.
+CHROMA_QUERY=$(grep -rn "\.query(" app/ --include='*.py' | grep -v "^app/rag/store.py:" || true)
+if [ -z "$CHROMA_QUERY" ]; then
+  ok "only store.py queries Chroma (guardrail #3)"
+else
+  bad "only store.py queries Chroma (guardrail #3)" "$(printf '%s' "$CHROMA_QUERY" | head -2)"
+fi
 
 echo "── streaming chat endpoint (task 2.3) ──"
 # The stream's own grammar is asserted in check_agent.py against `stream_turn`, with

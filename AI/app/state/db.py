@@ -114,6 +114,20 @@ _SCHEMA: Final = (
         PRIMARY KEY (thread_id, seq)
     )
     """,
+    # One row per uploaded file (task 3.2): the list the owner sees. Chroma holds the
+    # chunks; this row is what makes them findable and deletable.
+    """
+    CREATE TABLE IF NOT EXISTS documents (
+        id          TEXT PRIMARY KEY,
+        admin_id    TEXT NOT NULL,
+        filename    TEXT NOT NULL,
+        mime        TEXT NOT NULL,
+        visibility  TEXT NOT NULL CHECK (visibility IN ('staff', 'member')),
+        chunk_count INTEGER NOT NULL,
+        bytes       INTEGER NOT NULL,
+        created_at  REAL NOT NULL
+    )
+    """,
 )
 
 

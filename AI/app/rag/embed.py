@@ -7,12 +7,16 @@ each side says which one it is.
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 from functools import lru_cache
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from app.config import get_settings
+from app.core.errors import upstream
+
+logger = logging.getLogger(__name__)
 
 _BATCH = 100    # the most texts Gemini accepts in one embedding call
 
@@ -39,7 +43,13 @@ def _normalize(vector: list[float]) -> list[float]:
 async def _timed(call):
     # The client's own `request_options={"timeout": ...}` is silently ignored
     # (measured: a 0.001s timeout still returned after 0.56s), so we bound it here.
-    return await asyncio.wait_for(call, get_settings().GEMINI_TIMEOUT_SECONDS)
+    # Any failure becomes a generic 502, like the chat path: the SDK's message can
+    # carry a URL or part of the request, and it would reach the user.
+    try:
+        return await asyncio.wait_for(call, get_settings().GEMINI_TIMEOUT_SECONDS)
+    except Exception as exc:
+        logger.warning("gemini embedding failed", extra={"fields": {"error_type": type(exc).__name__}})
+        raise upstream() from exc
 
 
 async def embed_documents(texts: list[str]) -> list[list[float]]:

@@ -121,7 +121,10 @@ thread_messages(thread_id TEXT, seq INTEGER, role TEXT, payload TEXT,
 
 documents(id TEXT PK, admin_id TEXT, filename TEXT, mime TEXT,
           visibility TEXT CHECK(visibility IN ('staff','member')),
-          chunk_count INT, bytes INT, uploaded_by TEXT, created_at TS)
+          chunk_count INT, bytes INT, created_at REAL)
+-- Written BEFORE the Chroma chunks and deleted AFTER them, so a chunk never exists
+-- without a row that lists it and can delete it.  No `uploaded_by`: only the owner
+-- uploads, so it would always equal admin_id.
 
 rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start))
 ```
@@ -137,6 +140,11 @@ rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start)
 
 **`gym_docs` is never queried without an `admin_id` filter.** The member agent additionally filters
 `visibility = "member"`. Both filters go through one retrieval function — not composed at call sites.
+Built: `store._readable_by(scope)` builds the filter (owner and staff: the whole gym, staff documents
+included; member: `visibility = member` only), `store.search` is the only Chroma query in `app/`
+(`verify.sh` greps for it), and `retrieve.retrieve(scope, question)` embeds the question and returns
+the 20 nearest as `Hit(text, source_name, doc_id, chunk_index, distance)`. Chroma filters inside the
+search, not after it, so a gym always gets its own top 20.
 
 ---
 
@@ -219,7 +227,20 @@ here — the subject requires both.
 | `DELETE` | `/ai/documents/{doc_id}` | Removes the row and all its chunks from Chroma |
 
 Accepted types: **PDF, TXT, Markdown** (`pypdf` only — no DOCX, to avoid another parser).
-Max `MAX_UPLOAD_MB`. A member token calling any of these gets `403`.
+The type is decided by the bytes (`%PDF-`), not the name. Markdown front matter is dropped.
+Owner only: a member or staff token gets `403`. `POST` is rate-limited (`docs` bucket).
+
+| Status | When |
+|---|---|
+| `201` | `{doc_id, filename, chunk_count}` |
+| `400` | no `file`, more than one file, or `visibility` not `staff`/`member` |
+| `411` / `413` | no `Content-Length` / over `MAX_UPLOAD_MB` -- checked before the body is read |
+| `415` | not PDF, TXT or Markdown |
+| `422` | no text to index: scanned or encrypted PDF, damaged file, not UTF-8, empty |
+| `502` | Gemini failed; nothing was stored |
+| `204` / `404` | `DELETE` done / no such document **in this gym** (another gym's id is 404, not 403) |
+
+Every refusal happens before the Gemini call.
 
 ### 3.4 `POST /internal/sentiment`
 

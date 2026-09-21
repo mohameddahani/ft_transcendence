@@ -70,6 +70,7 @@ docker compose exec -T postgres psql -U admin -d ft_transcendence < seeder/fixtu
 docker compose exec -T postgres psql -U admin -d ft_transcendence < seeder/fixtures/d4_second_gym.sql
 .venv/bin/python -m seeder.seed              # 4 gyms, 150-400 members each
 docker compose restart ai
+./scripts/load_corpus.sh                     # the 16 policy documents into Chroma (calls Gemini)
 ```
 
 Host `psql` is installed (18.6): `PGPASSWORD=1234 psql -h 127.0.0.1 -U admin -d ft_transcendence`
@@ -1320,6 +1321,45 @@ the D8 members lookup hit.
   distance 0.231 (off-topic: 0.436 -- input for the D22 threshold).
 - **Chroma is single-process.** Never write `/data/chroma` from `docker compose exec` while
   the server runs; tests use a temp dir. The corpus gets loaded through D20's upload endpoint.
+
+**D20 (2026-09-21) — task 3.2 done by Claude at Oussama's request.** `verify.sh` is
+**769 checks** with `AI_LIVE_TESTS=1`. `POST/GET/DELETE /ai/documents`, owner only. New: `app/api/documents.py` (routes), `app/state/documents.py`
+(the SQLite row). `ingest.py` gained `extract_text` (pypdf) and `remove_document`.
+`scripts/load_corpus.sh` loads the 16 seeded documents through the endpoint.
+
+- **Size is checked before the body is read.** The route declares no body parameter, so
+  auth and the rate limit run first, then `Content-Length` (411 without, 413 over the
+  limit). Tested: declare 300 bytes, send 2 MB -- uvicorn takes 300 and rejects the rest
+  as a malformed next request. The app never sees it.
+- **Type from the bytes:** `%PDF-` → pypdf (in a thread); else `.txt`/`.md` that decodes
+  as UTF-8. Encrypted, scanned, damaged or empty → 422. Front matter is dropped.
+- **Two stores, one order:** row written before chunks, deleted after them. A chunk never
+  exists without a row that lists it. Chroma failing mid-upload removes the row too.
+- **Found by testing:** `mint_token.py admin/staff <gym>` queried `users.email`, which the
+  role is not granted (only the no-argument form ever worked); fixed. An unclosed
+  `aiosqlite` connection kept a test process alive forever after a crash. The loader first
+  deleted the old copy and then uploaded -- a 429 lost the document; it now uploads first.
+- **Rate limit:** refused uploads count against the 10/min `docs` budget. The tests split
+  refusals across two owners so `verify.sh` passes twice in a row.
+- **Known flake, not from D20:** `check_attendance` fails when a run straddles the top of
+  the hour -- attendance is generated up to the current hour (D18.5), so the two seeds it
+  compares differ by one hour of visits. Rerun and it passes.
+
+**D21 (2026-09-21) — task 3.3 done by Claude at Oussama's request.** Tenant-filtered retrieval.
+`verify.sh` is **783 checks** with `AI_LIVE_TESTS=1`.
+`store.search(scope, vector, k)` + `store._readable_by(scope)` (the filter, built from the Scope),
+and `app/rag/retrieve.py` (`retrieve(scope, question)` = embed + search, top 20).
+
+- **Who reads what:** owner and staff get the whole gym (staff documents included); a member
+  gets `visibility = member` only. Nothing outside `store.py` queries Chroma (verify.sh grep).
+- **Proof the filter is the control:** offline, Oasis holds the question's *exact* vector
+  (distance 0) and Atlas never gets it back. Both tests were checked against a broken
+  filter: dropping `admin_id` fails 6 checks, forgetting the member rule fails 1.
+- **Live, real corpus:** same cancel question → Atlas "30 days" (0.231), Oasis "45 days"
+  (0.228). The owner's discount question → pricing-authority (0.244).
+- **D22 input:** a member asking about staff discounts gets no staff chunk, but its best
+  remaining match is "## If something is broken" at **0.355** -- irrelevant. Relevant hits sit
+  at 0.23-0.24, off-topic at 0.436. That gap is where the threshold goes.
 
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the

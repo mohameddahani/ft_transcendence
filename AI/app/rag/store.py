@@ -1,14 +1,15 @@
 """Chroma storage for gym document chunks (collection A, `gym_docs`).
 
 Every gym shares one collection. The `admin_id` in each chunk's metadata keeps them
-apart, so every write and delete here filters on the caller's `Scope`, never on an
-id passed in by hand. Chroma's client is synchronous: every call runs in a thread so
+apart, so every write, delete and search here filters on the caller's `Scope`, never
+on an id passed in by hand. This is the only module that queries Chroma. Chroma's client is synchronous: every call runs in a thread so
 it does not block other users' streams.
 """
 
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any
 
 import chromadb
@@ -18,6 +19,16 @@ from app.config import Settings
 from app.db.scope import Scope, ScopeViolation
 
 VISIBILITIES = ("staff", "member")
+
+
+@dataclass(frozen=True)
+class Hit:
+    """One retrieved chunk and where it came from (for citations)."""
+    text: str
+    source_name: str
+    doc_id: str
+    chunk_index: int
+    distance: float     # cosine distance: 0 = same meaning, 2 = opposite; lower is closer
 
 _collection: Any | None = None
 
@@ -104,7 +115,40 @@ async def add_chunks(
     )
 
 
-async def delete_document(scope: Scope, doc_id: str) -> None:
+async def delete_chunks(scope: Scope, doc_id: str) -> None:
     """Remove every chunk of one of this gym's documents."""
     _require_owner(scope)
     await asyncio.to_thread(_require_collection().delete, where=_this_document(scope, doc_id))
+
+
+def _readable_by(scope: Scope) -> dict:
+    """What this caller may retrieve -- the security control. Similarity never is:
+    another gym's chunk can be the closest match to a question, and must not come back.
+
+    Owner and staff: the whole gym, staff documents included. Member: only documents
+    marked `member`.
+    """
+    gym = {"admin_id": scope.admin_id}
+    if scope.is_member:
+        return {"$and": [gym, {"visibility": "member"}]}
+    return gym
+
+
+async def search(scope: Scope, embedding: list[float], k: int) -> list[Hit]:
+    """The k chunks closest to `embedding` that this caller may read, closest first.
+
+    Chroma applies the filter inside the search, not after it, so a gym always gets
+    its own k best chunks however many closer ones other gyms have.
+    """
+    result = await asyncio.to_thread(
+        _require_collection().query,
+        query_embeddings=[embedding],
+        n_results=k,
+        where=_readable_by(scope),
+        include=["documents", "metadatas", "distances"],
+    )
+    return [
+        Hit(text, meta["source_name"], meta["doc_id"], meta["chunk_index"], distance)
+        for text, meta, distance in zip(
+            result["documents"][0], result["metadatas"][0], result["distances"][0])
+    ]

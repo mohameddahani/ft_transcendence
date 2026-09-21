@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.api import ai as ai_routes
+from app.api import documents as document_routes
 from app.api import internal as internal_routes
 from app.config import Settings, get_settings
 from app.core import errors
@@ -109,6 +110,7 @@ app.add_middleware(
 )
 errors.install(app)
 app.include_router(ai_routes.router)
+app.include_router(document_routes.router)
 app.include_router(internal_routes.router)
 
 

@@ -38,11 +38,11 @@ async def main() -> None:
     if role == "ADMIN":
         secret = settings.JWT_ADMIN_ACCESS_SECRET.get_secret_value()
         if who:
+            # By gym name: `users.email` is not granted to the service's role.
             row = await db._fetch_one(
-                "SELECT id FROM users WHERE role = 'ADMIN'"
-                " AND (email = :exact OR company_name ILIKE :like)"
-                " ORDER BY (email = :exact) DESC, company_name LIMIT 1",
-                {"exact": who, "like": f"%{who}%"})
+                "SELECT id FROM users WHERE role = 'ADMIN' AND company_name ILIKE :like"
+                " ORDER BY company_name LIMIT 1",
+                {"like": f"%{who}%"})
         else:
             row = await db._fetch_one(
                 "SELECT id FROM users WHERE role = 'ADMIN' ORDER BY company_name LIMIT 1")
@@ -61,7 +61,7 @@ async def main() -> None:
         row = await db._fetch_one(
             "SELECT s.id FROM staffs s JOIN users u ON u.id = s.admin_id"
             " WHERE u.role = 'ADMIN' AND s.account_status::text = :status"
-            "   AND (:who = '' OR u.company_name ILIKE :like OR u.email ILIKE :like)"
+            "   AND (:who = '' OR u.company_name ILIKE :like)"
             " ORDER BY u.company_name, s.id LIMIT 1",
             {"status": status, "who": who or "", "like": f"%{who}%"})
     elif role == "MEMBER":
