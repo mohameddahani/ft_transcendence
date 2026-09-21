@@ -86,6 +86,27 @@ are Claude's to do or heavily assist. Oussama asked for this explicitly.
 **SQL sits in between.** Oussama is learning it (SQLbolt lessons 1–13). Claude writes the SQL for
 now and annotates it; Oussama reads alongside and takes it over.
 
+**Simple and minimal code, from D19 on (Oussama, 2026-09-21).** He has to explain every part to
+an evaluator or interviewer and remember where it lives. Before writing code, check:
+- **Fewest files.** One module per job (`chunk.py` chunks, `store.py` stores). No new file,
+  class or layer unless the task cannot be done without it.
+- **Fewest lines.** Fix what a test proved broken; do not add defences for cases nobody has
+  shown. A short docstring saying *what* and *why* beats a long essay in comments.
+- **Plain functions over classes; module functions over factories.** No abstraction for one caller.
+- **Readable over clever.** If it takes more than a minute to explain, simplify it.
+- A "good RAG" here means correct and explainable, not feature-complete. Retrieval quality work
+  (threshold, rewriting, reranking) stays, each as a small function.
+The phases 0-2 code is long; leave it unless a task touches it.
+
+**Git: Oussama runs every git command that changes history himself (2026-09-21).** Claude
+never runs `git add`, `git commit` or `git push` (force or not). When the work is at a
+good point, **tell him** it is time to commit and hand over the block for him to run:
+`git add <files>`, `git commit -m "<suggested message>"`, `git push origin <branch>`, plus
+a short summary of what changed. Read-only git (`status`, `diff`, `log`) is fine. The work
+being approved, or a push being the obvious next step, is not permission; only an explicit
+request in that message is. He keeps branches unpushed on purpose as fallbacks, and a commit
+he did not write is one he cannot describe to an evaluator.
+
 ## Non-negotiable guardrails
 
 1. Postgres role is `SELECT` only, on the 8 tables in `AI_SPECS.md` §2.1 — **never** the token
@@ -1278,6 +1299,27 @@ month?"* answers that it is the owner's and calls no tool; the same token asking
 has lapsed returns the 25-name list. `mint_token.py staff atlas [BANNED]` mints either
 kind -- by gym and status, because `staffs.user_name` is ungranted, the same constraint
 the D8 members lookup hit.
+
+**D19 (2026-09-21) — task 3.1 written by Oussama, corrected by Claude.** `verify.sh` is
+**732 checks** with `AI_LIVE_TESTS=1`. Four files in `app/rag/`, one job each:
+`chunk.py` (text → chunks), `embed.py` (chunks/questions → Gemini vectors), `store.py`
+(Chroma `gym_docs`), `ingest.py` (chunk → embed → store). Tests: `scripts/check_rag.py`.
+
+- **Chunking = one chunk per Markdown section** when it fits (≤1000 chars), else split on
+  sentences (rows for tables/lists) with whole-sentence overlap. Every chunk starts with its
+  heading. Corpus: 16 docs → 92 chunks.
+- **Found by testing his version:** a heading glued to its paragraph made a 2575-char chunk;
+  a 5000-char word stayed whole; big tables and lists were flattened to one line; headings
+  orphaned at chunk ends; re-adding a shorter document left its old chunks searchable;
+  telemetry was on; the embedder's `request_options` timeout is silently ignored (measured).
+- **Store rules:** writes/deletes take a `Scope` (owner only), visibility must be
+  `staff`/`member`, delete-then-`add` (never `upsert`), and the collection remembers the
+  embedding model it was built with -- a different model refuses to boot.
+- **Live proof the filter is the control:** unfiltered, the top 4 chunks for a cancel
+  question came from **4 different gyms**; filtered, Atlas's "## Cancelling" is top at
+  distance 0.231 (off-topic: 0.436 -- input for the D22 threshold).
+- **Chroma is single-process.** Never write `/data/chroma` from `docker compose exec` while
+  the server runs; tests use a temp dir. The corpus gets loaded through D20's upload endpoint.
 
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the

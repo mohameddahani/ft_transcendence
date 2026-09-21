@@ -18,6 +18,7 @@ from app.core import errors
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.db import engine as db
 from app.db.schema import verify_schema
+from app.rag import store as rag_store
 from app.state import db as state_db
 from app.state.limits import sweep_expired
 from app.state.threads import sweep_expired_threads
@@ -51,6 +52,9 @@ async def lifespan(_: FastAPI):
         # A thread and its messages go together: an orphaned transcript is a whole
         # conversation nothing can reach and nothing will ever delete.
         await sweep_expired_threads(settings.THREAD_TTL_DAYS)
+        # Opened at boot so a changed embedding model refuses to start here,
+        # not on the first upload.
+        await rag_store.init_store(settings)
         yield
     finally:
         await state_db.close_state_db()

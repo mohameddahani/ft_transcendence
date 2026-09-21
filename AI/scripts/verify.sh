@@ -271,6 +271,16 @@ echo "── conversation memory (task 2.4) ──"
 docker compose cp scripts/check_memory.py ai:/tmp/check_memory.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app ai python /tmp/check_memory.py 2>/dev/null || FAIL=1
 
+echo "── RAG ingestion: chunking, Chroma store (task 3.1) ──"
+# The seeded policy documents are the chunker's test corpus. The script opens Chroma
+# in a temporary directory: /data/chroma belongs to the running server, and Chroma is
+# not safe to write from two processes at once.
+docker compose exec -T ai rm -rf /tmp/corpus >/dev/null 2>&1
+docker compose cp seeder/documents ai:/tmp/corpus >/dev/null 2>&1
+docker compose cp scripts/check_rag.py ai:/tmp/check_rag.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
+  ai python /tmp/check_rag.py || FAIL=1
+
 echo "── streaming chat endpoint (task 2.3) ──"
 # The stream's own grammar is asserted in check_agent.py against `stream_turn`, with
 # no HTTP and no network. What is left here is the part only a real request can show:

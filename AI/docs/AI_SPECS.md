@@ -132,7 +132,7 @@ rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start)
 
 | Collection | Scope | Metadata |
 |---|---|---|
-| `gym_docs` (A) | per-tenant | `admin_id`, `visibility`, `doc_id`, `source_name`, `chunk_index`, `created_at` |
+| `gym_docs` (A) | per-tenant | `admin_id`, `visibility`, `doc_id`, `source_name`, `chunk_index`; chunk id `doc_id:chunk_index` |
 | `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `chunk_index` |
 
 **`gym_docs` is never queried without an `admin_id` filter.** The member agent additionally filters
@@ -346,8 +346,8 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 
 | Parameter | Value | Note |
 |---|---|---|
-| Chunk size | ~1000 chars | Sentence-boundary aware, not a hard cut |
-| Overlap | 150 chars | |
+| Chunk size | at most 1000 chars | One chunk per Markdown section when it fits; longer sections split on sentences (table/list rows). Every chunk starts with its heading |
+| Overlap | 150 chars | Whole sentences, inside a long section only |
 | Retrieve | top 20 | Before reranking |
 | Rerank to | top 5 | LLM-based, phase 4 |
 | Distance threshold | start 0.35, **tune with the eval set** | Above it → "that isn't in your documents" |
