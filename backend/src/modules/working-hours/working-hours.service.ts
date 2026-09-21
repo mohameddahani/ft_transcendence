@@ -235,11 +235,16 @@ export class WorkingHoursService {
       );
     }
 
-    // * Validate times
-    if (data.startTime && data.endTime && data.startTime >= data.endTime) {
-      throw new BadRequestException(
-        'Start time must be earlier than end time.',
-      );
+    // * Validate the complete date/time range
+    if (data.startTime && data.endTime) {
+      const start = new Date(`${data.startDate}T${data.startTime}`);
+      const end = new Date(`${data.endDate}T${data.endTime}`);
+
+      if (start > end) {
+        throw new BadRequestException(
+          'Start date and time cannot be after end date and time.',
+        );
+      }
     }
 
     // * Check the day is already added with same time
@@ -339,11 +344,16 @@ export class WorkingHoursService {
       );
     }
 
-    // * Validate that the start time is earlier than the end time
-    if (startTimeValue && endTimeValue && startTimeValue >= endTimeValue) {
-      throw new BadRequestException(
-        'Start time must be earlier than end time.',
-      );
+    // * Validate the complete date/time range
+    if (startTimeValue && endTimeValue) {
+      const start = new Date(`${startDateValue}T${startTimeValue}`);
+      const end = new Date(`${endDateValue}T${endTimeValue}`);
+
+      if (start > end) {
+        throw new BadRequestException(
+          'Start date and time cannot be after end date and time.',
+        );
+      }
     }
 
     // * Convert date strings into JavaScript Date objects
