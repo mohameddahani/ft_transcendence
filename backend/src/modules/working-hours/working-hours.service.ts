@@ -325,7 +325,7 @@ export class WorkingHoursService {
     const today = format(new Date(), 'yyyy-MM-dd');
 
     // * Check that the start date is not in the past
-    if (startDateValue < today) {
+    if (startDateValue < today && data.startDate !== undefined) {
       throw new BadRequestException('Start date cannot be in the past.');
     }
 
