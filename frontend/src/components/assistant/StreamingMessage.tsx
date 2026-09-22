@@ -39,7 +39,17 @@ export function StreamingMessage({
               key={source.n}
               className="rounded border border-black/10 px-1.5 py-0.5 dark:border-white/15"
             >
-              [{source.n}] {source.source_name}
+              {/* Only https: the link comes from our corpus, but an href is the one
+                  place a string can become code (javascript:). */}
+              {source.url?.startsWith("https://") ? (
+                <a href={source.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  [{source.n}] {source.source_name}
+                </a>
+              ) : (
+                <>
+                  [{source.n}] {source.source_name}
+                </>
+              )}
             </li>
           ))}
         </ul>

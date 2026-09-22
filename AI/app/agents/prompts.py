@@ -140,12 +140,24 @@ def _known_section(profile: Profile) -> str:
             + "\n".join(lines) + "\n\n")
 
 
+_ADVICE_SECTION = """\
+ADVICE (this question asks what to do)
+- First get this gym's own numbers that bear on the question, with the data tools.
+- Then call search_industry_knowledge for what works elsewhere.
+- Answer in two parts: what this gym's numbers show, then what to do. Ground each
+  recommendation in an excerpt and cite it as [n]; a recommendation with no excerpt
+  behind it is your own suggestion, so say so.
+- Industry excerpts describe gyms in general. Never present one of their figures as
+  this gym's, and never present this gym's numbers as an industry benchmark."""
+
+
 def build_system_prompt(
     scope: Scope,
     profile: Profile,
     *,
     question: str | None = None,
     now: datetime | None = None,
+    advisory: bool = False,
 ) -> str:
     """Assemble the system prompt for one turn.
 
@@ -176,5 +188,6 @@ def build_system_prompt(
         f"local time {moment:%H:%M} Africa/Casablanca.\n\n"
         f"{_known_section(profile)}"
         f"{role_section}\n\n"
-        f"{_SHARED_RULES.format(language=language_line)}\n"
+        + (f"{_ADVICE_SECTION}\n\n" if advisory else "")
+        + f"{_SHARED_RULES.format(language=language_line)}\n"
     )

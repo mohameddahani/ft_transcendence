@@ -45,6 +45,9 @@ RUN mkdir -p /data && chown appuser:appuser /data
 # code but cannot modify it, so a compromised request handler cannot rewrite the
 # application it is running inside.
 COPY app/ ./app/
+# Collection B ships inside the image, so the one-shot loader (ai-load) finds it on
+# any machine with no mount: 150 cleaned documents, ~2.5 MB.
+COPY corpus/business/docs/ ./corpus/business/docs/
 RUN chown -R root:root /app && chmod -R a=rX /app
 
 USER appuser

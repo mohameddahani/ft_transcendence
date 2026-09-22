@@ -303,12 +303,13 @@ async def chat(body: ChatRequest, ctx: ChatRateLimited,
             # The router (task 3.6): live data goes to the tool agent, written rules
             # to the documents. Both yield the same events; `meta.route` says which.
             history = await load_history(thread_id, get_settings().AGENT_HISTORY_MESSAGES)
-            if await choose_route(body.message, history, member=ctx.scope.is_member) == "knowledge":
+            route = await choose_route(body.message, history, member=ctx.scope.is_member)
+            if route == "knowledge":
                 turn = stream_knowledge(scope=ctx.scope, question=body.message,
                                         thread_id=thread_id, history=history)
             else:
-                turn = stream_turn(scope=ctx.scope, profile=profile,
-                                   question=body.message, thread_id=thread_id)
+                turn = stream_turn(scope=ctx.scope, profile=profile, question=body.message,
+                                   thread_id=thread_id, advisory=route == "advisory")
             async for event in turn:
                 yield _sse(event)
         except ApiError as exc:

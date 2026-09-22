@@ -13,3 +13,9 @@ services:
       # permissions the image itself sets.
       - ./app:/app/app:ro
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Same live code and corpus for the loader, so an edit does not need a rebuild.
+  ai-load:
+    volumes:
+      - ./app:/app/app:ro
+      - ./corpus/business/docs:/app/corpus/business/docs:ro

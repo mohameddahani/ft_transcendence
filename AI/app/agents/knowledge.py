@@ -1,8 +1,9 @@
 """The router and the knowledge branch (task 3.6).
 
 The chat endpoint asks `choose_route` first. "structured" questions (the gym's live
-data) go to the tool agent in graph.py. "knowledge" questions (the gym's written
-rules) come here:
+data) go to the tool agent in graph.py; "advisory" ones (what should we do?) go to the
+same agent with the industry corpus added as a tool. "knowledge" questions (the gym's
+written rules) come here:
 
     retrieve -> nothing close enough?  say so in the user's language, no model call
              -> otherwise the model answers from the excerpts only, citing [1], [2]
@@ -12,7 +13,6 @@ rules) come here:
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import AsyncIterator
 from typing import Literal
 
@@ -24,7 +24,7 @@ from app.agents.language import Language, detect, instruction
 from app.agents.llm import get_llm
 from app.core.errors import ApiError, upstream
 from app.db.scope import Scope
-from app.rag.retrieve import retrieve, with_conversation
+from app.rag.retrieve import cited_sources, retrieve, with_conversation
 from app.state.threads import append_messages
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,9 @@ _ROUTE_PROMPT = """Classify the user's last message for a gym's assistant.
   cancelling, freezing, refunds, guests, lockers, house rules, staff procedures, the
   discounts staff may give, and the cost of services the gym describes (personal
   training, towels, lockers).
+- "advisory": it asks what to do, or for advice or best practice on running the gym --
+  keeping members, winning them back, pricing, marketing, staff -- often about its own
+  numbers ("our churn is up, what should we do?", "how do I get inactive members back?").
 - "structured": anything else -- the gym's live data (members, memberships, payments,
   revenue, attendance, feedback, membership plans and their prices), the user's own
   membership and visits, this conversation itself, and anything unrelated to this gym
@@ -67,7 +70,7 @@ documents, so a question about plan prices is "knowledge"."""
 
 
 class _Route(BaseModel):
-    route: Literal["structured", "knowledge"]
+    route: Literal["structured", "knowledge", "advisory"]
 
 
 async def choose_route(question: str, history: list[BaseMessage], member: bool = False) -> str:
@@ -76,7 +79,9 @@ async def choose_route(question: str, history: list[BaseMessage], member: bool =
     try:
         result = await get_llm().with_structured_output(_Route).ainvoke(
             [("system", prompt), ("human", with_conversation(question, history))])
-        return result.route
+        # Advice on running a gym is for the people running it; a member asking "how do
+        # I stay motivated?" is answered by the member agent.
+        return "structured" if member and result.route == "advisory" else result.route
     except Exception as exc:  # noqa: BLE001 -- routing must not fail the turn
         # The tool agent is the safe default: it already knows how to say it cannot answer.
         logger.warning("routing failed", extra={"fields": {"error_type": type(exc).__name__}})
@@ -116,12 +121,7 @@ async def stream_knowledge(*, scope: Scope, question: str, thread_id: str | None
                                        "message": "The assistant did not produce an answer."})
             return
 
-    # Only what the answer cites, and only numbers that were really given: a model
-    # can cite an excerpt it was never shown.
-    cited = {int(n) for n in re.findall(r"\[(\d+)\]", answer)}
-    sources = [{"n": n, "doc_id": hit.doc_id, "source_name": hit.source_name,
-                "chunk_index": hit.chunk_index, "score": round(1 - hit.distance, 3)}
-               for n, hit in enumerate(hits, 1) if n in cited]
+    sources = cited_sources(answer, dict(enumerate(hits, 1)))
     if sources:
         yield AgentEvent("sources", {"sources": sources})
 

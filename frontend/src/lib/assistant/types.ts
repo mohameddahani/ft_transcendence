@@ -41,6 +41,8 @@ export interface Source {
   source_name: string;
   chunk_index: number;
   score: number;
+  /** Industry sources only (Collection B): where the original can be read. */
+  url?: string;
 }
 
 /** The same envelope the non-streaming errors use, delivered as an event instead. */

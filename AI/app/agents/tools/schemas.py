@@ -61,3 +61,8 @@ class GetMyPaymentsArgs(_Args):
 
 class GetMyAttendanceArgs(_Args):
     period: Literal["week", "month", "last_month", "year"] = Field(default="month", description="Time window: this week, this month, last calendar month, or this year")
+
+class SearchIndustryArgs(_Args):
+    query: str = Field(..., min_length=3, max_length=300,
+                       description="What to look up, in English, using the industry's words "
+                                   "(churn, dropout, retention, onboarding, lifetime value...)")

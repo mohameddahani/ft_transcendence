@@ -239,6 +239,11 @@ async def main() -> None:  # noqa: C901
     check("list_recent_feedback filters by sentiment",
           feedback["count"] > 0
           and {f["sentiment"] for f in feedback["feedback"]} == {"NEGATIVE"})
+    first = feedback["feedback"][0]
+    author = await db._fetch_one("SELECT first_name || ' ' || last_name AS name FROM members m "
+                                 "JOIN feedbacks f ON f.member_id = m.id WHERE f.id = :f", {"f": first["feedback_id"]})
+    check("...and names each author, so the answer need not print an id",
+          all(f["member"] for f in feedback["feedback"]) and first["member"] == author["name"], first["member"])
 
     # ------------------------------------------------------------ member tools
     busiest = (await db._fetch_all(

@@ -57,6 +57,8 @@ from pydantic import ValidationError
 from app.agents.llm import get_llm
 from app.agents.prompts import build_system_prompt
 from app.agents.tools import Tool, build_admin_tools, build_member_tools, build_staff_tools
+from app.agents.tools.admin import build_industry_tool
+from app.rag.retrieve import cited_sources
 from app.config import get_settings
 from app.core.errors import ApiError, upstream
 from app.db.profile import Profile
@@ -105,6 +107,8 @@ class Turn:
     """
 
     tools_used: list["ToolCall"] = field(default_factory=list)
+    # Advisory turns: each industry excerpt handed to the model, by the number it cites.
+    sources: dict[int, Any] = field(default_factory=dict)
     tool_rounds: int = 0
     model_calls: int = 0
     finish_reason: str = "stop"
@@ -288,6 +292,7 @@ def _build_turn(
     max_tool_rounds: int | None,
     now: datetime | None,
     history: list[BaseMessage],
+    advisory: bool = False,
 ) -> tuple[Any, dict[str, Any], Turn]:
     """Compile the graph for **one** request and return it with its opening state.
 
@@ -310,6 +315,11 @@ def _build_turn(
         tools = build_staff_tools(scope)
     else:
         tools = build_admin_tools(scope)
+    # The advisory branch (D31): the same loop, plus the industry corpus as one more tool,
+    # so the model fetches this gym's numbers and the playbooks in one turn. Never for a
+    # member: the corpus is advice for running a gym.
+    if advisory and not scope.is_member:
+        tools["search_industry_knowledge"] = build_industry_tool(turn.sources)
     declarations = build_declarations(tools)
 
     model = llm if llm is not None else get_llm()
@@ -334,7 +344,8 @@ def _build_turn(
             allow_partial=False,
         )
         return [SystemMessage(content=build_system_prompt(
-            scope, profile, question=question, now=now)), *kept]
+            scope, profile, question=question, now=now,
+            advisory="search_industry_knowledge" in tools)), *kept]
 
     async def _ask(model_to_use: Any, messages: list[BaseMessage]) -> AIMessage:
         try:
@@ -490,6 +501,7 @@ async def run_turn(
     llm: Any | None = None,
     max_tool_rounds: int | None = None,
     now: datetime | None = None,
+    advisory: bool = False,
     thread_id: str | None = None,
 ) -> TurnResult:
     """One question in, one whole answer out. The non-streaming entry point.
@@ -504,7 +516,7 @@ async def run_turn(
     """
     history = await _history_for(thread_id)
     graph, opening, turn = _build_turn(scope, profile, _clean_question(question),
-                                       llm, max_tool_rounds, now, history)
+                                       llm, max_tool_rounds, now, history, advisory)
     final = await graph.ainvoke(opening)
 
     if thread_id is not None:
@@ -534,6 +546,7 @@ async def stream_turn(
     llm: Any | None = None,
     max_tool_rounds: int | None = None,
     now: datetime | None = None,
+    advisory: bool = False,
 ) -> AsyncIterator[AgentEvent]:
     """The same turn, as a sequence of events (task 2.3).
 
@@ -552,12 +565,13 @@ async def stream_turn(
     """
     history = await _history_for(thread_id)
     graph, opening, turn = _build_turn(scope, profile, _clean_question(question),
-                                       llm, max_tool_rounds, now, history)
+                                       llm, max_tool_rounds, now, history, advisory)
     produced: list[BaseMessage] = list(opening["messages"][len(history):])
 
-    # This is the structured path; the knowledge branch (knowledge.py) sends the same
-    # event with `route: knowledge`.
-    yield AgentEvent("meta", {"thread_id": thread_id, "route": "structured"})
+    # Structured or advisory; the knowledge branch (knowledge.py) sends the same event
+    # with `route: knowledge`.
+    yield AgentEvent("meta", {"thread_id": thread_id,
+                              "route": "advisory" if advisory else "structured"})
 
     text_seen = False
     reported: list[ToolCall] = []
@@ -629,5 +643,12 @@ async def stream_turn(
         yield AgentEvent("error", {"code": "upstream_error",
                                    "message": "The assistant did not produce an answer."})
         return
+
+    if turn.sources:
+        # Only the excerpts the answer cites, and only numbers really handed out.
+        reply = _latest_ai_message(produced)
+        sources = cited_sources(_message_text(reply) if reply else "", turn.sources)
+        if sources:
+            yield AgentEvent("sources", {"sources": sources})
 
     yield AgentEvent("done", {"finish_reason": turn.finish_reason})

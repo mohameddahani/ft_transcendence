@@ -20,6 +20,7 @@ from typing import Any
 from app.agents.tools import schemas
 from app.agents.tools.base import WEEKDAYS, Tool, period_window, plain_field, quote_user_text, tool
 from app.db import reports
+from app.rag.retrieve import retrieve_business
 from app.db.models import StoredMembershipStatus, naive_utc_now
 from app.db.scope import Scope, ScopeViolation, aggregate, select
 
@@ -292,11 +293,16 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             scope, "feedbacks",
             ["id", "member_id", "content", "rating", "sentiment", "created_at"],
             where=where, params=params, order_by="created_at desc", limit=args.limit)
+        # The author's name, so an answer can say who wrote it instead of printing an id.
+        ids = list({r["member_id"] for r in rows})
+        people = await select(scope, "members", ["id", "first_name", "last_name"],
+                              where="id = ANY(:ids)", params={"ids": ids}, limit=len(ids)) if ids else []
+        names = {p["id"]: plain_field(f"{p['first_name']} {p['last_name']}") for p in people}
         return {
             "filter": args.sentiment,
             "count": len(rows),
             "feedback": [
-                {"feedback_id": r["id"], "member_id": r["member_id"],
+                {"feedback_id": r["id"], "member_id": r["member_id"], "member": names.get(r["member_id"], ""),
                  "comment": quote_user_text(r["content"], MAX_COMMENT_CHARS),
                  "rating": r["rating"],
                  "sentiment": r["sentiment"] or "unscored",
@@ -324,3 +330,30 @@ def build_staff_tools(scope: Scope) -> dict[str, Tool]:
     if not scope.is_staff:
         raise ScopeViolation("staff tools require a scope carrying a verified staff_id")
     return build_admin_tools(scope)
+
+
+def build_industry_tool(sources: dict) -> Tool:
+    """The advisory branch's retrieval tool (D31): Collection B, shared by every gym, so
+    it needs no Scope -- only the turn's `sources`, where each excerpt it hands out is
+    numbered, so the answer's [n] can be checked against what was really retrieved."""
+    @tool("search_industry_knowledge",
+          "Advice and evidence from the gym industry -- studies, playbooks and definitions on "
+          "retention, churn, onboarding, renewals, pricing, marketing, staff and benchmarks. "
+          "General knowledge from other gyms, never facts about this one. Write the query in "
+          "English with the industry's words (churn, dropout, retention, lifetime value).",
+          schemas.SearchIndustryArgs)
+    async def search_industry_knowledge(args: schemas.SearchIndustryArgs) -> dict[str, Any]:
+        excerpts = []
+        for hit in await retrieve_business(args.query):
+            number = len(sources) + 1
+            sources[number] = hit
+            # Retrieved text is untrusted, like feedback: fenced the same way.
+            excerpts.append({"n": number, "source": hit.source_name,
+                             "text": quote_user_text(hit.text, 1200)})
+        if not excerpts:
+            return {"excerpts": [], "note": "Nothing in the industry knowledge base is close enough."}
+        return {"excerpts": excerpts,
+                "note": "Cite an excerpt as [n] wherever you use it. It describes gyms in "
+                        "general -- never present its figures as this gym's."}
+
+    return search_industry_knowledge

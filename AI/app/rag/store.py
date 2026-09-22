@@ -29,19 +29,15 @@ class Hit:
     doc_id: str
     chunk_index: int
     distance: float     # cosine distance: 0 = same meaning, 2 = opposite; lower is closer
+    url: str = ""       # Collection B only: where the source can be read
 
-_collection: Any | None = None
+_collection: Any | None = None      # gym_docs: each gym's own documents (Collection A)
+_business: Any | None = None        # gym_business: the shared industry corpus (Collection B)
 
 
-def _open_store(settings: Settings) -> None:
-    global _collection
-    client = chromadb.PersistentClient(
-        path=settings.CHROMA_PATH,
-        settings=ChromaSettings(anonymized_telemetry=False),
-    )
-    embedder = f"{settings.GEMINI_EMBED_MODEL}@{settings.GEMINI_EMBED_DIMENSIONS}"
+def _open(client: Any, name: str, embedder: str, path: str) -> Any:
     collection = client.get_or_create_collection(
-        name="gym_docs",
+        name=name,
         embedding_function=None,        # we always pass Gemini vectors ourselves
         metadata={"hnsw:space": "cosine", "embedder": embedder},
     )
@@ -50,9 +46,20 @@ def _open_store(settings: Settings) -> None:
     # was created with, so this catches a changed model at boot.
     if collection.metadata.get("embedder") != embedder:
         raise RuntimeError(
-            f"gym_docs holds {collection.metadata.get('embedder')} vectors but the config "
-            f"says {embedder}; delete {settings.CHROMA_PATH} and re-ingest the documents")
-    _collection = collection
+            f"{name} holds {collection.metadata.get('embedder')} vectors but the config "
+            f"says {embedder}; delete {path} and re-ingest the documents")
+    return collection
+
+
+def _open_store(settings: Settings) -> None:
+    global _collection, _business
+    client = chromadb.PersistentClient(
+        path=settings.CHROMA_PATH,
+        settings=ChromaSettings(anonymized_telemetry=False),
+    )
+    embedder = f"{settings.GEMINI_EMBED_MODEL}@{settings.GEMINI_EMBED_DIMENSIONS}"
+    _collection = _open(client, "gym_docs", embedder, settings.CHROMA_PATH)
+    _business = _open(client, "gym_business", embedder, settings.CHROMA_PATH)
 
 
 async def init_store(settings: Settings) -> None:
@@ -149,6 +156,54 @@ async def search(scope: Scope, embedding: list[float], k: int) -> list[Hit]:
     )
     return [
         Hit(text, meta["source_name"], meta["doc_id"], meta["chunk_index"], distance)
+        for text, meta, distance in zip(
+            result["documents"][0], result["metadatas"][0], result["distances"][0])
+    ]
+
+
+# --------------------------------------------------- Collection B, shared by every gym
+# No Scope here: this corpus belongs to no gym. It is written only by the one-shot
+# loader (load_business.py) and read by the advisory branch.
+
+def _require_business() -> Any:
+    if _business is None:
+        raise RuntimeError("Chroma store has not been initialized")
+    return _business
+
+
+async def business_doc_ids() -> set[str]:
+    """Which corpus documents are already embedded (chunk ids are `doc_id:index`)."""
+    ids = (await asyncio.to_thread(_require_business().get, include=[]))["ids"]
+    return {chunk_id.rsplit(":", 1)[0] for chunk_id in ids}
+
+
+async def add_business_document(doc_id: str, meta: dict, chunks: list[str],
+                                embeddings: list[list[float]]) -> None:
+    """Store one corpus document, replacing any earlier version of it."""
+    collection = _require_business()
+    await asyncio.to_thread(collection.delete, where={"doc_id": doc_id})
+    await asyncio.to_thread(
+        collection.add,
+        ids=[f"{doc_id}:{index}" for index in range(len(chunks))],
+        documents=chunks,
+        embeddings=embeddings,
+        metadatas=[{**meta, "doc_id": doc_id, "chunk_index": index} for index in range(len(chunks))],
+    )
+
+
+async def delete_business_document(doc_id: str) -> None:
+    await asyncio.to_thread(_require_business().delete, where={"doc_id": doc_id})
+
+
+async def search_business(embedding: list[float], k: int) -> list[Hit]:
+    """The k corpus chunks closest to `embedding`, closest first."""
+    result = await asyncio.to_thread(
+        _require_business().query,
+        query_embeddings=[embedding], n_results=k,
+        include=["documents", "metadatas", "distances"],
+    )
+    return [
+        Hit(text, meta["source_name"], meta["doc_id"], meta["chunk_index"], distance, meta.get("url", ""))
         for text, meta, distance in zip(
             result["documents"][0], result["metadatas"][0], result["distances"][0])
     ]

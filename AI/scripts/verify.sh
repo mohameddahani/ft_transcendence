@@ -284,6 +284,13 @@ docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
   ai python /tmp/check_rag.py || FAIL=1
 
+echo "── Collection B: the shared business corpus (task 4.2) ──"
+# Loaded like a migration by the one-shot ai-load service, which the server waits for.
+# Its last line says what it did; "failed 0" means every document in the image is in Chroma.
+chk "the one-shot loader ran and exited 0" "$(docker compose ps -a ai-load --format '{{.ExitCode}}' 2>/dev/null)" "0"
+LOADED=$(docker compose logs ai-load --no-log-prefix 2>&1 | grep "Collection B:" | tail -1)
+chk "...and left no corpus document unloaded" "$(printf '%s' "$LOADED" | grep -o 'failed [0-9]*')" "failed 0"
+
 echo "── prompt injection: try to break the member agent (task 3b.5) ──"
 # Judged on data, never on wording: an attack fails if a canary -- a value this member
 # must never see -- comes back, or a tool outside the member's three runs. Offline, a

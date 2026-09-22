@@ -136,7 +136,7 @@ rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start)
 | Collection | Scope | Metadata |
 |---|---|---|
 | `gym_docs` (A) | per-tenant | `admin_id`, `visibility`, `doc_id`, `source_name`, `chunk_index`; chunk id `doc_id:chunk_index` |
-| `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `chunk_index` |
+| `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `kind`, `url`, `chunk_index`; loaded by the one-shot `ai-load` service from `corpus/business/docs` (150 documents, 3,257 chunks) |
 
 **`gym_docs` is never queried without an `admin_id` filter.** The member agent additionally filters
 `visibility = "member"`. Both filters go through one retrieval function — not composed at call sites.
@@ -210,12 +210,19 @@ data: {"finish_reason":"stop"}
   so rather than presenting a partial answer as complete.
 - `sources` is emitted only for `knowledge` and `advisory`, and lists only the excerpts the
   answer actually cites: `n` is the `[n]` in the text, `score` is `1 - distance`. A cited
-  number that was never given to the model is dropped.
+  number that was never given to the model is dropped. A grouped citation (`[1, 5]`) counts
+  for both. Collection B sources also carry `url`, the original to read; the panel shows
+  them as links (https only).
 - **The router (D24):** the endpoint makes one structured-output call (`{route}`) before the
   stream. `structured` → the tool agent (unchanged). `knowledge` → `retrieve()`; if nothing is
   within the threshold the reply is a fixed "That isn't in your gym's documents." in the
   question's language, **with no model call**; otherwise the model answers from the top 5
-  excerpts only. A failed routing call falls back to `structured`.
+  excerpts only. `advisory` (D31, owner and staff; a member is always sent to `structured`)
+  → the tool agent **plus one more tool**, `search_industry_knowledge`, and an advice section
+  in the system prompt: this gym's numbers first, then industry excerpts, cited `[n]`. The
+  router picks the branch; retrieval inside the branch is a tool, because the model is the
+  one that knows which numbers it found and what to look up next. A failed routing call
+  falls back to `structured`.
 - Every response carries the rate-limit headers, including this one. FastAPI does not
   merge them onto a `Response` the endpoint returns itself, so the route re-attaches
   them explicitly (`carry_rate_headers`).
@@ -356,9 +363,10 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 | `list_inactive_members` | `days_since_last_checkin=21`, `limit=25` | `total` + the first `limit` -- the churn question |
 | `get_revenue` | `period` (`month`\|`last_month`\|`year`\|`all_time`), `group_by` (`month`\|`plan`) | totals in MAD (owner only) |
 | `get_attendance_stats` | `period` (`week`\|`month`\|`last_month`\|`year`), `group_by` (`weekday`\|`hour`\|`month`) | totals over the period; by weekday also day names and the average per day |
-| `list_recent_feedback` | `limit=20`, `sentiment?` | feedback with sentiment |
+| `list_recent_feedback` | `limit=20`, `sentiment?` | feedback (the comment fenced), sentiment, and the author's name (flattened to one line) |
 | `get_member_stats` | — | members registered, joined this/last month, women/men, average age |
 | `list_plans` | — | plans, lengths and prices in MAD (owner only) |
+| `search_industry_knowledge` | `query` (English, industry words) | up to 5 Collection B excerpts, at most 2 per document, within `RAG_MAX_DISTANCE`, fenced and numbered `[n]` (advisory route only, never a member) |
 
 A list tool always returns the real `total` next to the rows it shows: the 2026-09-21 chat
 evaluation caught the model reporting a page of 25 as "there are 25" when 38 had stopped coming.
@@ -420,7 +428,7 @@ design system.
 | `ChatMessageList` | History; auto-scroll unless the user has scrolled up |
 | `StreamingMessage` | Renders `token` events progressively; markdown |
 | `ToolActivity` | Renders `tool` events — "checking memberships…" |
-| `SourceList` | Renders `sources` as `[n] file` chips under the answer (inline in `StreamingMessage`) |
+| `SourceList` | Renders `sources` as `[n] file` chips under the answer (inline in `StreamingMessage`); an industry source with a `url` is a link |
 | `ChatInput` | Validation, Enter to send, disabled while streaming |
 | `DocumentManager` | Upload, list, delete, visibility toggle (admin only) |
 | `SentimentPanel` | Feedback list + trend over time (admin only) |

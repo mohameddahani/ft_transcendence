@@ -21,10 +21,24 @@ services:
       # initdb runs on first boot; probes here don't burn retries.
       start_period: 10s
 
+  # Collection B, loaded like a migration: runs once, exits, and only then does the
+  # server start -- Chroma must never be written by two processes at once. After the
+  # first load it only checks what is missing (no Gemini call), and it always exits 0,
+  # so a Gemini outage on a first boot cannot keep the server down.
+  ai-load:
+    image: gym_ai_service
+    command: ["python", "-m", "app.rag.load_business"]
+    env_file:
+      - .env
+    volumes:
+      - ai_state:/data
+    restart: "no"
+
   ai:
     build:
       context: .
       dockerfile: Dockerfile
+    image: gym_ai_service
     container_name: gym_ai_service
     restart: unless-stopped
     ports:
@@ -39,6 +53,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ai-load:
+        condition: service_completed_successfully
     healthcheck:
       # No curl in python:slim, so probe with the interpreter that is already here.
       # /health returns 503 when Postgres is unreachable, so an unhealthy container

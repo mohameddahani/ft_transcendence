@@ -15,6 +15,7 @@ tenancy check that matters -- the same question, two gyms, two different numbers
 import asyncio
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -39,8 +40,8 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 
 
 def mint(role: str, subject_id: str) -> str:
-    secret = (settings.JWT_ADMIN_ACCESS_SECRET if role == "ADMIN"
-              else settings.JWT_MEMBER_ACCESS_SECRET).get_secret_value()
+    secret = {"ADMIN": settings.JWT_ADMIN_ACCESS_SECRET, "STAFF": settings.JWT_STAFF_ACCESS_SECRET,
+              "MEMBER": settings.JWT_MEMBER_ACCESS_SECRET}[role].get_secret_value()
     now = datetime.now(UTC)
     return jwt.encode({"id": subject_id, "role": role,
                        "iat": int(now.timestamp()),
@@ -147,6 +148,8 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     # live check that could not say what went wrong.
     siham = (await db._fetch_one("SELECT id FROM members WHERE email = :e",
                                  {"e": "siham@gmail.com"}))["id"]
+    clerk = (await db._fetch_one("SELECT id FROM staffs WHERE admin_id = :a AND account_status = 'ACTIVE'",
+                                 {"a": atlas}))["id"]
 
     # Four subjects, on purpose. The rate limiter keys on the token's `id`, and a
     # rejected request still spends a slot -- dependencies resolve before the body is
@@ -159,6 +162,7 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     live_token = mint("ADMIN", atlas)     # the live checks
     rival_token = mint("ADMIN", oasis)
     member_token = mint("MEMBER", siham)
+    staff_token = mint("STAFF", clerk)
 
     # ------------------------------------------- refused before Gemini is paid
     print("\n\033[1m  refused before a token is spent\033[0m")
@@ -341,6 +345,24 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     route, answer, cited = ask(member_token, "What discount can reception give without asking the manager?")
     check("a member asking a staff-only question: not in their documents",
           route == "knowledge" and not cited and "isn't in your gym's documents" in answer, answer[:60])
+
+    # The advisory branch (task 4.3): this gym's numbers and cited industry sources in
+    # one answer -- the week-5 checkpoint.
+    status, _, text = post_chat(rival_token, {"message": "Members keep dropping out after a few weeks. What should we do?"})
+    events = streamed("an advisory question was answered", status, text)
+    used = {d["name"] for k, d in events if k == "tool"}
+    sources = [s for k, d in events if k == "sources" for s in d["sources"]]
+    answer = "".join(d["text"] for k, d in events if k == "token")
+    check("advice: routed to advisory, reads this gym's data and the industry",
+          events[0][1]["route"] == "advisory" and "search_industry_knowledge" in used and len(used) >= 2,
+          ", ".join(sorted(used)))
+    check("...cites industry sources, each with its link",
+          bool(sources) and all(s.get("url", "").startswith("https://") for s in sources), f"{len(sources)} sources")
+    check("...and states this gym's own numbers", bool(re.search(r"\d", answer)), answer[:60])
+    status, _, text = post_chat(staff_token, {"message": "How should we change our prices to earn more?"})
+    used = {d["name"] for k, d in streamed("a staff advisory question was answered", status, text) if k == "tool"}
+    check("staff advice never reaches the money tools", not used & {"get_revenue", "list_plans"},
+          ", ".join(sorted(used)) or "no tools")
 
     # A conversation, over HTTP, end to end. The id cannot be invented any more --
     # `open_thread` refuses one it does not own -- so it has to come from a first

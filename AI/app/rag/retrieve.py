@@ -10,6 +10,7 @@ it only changes the words searched for, never the filter.
 from __future__ import annotations
 
 import logging
+import re
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from pydantic import BaseModel, Field
@@ -19,7 +20,7 @@ from app.agents.llm import get_llm
 from app.config import get_settings
 from app.db.scope import Scope
 from app.rag.embed import embed_query
-from app.rag.store import Hit, search
+from app.rag.store import Hit, search, search_business
 
 logger = logging.getLogger(__name__)
 
@@ -78,3 +79,34 @@ async def retrieve(scope: Scope, question: str, history: list[BaseMessage] | Non
     query = await rewrite_query(question, history)
     hits = await search(scope, await embed_query(query), k)
     return [hit for hit in hits if hit.distance <= get_settings().RAG_MAX_DISTANCE]
+
+
+async def retrieve_business(query: str, k: int = 5) -> list[Hit]:
+    """The industry corpus (Collection B) for an advisory answer: the nearest chunks
+    within the threshold, at most two from any one document so an answer can cite
+    several sources -- some questions otherwise pull 20 chunks from 5 documents.
+
+    No rewrite call: the model writes this query itself, in English and in the
+    industry's words (the tool's description asks for "churn", "dropout"...). That
+    closes the vocabulary gap measured in D30 -- "cancel" ranked the dropout study 22nd.
+    """
+    kept, per_document = [], {}
+    for hit in await search_business(await embed_query(query), TOP_K):
+        if hit.distance > get_settings().RAG_MAX_DISTANCE:
+            break
+        if per_document.get(hit.doc_id, 0) < 2:
+            per_document[hit.doc_id] = per_document.get(hit.doc_id, 0) + 1
+            kept.append(hit)
+        if len(kept) == k:
+            break
+    return kept
+
+
+def cited_sources(answer: str, numbered: dict[int, Hit]) -> list[dict]:
+    """The `sources` payload: only excerpts the answer cites, and only numbers that were
+    really handed to the model -- a model can cite an excerpt it was never shown."""
+    # "[2]" and "[1, 5]" both count: models group citations.
+    cited = {int(n) for group in re.findall(r"\[([\d,\s]+)\]", answer) for n in re.findall(r"\d+", group)}
+    return [{"n": n, "doc_id": hit.doc_id, "source_name": hit.source_name, "chunk_index": hit.chunk_index,
+             "score": round(1 - hit.distance, 3), **({"url": hit.url} if hit.url else {})}
+            for n, hit in sorted(numbered.items()) if n in cited]

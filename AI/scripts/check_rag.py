@@ -1,5 +1,5 @@
-"""Tasks 3.1-3.6 checks: chunking, store, ingestion, /ai/documents, retrieval, threshold,
-rewriting, and the knowledge branch.
+"""Tasks 3.1-3.6, 4.2 and 4.3 checks: chunking, store, ingestion, /ai/documents, retrieval,
+threshold, rewriting, the knowledge branch, loading Collection B, and the advisory branch.
 
 Runs in the ai container via scripts/verify.sh, which copies the seeded policy
 documents to /tmp/corpus first. Chroma is opened in a temporary directory, never
@@ -18,6 +18,7 @@ import random
 import re
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -31,7 +32,7 @@ from app.agents import knowledge
 from app.config import get_settings
 from app.db.scope import Scope, ScopeViolation
 from app.core.errors import ApiError
-from app.rag import embed, ingest, store
+from app.rag import embed, ingest, load_business, store
 from app.rag import retrieve as rag_retrieve
 from app.rag.chunk import _SENTENCE_END, chunk_text
 from app.rag.retrieve import retrieve, rewrite_query
@@ -564,6 +565,135 @@ async def check_knowledge() -> None:
     knowledge.get_llm, rag_retrieve.embed_query, rag_retrieve.get_llm = real_llm, real_embed, real_rewriter
 
 
+async def check_business_loader() -> None:
+    print("\n\033[1m  Collection B loader (task 4.2, fake embeddings)\033[0m")
+    bucket = load_business.TokenBucket(rate=20, burst=2)
+    started = time.monotonic()
+    for _ in range(6):
+        await bucket.take()
+    elapsed = time.monotonic() - started
+    check("the token bucket lets a burst through, then paces the rest", 0.18 <= elapsed < 0.5,
+          f"6 calls at 20/s with a burst of 2: {elapsed:.2f}s")
+
+    class GeminiError(Exception):
+        def __init__(self, code: int) -> None:
+            super().__init__(code)
+            self.code = code
+
+    def wrapped(inner: BaseException) -> ApiError:
+        outer = ApiError(502, "upstream_error", "The assistant is temporarily unavailable.")
+        outer.__cause__ = inner
+        return outer
+    check("a 429 or a 5xx behind our 502 is retried",
+          load_business.retryable(wrapped(GeminiError(429))) and load_business.retryable(wrapped(GeminiError(503))))
+    check("a timeout is retried", load_business.retryable(wrapped(TimeoutError())))
+    check("a 400 is not: it would fail the same way again",
+          not load_business.retryable(wrapped(GeminiError(400))), "our own 502 is looked through")
+
+    calls = []
+    async def flaky(texts):
+        calls.append(len(texts))
+        if len(calls) == 1:
+            raise wrapped(GeminiError(429))
+        return await fake_embed(texts)
+    load_business.embed_documents = flaky
+    vectors = await load_business.embed_with_retry(["a", "b"], load_business.TokenBucket(100, 5))
+    check("a 429 is retried once, then succeeds", len(calls) == 2 and len(vectors) == 2)
+
+    corpus = Path(tempfile.mkdtemp())
+    for source in sorted(load_business.CORPUS.glob("*.md"))[:3]:
+        (corpus / source.name).write_text(source.read_text())
+    open_temp_store()
+    calls.clear()
+    async def counting(texts):
+        calls.append(len(texts))
+        return await fake_embed(texts)
+    load_business.embed_documents = counting
+    fast = load_business.TokenBucket(1000, 10)
+    first = await load_business.load(corpus, fast)
+    check("a first load embeds every document", first["added"] == 3 and len(calls) == 3,
+          f"{store._require_business().count()} chunks")
+    calls.clear()
+    second = await load_business.load(corpus, fast)
+    check("a second load embeds nothing (no Gemini call)", second["skipped"] == 3 and not calls)
+    gone = sorted(corpus.glob("*.md"))[0]
+    gone.unlink()
+    third = await load_business.load(corpus, fast)
+    check("a document removed from the folder is removed from Chroma",
+          third["removed"] == 1 and gone.stem not in await store.business_doc_ids())
+    meta = store._require_business().get(limit=1)["metadatas"][0]
+    check("each chunk carries its source, topic and link for citing",
+          {"source_name", "topic", "kind", "url", "doc_id", "chunk_index"} <= set(meta), meta["topic"])
+    load_business.embed_documents = embed.embed_documents
+
+
+async def check_advisory() -> None:
+    print("\n\033[1m  advisory branch: this gym's numbers + industry sources (task 4.3, no network)\033[0m")
+    sys.path.insert(0, "/tmp")
+    from check_agent import ScriptedLLM, call, tool_messages, wants  # noqa: E402 -- the scripted model
+    from app.agents.graph import stream_turn
+    from app.agents.tools.base import quote_user_text
+    from app.db.profile import Profile
+
+    real_llm, real_embed = knowledge.get_llm, rag_retrieve.embed_query
+    knowledge.get_llm = lambda: FakeLLM("advisory")
+    check("the router never sends a member to the advisory branch",
+          await knowledge.choose_route("How do I keep members?", [], member=True) == "structured"
+          and await knowledge.choose_route("How do I keep members?", []) == "advisory")
+    knowledge.get_llm = real_llm
+
+    # A tiny Collection B: "a" has three chunks right on the question, "b" one, "c" one far away.
+    open_temp_store()
+    question = fake_vector("churn")
+    far = [-x for x in question]
+    await store.add_business_document("a", {"source_name": "Playbook A", "topic": "retention", "kind": "summary",
+                                            "url": "https://example.org/a"}, ["a0", "a1", "a2"], [question] * 3)
+    await store.add_business_document("b", {"source_name": "Study B", "topic": "retention", "kind": "research",
+                                            "url": "https://example.org/b"}, ["b0"], [question])
+    await store.add_business_document("c", {"source_name": "Far C", "topic": "pricing", "kind": "wikipedia",
+                                            "url": "https://example.org/c"}, ["c0"], [far])
+
+    async def the_question(_: str) -> list[float]:
+        return question
+    rag_retrieve.embed_query = the_question
+    hits = await rag_retrieve.retrieve_business("churn")
+    check("at most two chunks from one document, and nothing past the threshold",
+          [h.doc_id for h in hits] == ["a", "a", "b"], f"{[h.doc_id for h in hits]}")
+
+    from app.db import engine
+    await engine.init_engine(get_settings())
+    atlas = (await engine._fetch_one("SELECT id FROM users WHERE company_name = 'Atlas Fitness Agadir'", {}))["id"]
+    owner, profile = Scope(admin_id=atlas), Profile(gym_name="Atlas Fitness Agadir")
+
+    async def turn(scope, advisory, script):
+        llm = ScriptedLLM(script)
+        events = [e async for e in stream_turn(scope=scope, profile=profile, question="Our churn is up. What should we do?",
+                                                thread_id=None, llm=llm, advisory=advisory)]
+        return llm, events
+
+    llm, events = await turn(owner, True, [
+        wants(call("get_gym_overview", {}, "a"), call("search_industry_knowledge", {"query": "reduce churn"}, "b")),
+        AIMessage(content="You have many active members. Call the quiet ones [1], and see [9].")])
+    offered = {d["function"]["name"] for d in llm.bound}
+    seen = [m for m in tool_messages(llm.calls[-1]["messages"]) if m.name == "search_industry_knowledge"]
+    sources = next((e.data["sources"] for e in events if e.type == "sources"), [])
+    fence = quote_user_text("x", 10).split("x")[0].strip()[:20]
+    check("an advisory turn: meta says advisory, and the model is offered the industry tool",
+          events[0].data["route"] == "advisory" and "search_industry_knowledge" in offered)
+    check("...excerpts reach the model fenced, like feedback", bool(seen) and fence in seen[0].content)
+    check("...sources list only real, cited excerpts, with their link",
+          [(s["n"], s.get("url")) for s in sources] == [(1, "https://example.org/a")], "[9] was cited but never given")
+    llm, events = await turn(owner, False, [AIMessage(content="ok")])
+    check("a structured turn is not offered the industry tool",
+          "search_industry_knowledge" not in {d["function"]["name"] for d in llm.bound}
+          and events[0].data["route"] == "structured")
+    llm, events = await turn(Scope(admin_id=atlas, member_id="m1"), True, [AIMessage(content="ok")])
+    check("a member never gets it, even when asked for advisory",
+          "search_industry_knowledge" not in {d["function"]["name"] for d in llm.bound})
+    rag_retrieve.embed_query = real_embed
+    await engine.dispose_engine()
+
+
 async def check_live() -> None:
     print("\n\033[1m  live: real Gemini embeddings\033[0m")
     from app.rag.embed import embed_documents, embed_query
@@ -639,6 +769,16 @@ async def check_live() -> None:
           bool(hits) and "## Freezing your membership" in hits[0].text.splitlines()[:2],
           f"distance {hits[0].distance:.3f}" if hits else "nothing within the threshold")
 
+    # The corpus the server actually serves (read-only look at /data/chroma).
+    store._open_store(get_settings())
+    documents = len(list(load_business.CORPUS.glob("*.md")))
+    check("the server's Collection B holds every corpus document",
+          len(await store.business_doc_ids()) == documents, f"{documents} documents")
+    hits = await store.search_business(await embed_query("My members stop coming after a few weeks. How do I keep them?"), 5)
+    check("an owner's retention question retrieves retention material",
+          all(store._require_business().get(ids=[f"{h.doc_id}:{h.chunk_index}"])["metadatas"][0]["topic"]
+              in ("retention", "onboarding") for h in hits), hits[0].doc_id[:50])
+
     atlas_token = token("admin", "atlas")
     auth = {"Authorization": f"Bearer {atlas_token}"}
     uploads = [("membership-terms.md", Path("/tmp/corpus/atl/membership-terms.md").read_bytes(), "member"),
@@ -668,6 +808,8 @@ async def main() -> int:
         await check_threshold()
         await check_rewrite()
         await check_knowledge()
+        await check_business_loader()
+        await check_advisory()
         check_files()
         await check_ingest()
         check_http()
