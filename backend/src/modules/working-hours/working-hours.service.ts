@@ -12,7 +12,7 @@ import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddSpecialHourDto } from './dtos/add-special-hour.dto';
 import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
-import { format, startOfDay } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 @Injectable()
 export class WorkingHoursService {
@@ -299,9 +299,10 @@ export class WorkingHoursService {
     // * Check the day is already added with same time
     // Convert date strings into JavaScript Date objects.
     // The database field uses @db.Date, so only the calendar date is stored.
-    // startOfDay() is not necessary because we don't need time boundaries.
-    const startDate = startOfDay(new Date(data.startDate));
-    const endDate = startOfDay(new Date(data.endDate));
+    // * Convert date strings into local calendar dates
+    const startDate = this.parseDateOnly(data.startDate);
+    const endDate = this.parseDateOnly(data.endDate);
+
     const existingSpecialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
@@ -442,8 +443,8 @@ export class WorkingHoursService {
     }
 
     // * Convert date strings into JavaScript Date objects
-    const startDate = startOfDay(new Date(startDateValue));
-    const endDate = startOfDay(new Date(endDateValue));
+    const startDate = this.parseDateOnly(startDateValue);
+    const endDate = this.parseDateOnly(endDateValue);
 
     // * Check if another special hour with the same dates and times exists
     // * Exclude the current record from the search
@@ -552,5 +553,18 @@ export class WorkingHoursService {
         id: specialHourId,
       },
     });
+  }
+
+  // * Convert a YYYY-MM-DD string into a UTC Date.
+  // * This is used for PostgreSQL DATE fields.
+  // * It prevents the local timezone from shifting the calendar date.
+  private parseDateOnly(value: string) {
+    // * Change String To Date
+    const parsed = parse(value, 'yyyy-MM-dd', new Date());
+
+    // * Remove UTC
+    return new Date(
+      Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
+    );
   }
 }
