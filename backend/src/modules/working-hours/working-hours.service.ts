@@ -302,18 +302,54 @@ export class WorkingHoursService {
     // startOfDay() is not necessary because we don't need time boundaries.
     const startDate = startOfDay(new Date(data.startDate));
     const endDate = startOfDay(new Date(data.endDate));
-    const existingSpecialHour = await this.prisma.specialHour.findFirst({
+    const existingSpecialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
-        startDate: startDate,
-        endDate: endDate,
-        startTime: data.startTime ?? null,
-        endTime: data.endTime ?? null,
+
+        // * Existing range overlaps the new date range
+        startDate: {
+          lte: endDate,
+        },
+        endDate: {
+          gte: startDate,
+        },
       },
     });
 
-    if (existingSpecialHour) {
-      throw new ConflictException('This special hour already exists.');
+    for (const existingSpecialHour of existingSpecialHours) {
+      // * Existing special hour closes the entire day
+      if (
+        existingSpecialHour.startTime === null ||
+        existingSpecialHour.endTime === null
+      ) {
+        throw new ConflictException(
+          'The gym is already closed during this date range.',
+        );
+      }
+
+      // * New special hour is also a full-day closure
+      if (!data.startTime && !data.endTime) {
+        throw new ConflictException(
+          'The selected date range already contains a special closure.',
+        );
+      }
+
+      // * Check if the time ranges overlap
+      // * Example:
+      // * Existing: 08:00 → 12:00
+      // * New:      10:00 → 14:00
+      // *
+      // * '08:00' < '14:00' && '12:00' > '10:00'
+      // * true && true = overlap
+      const timeOverlap =
+        existingSpecialHour.startTime < data.endTime &&
+        existingSpecialHour.endTime > data.startTime;
+
+      if (timeOverlap) {
+        throw new ConflictException(
+          'The special hour overlaps with an existing closure.',
+        );
+      }
     }
 
     // * Add Working Hour
