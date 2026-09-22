@@ -180,6 +180,55 @@ export class WorkingHoursService {
     return workingHour;
   }
 
+  // * Get All Working Hours By (Member)
+  async findAllWorkingHoursByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    const workingHours = await this.prisma.workingHour.findMany({
+      where: {
+        adminId: adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    if (workingHours.length === 0) {
+      throw new NotFoundException('There is No Working Hours To show');
+    }
+
+    return workingHours;
+  }
+
+  // * Get One Working Hour By (Member)
+  async findOneWorkingHourByMember(memberId: string, workingHourId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    const workingHour = await this.prisma.workingHour.findFirst({
+      where: {
+        id: workingHourId,
+        adminId: adminId,
+      },
+    });
+    if (!workingHour) {
+      throw new NotFoundException('Working Hour Not Found');
+    }
+
+    return workingHour;
+  }
+
   // * Delete One Working Hour By (Admin)
   async deleteOneWorkingHour(adminId: string, workingHourId: string) {
     // * Check if admin is has already a subscription

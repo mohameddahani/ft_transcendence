@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -14,37 +15,40 @@ import { Throttle } from '@nestjs/throttler';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { WorkingHoursService } from './working-hours.service';
-import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
+import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 
-@Controller('/api/staffs/special-hours')
+@Controller('/api/members/working-hours')
 // * Make Authorazation Golbal on this route
-@UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
-@Roles([Role.STAFF])
-export class StaffSpecialHoursController {
+@UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.MEMBER])
+export class MemberWorkingHoursController {
   constructor(private readonly workingHoursService: WorkingHoursService) {}
 
-  // * Get All Special Hours (Staff)
+  // * Get All Working Hours (Member)
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findAllSpecialHours(
+  findAllWorkingHours(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.workingHoursService.findAllSpecialHours(
-      accessTokenPayload,
+    return this.workingHoursService.findAllWorkingHoursByMember(
+      accessTokenPayload.id,
       page,
       limit,
     );
   }
 
-  // * Get One Special Hour (Staff)
+  // * Get One Working Hour (Member)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  findOneSpecialHour(
+  findOneWorkingHour(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.workingHoursService.findOneSpecialHour(accessTokenPayload, id);
+    return this.workingHoursService.findOneWorkingHourByMember(
+      accessTokenPayload.id,
+      id,
+    );
   }
 }

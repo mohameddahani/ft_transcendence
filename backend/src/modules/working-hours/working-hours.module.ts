@@ -6,11 +6,13 @@ import { WorkingHoursService } from './working-hours.service';
 import { StaffWorkingHoursController } from './staff-working-hours.controller';
 import { AdminSpecialHoursController } from './admin-special-hours.controller';
 import { StaffSpecialHoursController } from './staff-special-hours.controller';
+import { MemberWorkingHoursController } from './member-working-hours.controller';
 
 @Module({
   controllers: [
     AdminWorkingHoursController,
     StaffWorkingHoursController,
+    MemberWorkingHoursController,
     AdminSpecialHoursController,
     StaffSpecialHoursController,
   ],
