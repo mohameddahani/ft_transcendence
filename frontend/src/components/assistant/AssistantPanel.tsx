@@ -27,6 +27,7 @@ import type {
   ChatMessage,
   Identity,
   PanelState,
+  Role,
   StoredMessage,
   ToolRun,
 } from "@/lib/assistant/types";
@@ -55,6 +56,34 @@ function nextId(prefix: string): string {
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}-${unique}`;
 }
+
+/** What each role can usefully ask. A member cannot ask about revenue, so their screen
+ *  must not suggest it. Tapping one sends it -- members are mostly on a phone. */
+const SUGGESTIONS: Record<Role, string[]> = {
+  ADMIN: [
+    "How many active members do we have?",
+    "Who hasn't checked in for three weeks?",
+    "How much revenue did we make last month?",
+    "What are our opening hours on Sunday?",
+  ],
+  STAFF: [
+    "Whose membership expires this week?",
+    "Who hasn't checked in for three weeks?",
+    "What discount can I give without asking the manager?",
+  ],
+  MEMBER: [
+    "When does my membership expire?",
+    "How many times did I come this month?",
+    "What are the opening hours on Sunday?",
+    "Can I freeze my membership?",
+  ],
+};
+
+const PLACEHOLDERS: Record<Role, string> = {
+  ADMIN: "Ask about members, revenue, attendance or your rules",
+  STAFF: "Ask about members, attendance or the staff handbook",
+  MEMBER: "Ask about your membership, your visits or the gym's rules",
+};
 
 export function AssistantPanel() {
   const [token, setToken] = useState<string | null>(null);
@@ -411,7 +440,13 @@ export function AssistantPanel() {
                 ? "Owner view"
                 : identity.role === "STAFF"
                   ? "Staff view"
-                  : `Signed in as ${identity.member_name ?? "member"}`
+                  : (
+                    // On a phone the gym name needs the room: the name alone is enough.
+                    <>
+                      <span className="hidden sm:inline">Signed in as </span>
+                      {identity.member_name ?? "Member"}
+                    </>
+                  )
               : fatal
                 ? "Not signed in"
                 : "Connecting…"}
@@ -437,11 +472,22 @@ export function AssistantPanel() {
             <p className="text-sm text-black/60 dark:text-white/60">
               Ask about your gym in plain language.
             </p>
-            <ul className="flex flex-col gap-1 text-sm text-black/45 dark:text-white/45">
-              <li>&ldquo;How many active members do we have?&rdquo;</li>
-              <li>&ldquo;Who hasn&rsquo;t checked in for three weeks?&rdquo;</li>
-              <li>&ldquo;What did people complain about recently?&rdquo;</li>
-            </ul>
+            {identity ? (
+              <ul className="flex flex-col gap-2">
+                {SUGGESTIONS[identity.role].map((question) => (
+                  <li key={question}>
+                    <button
+                      type="button"
+                      disabled={blocked}
+                      onClick={() => void send(question)}
+                      className="w-full rounded-xl border border-black/10 px-3 py-2 text-sm text-black/70 hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:text-white/70 dark:hover:bg-white/10"
+                    >
+                      {question}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -464,6 +510,7 @@ export function AssistantPanel() {
         onStop={() => abort.current?.abort()}
         disabled={blocked}
         streaming={streaming}
+        placeholder={identity ? PLACEHOLDERS[identity.role] : "Ask the assistant"}
       />
     </main>
   );

@@ -13,7 +13,7 @@ import { AssistantPanel } from "@/components/assistant/AssistantPanel";
 
 export const metadata: Metadata = {
   title: "Gym assistant",
-  description: "Ask about members, revenue, attendance and feedback.",
+  description: "Ask about your gym, your membership or the gym's rules.",
 };
 
 export default function AssistantPage() {

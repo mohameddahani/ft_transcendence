@@ -18,11 +18,14 @@ export function ChatInput({
   onStop,
   disabled,
   streaming,
+  placeholder,
 }: {
   onSend: (message: string) => void;
   onStop: () => void;
   disabled: boolean;
   streaming: boolean;
+  /** Says what this role can ask -- a member is not told to ask about revenue. */
+  placeholder: string;
 }) {
   const [value, setValue] = useState("");
   const box = useRef<HTMLTextAreaElement>(null);
@@ -82,7 +85,7 @@ export function ChatInput({
             aria-label="Ask the assistant"
             aria-invalid={tooLong}
             placeholder={
-              streaming ? "Answering…" : "Ask about members, revenue, attendance or feedback"
+              streaming ? "Answering…" : placeholder
             }
             className="max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-xl border border-black/15 bg-transparent px-3 py-2.5 text-[15px] outline-none placeholder:text-black/40 focus:border-black/40 disabled:opacity-60 dark:border-white/15 dark:placeholder:text-white/35 dark:focus:border-white/40"
           />
