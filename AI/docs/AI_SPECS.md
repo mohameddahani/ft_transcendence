@@ -373,6 +373,10 @@ evaluation caught the model reporting a page of 25 as "there are 25" when 38 had
 | `get_my_payments` | `limit=10` | own payments only |
 | `get_my_attendance` | `period` (`week`\|`month`\|`last_month`\|`year`) | own check-in count, visits per named weekday, last visit |
 
+Every tool's arguments refuse fields they do not declare, and a tool with none refuses any
+(D28): a forged `member_id` or `admin_id` is an error the model sees, never silently dropped --
+dropping it would return the caller's own rows, which the model could present as someone else's.
+
 These mirror Dahani's member API (`/api/members/memberships`, `/api/members/payments`, visits).
 His API has **no member route to plans or prices**, so the price table is `DENIED` to a member
 scope in the schema contract. A member's price question is routed to the documents instead: the

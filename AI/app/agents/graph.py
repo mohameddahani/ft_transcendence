@@ -254,6 +254,8 @@ async def _run_tool_call(raw_call: dict[str, Any], tools: dict[str, Tool]) -> tu
             # `args` was not a mapping of keywords at all.
             return _refusal(call_id, name, args, "Invalid arguments -- expected an object of named fields.")
         result = await tool.run(parsed)
+    elif args:
+        return _refusal(call_id, name, args, "Invalid arguments -- this tool takes none.")
     else:
         result = await tool.run()
 

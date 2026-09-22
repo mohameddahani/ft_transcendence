@@ -284,6 +284,15 @@ docker compose cp scripts/mint_token.py ai:/tmp/mint_token.py >/dev/null 2>&1
 docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
   ai python /tmp/check_rag.py || FAIL=1
 
+echo "── prompt injection: try to break the member agent (task 3b.5) ──"
+# Judged on data, never on wording: an attack fails if a canary -- a value this member
+# must never see -- comes back, or a tool outside the member's three runs. Offline, a
+# scripted model obeys every forged call; AI_LIVE_TESTS=1 adds 20 real attacks and a
+# poisoned document. Needs /tmp/corpus and /tmp/check_agent.py, copied above.
+docker compose cp scripts/check_injection.py ai:/tmp/check_injection.py >/dev/null 2>&1
+docker compose exec -T -w /app -e PYTHONPATH=/app -e AI_LIVE_TESTS="${AI_LIVE_TESTS:-0}" \
+  ai python /tmp/check_injection.py 2>/dev/null || FAIL=1
+
 # Guardrail #3: every read of gym documents carries admin_id (and visibility for a
 # member). The filter is built in one place, store._readable_by, so nothing outside
 # store.py may query Chroma -- the same idea as the _fetch_all grep for Postgres.
