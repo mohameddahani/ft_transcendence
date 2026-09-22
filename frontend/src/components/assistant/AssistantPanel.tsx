@@ -10,6 +10,7 @@
  * to this file and a new component, not a change to five of them.
  */
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -246,6 +247,10 @@ export function AssistantPanel() {
               patch((message) => ({ ...message, text: message.text + event.data.text }));
               break;
 
+            case "sources":
+              patch((message) => ({ ...message, sources: event.data.sources }));
+              break;
+
             case "done":
               patch((message) => ({
                 ...message,
@@ -378,6 +383,14 @@ export function AssistantPanel() {
             {identity ? identity.gym : "Gym assistant"}
           </h1>
           <div className="flex shrink-0 items-center gap-3">
+            {identity?.role === "ADMIN" ? (
+              <Link
+                href="/assistant/documents"
+                className="rounded-lg border border-black/15 px-2.5 py-1 text-xs hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+              >
+                Documents
+              </Link>
+            ) : null}
             {messages.length > 0 ? (
               <button
                 type="button"

@@ -32,6 +32,19 @@ export function StreamingMessage({
         </div>
       ) : null}
 
+      {message.sources && message.sources.length > 0 ? (
+        <ul className="flex flex-wrap gap-1.5 text-xs text-black/55 dark:text-white/55" aria-label="Sources">
+          {message.sources.map((source) => (
+            <li
+              key={source.n}
+              className="rounded border border-black/10 px-1.5 py-0.5 dark:border-white/15"
+            >
+              [{source.n}] {source.source_name}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       {waiting ? (
         <p className="text-sm text-black/45 dark:text-white/45">Thinking…</p>
       ) : null}

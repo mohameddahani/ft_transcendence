@@ -14,7 +14,8 @@ export interface Identity {
   member_name: string | null;
 }
 
-/** `route` is `structured` today; `knowledge` and `advisory` arrive with RAG. */
+/** `structured` = answered from the gym's data, `knowledge` = from its documents.
+ *  `advisory` (both at once) arrives in phase 4. */
 export interface MetaEvent {
   thread_id: string;
   route: "structured" | "knowledge" | "advisory";
@@ -31,6 +32,15 @@ export interface TokenEvent {
 
 export interface DoneEvent {
   finish_reason: "stop" | "max_tool_rounds" | string;
+}
+
+/** One document excerpt the answer cited. `n` matches the `[n]` in the answer text. */
+export interface Source {
+  n: number;
+  doc_id: string;
+  source_name: string;
+  chunk_index: number;
+  score: number;
 }
 
 /** The same envelope the non-streaming errors use, delivered as an event instead. */
@@ -50,6 +60,7 @@ export type AssistantEvent =
   | { type: "meta"; data: MetaEvent }
   | { type: "tool"; data: ToolEvent }
   | { type: "token"; data: TokenEvent }
+  | { type: "sources"; data: { sources: Source[] } }
   | { type: "done"; data: DoneEvent }
   | { type: "error"; data: ErrorEvent };
 
@@ -71,10 +82,23 @@ export interface ChatMessage {
   text: string;
   /** Only on assistant turns: what it did to answer, in the order it did it. */
   tools?: ToolRun[];
+  /** Only on answers from the gym's documents: the excerpts it cited. */
+  sources?: Source[];
   /** Set when the turn ended without a complete answer. */
   error?: string;
   /** Something the user did, not something that went wrong -- "Stopped." reads as a
    *  failure in red and as a fact in grey, and it is a fact. */
   note?: string;
   truncated?: boolean;
+}
+
+/** `GET /ai/documents` — one uploaded file (AI_SPECS 3.3). */
+export interface DocumentRow {
+  doc_id: string;
+  filename: string;
+  mime: string;
+  visibility: "staff" | "member";
+  chunk_count: number;
+  bytes: number;
+  created_at: number;
 }
