@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,7 @@ import {
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
+import { VisitStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class VisitsService {
@@ -191,6 +193,44 @@ export class VisitsService {
       },
     });
     return { rawToken: rawToken };
+  }
+
+  // * Cancel A Visit
+  async cancelVisit(memberId: string, visitId: string) {
+    // * Get Admin Id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if member has membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    // * Check the visit is already exist
+    const existVisit = await this.prisma.visit.findFirst({
+      where: {
+        id: visitId,
+        adminId: adminId,
+        memberId: memberId,
+      },
+    });
+
+    if (!existVisit) {
+      throw new NotFoundException('Visit Not Found.');
+    }
+
+    // * Check if the visit can be cancelled
+    if (existVisit.visitStatus !== VisitStatus.READY) {
+      throw new BadRequestException('Only a ready visit can be cancelled.');
+    }
+
+    // * Cancel the visit
+    await this.prisma.visit.update({
+      where: {
+        id: visitId,
+      },
+      data: {
+        visitStatus: VisitStatus.CANCELLED,
+      },
+    });
   }
 
   // * Get all visits

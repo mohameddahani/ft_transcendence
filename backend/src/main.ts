@@ -59,7 +59,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .build();
   const documentation = SwaggerModule.createDocument(app, swagger); // * create document
-  SwaggerModule.setup('swagger', app, documentation); // * setup documentation on domain/swagger
+  SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
 
   // * CORS
   app.enableCors({
