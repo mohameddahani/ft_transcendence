@@ -310,6 +310,33 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
           and truth["active_members"] != rival_truth["active_members"],
           other[:60])
 
+    # The router and the knowledge branch (task 3.6), against the documents that
+    # ./scripts/load_corpus.sh put in the server's store -- the week-4 checkpoint:
+    # two gyms, same question, two different correct answers.
+    status, loaded = get_json("/ai/documents", live_token)
+    check("the corpus is loaded (else run ./scripts/load_corpus.sh)",
+          status == 200 and len(loaded or []) >= 4, f"{len(loaded or [])} documents")
+
+    def ask(token: str, message: str) -> tuple[str, str, list[str]]:
+        status, _, text = post_chat(token, {"message": message})
+        events = streamed(f"answered: {message[:40]}", status, text)
+        route = next((d["route"] for k, d in events if k == "meta"), "")
+        answer = "".join(d["text"] for k, d in events if k == "token")
+        cited = [s["source_name"] for k, d in events if k == "sources" for s in d["sources"]]
+        return route, answer, cited
+
+    notice = "How many days notice do I need to give to cancel a membership?"
+    for gym, token, days in (("Atlas", live_token, "30"), ("Oasis", rival_token, "45")):
+        route, answer, cited = ask(token, notice)
+        check(f"{gym}: routed to its documents, answers {days} days, cites them",
+              route == "knowledge" and days in answer and "membership-terms.md" in cited, answer[:60])
+    route, answer, cited = ask(live_token, "Is there parking for members?")
+    check("no answer in the documents: says so, cites nothing",
+          route == "knowledge" and answer == "That isn't in your gym's documents." and not cited, answer[:60])
+    route, answer, cited = ask(member_token, "What discount can reception give without asking the manager?")
+    check("a member asking a staff-only question: not in their documents",
+          route == "knowledge" and not cited and "isn't in your gym's documents" in answer, answer[:60])
+
     # A conversation, over HTTP, end to end. The id cannot be invented any more --
     # `open_thread` refuses one it does not own -- so it has to come from a first
     # turn, which is also how a frontend gets it.

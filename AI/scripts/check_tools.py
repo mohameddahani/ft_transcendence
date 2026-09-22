@@ -58,7 +58,7 @@ async def main() -> None:  # noqa: C901
     admin_tools = build_admin_tools(owner)
 
     # ------------------------------------------------------------ the schemas
-    check("eight admin tools are registered", len(admin_tools) == 8,
+    check("ten owner tools are registered", len(admin_tools) == 10,
           ", ".join(sorted(admin_tools)))
 
     # The headline guarantee. Asserted over every tool at once, so it keeps holding
@@ -135,16 +135,31 @@ async def main() -> None:  # noqa: C901
           stolen["found"] is False and "name" not in json.dumps(stolen),
           "not an error, not their data")
 
+    # A small page on purpose: the bug was reporting the page size as the total
+    # ("There are 25" when 38 had stopped coming), and a check with the default page
+    # and `count > 0` could never have seen it.
     expiring = await call(admin_tools, "list_expiring_memberships",
-                          schemas.ListExpiringMembershipsArgs(within_days=7))
-    check("list_expiring_memberships returns the renewal-chase list",
-          expiring["count"] > 0 and all(0 <= m["days_left"] <= 7 for m in expiring["memberships"]),
-          f"{expiring['count']} expiring")
+                          schemas.ListExpiringMembershipsArgs(within_days=30, limit=10))
+    truth = (await db._fetch_one(
+        """SELECT count(*) AS n FROM memberships WHERE admin_id = :a
+           AND membership_status = 'ACTIVE' AND expires_at > now()
+           AND expires_at <= now() + interval '30 days'""", {"a": atlas}))["n"]
+    check("list_expiring_memberships reports the real total, not the page size",
+          expiring["total"] == truth and expiring["shown"] == 10 < truth,
+          f"{truth} expiring, 10 shown")
+    check("...each with a name and the days left",
+          all(m["name"] and 0 <= m["days_left"] <= 30 for m in expiring["memberships"]))
 
     inactive = await call(admin_tools, "list_inactive_members",
-                          schemas.ListInactiveMembersArgs(days_since_last_checkin=21, limit=25))
-    check("list_inactive_members finds people to chase", inactive["count"] > 0,
-          f"{inactive['count']} members")
+                          schemas.ListInactiveMembersArgs(days_since_last_checkin=21, limit=5))
+    truth = (await db._fetch_one(
+        """SELECT count(DISTINCT ms.member_id) AS n FROM memberships ms
+           WHERE ms.admin_id = :a AND ms.membership_status = 'ACTIVE' AND ms.expires_at > now()
+             AND NOT EXISTS (SELECT 1 FROM attendances c WHERE c.member_id = ms.member_id
+                             AND c.admin_id = :a AND c.checked_in_at >= now() - interval '21 days')""",
+        {"a": atlas}))["n"]
+    check("list_inactive_members reports the real total, not the page size",
+          inactive["total"] == truth and inactive["shown"] == 5 < truth, f"{truth} inactive, 5 shown")
     still_visiting = await db._fetch_all(
         """SELECT 1 FROM attendances WHERE admin_id = :a AND member_id = ANY(:ids)
            AND checked_in_at > now() - interval '21 days'""",
@@ -171,6 +186,46 @@ async def main() -> None:  # noqa: C901
     check("get_revenue by plan stays inside this gym's catalogue",
           {r["plan_name"] for r in by_plan["revenue"]} <= catalogue,
           f"{len(by_plan['revenue'])} plans")
+
+    last = await call(admin_tools, "get_revenue", schemas.GetRevenueArgs(period="last_month"))
+    billed_last = (await db._fetch_one(
+        """SELECT coalesce(sum(d.price), 0) AS t FROM memberships m
+           JOIN membership_plan_durations d ON d.id = m.membership_plan_duration_id
+           WHERE m.admin_id = :a AND m.start_date >= date_trunc('month', now()) - interval '1 month'
+             AND m.start_date < date_trunc('month', now())""", {"a": atlas}))["t"]
+    check("get_revenue can answer 'last month'",
+          Decimal(last["revenue"][0]["billed_mad"]) == billed_last, f"{billed_last} MAD")
+
+    weekdays = await call(admin_tools, "get_attendance_stats",
+                          schemas.GetAttendanceStatsArgs(period="month", group_by="weekday"))
+    names = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+    check("attendance by weekday: names, not numbers, and a per-day average",
+          all(r["weekday"] in names and r["average_per_day"] == round(r["check_ins"] / r["days_in_period"], 1)
+              for r in weekdays["stats"]) and "totals" in weekdays["counts_are"])
+    check("...counting every day of the month so far exactly once",
+          sum(r["days_in_period"] for r in weekdays["stats"]) == datetime.now(UTC).day,
+          f"{sum(r['days_in_period'] for r in weekdays['stats'])} days")
+
+    stats = await call(admin_tools, "get_member_stats")
+    truth = await db._fetch_one(
+        """SELECT count(*) FILTER (WHERE gender = 'FEMALE') AS women,
+                  count(*) FILTER (WHERE gender = 'MALE') AS men,
+                  count(*) FILTER (WHERE created_at >= date_trunc('month', now())) AS joined,
+                  round(avg(extract(year FROM age(birth_date)))::numeric, 1) AS age
+           FROM members WHERE admin_id = :a""", {"a": atlas})
+    check("get_member_stats matches the members table",
+          (stats["women"], stats["men"], stats["joined_this_month"], stats["average_age"])
+          == (truth["women"], truth["men"], truth["joined"], float(truth["age"])),
+          f"{stats['women']} women, {stats['men']} men, {stats['joined_this_month']} new, age {stats['average_age']}")
+
+    plans = await call(admin_tools, "list_plans")
+    truth = {(r["plan_name"], r["duration_days"], str(r["price"])) for r in await db._fetch_all(
+        """SELECT pl.plan_name, d.duration_days, d.price FROM membership_plans pl
+           JOIN membership_plan_durations d ON d.membership_plan_id = pl.id
+           WHERE pl.admin_id = :a""", {"a": atlas})}
+    check("list_plans gives this gym's prices, and only this gym's",
+          {(p["plan_name"], p["duration_days"], p["price_mad"]) for p in plans["plans"]} == truth,
+          f"{len(truth)} prices")
 
     hours = await call(admin_tools, "get_attendance_stats",
                        schemas.GetAttendanceStatsArgs(period="year", group_by="hour"))
@@ -346,8 +401,9 @@ async def main() -> None:  # noqa: C901
 
     check("staff hold the gym-wide tools", {"get_gym_overview", "search_members",
           "list_inactive_members", "list_expiring_memberships"} <= set(staff_tools))
-    check("...but not get_revenue", "get_revenue" not in staff_tools,
-          f"{len(owner_tools) - len(staff_tools)} tool fewer than the owner")
+    check("...but not get_revenue or list_plans",
+          not {"get_revenue", "list_plans"} & set(staff_tools) and "get_member_stats" in staff_tools,
+          f"{len(owner_tools) - len(staff_tools)} tools fewer than the owner")
     check("no staff tool lets the model choose a tenant",
           not any(set(t.json_schema().get("properties", {})) & FORBIDDEN_PARAMETERS
                   for name, t in staff_tools.items() if name not in MEMBER_ID_ALLOWED_IN))

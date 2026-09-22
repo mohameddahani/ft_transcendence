@@ -1403,6 +1403,94 @@ query before it is embedded. One structured-output call (`{query: str}`) to the 
 - **Gemini's per-minute quota is real:** a run of evals and live suites hit `429
   RESOURCE_EXHAUSTED` on embeddings; the service turned it into the generic 502 as designed.
 
+**D24 (2026-09-21) — task 3.6 done by Claude at Oussama's request.** `verify.sh` is **815
+checks** with `AI_LIVE_TESTS=1`, all passing (D24 + D25). The router and the
+knowledge branch: `app/agents/knowledge.py` (`choose_route`, `stream_knowledge`), called from the
+chat endpoint. `graph.py`'s tool loop is untouched -- its offline tests drive it with scripted fake
+models, and a routing call inside it would have broken all of them.
+
+- **Route:** one structured-output call, `{route: structured | knowledge}`. Knowledge = the gym's
+  written rules; everything else (data, the user's own membership, the conversation) = structured.
+  A failed call falls back to structured.
+- **Knowledge:** `retrieve()` (rewrite, filter, threshold) → nothing? a fixed "That isn't in your
+  gym's documents." in the question's language, **no model call** → else the model answers from
+  the top 5 excerpts, citing `[n]`; `sources` lists only real, cited excerpts. The turn is saved
+  to the thread, so "and on weekdays?" works after a knowledge answer.
+- **Week-4 checkpoint, over real HTTP:** the same notice question → Atlas "30 days [1]", Oasis
+  "45 days [1]", each citing its own `membership-terms.md`; protein supplements → "That isn't in
+  your gym's documents."; a member asking a staff-only question → the same.
+- **Found by testing:** an "offline" knowledge check quietly called Gemini -- a French question is
+  rewritten before retrieval, and only the answering model was faked. The SDK's own notice in the
+  output gave it away.
+- **Known limit:** sources are not stored with the thread, so a reloaded conversation shows the
+  answer's `[1]` without its chip.
+
+**D25 (2026-09-21) — task 3.7 done by Claude (frontend, assisted by design).** `/assistant/documents`:
+`DocumentManager.tsx` + a tiny `page.tsx`. Upload (file + who may see it), list, two-click delete.
+The chat shows cited sources as `[n] file` chips under an answer; owners get a Documents link.
+
+- **Verified in a real browser:** a Markdown file uploaded from the page answered a chat question
+  seconds later ("Towels can be rented at reception for 10 MAD [1]", chip `towel-policy.md`);
+  deleting it made the same question "That isn't in your gym's documents."; a `.docx` is refused
+  in the browser with 0 requests sent; a staff token sees "Staff view", no Documents link, and
+  "Only the gym owner can manage documents."; zero console errors or warnings.
+- **Lint caught a real pattern problem:** reading the token with `setState` in an effect. The page
+  reads it with `useSyncExternalStore` (localStorage is an outside store) and fetches the list in
+  one effect, setting state only in the callbacks. (The chat panel's identical line passes only
+  because the React Compiler lint skips that component.)
+
+**Chat evaluation (2026-09-21) — 57 real questions over `/ai/chat`, every answer checked against
+SQL or the documents.** Owner, staff and member; data and document questions; follow-ups; English,
+French, Darija, Arabic; out-of-scope and attacks. **44 correct, 3 wrong, 7 honest "I can't",
+2 missed though in the documents, 1 awkward.** Zero security failures (cross-gym, member privacy,
+staff revenue, injection) and zero invented facts in document answers. Median 2.2 s, p90 3.3 s.
+
+Week 4 accepted: the checkpoint holds (Atlas Sunday 08:00-20:00 vs Oasis 09:00-21:00, each cited;
+"swimming pool?" → "That isn't in your gym's documents."), and D19-D25 all work end to end.
+
+Improvements, by value -- all three wrong answers are the model misreading a tool's output:
+1. **A capped list reported as the total.** "Who hasn't checked in for 3 weeks?" → "There are 25"
+   (true: 38; 25 is the page size). List tools should return `total` next to the rows.
+2. **Periods the tools cannot express.** "Last month's revenue?" → this month's 41,500 labelled
+   September (true: 26,600). "How many check-ins on Sundays usually?" → 62, which is the month's
+   Sunday *total*, not a per-Sunday figure. Add a last-month / explicit-month period; say in the
+   attendance tool that counts are totals over the period.
+3. **The threshold is tighter than the eval set can justify.** "What is **our** refund policy?"
+   scores 0.325 → refused; "What is **the** refund policy?" 0.310 → answered. Grow the eval set
+   with phrasings (D34) before moving 0.32; the answer prompt already refuses irrelevant excerpts.
+4. **Router:** "How much does personal training cost?" went to the data agent (the word "cost");
+   the documents answer it (0.308). Service prices in documents → knowledge.
+5. **Missing tools an owner will ask for:** plan prices (in the DB and in the member document, but
+   the owner has no tool), new members this month (76), women/men (141/147), average age (36.1),
+   unpaid payments (blocked on what `payment_status` means -- the member Omar is told his July
+   payment is "overdue", which may be the cron's relabelling of a paid row).
+6. **Mixed data + rules questions** get half an answer ("31 expire this week; I don't have the
+   notice period") -- the advisory branch, D31.
+7. **Polish:** "weekday 7" leaks an internal code; staff are offered "member IDs"; "write me a
+   workout plan" gets "That isn't in your gym's documents." instead of saying it is out of scope;
+   D22's eval row "swimming pool (Oasis) = no answer" is doubtful -- Oasis runs Aqua fitness.
+
+**Improvements from the chat evaluation (2026-09-21, same day), re-measured on the same 57
+questions.** Every fixed answer re-checked against SQL.
+
+- **Lists report the real total.** `list_inactive_members` / `list_expiring_memberships` return
+  `total` (a `count(*) OVER ()` before the LIMIT), `shown`, and "Showing the first 25 of 38."; one
+  prompt rule says to lead with the total. 6/6 runs: "There are 38 ... The first 25 are:". The
+  note alone was not enough -- one run still wrote "the following 25". Expiring rows carry names now.
+- **Periods:** `last_month` for revenue and attendance (`period_window` returns since + until);
+  "any other month / compare months → all_time by month" in the revenue description. Last month
+  26,600, March 2026 21,400, September vs last September 41,500 vs 9,500 -- all match SQL.
+- **Attendance by weekday** gives day names, how many such days, and the average per day
+  ("Sunday: 10.9 on average this year", matches SQL); "usually" → a long period.
+- **Two tools:** `get_member_stats` (owner + staff: 76 new, 141 women / 147 men, age 36.1) and
+  `list_plans` (owner only, like revenue: "Basic Annual 2,800.00 MAD").
+- **Router:** service prices in documents → knowledge; out-of-scope → the agent declines. 12/12.
+- **Threshold 0.32 → 0.33,** from an eval set grown to 31 questions: 23/25 answered (was 22),
+  6/6 no-answer refused. Right and wrong genuinely overlap at ~0.331 ("where can I leave my
+  bag?" right, "protein supplements?" wrong) -- the next lever is reranking, not the number.
+- **Still open:** mixed data + rules questions (D31 advisory); unpaid payments (Dahani's
+  `payment_status`); "where is the key safe?" (reranking).
+
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the
 `/internal/sentiment` call, and the two questions in `BACKEND_FINDINGS_DAHANI.md` about what

@@ -14,11 +14,11 @@ nothing. That is the whole reason one can be a parameter and the other cannot.
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from app.agents.tools import schemas
-from app.agents.tools.base import Tool, period_start, plain_field, quote_user_text, tool
+from app.agents.tools.base import Tool, period_window, plain_field, quote_user_text, tool
 from app.db import reports
 from app.db.models import StoredMembershipStatus, naive_utc_now
 from app.db.scope import Scope, ScopeViolation, aggregate, select
@@ -36,6 +36,30 @@ _IDENTITY_FIELDS = ("name", "phone_number", "email")
 def _safe_person(row: dict[str, Any]) -> dict[str, Any]:
     """Flatten the member-controlled fields in a row from `reports`."""
     return {k: plain_field(v) if k in _IDENTITY_FIELDS else v for k, v in row.items()}
+
+
+_WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
+def _page(total: int, shown: int) -> dict[str, Any]:
+    """`total` and `shown`, plus a sentence to repeat when the list was cut short:
+    a model told only "total 38" still wrote "the following 38" above 25 names."""
+    page: dict[str, Any] = {"total": total, "shown": shown}
+    if shown < total:
+        page["note"] = f"Showing the first {shown} of {total}."
+    return page
+
+
+def _days_per_weekday(since: datetime, until: datetime | None, now: datetime) -> dict[int, int]:
+    """How many Mondays, Tuesdays... the window holds (ISO numbering: 1 = Monday), so
+    a weekday total can become "per day" -- 62 check-ins over three Sundays is ~21."""
+    last = (until - timedelta(days=1)).date() if until else now.date()
+    counts: dict[int, int] = {}
+    day = since.date()
+    while day <= last:
+        counts[day.isoweekday()] = counts.get(day.isoweekday(), 0) + 1
+        day += timedelta(days=1)
+    return counts
 
 
 def build_admin_tools(scope: Scope) -> dict[str, Tool]:
@@ -164,47 +188,33 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
         }
 
     @tool("list_expiring_memberships",
-          "Memberships due to expire in the next N days - the renewal-chase list. "
-          "Cancelled and superseded memberships are excluded.",
+          "Valid memberships due to expire in the next N days - the renewal-chase "
+          "list, with each member's name and phone. `total` is the real number; the "
+          "list shows at most `limit` of them.",
           schemas.ListExpiringMembershipsArgs)
     async def list_expiring_memberships(
         args: schemas.ListExpiringMembershipsArgs,
     ) -> dict[str, Any]:
-        now = naive_utc_now()
-        rows = await select(
-            scope, "memberships", ["id", "member_id", "expires_at"],
-            # Bound parameters, not SQL literals: `INTERVAL '7 days'` cannot pass the
-            # fragment grammar, and a window computed here is testable besides.
-            # ACTIVE, not "not cancelled": a membership superseded by a plan change
-            # is stored EXPIRED with its old future date, and listing it would send
-            # staff to chase somebody who has already renewed.
-            where="expires_at BETWEEN :now AND :until AND membership_status::text = :active",
-            params={"now": now, "until": now + timedelta(days=args.within_days),
-                    "active": StoredMembershipStatus.ACTIVE.value},
-            order_by="expires_at asc", limit=100)
-        return {
-            "within_days": args.within_days,
-            "count": len(rows),
-            "memberships": [
-                {"membership_id": r["id"], "member_id": r["member_id"],
-                 "expires": r["expires_at"].date().isoformat(),
-                 "days_left": (r["expires_at"] - now).days}
-                for r in rows
-            ],
-        }
+        found = await reports.expiring_memberships(scope, args.within_days, args.limit)
+        return {"within_days": args.within_days, **_page(found["total"], len(found["memberships"])),
+                "memberships": [_safe_person(row) for row in found["memberships"]]}
 
     @tool("list_inactive_members",
           "Members whose membership is still valid but who have not visited in a "
-          "while. Use this for churn, re-engagement and 'who should we call' questions.",
+          "while. Use this for churn, re-engagement and 'who should we call' questions. "
+          "`total` is the real number; the list shows at most `limit` of them.",
           schemas.ListInactiveMembersArgs)
     async def list_inactive_members(args: schemas.ListInactiveMembersArgs) -> dict[str, Any]:
         found = await reports.members_without_recent_checkin(
             scope, days=args.days_since_last_checkin, limit=args.limit)
         return {"days_since_last_checkin": args.days_since_last_checkin,
-                "count": len(found), "members": [_safe_person(row) for row in found]}
+                **_page(found["total"], len(found["members"])),
+                "members": [_safe_person(row) for row in found["members"]]}
 
     @tool("get_revenue",
           "Revenue in MAD for a period, optionally broken down by month or by plan. "
+          "For any other month, or to compare months, use period all_time with "
+          "group_by month. "
           "This is what the gym SOLD in that period - memberships and renewals - "
           "which is also what it took, since a membership is only created when the "
           "member pays at the desk.",
@@ -212,9 +222,8 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
     async def get_revenue(args: schemas.GetRevenueArgs) -> dict[str, Any]:
         # Belt and braces with the registry: the tool is not handed to a staff scope,
         # and if it ever were, `reports.revenue` refuses one anyway.
-        now = naive_utc_now()
-        since = period_start(args.period, now)
-        rows = await reports.revenue(scope, since, args.group_by)
+        since, until = period_window(args.period, naive_utc_now())
+        rows = await reports.revenue(scope, since, args.group_by, until)
         return {
             "period": args.period,
             "group_by": args.group_by,
@@ -227,20 +236,45 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
 
     @tool("get_attendance_stats",
           "Check-in counts grouped by hour of day, day of week, or month. Hours and "
-          "days are in Morocco local time. Use this for 'when is the gym busiest'.",
+          "days are in Morocco local time. Use this for 'when is the gym busiest'. "
+          "Counts are totals over the whole period; by weekday each row also gives "
+          "the average per day. For 'usually' or 'typical' questions use a long "
+          "period (year), not this week.",
           schemas.GetAttendanceStatsArgs)
     async def get_attendance_stats(args: schemas.GetAttendanceStatsArgs) -> dict[str, Any]:
-        since = period_start(args.period, naive_utc_now())
-        where, params = "", {}
-        if since is not None:
-            where, params = "checked_in_at >= :since", {"since": since}
+        now = naive_utc_now()
+        since, until = period_window(args.period, now)
+        where, params = "checked_in_at >= :since", {"since": since}
+        if until is not None:
+            where, params = where + " AND checked_in_at < :until", {**params, "until": until}
 
         rows = await aggregate(
             scope, "attendances", [("COUNT", "id", "check_ins")],
             group_by=[args.group_by], date_column="checked_in_at",
             where=where, params=params, limit=120)
+        if args.group_by == "weekday":
+            days = _days_per_weekday(since, until, now)
+            rows = [{"weekday": _WEEKDAYS[r["weekday"] - 1], "check_ins": r["check_ins"],
+                     "days_in_period": days.get(r["weekday"], 0),
+                     "average_per_day": round(r["check_ins"] / days[r["weekday"]], 1)
+                     if days.get(r["weekday"]) else None}
+                    for r in rows]
         return {"period": args.period, "group_by": args.group_by,
-                "timezone": "Africa/Casablanca", "stats": rows}
+                "timezone": "Africa/Casablanca",
+                "counts_are": "totals over the whole period", "stats": rows}
+
+    @tool("get_member_stats",
+          "Who the members are: how many are registered (any status), how many joined "
+          "this month and last month, women and men, and their average age. For "
+          "active members use get_gym_overview.")
+    async def get_member_stats() -> dict[str, Any]:
+        return await reports.member_stats(scope)
+
+    @tool("list_plans",
+          "This gym's membership plans: each length it is sold for, its price in MAD, "
+          "and whether it is still on sale.")
+    async def list_plans() -> dict[str, Any]:
+        return {"plans": await reports.plan_prices(scope)}
 
     @tool("list_recent_feedback",
           "Recent member feedback with its sentiment. Some comments have not been "
@@ -276,13 +310,13 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
 
     registry = [
         get_gym_overview, search_members, get_member_detail, list_expiring_memberships,
-        list_inactive_members, get_attendance_stats, list_recent_feedback,
+        list_inactive_members, get_attendance_stats, list_recent_feedback, get_member_stats,
     ]
     if scope.is_owner:
-        # Not offered to staff, and not merely hidden: `reports.revenue` sits behind
-        # `_require_owner`, so a staff scope that somehow reached this tool raises
-        # rather than answers.
-        registry.append(get_revenue)
+        # Money and pricing are the owner's. Not offered to staff, and not merely
+        # hidden: `reports.revenue` and `reports.plan_prices` sit behind
+        # `_require_owner`, so a staff scope that somehow reached them raises.
+        registry += [get_revenue, list_plans]
     return {t.name: t for t in registry}
 
 

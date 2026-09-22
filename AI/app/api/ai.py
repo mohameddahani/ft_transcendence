@@ -29,6 +29,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.agents.graph import AgentEvent, stream_turn
+from app.agents.knowledge import choose_route, stream_knowledge
 from app.auth.dependencies import CurrentUser
 from app.config import get_settings
 from app.core.errors import ApiError, unauthorized
@@ -299,8 +300,16 @@ async def chat(body: ChatRequest, ctx: ChatRateLimited,
 
     async def events() -> AsyncIterator[bytes]:
         try:
-            async for event in stream_turn(scope=ctx.scope, profile=profile,
-                                           question=body.message, thread_id=thread_id):
+            # The router (task 3.6): live data goes to the tool agent, written rules
+            # to the documents. Both yield the same events; `meta.route` says which.
+            history = await load_history(thread_id, get_settings().AGENT_HISTORY_MESSAGES)
+            if await choose_route(body.message, history) == "knowledge":
+                turn = stream_knowledge(scope=ctx.scope, question=body.message,
+                                        thread_id=thread_id, history=history)
+            else:
+                turn = stream_turn(scope=ctx.scope, profile=profile,
+                                   question=body.message, thread_id=thread_id)
+            async for event in turn:
                 yield _sse(event)
         except ApiError as exc:
             # Raised before the loop opens -- there is no status code left to use.

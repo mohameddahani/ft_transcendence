@@ -39,14 +39,17 @@ class _Query(BaseModel):
     query: str = Field(description="the standalone English search query")
 
 
-def _transcript(history: list[BaseMessage]) -> str:
-    """The last few turns, text only: enough to resolve "and on weekends?"."""
+def with_conversation(question: str, history: list[BaseMessage]) -> str:
+    """The question, preceded by the last few turns as text: enough to resolve
+    "and on weekends?". Tool results are left out -- they can hold member-written text."""
     lines = []
     for message in history[-6:]:
         if isinstance(message, (HumanMessage, AIMessage)) and message.text:
             who = "User" if isinstance(message, HumanMessage) else "Assistant"
             lines.append(f"{who}: {message.text[:300]}")
-    return "\n".join(lines)
+    if not lines:
+        return question
+    return "Conversation so far:\n" + "\n".join(lines) + f"\n\nLast message: {question}"
 
 
 async def rewrite_query(question: str, history: list[BaseMessage] | None = None) -> str:
@@ -55,11 +58,9 @@ async def rewrite_query(question: str, history: list[BaseMessage] | None = None)
     history = history or []
     if not history and detect(question) is Language.ENGLISH:
         return question
-    conversation = _transcript(history)
-    message = f"Conversation so far:\n{conversation}\n\nLast message: {question}" if conversation else question
     try:
         result = await get_llm().with_structured_output(_Query).ainvoke(
-            [("system", _REWRITE_PROMPT), ("human", message)])
+            [("system", _REWRITE_PROMPT), ("human", with_conversation(question, history))])
         return result.query.strip() or question
     except Exception as exc:  # noqa: BLE001 -- a failed rewrite must not fail retrieval
         # Searching the original words is worse, not wrong: English still matches.

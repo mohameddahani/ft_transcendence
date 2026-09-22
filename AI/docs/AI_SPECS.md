@@ -195,7 +195,7 @@ event: token
 data: {"text":"You have 14 members"}
 
 event: sources
-data: {"sources":[{"doc_id":"d7","source_name":"refund-policy.pdf","chunk_index":2,"score":0.81}]}
+data: {"sources":[{"n":1,"doc_id":"d7","source_name":"refund-policy.pdf","chunk_index":2,"score":0.81}]}
 
 event: done
 data: {"finish_reason":"stop"}
@@ -208,7 +208,14 @@ data: {"finish_reason":"stop"}
 - `done`'s `finish_reason` is `stop` | `max_tool_rounds`. The second means the agent
   spent its `AGENT_MAX_TOOL_ROUNDS` budget and answered with what it had; the UI says
   so rather than presenting a partial answer as complete.
-- `sources` is emitted only for `knowledge` and `advisory`.
+- `sources` is emitted only for `knowledge` and `advisory`, and lists only the excerpts the
+  answer actually cites: `n` is the `[n]` in the text, `score` is `1 - distance`. A cited
+  number that was never given to the model is dropped.
+- **The router (D24):** the endpoint makes one structured-output call (`{route}`) before the
+  stream. `structured` → the tool agent (unchanged). `knowledge` → `retrieve()`; if nothing is
+  within the threshold the reply is a fixed "That isn't in your gym's documents." in the
+  question's language, **with no model call**; otherwise the model answers from the top 5
+  excerpts only. A failed routing call falls back to `structured`.
 - Every response carries the rate-limit headers, including this one. FastAPI does not
   merge them onto a `Response` the endpoint returns itself, so the route re-attaches
   them explicitly (`carry_rate_headers`).
@@ -333,7 +340,7 @@ unexpressible rather than merely discouraged.
 
 ### 4.1 Admin tools
 
-Also the **staff** registry, minus `get_revenue`; and `get_gym_overview` arrives without its
+Also the **staff** registry, minus `get_revenue` and `list_plans`; and `get_gym_overview` arrives without its
 revenue figure, because `reports.gym_overview` omits the subquery for a staff scope. The rule is
 *mirror Dahani's API*: his staff controllers cover members, memberships, payments, attendance and
 visits, and nothing covers pricing, staff management or the gym's own subscription. Pricing
@@ -345,11 +352,16 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 | `get_gym_overview` | — | active members, expiring in 7/30d, revenue MTD, check-ins today |
 | `search_members` | `query`, `limit=10` | matches on name or phone |
 | `get_member_detail` | `member_id` | membership, payment history, attendance summary |
-| `list_expiring_memberships` | `within_days=7` | members and expiry dates |
-| `list_inactive_members` | `days_since_last_checkin=21`, `limit=25` | the churn question |
-| `get_revenue` | `period`, `group_by` (`month`\|`plan`) | totals in MAD |
-| `get_attendance_stats` | `period`, `group_by` (`weekday`\|`hour`) | counts |
+| `list_expiring_memberships` | `within_days=7`, `limit=25` | `total` + the first `limit`, with name and phone |
+| `list_inactive_members` | `days_since_last_checkin=21`, `limit=25` | `total` + the first `limit` -- the churn question |
+| `get_revenue` | `period` (`month`\|`last_month`\|`year`\|`all_time`), `group_by` (`month`\|`plan`) | totals in MAD (owner only) |
+| `get_attendance_stats` | `period` (`week`\|`month`\|`last_month`\|`year`), `group_by` (`weekday`\|`hour`\|`month`) | totals over the period; by weekday also day names and the average per day |
 | `list_recent_feedback` | `limit=20`, `sentiment?` | feedback with sentiment |
+| `get_member_stats` | — | members registered, joined this/last month, women/men, average age |
+| `list_plans` | — | plans, lengths and prices in MAD (owner only) |
+
+A list tool always returns the real `total` next to the rows it shows: the 2026-09-21 chat
+evaluation caught the model reporting a page of 25 as "there are 25" when 38 had stopped coming.
 
 ### 4.2 Member tools
 
@@ -371,7 +383,7 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 | Overlap | 150 chars | Whole sentences, inside a long section only |
 | Retrieve | top 20 | Before reranking |
 | Rerank to | top 5 | LLM-based, phase 4 |
-| Distance threshold | **0.32** (`RAG_MAX_DISTANCE`), measured in D22 | Above it → "that isn't in your documents". With the D23 rewrite, right answers (en/fr/Darija/Arabic) ≤ 0.306, nearest no-answer ≥ 0.331 |
+| Distance threshold | **0.33** (`RAG_MAX_DISTANCE`), measured in D22, re-measured on 31 questions | Above it → "that isn't in your documents". 23/25 answerable answered, 6/6 no-answer refused; right and wrong overlap at ~0.33, so reranking (phase 4) is the next lever |
 | Embeddings | Gemini | No PyTorch anywhere in the image |
 
 Query rewriting runs before embedding and does two jobs: resolve follow-ups against thread history,

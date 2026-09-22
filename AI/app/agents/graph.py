@@ -553,8 +553,8 @@ async def stream_turn(
                                        llm, max_tool_rounds, now, history)
     produced: list[BaseMessage] = list(opening["messages"][len(history):])
 
-    # `route` is `structured` until phase 3 adds retrieval; the field exists now so
-    # the frontend never has to learn a new event shape to get it.
+    # This is the structured path; the knowledge branch (knowledge.py) sends the same
+    # event with `route: knowledge`.
     yield AgentEvent("meta", {"thread_id": thread_id, "route": "structured"})
 
     text_seen = False

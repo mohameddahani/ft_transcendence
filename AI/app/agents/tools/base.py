@@ -156,11 +156,20 @@ def period_start(period: str, now: datetime) -> datetime | None:
 
     Calendar, not rolling: an owner asking "revenue this month" means since the 1st.
     """
+    return period_window(period, now)[0]
+
+
+def period_window(period: str, now: datetime) -> tuple[datetime | None, datetime | None]:
+    """(since, until) for a named period; `until` is None when it runs up to now.
+    "last_month" is the one closed window: from the 1st of last month to the 1st of this one."""
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    this_month = midnight.replace(day=1)
     if period == "week":
-        return midnight - timedelta(days=midnight.weekday())
+        return midnight - timedelta(days=midnight.weekday()), None
     if period == "month":
-        return midnight.replace(day=1)
+        return this_month, None
+    if period == "last_month":
+        return (this_month - timedelta(days=1)).replace(day=1), this_month
     if period == "year":
-        return midnight.replace(month=1, day=1)
-    return None  # all_time
+        return midnight.replace(month=1, day=1), None
+    return None, None  # all_time

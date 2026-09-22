@@ -1,4 +1,5 @@
-"""Tasks 3.1-3.5 checks: chunking, store, ingestion, /ai/documents, retrieval, threshold, rewriting.
+"""Tasks 3.1-3.6 checks: chunking, store, ingestion, /ai/documents, retrieval, threshold,
+rewriting, and the knowledge branch.
 
 Runs in the ai container via scripts/verify.sh, which copies the seeded policy
 documents to /tmp/corpus first. Chroma is opened in a temporary directory, never
@@ -23,9 +24,10 @@ from pathlib import Path
 
 import httpx
 import jwt
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
 from pypdf import PdfWriter
 
+from app.agents import knowledge
 from app.config import get_settings
 from app.db.scope import Scope, ScopeViolation
 from app.core.errors import ApiError
@@ -35,6 +37,7 @@ from app.rag.chunk import _SENTENCE_END, chunk_text
 from app.rag.retrieve import retrieve, rewrite_query
 from app.state import db as state_db
 from app.state import documents
+from app.state.threads import load_history, open_thread
 
 FAIL = 0
 SIZE, OVERLAP = 1000, 150
@@ -413,7 +416,8 @@ async def check_threshold() -> None:
 
 
 class FakeLLM:
-    """Stands in for Gemini: records what it is asked, answers with a fixed query."""
+    """Stands in for Gemini's structured output: records what it is asked and fills the
+    schema's one field (`query` for the rewrite, `route` for the router) with `answer`."""
 
     def __init__(self, answer: str = "", fail: bool = False) -> None:
         self.answer, self.fail, self.prompts = answer, fail, []
@@ -426,7 +430,7 @@ class FakeLLM:
         self.prompts.append(messages[-1][1])
         if self.fail:
             raise TimeoutError("Gemini is slow")
-        return self.schema(query=self.answer)
+        return self.schema(**{field: self.answer for field in self.schema.model_fields})
 
 
 async def check_rewrite() -> None:
@@ -466,6 +470,89 @@ async def check_rewrite() -> None:
     await retrieve(ATLAS, "Combien d'invités puis-je amener ?")
     check("retrieve() searches with the rewritten words", searched == [fake.answer], f"searched {searched}")
     rag_retrieve.get_llm, rag_retrieve.embed_query = real_llm, real_embed
+
+
+class StreamLLM:
+    """Stands in for Gemini streaming an answer: records the system prompt it was given."""
+
+    def __init__(self, pieces: list[str], fail: bool = False) -> None:
+        self.pieces, self.fail, self.prompts = pieces, fail, []
+
+    async def astream(self, messages):
+        self.prompts.append(messages[0][1])
+        if self.fail:
+            raise TimeoutError("Gemini is slow")
+        for piece in self.pieces:
+            yield AIMessageChunk(content=piece)
+
+
+async def check_knowledge() -> None:
+    print("\n\033[1m  knowledge branch: router, not-in-documents, citations (no network)\033[0m")
+    real_llm, real_embed, real_rewriter = knowledge.get_llm, rag_retrieve.embed_query, rag_retrieve.get_llm
+    # A French question is rewritten before retrieval: fake that model too, or this
+    # "offline" section quietly calls Gemini.
+    rag_retrieve.get_llm = lambda: FakeLLM("Do you sell protein bars?")
+
+    knowledge.get_llm = lambda: FakeLLM("knowledge")
+    check("the router returns the model's route", await knowledge.choose_route("How do I cancel?", []) == "knowledge")
+    knowledge.get_llm = lambda: FakeLLM(fail=True)
+    check("a failed routing call falls back to the tool agent",
+          await knowledge.choose_route("How do I cancel?", []) == "structured")
+
+    open_temp_store()
+    near = fake_vector("cancel")
+    await store.add_chunks(ATLAS, doc_id="k-member", source_name="terms.md", visibility="member",
+                           chunks=["## Cancelling\n\nGive us 30 days notice."], embeddings=[near])
+    await store.add_chunks(ATLAS, doc_id="k-staff", source_name="handbook.md", visibility="staff",
+                           chunks=["## Waivers\n\nStaff may waive the notice once."], embeddings=[near])
+
+    async def embed(text: str) -> list[float]:
+        return near if "cancel" in text.lower() else [-x for x in near]   # distance 0, or 2
+    rag_retrieve.embed_query = embed
+
+    async def run(scope: Scope, question: str, llm: StreamLLM, thread_id: str | None = None):
+        knowledge.get_llm = lambda: llm
+        return [e async for e in knowledge.stream_knowledge(scope=scope, question=question,
+                                                            thread_id=thread_id, history=[])]
+
+    model = StreamLLM(["should not be called"])
+    events = await run(ATLAS, "Do you sell protein bars?", model)
+    check("nothing close enough: a fixed reply, no model call",
+          [e.type for e in events] == ["meta", "token", "done"] and model.prompts == []
+          and events[1].data["text"] == "That isn't in your gym's documents.")
+    check("...in the language of the question",
+          (await run(ATLAS, "Vendez-vous des barres protéinées ?", model))[1].data["text"].startswith("Cette information"))
+
+    model = StreamLLM(["You need to give ", "30 days notice [1]", ", see [7]."])
+    thread_id, _ = await open_thread(thread_id=None, subject_id="owner-1", role="ADMIN", admin_id="gym-atl")
+    events = await run(ATLAS, "How do I cancel my membership?", model, thread_id)
+    kinds = [e.type for e in events]
+    answer = "".join(e.data["text"] for e in events if e.type == "token")
+    sources = next((e.data["sources"] for e in events if e.type == "sources"), [])
+    check("an answer streams: meta, tokens, sources, done",
+          kinds[0] == "meta" and events[0].data["route"] == "knowledge" and kinds[-2:] == ["sources", "done"])
+    check("the model reads numbered excerpts", "[1] (" in model.prompts[0] and "30 days notice" in model.prompts[0])
+    check("sources list only real, cited excerpts", [s["n"] for s in sources] == [1],
+          "[7] was cited but never given")
+    check("the turn is saved, so a follow-up has context",
+          [m.text for m in await load_history(thread_id, 10)] == ["How do I cancel my membership?", answer])
+
+    model = StreamLLM(["ok"])
+    await run(Scope(admin_id="gym-atl", member_id="m1"), "How do I cancel?", model)
+    check("a member's excerpts never include a staff document",
+          "30 days notice" in model.prompts[0] and "waive" not in model.prompts[0])
+
+    events = await run(ATLAS, "How do I cancel?", StreamLLM([], fail=True))
+    check("the model failing ends in an error event, no done",
+          events[-1].type == "error" and "done" not in [e.type for e in events])
+
+    async def embed_down(_: str) -> list[float]:
+        raise ApiError(502, "upstream_error", "The assistant is temporarily unavailable.")
+    rag_retrieve.embed_query = embed_down
+    events = await run(ATLAS, "How do I cancel?", StreamLLM(["x"]))
+    check("retrieval failing ends in an error event, no done",
+          [e.type for e in events] == ["meta", "error"])
+    knowledge.get_llm, rag_retrieve.embed_query, rag_retrieve.get_llm = real_llm, real_embed, real_rewriter
 
 
 async def check_live() -> None:
@@ -513,8 +600,8 @@ async def check_live() -> None:
           f"{len(nearest)} chunks before the threshold, none from a staff file")
     check("...and none is close enough: not in their documents", await retrieve(member, discount) == [],
           f"nearest {nearest[0].distance:.3f} > {get_settings().RAG_MAX_DISTANCE}")
-    for gym, question in (("gym-atl", "Do you sell protein supplements at reception?"),
-                          ("gym-oas", "Is there a swimming pool and a sauna?")):
+    for gym, question in (("gym-atl", "Is there parking for members?"),
+                          ("gym-med", "Do you have a sauna?")):
         check(f"no answer in the corpus -> nothing: {question[:32]}", await retrieve(Scope(admin_id=gym), question) == [])
     for label, scope in (("the owner", ATLAS), ("staff", Scope(admin_id="gym-atl", staff_id="s1"))):
         top = (await retrieve(scope, discount))[0]
@@ -562,6 +649,7 @@ async def check_live() -> None:
 async def main() -> int:
     logging.getLogger("pypdf").setLevel(logging.ERROR)   # "EOF marker not found" is expected
     logging.getLogger("app.rag.retrieve").setLevel(logging.ERROR)   # so is "query rewrite failed"
+    logging.getLogger("app.agents.knowledge").setLevel(logging.ERROR)   # and "routing failed"
     await state_db.init_state_db(get_settings().model_copy(
         update={"SQLITE_PATH": os.path.join(tempfile.mkdtemp(), "state.db")}))
     try:
@@ -570,6 +658,7 @@ async def main() -> int:
         await check_retrieval()
         await check_threshold()
         await check_rewrite()
+        await check_knowledge()
         check_files()
         await check_ingest()
         check_http()

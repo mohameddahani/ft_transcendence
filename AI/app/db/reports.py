@@ -126,8 +126,11 @@ async def gym_overview(scope: Scope, now: datetime | None = None) -> dict[str, A
 
 async def members_without_recent_checkin(
     scope: Scope, days: int = 21, limit: int = 25, now: datetime | None = None
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     """The churn list: members whose membership is still valid but who stopped coming.
+
+    Returns `{"total", "members"}`. `total` is counted before the LIMIT, so the answer
+    can say "38, here are 25" -- reporting the page size as the total was a real bug.
 
     A LEFT JOIN with `HAVING max(...) IS NULL OR max(...) < cutoff`, so somebody who
     has never visited at all is included -- they are the most urgent case on the list,
@@ -142,7 +145,8 @@ async def members_without_recent_checkin(
     rows = await _engine._fetch_all(
         """
         SELECT m.id, m.first_name, m.last_name, m.phone_number,
-               max(c.checked_in_at) AS last_check_in
+               max(c.checked_in_at) AS last_check_in,
+               count(*) OVER () AS total
         FROM members m
         -- The join is scoped too. Without `AND c.admin_id`, a member id colliding
         -- across tenants would pull in another gym's visits.
@@ -159,7 +163,7 @@ async def members_without_recent_checkin(
         {"admin_id": scope.admin_id, "now": moment,
          "cutoff": moment - timedelta(days=max(1, int(days))), "limit": _bounded(limit)},
     )
-    return [
+    members = [
         {
             "member_id": r["id"],
             "name": f"{r['first_name']} {r['last_name']}",
@@ -170,6 +174,94 @@ async def members_without_recent_checkin(
         }
         for r in rows
     ]
+    return {"total": rows[0]["total"] if rows else 0, "members": members}
+
+
+async def expiring_memberships(
+    scope: Scope, within_days: int = 7, limit: int = 50, now: datetime | None = None
+) -> dict[str, Any]:
+    """Valid memberships ending in the next `within_days` days, with who holds them.
+
+    ACTIVE only: a membership superseded by a plan change is stored EXPIRED with its
+    old future date, and listing it would send staff to chase someone who renewed.
+    Returns `{"total", "memberships"}`, `total` counted before the LIMIT.
+    """
+    _require_gym_scope(scope, "expiring_memberships")
+    moment = now or naive_utc_now()
+    rows = await _engine._fetch_all(
+        """
+        SELECT ms.member_id, ms.expires_at, m.first_name, m.last_name, m.phone_number,
+               count(*) OVER () AS total
+        FROM memberships ms
+        JOIN members m ON m.id = ms.member_id AND m.admin_id = :admin_id
+        WHERE ms.admin_id = :admin_id
+          AND ms.membership_status = 'ACTIVE'
+          AND ms.expires_at > :now AND ms.expires_at <= :until
+        ORDER BY ms.expires_at ASC
+        LIMIT :limit
+        """,
+        {"admin_id": scope.admin_id, "now": moment,
+         "until": moment + timedelta(days=max(1, int(within_days))), "limit": _bounded(limit)},
+    )
+    memberships = [
+        {
+            "member_id": r["member_id"],
+            "name": f"{r['first_name']} {r['last_name']}",
+            "phone_number": r["phone_number"],
+            "expires": r["expires_at"].date().isoformat(),
+            "days_left": (r["expires_at"] - moment).days,
+        }
+        for r in rows
+    ]
+    return {"total": rows[0]["total"] if rows else 0, "memberships": memberships}
+
+
+async def member_stats(scope: Scope, now: datetime | None = None) -> dict[str, Any]:
+    """Who the members are: how many, who joined recently, women and men, average age.
+
+    Every registered member, whatever their status -- "active members" is a different
+    question and `gym_overview` answers it.
+    """
+    _require_gym_scope(scope, "member_stats")
+    moment = now or naive_utc_now()
+    this_month = moment.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    last_month = (this_month - timedelta(days=1)).replace(day=1)
+    row = await _engine._fetch_one(
+        """
+        SELECT count(*) AS members,
+               count(*) FILTER (WHERE created_at >= :this_month) AS joined_this_month,
+               count(*) FILTER (WHERE created_at >= :last_month
+                                  AND created_at < :this_month) AS joined_last_month,
+               count(*) FILTER (WHERE gender = 'FEMALE') AS women,
+               count(*) FILTER (WHERE gender = 'MALE') AS men,
+               round(avg(extract(year FROM age(birth_date)))::numeric, 1) AS average_age
+        FROM members
+        WHERE admin_id = :admin_id
+        """,
+        {"admin_id": scope.admin_id, "this_month": this_month, "last_month": last_month},
+    )
+    stats = dict(row)
+    # Decimal does not JSON-encode; an age is not money, so one decimal as a float.
+    stats["average_age"] = float(stats["average_age"]) if stats["average_age"] is not None else None
+    return stats
+
+
+async def plan_prices(scope: Scope) -> list[dict[str, Any]]:
+    """This gym's plans, each length it is sold for, and the price. Owner only:
+    pricing is the owner's in Dahani's API, exactly like revenue."""
+    _require_owner(scope, "plan_prices")
+    rows = await _engine._fetch_all(
+        """
+        SELECT pl.plan_name, pl.is_active, d.duration_days, d.price
+        FROM membership_plans pl
+        JOIN membership_plan_durations d ON d.membership_plan_id = pl.id
+        WHERE pl.admin_id = :admin_id
+        ORDER BY pl.plan_name, d.duration_days
+        """,
+        {"admin_id": scope.admin_id},
+    )
+    return [{"plan_name": r["plan_name"], "on_sale": r["is_active"],
+             "duration_days": r["duration_days"], "price_mad": str(r["price"])} for r in rows]
 
 
 async def search_members(
@@ -211,7 +303,8 @@ async def search_members(
 
 
 async def revenue(
-    scope: Scope, since: datetime | None = None, group_by: str | None = None
+    scope: Scope, since: datetime | None = None, group_by: str | None = None,
+    until: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Revenue, derived from **memberships** rather than from `payments`.
 
@@ -246,6 +339,8 @@ async def revenue(
     window = ""
     if since is not None:
         window, params["since"] = "AND m.start_date >= :since", since
+    if until is not None:
+        window, params["until"] = window + " AND m.start_date < :until", until
 
     # A cancelled membership was still sold and still paid for, so it counts. Dates
     # come from `start_date`: that is when the period was bought.

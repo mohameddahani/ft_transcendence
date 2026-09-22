@@ -23,20 +23,21 @@ class GetMemberDetailArgs(BaseModel):
 
 class ListExpiringMembershipsArgs(BaseModel):
     within_days: int = Field(default=7, ge=1, le=90, description="Number of days to look ahead for expiring memberships")
+    limit: int = Field(default=25, ge=1, le=100, description="Max memberships to list; the total is always reported")
 
 
 class ListInactiveMembersArgs(BaseModel):
     days_since_last_checkin: int = Field(default=21, ge=1, le=365, description="Days of continuous absence to classify as inactive")
-    limit: int = Field(default=25, ge=1, le=100, description="Max number of inactive members to return")
+    limit: int = Field(default=25, ge=1, le=100, description="Max members to list; the total is always reported")
 
 
 class GetRevenueArgs(BaseModel):
-    period: Literal["month", "year", "all_time"] = Field(default="month", description="Time window for revenue aggregation")
+    period: Literal["month", "last_month", "year", "all_time"] = Field(default="month", description="Time window: this calendar month, last calendar month, this year, or all time")
     group_by: Optional[Literal["month", "plan"]] = Field(default=None, description="Grouping level: 'month' for trends, 'plan' for breakdown by plan price")
 
 
 class GetAttendanceStatsArgs(BaseModel):
-    period: Literal["week", "month", "year"] = Field(default="month", description="Time window for attendance stats")
+    period: Literal["week", "month", "last_month", "year"] = Field(default="month", description="Time window: this week, this month, last calendar month, or this year")
     group_by: Literal["hour", "weekday", "month"] = Field(default="hour", description="Derived time interval to group check-ins by")
 
 
