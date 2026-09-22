@@ -5,8 +5,8 @@ Numeric ranges are strictly bounded using `ge` and `le` to prevent the model fro
 requesting massive, memory-draining datasets.
 """
 
-from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated, Literal, Optional
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 
 class _Args(BaseModel):
@@ -49,7 +49,10 @@ class GetAttendanceStatsArgs(_Args):
 
 
 class ListRecentFeedbackArgs(_Args):
-    limit: int = Field(default=20, ge=1, le=50, description="Max feedback items to return")
+    # Lowered to 50 rather than refused: a model asking for "all" of them got an error
+    # and sometimes gave up (D32). The schema still says 50, so the model can see it.
+    limit: Annotated[int, BeforeValidator(lambda n: min(n, 50) if isinstance(n, int) else n)] = Field(
+        default=20, ge=1, le=50, description="Max feedback items to return")
     sentiment: Optional[Literal["POSITIVE", "NEGATIVE", "NEUTRAL"]] = Field(default=None, description="Filter by feedback sentiment rating")
 
 

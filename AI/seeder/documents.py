@@ -112,6 +112,13 @@ def _price_table(gym: GymSpec) -> str:
     return "\n".join(rows)
 
 
+def _guests(n: int) -> str:
+    """"0 guest" and "2 guest" read as mistakes, and the assistant quotes them verbatim (D32)."""
+    if n == 0:
+        return "Memberships do not include free guest passes."
+    return f"Each member may bring {n} guest{'s' if n > 1 else ''} per month at no charge."
+
+
 def membership_terms(gym: GymSpec, policy: GymPolicy) -> str:
     return f"""# Membership terms — {gym.company_name}
 
@@ -138,7 +145,7 @@ you keep full access during it.
 
 ## Guest passes
 
-Each member may bring {policy.guest_passes_per_month} guest per month at no charge.
+{_guests(policy.guest_passes_per_month)}
 Guests must sign in at reception and are your responsibility while they are in the
 building. Members under 18 may not sign in guests.
 

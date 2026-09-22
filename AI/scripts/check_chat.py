@@ -334,6 +334,12 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
         route, answer, cited = ask(token, notice)
         check(f"{gym}: routed to its documents, answers {days} days, cites them",
               route == "knowledge" and days in answer and "membership-terms.md" in cited, answer[:60])
+    # Reloading the page redraws the conversation from the server: the chips must come back too.
+    status, _, text = post_chat(rival_token, {"message": notice})
+    given = (streamed("a cited answer, in a conversation", status, text) or [("", {"thread_id": ""})])[0][1]["thread_id"]
+    status, redrawn = get_json(f"/ai/threads/{given}", rival_token)
+    kept = [s["source_name"] for s in (redrawn or [{}])[-1].get("sources", [])]
+    check("a reloaded answer keeps its source chips", status == 200 and "membership-terms.md" in kept, str(kept))
     route, answer, cited = ask(live_token, "Is there parking for members?")
     check("no answer in the documents: says so, cites nothing",
           route == "knowledge" and answer == "That isn't in your gym's documents." and not cited, answer[:60])

@@ -22,9 +22,9 @@
               NestJS ──────────────┘  POST /internal/sentiment  (X-API-Key)
               writes the score it gets back
 
-   FastAPI also owns, and nobody else touches:
-     SQLite volume  — conversations, rate-limit counters, document metadata
-     Chroma volume  — document embeddings (from phase 3)
+   FastAPI also owns, and nobody else touches, one volume (ai_state, at /data):
+     SQLite  — conversations, rate-limit counters, document metadata
+     Chroma  — document embeddings: each gym's documents + the shared industry corpus
 ```
 
 **One sentence:** the AI service is a separate container that reads the same database
@@ -190,10 +190,10 @@ cannot be narrowed afterwards, so `members` and `users` are granted column by co
 
 ### Dahani
 
-1. The `CheckIn` and `Feedback` models, with their indexes — the exact Prisma models are in `SCHEMA_ASK_DAHANI.md`. I am running a local shadow copy until yours lands.
+1. ~~The `CheckIn` and `Feedback` models~~ -- delivered 2026-09-20 (as `attendances` and `feedbacks`).
 2. `Payment.membershipId` (nullable), so "revenue by plan" is a join rather than a guess.
-3. On feedback creation, call `POST /internal/sentiment` and store what comes back. It must not block or fail feedback creation if my service is down: store the feedback unscored and my batch job will pick it up.
-4. The two ACCESS secrets for staging and production (not the dev ones — I have those).
+3. On feedback creation, call `POST /internal/sentiment` and store what comes back: `sentiment` is already your `SentimentType` value (`POSITIVE`/`NEUTRAL`/`NEGATIVE`) and `score` has two decimals for `DECIMAL(3,2)`. It must not block or fail feedback creation if my service is down: store the feedback unscored. **To agree:** my service cannot write your tables, so the unscored ones need a periodic job on your side that sends them to the same endpoint and stores the result (proposed in `AI_SPECS.md` §3.4).
+4. The three ACCESS secrets (admin, member, staff) for staging and production (not the dev ones — I have those).
 5. Answers to the two questions in `BACKEND_FINDINGS_DAHANI.md`, which decide what `payment_status` and a superseded membership actually mean.
 6. Keep the access token in the JSON login response.
 
@@ -214,7 +214,12 @@ merges as a fast-forward rather than a conflict in your shell.
    responses by default, which silently collapses a token-by-token stream into one block at the
    end — and streaming is a graded criterion. Also raise `proxy_read_timeout` above the longest
    answer.
-3. The AI service in the single `docker compose up`, with its `.env`, plus two named volumes: one for SQLite state, one for Chroma.
+3. Two services from `AI/docker-compose.yml` in the single `docker compose up`, both with its
+   `.env` and the one named volume `ai_state` at `/data`:
+   - `ai-load` -- one-shot: loads the industry corpus (shipped in the image) into Chroma, then
+     exits. ~2 min on a fresh volume, ~2 s after that. It always exits 0.
+   - `ai` -- the server, with `depends_on: ai-load: condition: service_completed_successfully`.
+     Keep that condition: Chroma must never be written by two processes at once.
 4. Postgres reachable from the AI container, and the `ai_readonly` role created there —
    `AI/seeder/roles/ai_readonly.sql`, run once as a superuser.
 
@@ -226,8 +231,8 @@ merges as a fast-forward rather than a conflict in your shell.
 - In `frontend/`, only new files.
 
 The one file that will need a real conversation is the **root `docker-compose.yml`** when the
-whole stack becomes one command: it needs the AI service, its two volumes, and its env file
-alongside everyone else's. That is a devops task, and everything it needs is already in
+whole stack becomes one command: it needs the two AI services (`ai-load`, then `ai`), their
+volume, and their env file alongside everyone else's. That is a devops task, and everything it needs is already in
 `AI/docker-compose.yml`.
 
 ## 9. If you have five minutes to explain it

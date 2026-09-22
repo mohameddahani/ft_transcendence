@@ -191,6 +191,7 @@ export function AssistantPanel() {
           author: row.author,
           text: row.text,
           tools: row.tools.map((name) => ({ name, status: "done" as const })),
+          sources: row.sources,
         })));
         setState("idle");
       })

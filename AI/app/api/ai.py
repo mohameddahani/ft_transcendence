@@ -137,6 +137,7 @@ class ThreadMessage(BaseModel):
     author: Literal["user", "assistant"]
     text: str
     tools: list[str] = []
+    sources: list[dict] = []    # the chips under a cited answer, as the `sources` event sent them
 
 
 @router.get("/threads", response_model=list[ThreadSummary])
@@ -185,8 +186,8 @@ async def thread_messages(thread_id: str, ctx: CurrentUser) -> list[ThreadMessag
                 # comes in the next one.
                 pending_tools.extend(calls)
                 continue
-            redrawn.append(ThreadMessage(author="assistant", text=_plain(message),
-                                         tools=pending_tools))
+            redrawn.append(ThreadMessage(author="assistant", text=_plain(message), tools=pending_tools,
+                                         sources=message.response_metadata.get("sources", [])))
             pending_tools = []
         # `tool` messages are dropped: their content is raw JSON, which is neither
         # useful to a person nor something to hand back out of the database. What

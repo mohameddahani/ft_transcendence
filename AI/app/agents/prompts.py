@@ -147,6 +147,9 @@ ADVICE (this question asks what to do)
 - Answer in two parts: what this gym's numbers show, then what to do. Ground each
   recommendation in an excerpt and cite it as [n]; a recommendation with no excerpt
   behind it is your own suggestion, so say so.
+- At most five recommendations, the most useful first, one or two sentences each.
+- About this gym, state only what the tools returned. Do not add a cause or a detail
+  the data does not show -- for example, when those members joined.
 - Industry excerpts describe gyms in general. Never present one of their figures as
   this gym's, and never present this gym's numbers as an industry benchmark."""
 

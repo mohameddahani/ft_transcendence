@@ -35,7 +35,7 @@ you keep full access during it.
 
 ## Guest passes
 
-Each member may bring 3 guest per month at no charge.
+Each member may bring 3 guests per month at no charge.
 Guests must sign in at reception and are your responsibility while they are in the
 building. Members under 18 may not sign in guests.
 

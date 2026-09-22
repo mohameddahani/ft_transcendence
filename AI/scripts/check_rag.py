@@ -544,8 +544,11 @@ async def check_knowledge() -> None:
     check("the model reads numbered excerpts", "[1] (" in model.prompts[0] and "30 days notice" in model.prompts[0])
     check("sources list only real, cited excerpts", [s["n"] for s in sources] == [1],
           "[7] was cited but never given")
+    saved = await load_history(thread_id, 10)
     check("the turn is saved, so a follow-up has context",
-          [m.text for m in await load_history(thread_id, 10)] == ["How do I cancel my membership?", answer])
+          [m.text for m in saved] == ["How do I cancel my membership?", answer])
+    check("...with its sources, so a reload redraws the chips",
+          saved[-1].response_metadata.get("sources") == sources)
 
     model = StreamLLM(["ok"])
     await run(Scope(admin_id="gym-atl", member_id="m1"), "How do I cancel?", model)
@@ -683,6 +686,14 @@ async def check_advisory() -> None:
     check("...excerpts reach the model fenced, like feedback", bool(seen) and fence in seen[0].content)
     check("...sources list only real, cited excerpts, with their link",
           [(s["n"], s.get("url")) for s in sources] == [(1, "https://example.org/a")], "[9] was cited but never given")
+    thread_id, _ = await open_thread(thread_id=None, subject_id="owner-2", role="ADMIN", admin_id=atlas)
+    llm = ScriptedLLM([wants(call("search_industry_knowledge", {"query": "reduce churn"}, "c")),
+                       AIMessage(content="Call the quiet ones [1].")])
+    events = [e async for e in stream_turn(scope=owner, profile=profile, question="What should we do?",
+                                            thread_id=thread_id, llm=llm, advisory=True)]
+    sent = next((e.data["sources"] for e in events if e.type == "sources"), [])
+    check("...and they are saved with the answer, for a reload",
+          bool(sent) and (await load_history(thread_id, 10))[-1].response_metadata.get("sources") == sent)
     llm, events = await turn(owner, False, [AIMessage(content="ok")])
     check("a structured turn is not offered the industry tool",
           "search_industry_knowledge" not in {d["function"]["name"] for d in llm.bound}

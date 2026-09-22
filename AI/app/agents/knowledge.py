@@ -126,5 +126,6 @@ async def stream_knowledge(*, scope: Scope, question: str, thread_id: str | None
         yield AgentEvent("sources", {"sources": sources})
 
     if thread_id is not None:
-        await append_messages(thread_id, [HumanMessage(question), AIMessage(answer)])
+        await append_messages(thread_id, [HumanMessage(question),
+                                          AIMessage(answer, response_metadata={"sources": sources})])
     yield AgentEvent("done", {"finish_reason": "stop"})

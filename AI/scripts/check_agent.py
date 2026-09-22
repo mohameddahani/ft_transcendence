@@ -312,20 +312,21 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     check("...and the model is told what it may call instead",
           "get_gym_overview" in tool_messages(llm.calls[1]["messages"])[0].content)
 
-    # 999 is over `le=50`. The point is not that it is rejected -- pydantic does
+    # 999 is over `le=90`. The point is not that it is rejected -- pydantic does
     # that -- but that the rejection reaches the model without the value in it.
-    llm = ScriptedLLM([wants(call("list_recent_feedback", {"limit": 999})),
+    # (A window, not a page size: a feedback `limit` over 50 is lowered, since D32.)
+    llm = ScriptedLLM([wants(call("list_expiring_memberships", {"within_days": 999})),
                        AIMessage(content="Adjusted.")])
-    result = await run_turn(scope=owner, profile=ATLAS, question="all feedback", llm=llm)
+    result = await run_turn(scope=owner, profile=ATLAS, question="who expires?", llm=llm)
     told = tool_messages(llm.calls[1]["messages"])[0].content
     check("out-of-range arguments are refused, not executed", not result.tools_used[0].ok)
-    check("...naming the field", "limit" in told)
+    check("...naming the field", "within_days" in told)
     check("...and never echoing the value", "999" not in told, told[:60])
     # Control: prove the assertion above is not vacuous. Pydantic's own rendering
     # *does* carry the input, which is exactly why it is not used verbatim.
     try:
         from app.agents.tools import schemas
-        schemas.ListRecentFeedbackArgs(limit=999)
+        schemas.ListExpiringMembershipsArgs(within_days=999)
         raw = ""
     except ValidationError as exc:
         raw = str(exc)

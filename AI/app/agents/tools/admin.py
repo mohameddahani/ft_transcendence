@@ -289,6 +289,8 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
         if args.sentiment:
             where, params = "sentiment::text = :s", {"s": args.sentiment}
 
+        # The real total, not the page: "5 negative comments" was a limit of 5, not the count.
+        total = (await aggregate(scope, "feedbacks", [("COUNT", "id", "n")], where=where, params=params))[0]["n"]
         rows = await select(
             scope, "feedbacks",
             ["id", "member_id", "content", "rating", "sentiment", "created_at"],
@@ -300,7 +302,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
         names = {p["id"]: plain_field(f"{p['first_name']} {p['last_name']}") for p in people}
         return {
             "filter": args.sentiment,
-            "count": len(rows),
+            **_page(total, len(rows)),
             "feedback": [
                 {"feedback_id": r["id"], "member_id": r["member_id"], "member": names.get(r["member_id"], ""),
                  "comment": quote_user_text(r["content"], MAX_COMMENT_CHARS),

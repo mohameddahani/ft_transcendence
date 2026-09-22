@@ -136,7 +136,7 @@ rate_limits(key TEXT, window_start TS, count INT, PRIMARY KEY(key, window_start)
 | Collection | Scope | Metadata |
 |---|---|---|
 | `gym_docs` (A) | per-tenant | `admin_id`, `visibility`, `doc_id`, `source_name`, `chunk_index`; chunk id `doc_id:chunk_index` |
-| `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `kind`, `url`, `chunk_index`; loaded by the one-shot `ai-load` service from `corpus/business/docs` (150 documents, 3,257 chunks) |
+| `gym_business` (B) | shared | `doc_id`, `source_name`, `topic`, `kind`, `url`, `chunk_index`; loaded by the one-shot `ai-load` service from `corpus/business/docs` (151 documents, 3,261 chunks) |
 
 **`gym_docs` is never queried without an `admin_id` filter.** The member agent additionally filters
 `visibility = "member"`. Both filters go through one retrieval function — not composed at call sites.
@@ -261,12 +261,20 @@ Every refusal happens before the Gemini call.
 ```jsonc
 // request                                  // response
 { "feedback_id": "f_123",                   { "feedback_id": "f_123",
-  "content": "The new coach is great…" }      "sentiment": "positive",
+  "content": "The new coach is great…" }      "sentiment": "POSITIVE",
                                               "score": 0.87 }
 ```
 
-`sentiment` ∈ `positive` | `neutral` | `negative`. `score` is 0–1 confidence. Dahani calls this on
-feedback creation and stores the result — the AI service never writes to his tables.
+`sentiment` is exactly his `SentimentType` enum: `POSITIVE` | `NEUTRAL` | `NEGATIVE` (uppercase, so
+he stores it as returned; mixed feedback is `NEUTRAL`, as the seeded rows are). `score` is 0–1
+confidence with **two decimals** -- his column is `DECIMAL(3,2)`. Dahani calls this on feedback
+creation and stores the result — the AI service never writes to his tables.
+
+**Open, to agree with Dahani before 5.2 (D37):** the backlog (feedback left unscored while this
+service was down, 50 rows in the seeded data) cannot be written by a batch job *here* -- the role is
+read-only. Proposed: a periodic job on his side sends unscored rows to this endpoint and stores
+what comes back, so the write stays his. The AI side of 5.2 is then batching and backoff towards
+Gemini.
 
 ### 3.5 `GET /health`
 
@@ -326,7 +334,7 @@ the probe and then asserts `/ai/chat` answers 429 without ever reaching Gemini.
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/ai/threads` | This caller's recent conversations, newest first: `{thread_id, last_used_at, messages, opening}`. `opening` is the first question asked, so a list reads as subjects rather than UUIDs. Threads with no stored messages are omitted. |
-| `GET` | `/ai/threads/{thread_id}` | One transcript, **already flattened into the shape the panel renders**: `[{author: "user"\|"assistant", text, tools: [name]}]`. `tool` rows are dropped — their content is raw JSON, useful to neither a person nor an API — and the tools that ran are attached to the answer they produced. |
+| `GET` | `/ai/threads/{thread_id}` | One transcript, **already flattened into the shape the panel renders**: `[{author: "user"\|"assistant", text, tools: [name], sources: [...]}]`. `tool` rows are dropped — their content is raw JSON, useful to neither a person nor an API — and the tools that ran are attached to the answer they produced. `sources` is what the `sources` event sent for that answer (saved in its `response_metadata`, which Gemini never reads back), so a reload redraws the chips. |
 
 Both filter on the verified JWT subject **in the query**, and both answer `404` for a
 thread that is not the caller's — the same answer as one that does not exist. Reading
@@ -363,7 +371,7 @@ visits, and nothing covers pricing, staff management or the gym's own subscripti
 | `list_inactive_members` | `days_since_last_checkin=21`, `limit=25` | `total` + the first `limit` -- the churn question |
 | `get_revenue` | `period` (`month`\|`last_month`\|`year`\|`all_time`), `group_by` (`month`\|`plan`) | totals in MAD (owner only) |
 | `get_attendance_stats` | `period` (`week`\|`month`\|`last_month`\|`year`), `group_by` (`weekday`\|`hour`\|`month`) | totals over the period; by weekday also day names and the average per day |
-| `list_recent_feedback` | `limit=20`, `sentiment?` | feedback (the comment fenced), sentiment, and the author's name (flattened to one line) |
+| `list_recent_feedback` | `limit=20` (over 50 is lowered to 50), `sentiment?` | `total` + the newest `limit`: comment (fenced), sentiment, author's name (one line) |
 | `get_member_stats` | — | members registered, joined this/last month, women/men, average age |
 | `list_plans` | — | plans, lengths and prices in MAD (owner only) |
 | `search_industry_knowledge` | `query` (English, industry words) | up to 5 Collection B excerpts, at most 2 per document, within `RAG_MAX_DISTANCE`, fenced and numbered `[n]` (advisory route only, never a member) |

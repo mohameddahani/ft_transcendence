@@ -56,6 +56,8 @@ export interface StoredMessage {
   author: "user" | "assistant";
   text: string;
   tools: string[];
+  /** Saved with the answer, so a reload redraws its chips. */
+  sources: Source[];
 }
 
 export type AssistantEvent =
@@ -84,7 +86,7 @@ export interface ChatMessage {
   text: string;
   /** Only on assistant turns: what it did to answer, in the order it did it. */
   tools?: ToolRun[];
-  /** Only on answers from the gym's documents: the excerpts it cited. */
+  /** Only on cited answers (documents or industry sources): the excerpts it cited. */
   sources?: Source[];
   /** Set when the turn ended without a complete answer. */
   error?: string;

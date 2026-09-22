@@ -633,6 +633,14 @@ async def stream_turn(
 
     _log_turn(tuple(turn.tools_used), turn.tool_rounds, turn.model_calls, turn.finish_reason)
 
+    # Only the excerpts the answer cites, and only numbers really handed out. Kept on
+    # the answer itself, so a reloaded conversation redraws its chips; Gemini never
+    # reads this key back.
+    reply = _latest_ai_message(produced)
+    sources = cited_sources(_message_text(reply), turn.sources) if turn.sources and reply else []
+    if sources:
+        reply.response_metadata["sources"] = sources
+
     if thread_id is not None:
         await append_messages(thread_id, _replayable(produced))
 
@@ -644,11 +652,7 @@ async def stream_turn(
                                    "message": "The assistant did not produce an answer."})
         return
 
-    if turn.sources:
-        # Only the excerpts the answer cites, and only numbers really handed out.
-        reply = _latest_ai_message(produced)
-        sources = cited_sources(_message_text(reply) if reply else "", turn.sources)
-        if sources:
-            yield AgentEvent("sources", {"sources": sources})
+    if sources:
+        yield AgentEvent("sources", {"sources": sources})
 
     yield AgentEvent("done", {"finish_reason": turn.finish_reason})

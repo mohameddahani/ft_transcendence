@@ -237,8 +237,15 @@ async def main() -> None:  # noqa: C901
     feedback = await call(admin_tools, "list_recent_feedback",
                           schemas.ListRecentFeedbackArgs(limit=20, sentiment="NEGATIVE"))
     check("list_recent_feedback filters by sentiment",
-          feedback["count"] > 0
+          feedback["shown"] > 0
           and {f["sentiment"] for f in feedback["feedback"]} == {"NEGATIVE"})
+    truth = (await db._fetch_one("SELECT count(*) AS n FROM feedbacks WHERE admin_id = :a "
+                                 "AND sentiment::text = 'NEGATIVE'", {"a": atlas}))["n"]
+    few = await call(admin_tools, "list_recent_feedback", schemas.ListRecentFeedbackArgs(limit=2, sentiment="NEGATIVE"))
+    check("...and gives the real total, not the page size", few["total"] == truth and few["shown"] == 2,
+          f"total {few['total']} (SQL {truth}), shown {few['shown']}")
+    many = await call(admin_tools, "list_recent_feedback", schemas.ListRecentFeedbackArgs(limit=500))
+    check("...and a limit over 50 returns 50 instead of an error", many.get("shown") == 50, str(many.get("shown")))
     first = feedback["feedback"][0]
     author = await db._fetch_one("SELECT first_name || ' ' || last_name AS name FROM members m "
                                  "JOIN feedbacks f ON f.member_id = m.id WHERE f.id = :f", {"f": first["feedback_id"]})
