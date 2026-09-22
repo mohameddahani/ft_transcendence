@@ -369,9 +369,14 @@ evaluation caught the model reporting a page of 25 as "there are 25" when 38 had
 
 | Tool | Parameters | Returns |
 |---|---|---|
-| `get_my_membership` | — | plan, start, expiry, days remaining |
+| `get_my_membership` | — | plan, start, expiry, days remaining (the live membership, not a superseded one) |
 | `get_my_payments` | `limit=10` | own payments only |
-| `get_my_attendance` | `period="month"` | own check-in count and last visit |
+| `get_my_attendance` | `period` (`week`\|`month`\|`last_month`\|`year`) | own check-in count, visits per named weekday, last visit |
+
+These mirror Dahani's member API (`/api/members/memberships`, `/api/members/payments`, visits).
+His API has **no member route to plans or prices**, so the price table is `DENIED` to a member
+scope in the schema contract. A member's price question is routed to the documents instead: the
+gym publishes its price list to members there (`choose_route(..., member=True)`).
 
 ---
 
@@ -407,11 +412,11 @@ design system.
 
 | Component | Responsibility |
 |---|---|
-| `AssistantPanel` | Root. Props: `role`. Owns thread state and the SSE connection. |
+| `AssistantPanel` | Root. Owns thread state and the SSE connection. **One panel for all three roles** (D27): the role comes from `GET /ai/me`, never a prop, and sets the suggestions (tappable), the input's placeholder, the header label and the Documents link (owner only). The server decides what each role may do; the screen only stops suggesting what it cannot. |
 | `ChatMessageList` | History; auto-scroll unless the user has scrolled up |
 | `StreamingMessage` | Renders `token` events progressively; markdown |
 | `ToolActivity` | Renders `tool` events — "checking memberships…" |
-| `SourceList` | Renders `sources`; collapsible |
+| `SourceList` | Renders `sources` as `[n] file` chips under the answer (inline in `StreamingMessage`) |
 | `ChatInput` | Validation, Enter to send, disabled while streaming |
 | `DocumentManager` | Upload, list, delete, visibility toggle (admin only) |
 | `SentimentPanel` | Feedback list + trend over time (admin only) |

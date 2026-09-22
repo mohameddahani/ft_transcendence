@@ -146,6 +146,9 @@ def plain_field(value: Any, limit: int = MAX_IDENTITY_CHARS) -> Any:
     return _CONTROL.sub(" ", value)[:limit]
 
 
+WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
 def period_start(period: str, now: datetime) -> datetime | None:
     """Calendar window boundaries, computed in Python and bound as a parameter.
 

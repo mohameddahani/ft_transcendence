@@ -53,4 +53,4 @@ class GetMyPaymentsArgs(BaseModel):
 
 
 class GetMyAttendanceArgs(BaseModel):
-    period: Literal["week", "month", "year"] = Field(default="month", description="Time window for personal attendance history")
+    period: Literal["week", "month", "last_month", "year"] = Field(default="month", description="Time window: this week, this month, last calendar month, or this year")

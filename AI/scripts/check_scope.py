@@ -235,9 +235,12 @@ async def main() -> None:  # noqa: C901 - a flat list of assertions reads better
     check("member still sees their gym's plans (gym-wide)",
           len(await sc.select(m, "membership_plans", ["id"])) == admin_plans,
           f"{admin_plans} plans, same as the owner sees")
-    check("member sees their gym's prices, not other gyms'",
-          {r["price"] for r in await sc.select(m, "membership_plan_durations", ["price"])}
-          == atlas_prices)
+    # Mirrors Dahani's API: members have no route to plans or prices (D26).
+    try:
+        await sc.select(m, "membership_plan_durations", ["price"])
+        check("member is refused the price table", False, "READ")
+    except sc.ScopeViolation:
+        check("member is refused the price table", True, "no member route to prices in the API")
 
     # Both predicates apply, so a mismatched pair returns nothing rather than
     # falling back to whichever half happens to match.

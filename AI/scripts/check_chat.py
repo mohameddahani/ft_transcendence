@@ -333,6 +333,11 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     route, answer, cited = ask(live_token, "Is there parking for members?")
     check("no answer in the documents: says so, cites nothing",
           route == "knowledge" and answer == "That isn't in your gym's documents." and not cited, answer[:60])
+    # A member cannot read the price table (no member route to prices in Dahani's API),
+    # but the gym publishes its price list to members -- so the answer comes from there.
+    route, answer, cited = ask(member_token, "How much does the Basic Monthly plan cost?")
+    check("a member's price question is answered from the published price list",
+          route == "knowledge" and "300.00" in answer and "membership-terms.md" in cited, answer[:60])
     route, answer, cited = ask(member_token, "What discount can reception give without asking the manager?")
     check("a member asking a staff-only question: not in their documents",
           route == "knowledge" and not cited and "isn't in your gym's documents" in answer, answer[:60])

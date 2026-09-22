@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.agents.tools import schemas
-from app.agents.tools.base import Tool, period_start, tool
+from app.agents.tools.base import WEEKDAYS, Tool, period_window, tool
 from app.db.models import StoredMembershipStatus, naive_utc_now
 from app.db.scope import Scope, ScopeViolation, aggregate, select
 
@@ -36,8 +36,8 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
         raise ScopeViolation("member tools require a scope carrying a verified member_id")
 
     @tool("get_my_membership",
-          "Your current membership: plan dates, whether it is still valid, and how "
-          "many days are left.")
+          "Your current membership: which plan, its dates, whether it is still valid, "
+          "and how many days are left.")
     async def get_my_membership() -> dict[str, Any]:
         now = naive_utc_now()
         # Several, not one. "Latest expiry" is the wrong pick after a *downgrade*:
@@ -46,7 +46,7 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
         # are still on the plan they just left.
         rows = await select(
             scope, "memberships",
-            ["id", "membership_status", "start_date", "expires_at"],
+            ["id", "membership_status", "start_date", "expires_at", "membership_plan_id"],
             order_by="expires_at desc", limit=5)
         if not rows:
             return {"has_membership": False,
@@ -57,8 +57,11 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
                 and r["expires_at"] > now]
         row = live[0] if live else rows[0]
         cancelled = row["membership_status"] == StoredMembershipStatus.CANCELLED
+        plan = await select(scope, "membership_plans", ["plan_name"],
+                            where="id = :plan", params={"plan": row["membership_plan_id"]}, limit=1)
         return {
             "has_membership": True,
+            "plan": plan[0]["plan_name"] if plan else None,
             "starts": row["start_date"].date().isoformat(),
             "expires": row["expires_at"].date().isoformat(),
             # Valid needs both halves: the date, because the status column is
@@ -92,13 +95,14 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
         }
 
     @tool("get_my_attendance",
-          "How often you have visited in a period, and when you last came.",
+          "How often you have visited in a period, on which days of the week, and "
+          "when you last came.",
           schemas.GetMyAttendanceArgs)
     async def get_my_attendance(args: schemas.GetMyAttendanceArgs) -> dict[str, Any]:
-        since = period_start(args.period, naive_utc_now())
-        where, params = "", {}
-        if since is not None:
-            where, params = "checked_in_at >= :since", {"since": since}
+        since, until = period_window(args.period, naive_utc_now())
+        where, params = "checked_in_at >= :since", {"since": since}
+        if until is not None:
+            where, params = where + " AND checked_in_at < :until", {**params, "until": until}
 
         summary = (await aggregate(
             scope, "attendances",
@@ -112,7 +116,8 @@ def build_member_tools(scope: Scope) -> dict[str, Tool]:
             "period": args.period,
             "visits": summary["visits"],
             "last_visit": summary["last"].date().isoformat() if summary["last"] else None,
-            "by_weekday": by_weekday,
+            "by_weekday": [{"weekday": WEEKDAYS[r["weekday"] - 1], "visits": r["visits"]}
+                           for r in by_weekday],
         }
 
     return {t.name: t for t in (get_my_membership, get_my_payments, get_my_attendance)}

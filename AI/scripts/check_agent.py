@@ -88,6 +88,7 @@ class ScriptedLLM:
     UNBOUND_REPLY = "Based on what I found so far: 233 active members."
 
     def bind_tools(self, declarations: list[dict[str, Any]]) -> "_BoundLLM":
+        self.bound = declarations      # what this turn offered the model, for the dispatch checks
         return _BoundLLM(self, declarations)
 
     async def ainvoke(self, messages: list[Any]) -> AIMessage:
@@ -206,6 +207,24 @@ async def main() -> None:  # noqa: C901 -- a check script is a list, not a desig
     member_names = {d["function"]["name"] for d in build_declarations(member_tools)}
     check("a member is shown only member tools", member_names.isdisjoint(names),
           f"{len(member_names)} tools: {', '.join(sorted(member_names))}")
+
+    # ------------------------------------------------ role dispatch (task 3b.3)
+    # One entry point, three agents. The tool set is chosen inside the turn from the
+    # Scope alone -- asserted on what the model is actually *offered*, not on a
+    # registry built by hand in the test.
+    print("\n\033[1m  role dispatch: one endpoint, three agents (task 3b.3)\033[0m")
+    staff = Scope(admin_id=atlas, staff_id="staff-under-test")
+    offered = {}
+    for label, scope in (("owner", owner), ("staff", staff), ("member", member)):
+        llm = ScriptedLLM([AIMessage(content="ok")])
+        await run_turn(scope=scope, profile=ATLAS, question="hello", llm=llm)
+        offered[label] = {d["function"]["name"] for d in llm.bound}
+    check("an owner's turn is offered every owner tool",
+          offered["owner"] == set(build_admin_tools(owner)), f"{len(offered['owner'])} tools")
+    check("a staff turn: the owner's tools minus revenue and plan prices",
+          offered["staff"] == offered["owner"] - {"get_revenue", "list_plans"}, f"{len(offered['staff'])} tools")
+    check("a member's turn: only the three get_my_ tools",
+          offered["member"] == {"get_my_membership", "get_my_payments", "get_my_attendance"})
 
     # ---------------------------------------------------------------- the loop
     print("\n\033[1m  the loop\033[0m")

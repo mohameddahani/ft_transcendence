@@ -253,16 +253,31 @@ async def main() -> None:  # noqa: C901
                   for t in member_tools.values()),
           "member_id comes from the JWT, not the schema")
 
+    # Exact, not a range: `0 < visits <= all-time total` passed for anything plausible.
     attendance = await call(member_tools, "get_my_attendance",
                             schemas.GetMyAttendanceArgs(period="year"))
-    check("get_my_attendance reports only the caller's visits",
-          0 < attendance["visits"] <= busiest["n"], f"{attendance['visits']} visits")
+    this_year = (await db._fetch_one(
+        """SELECT count(*) AS n FROM attendances WHERE member_id = :m
+           AND checked_in_at >= date_trunc('year', now())""", {"m": busiest["member_id"]}))["n"]
+    check("get_my_attendance counts exactly the caller's visits this year",
+          attendance["visits"] == this_year, f"{this_year} visits")
+    check("...by named weekday, not a number",
+          attendance["by_weekday"] and all(r["weekday"] in names for r in attendance["by_weekday"]))
     payments = await call(member_tools, "get_my_payments", schemas.GetMyPaymentsArgs())
     owned = {r["id"] for r in await db._fetch_all(
         "SELECT id FROM payments WHERE member_id = :m", {"m": busiest["member_id"]})}
     check("get_my_payments returns only the caller's payments",
           {p["payment_id"] for p in payments["payments"]} <= owned and owned)
-    await call(member_tools, "get_my_membership")
+    my_membership = await call(member_tools, "get_my_membership")
+    truth = await db._fetch_one(
+        """SELECT pl.plan_name, ms.expires_at FROM memberships ms
+           JOIN membership_plans pl ON pl.id = ms.membership_plan_id
+           WHERE ms.member_id = :m
+           ORDER BY (ms.membership_status = 'ACTIVE' AND ms.expires_at > now()) DESC,
+                    ms.expires_at DESC LIMIT 1""", {"m": busiest["member_id"]})
+    check("get_my_membership names the plan and its end date (AI_SPECS 4.2)",
+          (my_membership["plan"], my_membership["expires"]) == (truth["plan_name"], truth["expires_at"].date().isoformat()),
+          f"{my_membership['plan']}, until {my_membership['expires']}")
     check("get_my_membership needs no arguments",
           member_tools["get_my_membership"].json_schema()["properties"] == {})
 
@@ -313,7 +328,9 @@ async def main() -> None:  # noqa: C901
                         reports.members_without_recent_checkin(Scope(admin_id=oasis))),
                        ("search_members", reports.search_members(Scope(admin_id=oasis), "a", 50))):
         result = await coro
-        rows = [result] if isinstance(result, dict) else result
+        # A list report now returns {"total", "members"}: look inside it, or this
+        # check inspects the wrapper, finds no member_id, and passes whatever is there.
+        rows = result.get("members", [result]) if isinstance(result, dict) else result
         stray = [r for r in rows if r.get("member_id") in
                  {m["member_id"] for m in mine["members"]}]
         check(f"reports.{name} under another gym's scope returns none of ours", not stray)

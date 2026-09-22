@@ -58,15 +58,24 @@ Excerpts:
 {excerpts}"""
 
 
+# A member cannot read the price table (Dahani's member API has no plans route), but the
+# gym publishes its price list to members in its documents -- so for a member, a price
+# question is a documents question.
+_MEMBER_NOTE = """
+The user is a gym member: the prices of membership plans are in the gym's published
+documents, so a question about plan prices is "knowledge"."""
+
+
 class _Route(BaseModel):
     route: Literal["structured", "knowledge"]
 
 
-async def choose_route(question: str, history: list[BaseMessage]) -> str:
+async def choose_route(question: str, history: list[BaseMessage], member: bool = False) -> str:
     """One model call: does this question need the gym's data, or its documents?"""
+    prompt = _ROUTE_PROMPT + (_MEMBER_NOTE if member else "")
     try:
         result = await get_llm().with_structured_output(_Route).ainvoke(
-            [("system", _ROUTE_PROMPT), ("human", with_conversation(question, history))])
+            [("system", prompt), ("human", with_conversation(question, history))])
         return result.route
     except Exception as exc:  # noqa: BLE001 -- routing must not fail the turn
         # The tool agent is the safe default: it already knows how to say it cannot answer.

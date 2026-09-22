@@ -190,7 +190,10 @@ TABLES: Final[Mapping[str, TableSpec]] = {
         rule=ScopeRule.TRANSITIVE,
         parent_table="membership_plans",
         local_key="membership_plan_id",
-        member_access=MemberAccess.GYM_WIDE,
+        # Denied to members too (D26): Dahani's member API has no route to plans or
+        # prices, and no member tool needs them -- a grant nothing uses is a grant to
+        # remove. Members read the price list the gym publishes in its documents.
+        member_access=MemberAccess.DENIED,
         # The one table a staff token may not touch. Dahani has no staff controller
         # for /api/membership-plans, so pricing is the owner's; mirroring that here
         # makes "what do you charge for the annual plan?" unanswerable rather than

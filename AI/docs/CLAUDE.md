@@ -1491,6 +1491,52 @@ questions.** Every fixed answer re-checked against SQL.
 - **Still open:** mixed data + rules questions (D31 advisory); unpaid payments (Dahani's
   `payment_status`); "where is the key safe?" (reranking).
 
+**D26 (2026-09-22) — tasks 3b.1-3b.2 verified and completed by Claude.** `verify.sh` is **825
+checks** with `AI_LIVE_TESTS=1`, all passing. Both were mostly built
+(member tools since D12, the visibility filter since D21); D26 checked every claim with independent
+SQL on three real members (expired + overdue, the busiest, a frozen one) and fixed what failed.
+
+- **Found and fixed:** `get_my_membership` never returned the plan (spec §4.2 says it does; the
+  system prompt had been hiding it); `get_my_attendance` numbered weekdays and had no last month;
+  **members could read the price table** (`membership_plan_durations` was `GYM_WIDE` for them) --
+  nothing used it and Dahani's member API has no plans route, so it is `DENIED` now. Least
+  privilege: a grant nothing uses is a grant to remove.
+- **Role-aware routing:** a member's price question goes to the documents (the price list the
+  gym publishes to members) -- "Basic Monthly costs 300.00 MAD [1]", cited. Owner → `list_plans`;
+  staff → refused, mirroring the API.
+- **Verified:** the scope layer gives a member only their own rows in 5 tables (259 of 259
+  attendance rows theirs), only their gym's plan names, and refuses `staffs` and prices; banned →
+  401, frozen → 200; a temporarily inserted *downgrade* (old plan EXPIRED but dated 2027) still
+  reports the current plan in both the tool and the profile. Visibility: 144 member chunks for 12
+  staff-probing questions, 0 from staff files, 0 staff canaries.
+- **For D28's canary tests:** Atlas's discount floor (200.00 MAD) equals its public Student Monthly
+  price, so it is not a valid canary -- it appears legitimately in the member price table.
+- **Tests were weaker than they looked:** `get_my_attendance` was checked as `0 < visits <=
+  all-time total`, and `get_my_membership` only for taking no arguments. Both now compare exact
+  values with SQL.
+- **A silent crash, and a check gone vacuous a day earlier:** a new test variable overwrote an old
+  one, so `check_tools.py` died mid-run -- `verify.sh` printed FAIL with no ✗, because it sends
+  that script's stderr to /dev/null. Finding it showed the cross-gym check had been vacuous since
+  the list reports started returning `{"total", "members"}`: it inspected the wrapper dict, found
+  no member_id, and passed. It now looks inside `members`.
+
+**D27 (2026-09-22) — tasks 3b.3-3b.4 done by Claude.** `verify.sh` is **828 checks** with
+`AI_LIVE_TESTS=1`, all passing. One endpoint, three agents; one panel, three screens.
+
+- **3b.3 was built (D13, D19-prep); now it is proven where it happens.** The old test built the
+  member tool list by hand. `check_agent.py` now runs a real turn per role and asserts what the
+  model was *offered*: owner 10 tools, staff 8 (no revenue, no plan prices), member 3 `get_my_`.
+- **3b.4 -- "the member chat is the same panel with a different role".** The role comes from
+  `/ai/me`; it sets tappable suggestions (a member is no longer told to ask "how many active
+  members?"), the placeholder, and the header. The server enforces; the screen only stops
+  suggesting what a role cannot do.
+- **Verified in a browser at phone width** (a 390×844 iframe -- Chrome would not shrink the real
+  viewport below 1470): no sideways scroll; a tapped suggestion answered "Your Basic Monthly plan
+  expires on 25 September 2026" (matches SQL); the price and guest questions answered from the
+  member's documents with chips; owner and staff screens show their own suggestions; and with the
+  member's conversation id still in the tab, the owner's token showed 0 of her messages. Zero
+  console errors. "Signed in as" is hidden on a phone so the gym name fits.
+
 **Still open with him:** `Payment.membershipId` (so "revenue by plan" stops matching on price),
 the staff ACCESS secret if staff are to use the assistant, the staging/production secrets, the
 `/internal/sentiment` call, and the two questions in `BACKEND_FINDINGS_DAHANI.md` about what

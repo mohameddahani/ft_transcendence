@@ -427,6 +427,7 @@ class FakeLLM:
         return self
 
     async def ainvoke(self, messages):
+        self.system = messages[0][1]
         self.prompts.append(messages[-1][1])
         if self.fail:
             raise TimeoutError("Gemini is slow")
@@ -495,6 +496,14 @@ async def check_knowledge() -> None:
 
     knowledge.get_llm = lambda: FakeLLM("knowledge")
     check("the router returns the model's route", await knowledge.choose_route("How do I cancel?", []) == "knowledge")
+    router = FakeLLM("knowledge")
+    knowledge.get_llm = lambda: router
+    await knowledge.choose_route("How much is the monthly plan?", [], member=True)
+    told_member = knowledge._MEMBER_NOTE in router.system
+    await knowledge.choose_route("How much is the monthly plan?", [])
+    check("the router is told when the asker is a member, and only then",
+          told_member and knowledge._MEMBER_NOTE not in router.system,
+          "a member's price question goes to their published documents")
     knowledge.get_llm = lambda: FakeLLM(fail=True)
     check("a failed routing call falls back to the tool agent",
           await knowledge.choose_route("How do I cancel?", []) == "structured")

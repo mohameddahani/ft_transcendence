@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from app.agents.tools import schemas
-from app.agents.tools.base import Tool, period_window, plain_field, quote_user_text, tool
+from app.agents.tools.base import WEEKDAYS, Tool, period_window, plain_field, quote_user_text, tool
 from app.db import reports
 from app.db.models import StoredMembershipStatus, naive_utc_now
 from app.db.scope import Scope, ScopeViolation, aggregate, select
@@ -36,9 +36,6 @@ _IDENTITY_FIELDS = ("name", "phone_number", "email")
 def _safe_person(row: dict[str, Any]) -> dict[str, Any]:
     """Flatten the member-controlled fields in a row from `reports`."""
     return {k: plain_field(v) if k in _IDENTITY_FIELDS else v for k, v in row.items()}
-
-
-_WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 
 def _page(total: int, shown: int) -> dict[str, Any]:
@@ -254,7 +251,7 @@ def build_admin_tools(scope: Scope) -> dict[str, Tool]:
             where=where, params=params, limit=120)
         if args.group_by == "weekday":
             days = _days_per_weekday(since, until, now)
-            rows = [{"weekday": _WEEKDAYS[r["weekday"] - 1], "check_ins": r["check_ins"],
+            rows = [{"weekday": WEEKDAYS[r["weekday"] - 1], "check_ins": r["check_ins"],
                      "days_in_period": days.get(r["weekday"], 0),
                      "average_per_day": round(r["check_ins"] / days[r["weekday"]], 1)
                      if days.get(r["weekday"]) else None}
