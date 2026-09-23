@@ -27,6 +27,7 @@ layer and its frontend**; teammates own backend (Dahani), frontend, and DevOps.
 | `INTEGRATION.md` | For the team: how this service plugs in, what it reads, what each teammate owes |
 | `BACKEND_FINDINGS_DAHANI.md` | Findings sent to Dahani 2026-09-16 (payment semantics, atomicity, auth bugs) |
 | `BACKEND_CHANGES_REVIEW.md` | Review of his 2026-09-20 release: what it breaks here, what is still open |
+| `CHAT_TEST_GUIDE.md` | Hands-on: start the chat, accounts, features, questions with right answers, SQL checks, improvements (2026-09-22) |
 
 **All of these now live in `ft_transcendence/AI/docs/` and are versioned (D18).** The
 paths at `~/Developer/gym_saas/` are symlinks into it, so anything that referenced the
