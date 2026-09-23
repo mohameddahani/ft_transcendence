@@ -181,6 +181,23 @@ export class AttendancesService {
       });
 
       // * Check weekly visit limit
+      const visitCount = await this.prisma.visit.count({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          visitDateAndTime: {
+            gte: monday,
+            lte: sunday,
+          },
+        },
+      });
+
+      if (visitCount >= membership.membershipPlan.weeklyVisitLimit) {
+        throw new ForbiddenException(
+          'Weekly visit limit has been reached for this membership.',
+        );
+      }
+
       const attendanceCount = await tx.attendance.count({
         where: {
           adminId: adminId,

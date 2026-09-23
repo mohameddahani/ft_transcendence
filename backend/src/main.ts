@@ -61,6 +61,13 @@ async function bootstrap() {
   const documentation = SwaggerModule.createDocument(app, swagger); // * create document
   SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
 
+  // * Count how many endpoints in this project
+  // let totalEndpoints = 0;
+  // for (const path of Object.values(documentation.paths)) {
+  //   totalEndpoints += Object.keys(path).length;
+  // }
+  // console.log('Total endpoints:', totalEndpoints);
+
   // * CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL, // * Controls which websites are allowed to access your API or to see Response Your API.
