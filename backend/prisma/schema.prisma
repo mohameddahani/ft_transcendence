@@ -60,7 +60,7 @@ enum MembershipStatus {
 enum PaymentStatus {
   PAID
   UNPAID
-  OVERDUE
+  DUE_SOON
 }
 
 // * this enum had Notification Type

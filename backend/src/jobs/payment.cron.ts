@@ -24,7 +24,7 @@ export class PaymentCron {
         },
       },
       data: {
-        paymentStatus: PaymentStatus.OVERDUE,
+        paymentStatus: PaymentStatus.DUE_SOON,
       },
     });
   }
@@ -34,7 +34,7 @@ export class PaymentCron {
   async updateOverduePayments() {
     await this.prisma.payment.updateMany({
       where: {
-        paymentStatus: PaymentStatus.OVERDUE,
+        paymentStatus: PaymentStatus.DUE_SOON,
         dueDate: { lt: new Date() },
       },
       data: {

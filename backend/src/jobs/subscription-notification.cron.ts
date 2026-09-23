@@ -8,7 +8,7 @@ import { endOfTomorrow, startOfTomorrow } from 'date-fns';
 export class SubscriptionNotificationCron {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_NOON)
+  @Cron(CronExpression.EVERY_HOUR)
   async createNotification() {
     // * Create Range Of Date
     const start = startOfTomorrow();
