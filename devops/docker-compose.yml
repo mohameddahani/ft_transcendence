@@ -30,3 +30,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  ft_transcendence-network:
+    driver: bridge
