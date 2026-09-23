@@ -1,32 +1,32 @@
-name: ft_transcendence
-
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: postgres_container
-    restart: always
+    restart: unless-stopped
     env_file:
-      - .env
+      - ../backend/.env
     ports:
       - "5432:5432"
     volumes:
-      - postgres_db:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: pgadmin_container
-    restart: always
-    env_file:
-      - .env
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: backend:latest
     ports:
-      - "8080:80"
+      - "3000:3000"
+    restart: unless-stopped
+    env_file:
+    - ../backend/.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
-  postgres_db:
-    driver: local # Store data on the local machine (not remote storage like NFS or cloud)
-    driver_opts: # driver options
-      type: none # Don’t use any special filesystem type (like ext4, nfs, etc.)
-      o: bind # Bind (attach) this volume to an existing directory on the host
-      device: ${HOME}/Desktop/projects/volumes/postgres_db # This is where data will physically be stored.
+  postgres_data:
