@@ -193,6 +193,9 @@ export class WorkingHoursService {
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
 
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
@@ -215,6 +218,9 @@ export class WorkingHoursService {
 
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
@@ -466,7 +472,7 @@ export class WorkingHoursService {
     }
 
     // * Update Special Hour
-    return this.prisma.specialHour.update({
+    await this.prisma.specialHour.update({
       where: {
         id: specialHourId,
       },
@@ -479,7 +485,7 @@ export class WorkingHoursService {
     });
   }
 
-  // * Get All Special Hours (Admin)
+  // * Get All Special Hours (Admin / Staff)
   async findAllSpecialHours(
     accessTokenPayload: AccessTokenPayload,
     page: number,
@@ -506,7 +512,7 @@ export class WorkingHoursService {
     return specialHours;
   }
 
-  // * Get One Special Hour (Admin)
+  // * Get One Special Hour (Admin / Staff)
   async findOneSpecialHour(
     accessTokenPayload: AccessTokenPayload,
     specialHourId: string,
@@ -517,6 +523,61 @@ export class WorkingHoursService {
 
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
+
+    const specialHour = await this.prisma.specialHour.findFirst({
+      where: {
+        id: specialHourId,
+        adminId: adminId,
+      },
+    });
+    if (!specialHour) {
+      throw new NotFoundException('Special Hour Not Found');
+    }
+
+    return specialHour;
+  }
+
+  // * Get All Special Hours (Member)
+  async findAllSpecialHoursByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const specialHours = await this.prisma.specialHour.findMany({
+      where: {
+        adminId: adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    if (specialHours.length === 0) {
+      throw new NotFoundException('There is No Special Hours To show');
+    }
+
+    return specialHours;
+  }
+
+  // * Get One Special Hour (Member)
+  async findOneSpecialHourByMember(memberId: string, specialHourId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
@@ -555,6 +616,7 @@ export class WorkingHoursService {
     });
   }
 
+  // ! Private
   // * Convert a YYYY-MM-DD string into a UTC Date.
   // * This is used for PostgreSQL DATE fields.
   // * It prevents the local timezone from shifting the calendar date.
