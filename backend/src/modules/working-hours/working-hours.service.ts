@@ -12,7 +12,7 @@ import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddSpecialHourDto } from './dtos/add-special-hour.dto';
 import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
-import { format, startOfDay } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 @Injectable()
 export class WorkingHoursService {
@@ -180,6 +180,61 @@ export class WorkingHoursService {
     return workingHour;
   }
 
+  // * Get All Working Hours By (Member)
+  async findAllWorkingHoursByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const workingHours = await this.prisma.workingHour.findMany({
+      where: {
+        adminId: adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    if (workingHours.length === 0) {
+      throw new NotFoundException('There is No Working Hours To show');
+    }
+
+    return workingHours;
+  }
+
+  // * Get One Working Hour By (Member)
+  async findOneWorkingHourByMember(memberId: string, workingHourId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const workingHour = await this.prisma.workingHour.findFirst({
+      where: {
+        id: workingHourId,
+        adminId: adminId,
+      },
+    });
+    if (!workingHour) {
+      throw new NotFoundException('Working Hour Not Found');
+    }
+
+    return workingHour;
+  }
+
   // * Delete One Working Hour By (Admin)
   async deleteOneWorkingHour(adminId: string, workingHourId: string) {
     // * Check if admin is has already a subscription
@@ -250,21 +305,58 @@ export class WorkingHoursService {
     // * Check the day is already added with same time
     // Convert date strings into JavaScript Date objects.
     // The database field uses @db.Date, so only the calendar date is stored.
-    // startOfDay() is not necessary because we don't need time boundaries.
-    const startDate = startOfDay(new Date(data.startDate));
-    const endDate = startOfDay(new Date(data.endDate));
-    const existingSpecialHour = await this.prisma.specialHour.findFirst({
+    // * Convert date strings into local calendar dates
+    const startDate = this.parseDateOnly(data.startDate);
+    const endDate = this.parseDateOnly(data.endDate);
+
+    const existingSpecialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
-        startDate: startDate,
-        endDate: endDate,
-        startTime: data.startTime ?? null,
-        endTime: data.endTime ?? null,
+
+        // * Existing range overlaps the new date range
+        startDate: {
+          lte: endDate,
+        },
+        endDate: {
+          gte: startDate,
+        },
       },
     });
 
-    if (existingSpecialHour) {
-      throw new ConflictException('This special hour already exists.');
+    for (const existingSpecialHour of existingSpecialHours) {
+      // * Existing special hour closes the entire day
+      if (
+        existingSpecialHour.startTime === null ||
+        existingSpecialHour.endTime === null
+      ) {
+        throw new ConflictException(
+          'The gym is already closed during this date range.',
+        );
+      }
+
+      // * New special hour is also a full-day closure
+      if (!data.startTime && !data.endTime) {
+        throw new ConflictException(
+          'The selected date range already contains a special closure.',
+        );
+      }
+
+      // * Check if the time ranges overlap
+      // * Example:
+      // * Existing: 08:00 → 12:00
+      // * New:      10:00 → 14:00
+      // *
+      // * '08:00' < '14:00' && '12:00' > '10:00'
+      // * true && true = overlap
+      const timeOverlap =
+        existingSpecialHour.startTime < data.endTime &&
+        existingSpecialHour.endTime > data.startTime;
+
+      if (timeOverlap) {
+        throw new ConflictException(
+          'The special hour overlaps with an existing closure.',
+        );
+      }
     }
 
     // * Add Working Hour
@@ -325,7 +417,7 @@ export class WorkingHoursService {
     const today = format(new Date(), 'yyyy-MM-dd');
 
     // * Check that the start date is not in the past
-    if (startDateValue < today) {
+    if (startDateValue < today && data.startDate !== undefined) {
       throw new BadRequestException('Start date cannot be in the past.');
     }
 
@@ -357,8 +449,8 @@ export class WorkingHoursService {
     }
 
     // * Convert date strings into JavaScript Date objects
-    const startDate = startOfDay(new Date(startDateValue));
-    const endDate = startOfDay(new Date(endDateValue));
+    const startDate = this.parseDateOnly(startDateValue);
+    const endDate = this.parseDateOnly(endDateValue);
 
     // * Check if another special hour with the same dates and times exists
     // * Exclude the current record from the search
@@ -380,7 +472,7 @@ export class WorkingHoursService {
     }
 
     // * Update Special Hour
-    return this.prisma.specialHour.update({
+    await this.prisma.specialHour.update({
       where: {
         id: specialHourId,
       },
@@ -393,7 +485,7 @@ export class WorkingHoursService {
     });
   }
 
-  // * Get All Special Hours (Admin)
+  // * Get All Special Hours (Admin / Staff)
   async findAllSpecialHours(
     accessTokenPayload: AccessTokenPayload,
     page: number,
@@ -420,7 +512,7 @@ export class WorkingHoursService {
     return specialHours;
   }
 
-  // * Get One Special Hour (Admin)
+  // * Get One Special Hour (Admin / Staff)
   async findOneSpecialHour(
     accessTokenPayload: AccessTokenPayload,
     specialHourId: string,
@@ -431,6 +523,61 @@ export class WorkingHoursService {
 
     // * Check if admin is has already a subscription
     await this.accessesService.validateActiveSubscription(adminId);
+
+    const specialHour = await this.prisma.specialHour.findFirst({
+      where: {
+        id: specialHourId,
+        adminId: adminId,
+      },
+    });
+    if (!specialHour) {
+      throw new NotFoundException('Special Hour Not Found');
+    }
+
+    return specialHour;
+  }
+
+  // * Get All Special Hours (Member)
+  async findAllSpecialHoursByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const specialHours = await this.prisma.specialHour.findMany({
+      where: {
+        adminId: adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    if (specialHours.length === 0) {
+      throw new NotFoundException('There is No Special Hours To show');
+    }
+
+    return specialHours;
+  }
+
+  // * Get One Special Hour (Member)
+  async findOneSpecialHourByMember(memberId: string, specialHourId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
 
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
@@ -467,5 +614,19 @@ export class WorkingHoursService {
         id: specialHourId,
       },
     });
+  }
+
+  // ! Private
+  // * Convert a YYYY-MM-DD string into a UTC Date.
+  // * This is used for PostgreSQL DATE fields.
+  // * It prevents the local timezone from shifting the calendar date.
+  private parseDateOnly(value: string) {
+    // * Change String To Date
+    const parsed = parse(value, 'yyyy-MM-dd', new Date());
+
+    // * Remove UTC
+    return new Date(
+      Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()),
+    );
   }
 }
