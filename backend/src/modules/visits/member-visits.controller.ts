@@ -1,4 +1,12 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
@@ -24,5 +32,15 @@ export class MemberVisitsController {
     @Body() body: CreateVisitDto,
   ) {
     return this.visitsService.createVisit(accessTokenPayload.id, body);
+  }
+
+  // * Cancel A Visit
+  @Patch(':id/cancel')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  cancelVisit(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.visitsService.cancelVisit(accessTokenPayload.id, id);
   }
 }
