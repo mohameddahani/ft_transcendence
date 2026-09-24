@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     env_file:
       - ../backend/.env
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +19,6 @@ services:
       dockerfile: backend/Dockerfile
     image: backend:latest
     container_name: backend_container
-    ports:
-      - "3000:3000"
     restart: unless-stopped
     env_file:
     - ../backend/.env
