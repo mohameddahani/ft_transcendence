@@ -4,9 +4,14 @@ import { StaffAttendancesController } from './staff-attendances.controller';
 import { AdminAttendancesController } from './admin-attendances.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AccessesService } from '@/core/services/access.service';
+import { MemberAttendancesController } from './member-attendances.controller';
 
 @Module({
-  controllers: [AdminAttendancesController, StaffAttendancesController],
+  controllers: [
+    AdminAttendancesController,
+    StaffAttendancesController,
+    MemberAttendancesController,
+  ],
   providers: [AttendancesService, AccessesService],
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.

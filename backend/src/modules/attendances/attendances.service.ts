@@ -245,4 +245,82 @@ export class AttendancesService {
       });
     });
   }
+
+  // * Get All Attendances (Member)
+  async findAllAttendanceByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: { adminId: adminId, memberId: memberId },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        admin: true,
+        membership: true,
+        staff: true,
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (attendances.length === 0) {
+      throw new NotFoundException('There is No Attendances To Show');
+    }
+
+    return attendances;
+  }
+
+  // * Get One Attendance (Member)
+  async findOneAttendanceByMember(memberId: string, attendanceId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const attendance = await this.prisma.attendance.findFirst({
+      where: {
+        id: attendanceId,
+        adminId: adminId,
+        memberId: memberId,
+      },
+      select: {
+        id: true,
+        admin: true,
+        membership: true,
+        staff: true,
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('There is No Attendance To Show');
+    }
+
+    return attendance;
+  }
 }

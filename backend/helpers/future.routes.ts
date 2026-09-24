@@ -73,8 +73,8 @@
 // * Get one staff
 // * edit one staff
 
-// ! Check All Crons is Work
-// ! Check All Crons of Notifications is Work
+// * Check All Crons is Work
+// * Check All Crons of Notifications is Work
 
 // ! Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
 
@@ -82,24 +82,24 @@
 
 // ! test all Notifications
 
-// ! GET /api/admins/visits/today
-// ! GET All or one visits for admin/staff/member
+// * GET /api/admins/visits/today
+// * GET All or one visits for admin/staff/member
 // ! GET All or one attendance for admin/staff/member
 
-// ! Cron for attendance by Date and time
-// ! Cron for visits by Date and time
+// * Cron for attendance by Date and time
+// * Cron for visits by Date and time
 
-// ! cancel the visit
+// * cancel the visit
 
-// ! so i need to do a if condition that check if start date and end date is same and start time and end should only in range of this day
-// ! Like:
-// ! 09:00 to 22:00
-// ! not like
-// ! 08:00 to 00:00
-// ! so end day should has as max time is 23:59
+// * so i need to do a if condition that check if start date and end date is same and start time and end should only in range of this day
+// * Like:
+// * 09:00 to 22:00
+// * not like
+// * 08:00 to 00:00
+// * so end day should has as max time is 23:59
 
-// ! Get all work hours or one (staff)
-// ! Get all special hours or one (staff)
+// * Get all work hours or one (staff)
+// * Get all special hours or one (staff)
 
 // so this solution will fix the problam ?
 
