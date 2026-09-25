@@ -6,6 +6,8 @@ import {
   Query,
   ParseUUIDPipe,
   UseGuards,
+  Patch,
+  Body,
 } from '@nestjs/common';
 import { FeedbacksService } from './feedbacks.service';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
@@ -15,6 +17,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
+import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 
 @Controller('/api/staffs/feedbacks')
 // * Make Authorazation Golbal on this route
@@ -46,5 +49,20 @@ export class StaffFeedbacksController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.feedbacksService.findOneFeedback(accessTokenPayload, id);
+  }
+
+  // * Change Feedback Status (Staff)
+  @Patch(':id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  changeFeedbackStatus(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateFeedbackStatusDto,
+  ) {
+    return this.feedbacksService.changeFeedbackStatus(
+      accessTokenPayload,
+      id,
+      body,
+    );
   }
 }

@@ -10,6 +10,8 @@ import { AccessesService } from '@/core/services/access.service';
 import { CreateFeedbackLikeDto } from './dto/create-feedback-like.dto';
 import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
+import { FeedbackStatus } from '@/generated/prisma/enums';
 
 @Injectable()
 export class FeedbacksService {
@@ -316,6 +318,31 @@ export class FeedbacksService {
     }
 
     return feedback;
+  }
+
+  // * Change Feedback Status (Admin / Staff)
+  async changeFeedbackStatus(
+    accessTokenPayload: AccessTokenPayload,
+    feedbackId: string,
+    data: UpdateFeedbackStatusDto,
+  ) {
+    // * Check this feedback is exist
+    await this.findOneFeedback(accessTokenPayload, feedbackId);
+
+    // * update status of feedback
+    await this.prisma.feedback.update({
+      where: {
+        id: feedbackId,
+      },
+      data: {
+        feedbackStatus: data.feedbackStatus,
+        resolutionNote: data.resolutionNote,
+        ...(data.feedbackStatus === FeedbackStatus.RESOLVED && {
+          resolvedAt: new Date(),
+          resolvedBy: accessTokenPayload.id,
+        }),
+      },
+    });
   }
 
   // ! Private
