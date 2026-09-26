@@ -303,7 +303,7 @@ export class MembersService {
         });
 
         // * Add New Payment for Updated Member
-        await this.prisma.payment.create({
+        await tx.payment.create({
           data: {
             member: { connect: { id: newMembership.memberId } },
             admin: { connect: { id: adminId } },
