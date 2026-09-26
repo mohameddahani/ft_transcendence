@@ -11,6 +11,7 @@ import {
   SubscriptionStatus,
   UserAccountStatus,
 } from '@/generated/prisma/enums';
+import { safeUserSelect } from '../types/safe-selects.type';
 
 @Injectable()
 export class AccessesService {
@@ -28,7 +29,7 @@ export class AccessesService {
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         expiresAt: { gt: checkDate },
       },
-      include: { plan: true, user: true },
+      include: { plan: true, user: { select: safeUserSelect } },
     });
     if (!subscription || !subscription.plan.isActive) {
       throw new UnauthorizedException(

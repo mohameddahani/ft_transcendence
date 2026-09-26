@@ -32,8 +32,12 @@ import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
 import { LoginStaffDto } from './dtos/login-staff.dto';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
+import {
+  safeMemberSelect,
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
 export class AuthProvider {
   constructor(
@@ -250,10 +254,12 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeUser } = user;
-
-    return { user: safeUser, accessToken, refreshToken, refreshExpiresIn };
+    return {
+      user: safeUserSelect,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Logout (Admin)
@@ -264,7 +270,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -322,7 +328,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -380,7 +386,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
 
     if (!storedToken) {
@@ -543,9 +549,12 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeStaff } = staff;
-    return { staff: safeStaff, accessToken, refreshToken, refreshExpiresIn };
+    return {
+      staff: safeStaffSelect,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Logout (Staff)
@@ -556,7 +565,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
 
     if (!storedToken) {
@@ -613,7 +622,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -716,7 +725,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -850,10 +859,12 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeMember } = member;
-
-    return { member: safeMember, accessToken, refreshToken, refreshExpiresIn };
+    return {
+      member: safeMemberSelect,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Set Password Member
@@ -863,7 +874,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -926,7 +937,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -982,7 +993,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
 
     if (!storedToken) {
@@ -1035,7 +1046,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
 
     if (!storedToken) {
@@ -1087,7 +1098,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1181,7 +1192,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1271,7 +1282,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
