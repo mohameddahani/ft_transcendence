@@ -17,12 +17,12 @@ pool = ConnectionPool(
 )
 
 
-def fetch_all(sql: str, params: tuple = ()) -> list[dict]:
+def fetch_all(sql: str, params: tuple | dict = ()) -> list[dict]:
     with pool.connection() as conn:
         return conn.execute(sql, params).fetchall()
 
 
-def fetch_one(sql: str, params: tuple = ()) -> dict | None:
+def fetch_one(sql: str, params: tuple | dict = ()) -> dict | None:
     with pool.connection() as conn:
         return conn.execute(sql, params).fetchone()
 
