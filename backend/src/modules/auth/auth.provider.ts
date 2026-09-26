@@ -163,6 +163,25 @@ export class AuthProvider {
         // * Generate Action Token
         const { rawToken, tokenHash } = generateActionToken();
 
+        // * Calc the expir
+        const emailVerificationTokenExpiresIn =
+          this.config.getOrThrow<StringValue>(
+            'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
+          );
+        const expiresAt = new Date(
+          Date.now() + ms(emailVerificationTokenExpiresIn),
+        );
+
+        // * Store the hash Token in DB
+        await this.prisma.userActionToken.create({
+          data: {
+            user: { connect: { id: user.id } },
+            tokenHash: tokenHash,
+            type: ActionTokenType.EMAIL_VERIFICATION,
+            expiresAt: expiresAt,
+          },
+        });
+
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(user.email, rawToken);
       } catch {
