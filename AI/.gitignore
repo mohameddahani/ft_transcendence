@@ -9,3 +9,5 @@ data/
 !.env.example
 PLAN.md
 CLAUDE.md
+EXPLAIN.md
+tests/
