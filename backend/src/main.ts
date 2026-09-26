@@ -45,21 +45,23 @@ async function bootstrap() {
   // * Get domain of server
   const domain = new ConfigService().getOrThrow<string>('FRONTEND_URL');
 
-  // * Config of document
-  const swagger = new DocumentBuilder()
-    .setTitle('ft_transcendence')
-    .setDescription(
-      'ft_transcendence — Final 42 Common Core project: a full-stack web app built as a team. From learning basics to building real-world systems, this project represents the end of the journey and the start of professional growth, combining creativity, scalability, and modern technologies.',
-    )
-    .addServer(domain)
-    .setTermsOfService(`${domain}/terms`)
-    .setLicense('ft_transcendence License', `${domain}/license`)
-    .addSecurity('bearer', { type: 'http', scheme: 'bearer' })
-    .addBearerAuth()
-    .setVersion('1.0')
-    .build();
-  const documentation = SwaggerModule.createDocument(app, swagger); // * create document
-  SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
+  if (process.env.NODE_ENV === 'development') {
+    // * Config of document
+    const swagger = new DocumentBuilder()
+      .setTitle('ft_transcendence')
+      .setDescription(
+        'ft_transcendence — Final 42 Common Core project: a full-stack web app built as a team. From learning basics to building real-world systems, this project represents the end of the journey and the start of professional growth, combining creativity, scalability, and modern technologies.',
+      )
+      .addServer(domain)
+      .setTermsOfService(`${domain}/terms`)
+      .setLicense('ft_transcendence License', `${domain}/license`)
+      .addSecurity('bearer', { type: 'http', scheme: 'bearer' })
+      .addBearerAuth()
+      .setVersion('1.0')
+      .build();
+    const documentation = SwaggerModule.createDocument(app, swagger); // * create document
+    SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
+  }
 
   // * Count how many endpoints in this project
   // let totalEndpoints = 0;
