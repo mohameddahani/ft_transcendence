@@ -30,6 +30,33 @@ input:-webkit-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #131313;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #464554;
+}
+
+/* Data grid row hover and alternating styles */
+.data-grid-row:nth-child(even) {
+  background-color: #1e1e1e;
+}
+.data-grid-row:nth-child(odd) {
+  background-color: #131313;
+}
+.data-grid-row:hover {
+  box-shadow: inset 4px 0 0 0 #c0c1ff;
+}
+
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,14 +24,31 @@ export const loginSchema = z.object({
   password: z
     .string()
     .min(1, "Password is required")
-    .min(8, "Password must be at least 6 characters"),
+    .min(6, "Password must be at least 6 characters"),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
   const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "unauthorized") {
+        return "Access denied: Only administrator accounts can access this portal.";
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "unauthorized") {
+        toast.error("Access denied: Only administrator accounts can access this portal.");
+      }
+    }
+  }, []);
 
   const {
     register,
@@ -57,10 +74,9 @@ export default function LoginForm() {
         localStorage.setItem("access_token", response.data.accessToken);
       }
 
-      router.push("/dashboard");
+      router.push("/admins");
       router.refresh();
     } catch (err: unknown) {
-      console.error(err);
       let message = "Network error. Is the API running?";
 
       if (axios.isAxiosError(err)) {
@@ -74,6 +90,8 @@ export default function LoginForm() {
         } else if (err.response?.status) {
           message = `Login failed (${err.response.status})`;
         }
+      } else {
+        console.error("Unexpected login error:", err);
       }
 
       setServerError(message);
