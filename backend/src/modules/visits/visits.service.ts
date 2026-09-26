@@ -19,6 +19,10 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
 import { VisitStatus } from '@/generated/prisma/enums';
+import {
+  safeMemberSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class VisitsService {
@@ -279,8 +283,12 @@ export class VisitsService {
       take: limit,
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
@@ -321,8 +329,12 @@ export class VisitsService {
       },
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
@@ -367,8 +379,12 @@ export class VisitsService {
       take: limit,
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
@@ -417,8 +433,12 @@ export class VisitsService {
       take: limit,
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
@@ -461,8 +481,12 @@ export class VisitsService {
       },
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,

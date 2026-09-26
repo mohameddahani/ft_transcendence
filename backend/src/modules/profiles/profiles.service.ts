@@ -11,6 +11,7 @@ import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
+import { safeUserSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class ProfilesService {
@@ -360,7 +361,9 @@ export class ProfilesService {
         email: true,
         phoneNumber: true,
         companyName: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         profileImageUrl: true,
         role: true,
         accountStatus: true,
@@ -580,7 +583,9 @@ export class ProfilesService {
         phoneNumber: true,
         profileImageUrl: true,
         profileImagePublicId: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         companyName: true,
         role: true,
         accountStatus: true,

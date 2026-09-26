@@ -14,6 +14,10 @@ import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
 import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
 import { createHash } from 'node:crypto';
+import {
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class AttendancesService {
@@ -268,9 +272,13 @@ export class AttendancesService {
       take: limit,
       select: {
         id: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         membership: true,
-        staff: true,
+        staff: {
+          select: safeStaffSelect,
+        },
         visit: true,
         attendanceMethod: true,
         checkedInAt: true,
@@ -306,9 +314,13 @@ export class AttendancesService {
       },
       select: {
         id: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         membership: true,
-        staff: true,
+        staff: {
+          select: safeStaffSelect,
+        },
         visit: true,
         attendanceMethod: true,
         checkedInAt: true,

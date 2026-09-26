@@ -12,6 +12,11 @@ import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 import { FeedbackStatus } from '@/generated/prisma/enums';
+import {
+  safeMemberSelect,
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class FeedbacksService {
@@ -68,9 +73,15 @@ export class FeedbacksService {
 
       select: {
         id: true,
-        admin: true,
-        member: true,
-        staff: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        staff: {
+          select: safeStaffSelect,
+        },
         content: true,
         rating: true,
         feedbackStatus: true,
@@ -113,9 +124,15 @@ export class FeedbacksService {
 
       select: {
         id: true,
-        admin: true,
-        member: true,
-        staff: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        staff: {
+          select: safeStaffSelect,
+        },
         content: true,
         rating: true,
         feedbackStatus: true,
@@ -239,9 +256,15 @@ export class FeedbacksService {
 
       select: {
         id: true,
-        admin: true,
-        member: true,
-        staff: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        staff: {
+          select: safeStaffSelect,
+        },
         content: true,
         rating: true,
         feedbackStatus: true,
@@ -291,9 +314,15 @@ export class FeedbacksService {
 
       select: {
         id: true,
-        admin: true,
-        member: true,
-        staff: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        staff: {
+          select: safeStaffSelect,
+        },
         content: true,
         rating: true,
         feedbackStatus: true,

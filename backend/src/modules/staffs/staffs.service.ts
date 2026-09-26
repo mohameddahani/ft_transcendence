@@ -20,6 +20,7 @@ import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { AccessesService } from '@/core/services/access.service';
+import { safeUserSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class StaffsService {
@@ -184,7 +185,9 @@ export class StaffsService {
         email: true,
         phoneNumber: true,
         companyName: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         role: true,
         profileImageUrl: true,
         accountStatus: true,
@@ -219,7 +222,9 @@ export class StaffsService {
         email: true,
         phoneNumber: true,
         companyName: true,
-        admin: true,
+        admin: {
+          select: safeUserSelect,
+        },
         role: true,
         profileImageUrl: true,
         accountStatus: true,
