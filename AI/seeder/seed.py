@@ -88,7 +88,7 @@ def resolve_dsn(explicit: str | None) -> str:
         return os.environ.get(key) or env.get(key) or fallback
 
     return (
-        f"postgresql://{get('POSTGRES_USER', 'admin')}:{get('POSTGRES_PASSWORD', '1234')}"
+        f"postgresql://{get('POSTGRES_USER', 'admin')}:{get('POSTGRES_PASSWORD', '')}"
         f"@127.0.0.1:{get('POSTGRES_PORT', '5432')}/{get('POSTGRES_DB', 'ft_transcendence')}"
     )
 

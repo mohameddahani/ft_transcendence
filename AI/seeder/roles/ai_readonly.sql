@@ -1,13 +1,15 @@
 -- Read-only role for the AI service: SELECT on the tables it needs, nothing else.
--- Safe to re-run: psql -U admin -d ft_transcendence -f seeder/roles/ai_readonly.sql
+-- Safe to re-run. The password comes from .env:
+--   psql -U admin -d ft_transcendence -v ai_password="$AI_DB_PASSWORD" -f seeder/roles/ai_readonly.sql
 
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ai_readonly') THEN
-        CREATE ROLE ai_readonly LOGIN PASSWORD 'ai_readonly_dev_pw';
+        CREATE ROLE ai_readonly LOGIN;
     END IF;
 END
 $$;
+ALTER ROLE ai_readonly PASSWORD :'ai_password';
 
 -- start from zero, so re-running never leaves an old grant behind
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ai_readonly;

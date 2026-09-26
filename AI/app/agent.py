@@ -9,7 +9,8 @@ from app.auth import User
 
 MAX_ROUNDS = 5
 
-client = genai.Client(api_key=config.GEMINI_API_KEY)
+# 30 s without an answer from Gemini becomes an error instead of an endless wait
+client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
 
 WHO = {
     "ADMIN": "the owner of the gym",
