@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app import config
+from app import config, db
 
 app = FastAPI(title="Gym AI service")
 
@@ -13,7 +14,13 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+db.init_memory()
+
 
 @app.get("/health")
 def health():
+    try:
+        db.fetch_one("SELECT 1")
+    except Exception:
+        return JSONResponse({"status": "database unreachable"}, status_code=503)
     return {"status": "ok"}
