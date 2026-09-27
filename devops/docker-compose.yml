@@ -29,6 +29,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_container
+    restart: unless-stopped
+    env_file:
+    - .env
+    command: >
+        redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf:ro
+      - redisdata:/data
+    networks:
+      - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
   nginx:
     image: nginx:1.30-alpine
@@ -48,6 +70,7 @@ services:
 
 volumes:
   postgres_data:
+  redisdata:
 
 networks:
   ft_transcendence-net:
