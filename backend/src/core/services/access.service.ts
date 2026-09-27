@@ -6,20 +6,21 @@ import {
 } from '@nestjs/common';
 import { AccessTokenPayload } from '../types/jwt-payload.type';
 import {
+  MemberAccountStatus,
   MembershipStatus,
   Role,
   SubscriptionStatus,
   UserAccountStatus,
 } from '@/generated/prisma/enums';
-import { safeUserSelect } from '../types/safe-selects.type';
+import { safeMemberSelect, safeUserSelect } from '../types/safe-selects.type';
 
 @Injectable()
 export class AccessesService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ! Global Methods
-  // * Check if admin has subscription
-  async validateActiveSubscription(
+  // * Check that the admin account, subscription, and associated plan are active.
+  async validateAdminAccountAndSubscription(
     adminId: string,
     checkDate: Date = new Date(),
   ) {
@@ -56,8 +57,8 @@ export class AccessesService {
     return subscription;
   }
 
-  // * Chekc if Member has Membership
-  async validateActiveMembership(
+  // * Check that the member account and membership are active.
+  async validateMemberAccountAndMembership(
     memberId: string,
     adminId: string,
     checkDate: Date = new Date(),
@@ -71,11 +72,30 @@ export class AccessesService {
       },
       include: {
         membershipPlan: true,
+        member: { select: safeMemberSelect },
       },
     });
+
     if (!membership) {
-      throw new NotFoundException('This Member Has No Membership');
+      throw new NotFoundException(
+        'This member does not have an active membership.',
+      );
+    } else if (membership.member.accountStatus !== MemberAccountStatus.ACTIVE) {
+      if (membership.member.accountStatus === MemberAccountStatus.FROZEN) {
+        throw new UnauthorizedException(
+          'Your account is frozen. Please contact support for assistance.',
+        );
+      } else if (
+        membership.member.accountStatus === MemberAccountStatus.BANNED
+      ) {
+        throw new UnauthorizedException(
+          'Your account has been suspended. Please contact support for assistance.',
+        );
+      } else {
+        throw new UnauthorizedException('Your account is not active.');
+      }
     }
+
     return membership;
   }
 

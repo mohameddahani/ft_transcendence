@@ -243,8 +243,8 @@ export class FeedbacksService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const feedbacks = await this.prisma.feedback.findMany({
       where: {
@@ -303,8 +303,8 @@ export class FeedbacksService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const feedback = await this.prisma.feedback.findFirst({
       where: {
@@ -380,11 +380,14 @@ export class FeedbacksService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     return adminId;
   }

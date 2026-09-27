@@ -46,12 +46,13 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if member has membership
-    const membership = await this.accessesService.validateActiveMembership(
-      memberId,
-      adminId,
-      data.visitDateAndTime,
-    );
+    // * Check that the member account and membership are active.
+    const membership =
+      await this.accessesService.validateMemberAccountAndMembership(
+        memberId,
+        adminId,
+        data.visitDateAndTime,
+      );
 
     // * Check Special Hours
     const dateOfVisit = startOfDay(data.visitDateAndTime);
@@ -222,8 +223,11 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if member has membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     // * Check the visit is already exist
     const existVisit = await this.prisma.visit.findFirst({
@@ -268,8 +272,8 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const visitsToday = await this.prisma.visit.findMany({
       where: {
@@ -315,8 +319,8 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const visitToday = await this.prisma.visit.findFirst({
       where: {
@@ -360,11 +364,14 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const upcomingVisits = await this.prisma.visit.findMany({
       where: {
@@ -413,11 +420,14 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const visitsToday = await this.prisma.visit.findMany({
       where: {
@@ -462,11 +472,14 @@ export class VisitsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const visitToday = await this.prisma.visit.findFirst({
       where: {

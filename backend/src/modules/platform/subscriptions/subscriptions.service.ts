@@ -78,7 +78,7 @@ export class SubscriptionsService {
       throw new NotFoundException('Duration does not exist for this plan');
     }
 
-    // * Check if admin is has already a subscription
+    // * Check that the admin account, subscription, and associated plan are active.
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,

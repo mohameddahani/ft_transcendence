@@ -22,7 +22,7 @@ export class MembershipsService {
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const memberships = await this.prisma.membership.findMany({
       where: {
@@ -58,7 +58,7 @@ export class MembershipsService {
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const membership = await this.prisma.membership.findFirst({
       where: {

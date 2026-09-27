@@ -44,9 +44,9 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
+    // * Check that the admin account, subscription, and associated plan are active.
     const subscription =
-      await this.accessesService.validateActiveSubscription(adminId);
+      await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if admin has place for new member
     // * Count Members
@@ -209,8 +209,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if we have member already in DB
     await this.findOne(accessTokenPayload, memberId);
@@ -336,8 +336,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -362,8 +362,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -395,8 +395,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -426,8 +426,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -470,8 +470,8 @@ export class MembersService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const member = await this.prisma.member.findFirst({
       where: {

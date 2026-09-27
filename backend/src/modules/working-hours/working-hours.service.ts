@@ -29,8 +29,8 @@ export class WorkingHoursService {
 
   // * Add Working Hours By (Admin)
   async addWorkingHourByDay(adminId: string, data: AddWorkingHourDto) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that start time is before end time
     if (data.startTime >= data.endTime) {
@@ -69,8 +69,8 @@ export class WorkingHoursService {
     workingHourId: string,
     data: UpdateWorkingHourDto,
   ) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check this Working Hour is exist
     const workingHour = await this.prisma.workingHour.findFirst({
@@ -138,8 +138,8 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
@@ -164,8 +164,8 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
@@ -190,11 +190,14 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
@@ -216,11 +219,14 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
@@ -237,8 +243,8 @@ export class WorkingHoursService {
 
   // * Delete One Working Hour By (Admin)
   async deleteOneWorkingHour(adminId: string, workingHourId: string) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the working hour exists and belongs to the admin
     const workingHour = await this.prisma.workingHour.findFirst({
@@ -267,8 +273,8 @@ export class WorkingHoursService {
 
   // * Add Special Hours By (Admin)
   async addSpecialHour(adminId: string, data: AddSpecialHourDto) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the start date is not in the past
     if (data.startDate < format(new Date(), 'yyyy-MM-dd')) {
@@ -378,7 +384,7 @@ export class WorkingHoursService {
     data: UpdateSpecialHourDto,
   ) {
     // * Check if admin has an active subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the special hour exists and belongs to the admin
     const existingSpecialHour = await this.prisma.specialHour.findFirst({
@@ -495,8 +501,8 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
@@ -521,8 +527,8 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
@@ -547,11 +553,14 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
@@ -573,11 +582,14 @@ export class WorkingHoursService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
@@ -594,8 +606,8 @@ export class WorkingHoursService {
 
   // * Delete One Special Hour By (Admin)
   async deleteOneSpecialHour(adminId: string, specialHourId: string) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the working hour exists and belongs to the admin
     const specialHour = await this.prisma.specialHour.findFirst({

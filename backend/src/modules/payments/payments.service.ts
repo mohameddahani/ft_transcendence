@@ -21,7 +21,7 @@ export class PaymentsService {
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -76,7 +76,7 @@ export class PaymentsService {
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
     // * Check if admin has subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -129,8 +129,11 @@ export class PaymentsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if member has membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -184,8 +187,11 @@ export class PaymentsService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if member has membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const payment = await this.prisma.payment.findFirst({
       where: {

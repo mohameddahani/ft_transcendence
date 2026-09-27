@@ -35,14 +35,15 @@ export class AttendancesService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member has Membership
-    const membership = await this.accessesService.validateActiveMembership(
-      data.memberId,
-      adminId,
-    );
+    // * Check that the member account and membership are active.
+    const membership =
+      await this.accessesService.validateMemberAccountAndMembership(
+        data.memberId,
+        adminId,
+      );
     return this.confirmCheckIn(
       accessTokenPayload,
       adminId,
@@ -61,8 +62,8 @@ export class AttendancesService {
     const adminId =
       await this.accessesService.resolveAdminId(accessTokenPayload);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Hash the Token from Qr
     const qrTokenHash = createHash('sha256')
@@ -81,10 +82,11 @@ export class AttendancesService {
     }
 
     // * Chekc if Member has Membership
-    const membership = await this.accessesService.validateActiveMembership(
-      visit.memberId,
-      adminId,
-    );
+    const membership =
+      await this.accessesService.validateMemberAccountAndMembership(
+        visit.memberId,
+        adminId,
+      );
     return this.confirmCheckIn(
       accessTokenPayload,
       adminId,
@@ -260,11 +262,14 @@ export class AttendancesService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const attendances = await this.prisma.attendance.findMany({
       where: { adminId: adminId, memberId: memberId },
@@ -300,11 +305,14 @@ export class AttendancesService {
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    // * Check if Member Has Membership
-    await this.accessesService.validateActiveMembership(memberId, adminId);
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const attendance = await this.prisma.attendance.findFirst({
       where: {
