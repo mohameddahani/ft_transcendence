@@ -23,6 +23,8 @@ import { StaffsModule } from './modules/staffs/staffs.module';
 import { AttendancesModule } from './modules/attendances/attendances.module';
 import { VisitsModule } from './modules/visits/visits.module';
 import { WorkingHoursModule } from './modules/working-hours/working-hours.module';
+import { VisitCron } from './jobs/visit.cron';
+import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
 
 @Module({
   imports: [
@@ -75,6 +77,7 @@ import { WorkingHoursModule } from './modules/working-hours/working-hours.module
     WorkingHoursModule,
     VisitsModule,
     AttendancesModule,
+    FeedbacksModule,
   ],
 
   providers: [
@@ -88,6 +91,7 @@ import { WorkingHoursModule } from './modules/working-hours/working-hours.module
     PaymentCron,
     MembershipNotificationCron,
     SubscriptionNotificationCron,
+    VisitCron,
   ],
 })
 export class AppModule {}

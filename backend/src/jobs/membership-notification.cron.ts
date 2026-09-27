@@ -7,12 +7,12 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class MembershipNotificationCron {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_NOON)
+  @Cron(CronExpression.EVERY_HOUR)
   async createNotification() {
     // * Get Payments of Members and Check it if OVERDUE
     const payments = await this.prisma.payment.findMany({
       where: {
-        paymentStatus: PaymentStatus.OVERDUE,
+        paymentStatus: PaymentStatus.DUE_SOON,
       },
     });
 

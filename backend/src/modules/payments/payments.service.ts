@@ -62,7 +62,7 @@ export class PaymentsService {
         updatedAt: true,
       },
     });
-    if (!payments) {
+    if (payments.length === 0) {
       throw new NotFoundException('There Is No Payments To Show');
     }
 

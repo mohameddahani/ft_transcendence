@@ -19,6 +19,10 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
 import { VisitStatus } from '@/generated/prisma/enums';
+import {
+  safeMemberSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class VisitsService {
@@ -162,6 +166,23 @@ export class VisitsService {
     });
 
     // * Check weekly visit limit
+    const visitCount = await this.prisma.visit.count({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        visitDateAndTime: {
+          gte: monday,
+          lte: sunday,
+        },
+      },
+    });
+
+    if (visitCount >= membership.membershipPlan.weeklyVisitLimit) {
+      throw new ForbiddenException(
+        'Weekly visit limit has been reached for this membership.',
+      );
+    }
+
     const attendanceCount = await this.prisma.attendance.count({
       where: {
         adminId: adminId,
@@ -172,17 +193,6 @@ export class VisitsService {
         },
       },
     });
-
-    // const visitCount = await this.prisma.visit.count({
-    //   where: {
-    //     adminId: adminId,
-    //     memberId: memberId,
-    //     visitDateAndTime: {
-    //       gte: monday,
-    //       lte: sunday,
-    //     },
-    //   },
-    // });
 
     if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
       throw new ForbiddenException(
@@ -273,8 +283,12 @@ export class VisitsService {
       take: limit,
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
@@ -315,8 +329,164 @@ export class VisitsService {
       },
       select: {
         id: true,
-        admin: true,
-        member: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        membership: true,
+        visitDateAndTime: true,
+        visitStatus: true,
+        createdAt: true,
+      },
+    });
+    if (!visitToday) {
+      throw new NotFoundException('There No Visit Today For this member');
+    }
+
+    return visitToday;
+  }
+
+  // * Get all upcoming visits (Member)
+  async findAllUpcomingVisitsByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    const now = new Date();
+
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const upcomingVisits = await this.prisma.visit.findMany({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        visitDateAndTime: {
+          gte: now,
+        },
+        visitStatus: VisitStatus.READY,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        membership: true,
+        visitDateAndTime: true,
+        visitStatus: true,
+        createdAt: true,
+      },
+      orderBy: { visitDateAndTime: 'asc' },
+    });
+    if (upcomingVisits.length === 0) {
+      throw new NotFoundException('There No Upcoming Visits');
+    }
+
+    return upcomingVisits;
+  }
+
+  // * Get all visits (Member)
+  async findAllVisitsTodayByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const visitsToday = await this.prisma.visit.findMany({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        visitDateAndTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+        visitStatus: VisitStatus.READY,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
+        membership: true,
+        visitDateAndTime: true,
+        visitStatus: true,
+        createdAt: true,
+      },
+    });
+    if (visitsToday.length === 0) {
+      throw new NotFoundException('There No Visits Today');
+    }
+
+    return visitsToday;
+  }
+
+  // * Get one visit (Member)
+  async findOneVisitTodayByMember(memberId: string, visitId: string) {
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check if admin is has already a subscription
+    await this.accessesService.validateActiveSubscription(adminId);
+
+    // * Check if Member Has Membership
+    await this.accessesService.validateActiveMembership(memberId, adminId);
+
+    const visitToday = await this.prisma.visit.findFirst({
+      where: {
+        id: visitId,
+        adminId: adminId,
+        memberId: memberId,
+        visitDateAndTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+        visitStatus: VisitStatus.READY,
+      },
+      select: {
+        id: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        member: {
+          select: safeMemberSelect,
+        },
         membership: true,
         visitDateAndTime: true,
         visitStatus: true,
