@@ -37,6 +37,10 @@ import {
   safeStaffSelect,
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
 @Injectable()
 export class AuthProvider {
@@ -104,6 +108,8 @@ export class AuthProvider {
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
+        profileImageUrl: DEFAULT_AVATARS.ADMIN,
+        profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         companyName: data.companyName,
         termsAccepted: data.termsAccepted,
       },

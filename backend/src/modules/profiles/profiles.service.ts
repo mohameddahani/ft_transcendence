@@ -8,10 +8,13 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { UpdateProfileDto } from './dtos/update-profile.dto';
-import { DEFAULT_PROFILE_IMAGE } from './constants/users.constants';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
 @Injectable()
 export class ProfilesService {
@@ -109,7 +112,10 @@ export class ProfilesService {
     // }
 
     // * Get Old Profile Image Public Id of image
-    const oldProfileImagePublicId = user.profileImagePublicId;
+    const oldProfileImagePublicId =
+      user.profileImagePublicId === DEFAULT_AVATARS_ID.ADMIN
+        ? null
+        : user.profileImagePublicId;
 
     try {
       // * Upload Image To Cloudinary
@@ -142,7 +148,7 @@ export class ProfilesService {
     const user = await this.findOne(id);
 
     // * Check user if already set image
-    if (!user.profileImagePublicId) {
+    if (user.profileImagePublicId === DEFAULT_AVATARS_ID.ADMIN) {
       throw new BadRequestException('There is No Profile Image');
     }
 
@@ -169,8 +175,8 @@ export class ProfilesService {
       await this.prisma.user.update({
         where: { id },
         data: {
-          profileImageUrl: DEFAULT_PROFILE_IMAGE,
-          profileImagePublicId: null,
+          profileImageUrl: DEFAULT_AVATARS.ADMIN,
+          profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         },
       });
     } catch {
@@ -254,7 +260,10 @@ export class ProfilesService {
     // }
 
     // * Get Old Profile Image Public Id of image
-    const oldProfileImagePublicId = member.profileImagePublicId;
+    const oldProfileImagePublicId =
+      member.profileImagePublicId === DEFAULT_AVATARS_ID.MEMBER
+        ? null
+        : member.profileImagePublicId;
 
     try {
       // * Upload Image To Cloudinary
@@ -287,7 +296,7 @@ export class ProfilesService {
     const member = await this.findOneMember(id);
 
     // * Check member if already set image
-    if (!member.profileImagePublicId) {
+    if (member.profileImagePublicId === DEFAULT_AVATARS_ID.MEMBER) {
       throw new BadRequestException('There is No Profile Image');
     }
 
@@ -314,8 +323,8 @@ export class ProfilesService {
       await this.prisma.member.update({
         where: { id },
         data: {
-          profileImageUrl: DEFAULT_PROFILE_IMAGE,
-          profileImagePublicId: null,
+          profileImageUrl: DEFAULT_AVATARS.MEMBER,
+          profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
         },
       });
     } catch {
@@ -401,7 +410,10 @@ export class ProfilesService {
     // }
 
     // * Get Old Profile Image Public Id of image
-    const oldProfileImagePublicId = staff.profileImagePublicId;
+    const oldProfileImagePublicId =
+      staff.profileImagePublicId === DEFAULT_AVATARS_ID.STAFF
+        ? null
+        : staff.profileImagePublicId;
 
     try {
       // * Upload Image To Cloudinary
@@ -434,7 +446,7 @@ export class ProfilesService {
     const staff = await this.findOneStaff(id);
 
     // * Check staff if already set image
-    if (!staff.profileImagePublicId) {
+    if (staff.profileImagePublicId === DEFAULT_AVATARS_ID.STAFF) {
       throw new BadRequestException('There is No Profile Image');
     }
 
@@ -461,8 +473,8 @@ export class ProfilesService {
       await this.prisma.staff.update({
         where: { id },
         data: {
-          profileImageUrl: DEFAULT_PROFILE_IMAGE,
-          profileImagePublicId: null,
+          profileImageUrl: DEFAULT_AVATARS.STAFF,
+          profileImagePublicId: DEFAULT_AVATARS_ID.STAFF,
         },
       });
     } catch {

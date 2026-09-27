@@ -24,6 +24,10 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AccessesService } from '@/core/services/access.service';
 import { addDays } from 'date-fns';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
 @Injectable()
 export class MembersService {
@@ -123,6 +127,8 @@ export class MembersService {
           userName: userName,
           email: data.email,
           phoneNumber: data.phoneNumber,
+          profileImageUrl: DEFAULT_AVATARS.MEMBER,
+          profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,
           emergencyContact: data.emergencyContact,
         },

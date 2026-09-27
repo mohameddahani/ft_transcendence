@@ -21,6 +21,10 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { AccessesService } from '@/core/services/access.service';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
 @Injectable()
 export class StaffsService {
@@ -81,6 +85,8 @@ export class StaffsService {
         userName: userName,
         email: data.email,
         phoneNumber: data.phoneNumber,
+        profileImageUrl: DEFAULT_AVATARS.STAFF,
+        profileImagePublicId: DEFAULT_AVATARS_ID.STAFF,
         companyName: subscription.user.companyName,
       },
     });
