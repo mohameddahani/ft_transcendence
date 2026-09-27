@@ -18,3 +18,4 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
 # files on the /data volume
 MEMORY_DB = "/data/memory.db"
+VECTORS_DIR = "/data/vectors"
