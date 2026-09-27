@@ -47,3 +47,34 @@ export type AddDurationFormValues = {
   price: number;
 };
 
+export const updatePlanSchema = z.object({
+  planName: z
+    .string()
+    .min(2, "Plan name must be at least 2 characters")
+    .max(30, "Plan name must not exceed 30 characters"),
+  maxMembers: z
+    .number()
+    .int("Max members must be a whole number")
+    .positive("Max members must be greater than 0"),
+  description: z
+    .string()
+    .max(200, "Description must not exceed 200 characters")
+    .optional()
+    .or(z.literal("")),
+  isActive: z.boolean(),
+});
+
+export type UpdatePlanFormValues = z.infer<typeof updatePlanSchema>;
+
+export const updatePlanDurationSchema = z.object({
+  planId: z.string().uuid("Invalid plan ID"),
+  durationDays: z
+    .number()
+    .int("Duration must be a whole number")
+    .positive("Duration must be at least 1 day"),
+  price: z
+    .number()
+    .positive("Price must be greater than 0"),
+});
+
+export type UpdatePlanDurationFormValues = z.infer<typeof updatePlanDurationSchema>;

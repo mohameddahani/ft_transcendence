@@ -37,3 +37,8 @@ export interface UpdatePlanDto {
   isActive?: boolean;
 }
 
+export interface UpdatePlanDurationDto {
+  planId: string;
+  durationDays?: number;
+  price?: number;
+}

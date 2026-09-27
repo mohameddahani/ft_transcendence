@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
-import { PlatformPlan } from "@/types/plan";
+import { PlatformPlan, PlanDuration } from "@/types/plan";
 import AddPlanModal from "./AddPlanModal";
+import EditPlanModal from "./EditPlanModal";
 import AddDurationModal from "./AddDurationModal";
+import EditDurationModal from "./EditDurationModal";
 import { cn } from "@/lib/utils";
 
 export default function PlansDashboard() {
@@ -29,7 +31,12 @@ export default function PlansDashboard() {
 
   // Modals state
   const [isAddPlanOpen, setIsAddPlanOpen] = useState(false);
+  const [editPlanModalPlan, setEditPlanModalPlan] = useState<PlatformPlan | null>(null);
   const [durationModalPlan, setDurationModalPlan] = useState<PlatformPlan | null>(null);
+  const [editDurationState, setEditDurationState] = useState<{
+    plan: PlatformPlan;
+    duration: PlanDuration;
+  } | null>(null);
   const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
 
   // Filters state
@@ -310,35 +317,48 @@ export default function PlansDashboard() {
                     </div>
                   </div>
 
-                  {/* Toggle Active Status */}
-                  <div className="flex flex-col items-end">
+                  {/* Actions & Status */}
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      role="switch"
-                      aria-checked={plan.isActive}
-                      disabled={togglingPlanId === plan.id}
-                      onClick={() => handleToggleStatus(plan)}
-                      className={cn(
-                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-                        plan.isActive ? "bg-primary" : "bg-surface-container-highest"
-                      )}
-                      title={`Click to set ${plan.isActive ? "Inactive" : "Active"}`}
+                      onClick={() => setEditPlanModalPlan(plan)}
+                      className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-md transition-colors cursor-pointer border border-transparent hover:border-outline-variant"
+                      title="Edit Plan Details"
+                      aria-label={`Edit ${plan.planName} plan`}
                     >
+                      <Edit2 className="size-4" />
+                    </button>
+
+                    {/* Toggle Active Status */}
+                    <div className="flex flex-col items-end">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={plan.isActive}
+                        disabled={togglingPlanId === plan.id}
+                        onClick={() => handleToggleStatus(plan)}
+                        className={cn(
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
+                          plan.isActive ? "bg-primary" : "bg-surface-container-highest"
+                        )}
+                        title={`Click to set ${plan.isActive ? "Inactive" : "Active"}`}
+                      >
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-surface shadow-lg ring-0 transition duration-200 ease-in-out",
+                            plan.isActive ? "translate-x-4 bg-on-primary" : "translate-x-0 bg-on-surface-variant"
+                          )}
+                        />
+                      </button>
                       <span
                         className={cn(
-                          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-surface shadow-lg ring-0 transition duration-200 ease-in-out",
-                          plan.isActive ? "translate-x-4 bg-on-primary" : "translate-x-0 bg-on-surface-variant"
+                          "font-label-caps text-[10px] mt-1 font-bold tracking-wider",
+                          plan.isActive ? "text-primary" : "text-on-surface-variant"
                         )}
-                      />
-                    </button>
-                    <span
-                      className={cn(
-                        "font-label-caps text-[10px] mt-1 font-bold tracking-wider",
-                        plan.isActive ? "text-primary" : "text-on-surface-variant"
-                      )}
-                    >
-                      {plan.isActive ? "ACTIVE" : "INACTIVE"}
-                    </span>
+                      >
+                        {plan.isActive ? "ACTIVE" : "INACTIVE"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -350,8 +370,19 @@ export default function PlansDashboard() {
 
                   {/* Durations & Pricing */}
                   <div>
-                    <div className="font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase font-bold tracking-wider">
-                      DURATIONS & PRICING
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider">
+                        DURATIONS & PRICING
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setDurationModalPlan(plan)}
+                        className="text-primary hover:underline text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                        title="Add duration"
+                      >
+                        <Plus className="size-3" />
+                        <span>Add</span>
+                      </button>
                     </div>
                     {durations.length === 0 ? (
                       <p className="text-body-sm text-on-surface-variant/60 italic">
@@ -362,7 +393,7 @@ export default function PlansDashboard() {
                         {durations.map((duration) => (
                           <div
                             key={duration.id}
-                            className="bg-surface-container-high border border-outline-variant px-2.5 py-1 rounded flex items-center gap-2 shadow-xs"
+                            className="group bg-surface-container-high border border-outline-variant hover:border-primary/50 transition-colors px-2.5 py-1 rounded flex items-center gap-2 shadow-xs"
                           >
                             <span className="font-mono-data text-body-sm text-primary font-bold">
                               {duration.durationDays} Days
@@ -371,6 +402,15 @@ export default function PlansDashboard() {
                             <span className="font-mono-data text-body-sm text-on-surface font-semibold">
                               ${Number(duration.price).toFixed(2)}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => setEditDurationState({ plan, duration })}
+                              className="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer ml-0.5"
+                              title="Edit duration & price"
+                              aria-label={`Edit duration ${duration.durationDays} days`}
+                            >
+                              <Edit2 className="size-3" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -379,22 +419,32 @@ export default function PlansDashboard() {
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-1 bg-surface-container-low border-t border-outline-variant grid grid-cols-2 gap-1">
+                <div className="p-1 bg-surface-container-low border-t border-outline-variant grid grid-cols-3 gap-1">
                   <button
                     type="button"
-                    onClick={() => handleToggleStatus(plan)}
-                    className="flex items-center justify-center gap-1.5 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent"
+                    onClick={() => setEditPlanModalPlan(plan)}
+                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent font-medium"
+                    title="Edit Plan Details"
                   >
-                    <CheckCircle2 className="size-4 text-on-surface-variant" />
-                    <span>{plan.isActive ? "Set Inactive" : "Set Active"}</span>
+                    <Edit2 className="size-3.5 text-primary" />
+                    <span>Edit Plan</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDurationModalPlan(plan)}
-                    className="flex items-center justify-center gap-1.5 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
+                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
                   >
-                    <Clock className="size-4" />
-                    <span>+ Add Duration</span>
+                    <Clock className="size-3.5" />
+                    <span>+ Duration</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(plan)}
+                    disabled={togglingPlanId === plan.id}
+                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface rounded cursor-pointer border border-transparent disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>{plan.isActive ? "Deactivate" : "Activate"}</span>
                   </button>
                 </div>
               </div>
@@ -449,13 +499,27 @@ export default function PlansDashboard() {
         onSuccess={fetchPlans}
       />
 
+      <EditPlanModal
+        plan={editPlanModalPlan}
+        isOpen={!!editPlanModalPlan}
+        onClose={() => setEditPlanModalPlan(null)}
+        onSuccess={fetchPlans}
+      />
+
       <AddDurationModal
         plan={durationModalPlan}
         isOpen={!!durationModalPlan}
         onClose={() => setDurationModalPlan(null)}
         onSuccess={fetchPlans}
       />
+
+      <EditDurationModal
+        plan={editDurationState?.plan || null}
+        duration={editDurationState?.duration || null}
+        isOpen={!!editDurationState}
+        onClose={() => setEditDurationState(null)}
+        onSuccess={fetchPlans}
+      />
     </div>
   );
 }
-

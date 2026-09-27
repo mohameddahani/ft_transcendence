@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseJwtPayload, isAdminUser } from "@/lib/auth";
 
-const API_URL = process.env.API_URL ?? "http://localhost:3000";
+const API_URL = process.env.API_URL;
 
 export async function POST(req: Request) {
   const body = await req.json();

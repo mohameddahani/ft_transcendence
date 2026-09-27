@@ -285,19 +285,22 @@ export default function OwnerProfileView() {
 
         {/* Avatar Actions */}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingImage}
-            className="bg-surface-container-high hover:bg-surface-variant border border-outline-variant text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {uploadingImage ? (
-              <Loader2 className="size-3.5 animate-spin text-primary" />
-            ) : (
-              <Camera className="size-3.5 text-primary" />
-            )}
-            <span>{uploadingImage ? "Uploading..." : "Upload Photo"}</span>
-          </button>
+        <button
+  type="button"
+  onClick={() => {
+    console.log(fileInputRef.current?.click());
+    fileInputRef.current?.click();
+  }}
+  disabled={uploadingImage}
+  className="bg-surface-container-high hover:bg-surface-variant border border-outline-variant text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+>
+  {uploadingImage ? (
+    <Loader2 className="size-3.5 animate-spin text-primary" />
+  ) : (
+    <Camera className="size-3.5 text-primary" />
+  )}
+  <span>{uploadingImage ? "Uploading..." : "Upload Photo"}</span>
+</button>
 
           {hasCustomAvatar && (
             <button
