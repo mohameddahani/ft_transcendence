@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BadRequestException,
   Injectable,
@@ -155,6 +156,10 @@ export class AuthProvider {
     // * Check if user already exist by email before login
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
+      select: {
+        ...safeUserSelect,
+        password: true,
+      },
     });
     if (!user) {
       throw new UnauthorizedException('Invalid Email or Password');
@@ -260,8 +265,11 @@ export class AuthProvider {
       },
     });
 
+    // * Exculde Some Fields
+    const { password, ...safeUser } = user;
+
     return {
-      user: safeUserSelect,
+      user: safeUser,
       accessToken,
       refreshToken,
       refreshExpiresIn,
@@ -447,6 +455,10 @@ export class AuthProvider {
     // * Check if staff already exist by userName before login
     const staff = await this.prisma.staff.findUnique({
       where: { userName: data.userName },
+      select: {
+        ...safeStaffSelect,
+        password: true,
+      },
     });
     if (!staff) {
       throw new UnauthorizedException('Invalid User Name or Password');
@@ -555,8 +567,11 @@ export class AuthProvider {
       },
     });
 
+    // * Exculde Some Fields
+    const { password, ...safeStaff } = staff;
+
     return {
-      staff: safeStaffSelect,
+      staff: safeStaff,
       accessToken,
       refreshToken,
       refreshExpiresIn,
@@ -786,6 +801,10 @@ export class AuthProvider {
     // * Check if member already exist by userName before login
     const member = await this.prisma.member.findUnique({
       where: { userName: data.userName },
+      select: {
+        ...safeMemberSelect,
+        password: true,
+      },
     });
     if (!member) {
       throw new UnauthorizedException('Invalid User Name or Password');
@@ -865,8 +884,11 @@ export class AuthProvider {
       },
     });
 
+    // * Exculde Some Fields
+    const { password, ...safeMember } = member;
+
     return {
-      member: safeMemberSelect,
+      member: safeMember,
       accessToken,
       refreshToken,
       refreshExpiresIn,
