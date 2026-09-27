@@ -1,13 +1,14 @@
 import json
 import logging
 import uuid
+from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app import agent, config, db
+from app import agent, config, db, rag
 from app.auth import User, current_user, rate_limited_user
 
 app = FastAPI(title="Gym AI service")
@@ -87,3 +88,52 @@ def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):
 @app.get("/ai/threads/{thread_id}")
 def thread(thread_id: uuid.UUID, user: User = Depends(current_user)):
     return db.load_messages(str(thread_id), user.id, limit=100)
+
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+ALLOWED_FILES = (".md", ".txt", ".pdf")
+
+
+def _owner_only(user: User) -> None:
+    if user.role != "ADMIN":
+        raise HTTPException(403, "Only the gym owner can manage documents")
+
+
+@app.get("/ai/documents")
+def list_documents(user: User = Depends(current_user)):
+    _owner_only(user)
+    return rag.list_documents(user.admin_id)
+
+
+@app.post("/ai/documents")
+def upload_document(file: UploadFile, visibility: str = Form(), user: User = Depends(rate_limited_user)):
+    _owner_only(user)
+    filename = Path(file.filename or "").name[:100]  # keep the name only, never a path
+    if not filename.lower().endswith(ALLOWED_FILES):
+        raise HTTPException(422, "Only .md, .txt and .pdf files are accepted")
+    if visibility not in rag.VISIBILITIES:
+        raise HTTPException(422, "Visibility must be member or staff")
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "The file is larger than 10 MB")
+    try:
+        text = rag.extract_text(data)
+    except Exception:
+        raise HTTPException(422, "Could not read any text from this file")
+    try:
+        chunks = rag.add_document(user.admin_id, filename, visibility, text)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except Exception:
+        logging.exception("upload failed")
+        raise HTTPException(502, "The document could not be processed right now. Please try again.")
+    return {"filename": filename, "visibility": visibility, "chunks": chunks}
+
+
+@app.delete("/ai/documents/{filename}")
+def delete_document(filename: str, user: User = Depends(current_user)):
+    _owner_only(user)
+    if filename not in [d["filename"] for d in rag.list_documents(user.admin_id)]:
+        raise HTTPException(404, "No such document")
+    rag.remove_document(user.admin_id, filename)
+    return {"deleted": filename}

@@ -1,7 +1,7 @@
 import logging
 from datetime import date, timedelta
 
-from app import db
+from app import db, rag
 from app.auth import User
 
 # a membership is valid when it is ACTIVE *and* its end date is still in the future
@@ -145,6 +145,13 @@ def my_attendance(user: User, days=30) -> dict:
         """, {"me": user.id, "days": _clamp(days)})
 
 
+def search_documents(user: User, query: str) -> dict:
+    hits = rag.search(user, query[:500])
+    if not hits:
+        return {"found": False, "note": "Nothing in the gym's documents matches this question."}
+    return {"found": True, "excerpts": [{"source": h["source"], "text": h["text"]} for h in hits]}
+
+
 def _days_param(text: str) -> dict:
     return {"type": "object", "properties": {"days": {"type": "integer", "description": text}}}
 
@@ -220,6 +227,18 @@ TOOLS = {
         "parameters": _days_param("How many days back. Default 30."),
         "function": my_attendance,
         "roles": ["MEMBER"],
+    },
+    "search_documents": {
+        "description": "Search the gym's own documents: rules, prices, opening hours, classes, "
+                       "cancelling, freezing, guests and, for staff, internal procedures. Use it "
+                       "whenever the answer could be written in a document. Write the query as a "
+                       "complete question in English, like 'Which classes are on Saturday morning?', "
+                       "even if the user wrote in another language.",
+        "parameters": {"type": "object",
+                       "properties": {"query": {"type": "string", "description": "What to look for."}},
+                       "required": ["query"]},
+        "function": search_documents,
+        "roles": ["ADMIN", "STAFF", "MEMBER"],
     },
 }
 
