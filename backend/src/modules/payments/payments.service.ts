@@ -16,12 +16,11 @@ export class PaymentsService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check if admin has subscription
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -71,12 +70,11 @@ export class PaymentsService {
 
   // * Get one payment
   async findOnePayment(accessTokenPayload: AccessTokenPayload, id: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check if admin has subscription
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const payment = await this.prisma.payment.findFirst({
       where: {
@@ -123,11 +121,14 @@ export class PaymentsService {
     return payment;
   }
 
-  // * Get all Payments
+  // * Get all Payments (Member)
   async findAllPaymentsMember(memberId: string, page: number, limit: number) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
     await this.accessesService.validateMemberAccountAndMembership(
@@ -181,11 +182,14 @@ export class PaymentsService {
     return payments;
   }
 
-  // * Get one payment
+  // * Get one payment (Member)
   async findOnePaymentMember(memberId: string, id: string) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
     await this.accessesService.validateMemberAccountAndMembership(
