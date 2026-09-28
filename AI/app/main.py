@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app import agent, config, db, rag
-from app.auth import User, current_user, rate_limited_user
+from app import agent, config, db, rag, sentiment
+from app.auth import User, current_user, rate_limited_user, require_api_key
 
 app = FastAPI(title="Gym AI service")
 
@@ -137,3 +137,17 @@ def delete_document(filename: str, user: User = Depends(current_user)):
         raise HTTPException(404, "No such document")
     rag.remove_document(user.admin_id, filename)
     return {"deleted": filename}
+
+
+class SentimentRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+
+
+# called by the backend when a member leaves feedback; it stores the result (we can't write)
+@app.post("/internal/sentiment", dependencies=[Depends(require_api_key)])
+def classify_sentiment(body: SentimentRequest):
+    try:
+        return sentiment.classify(body.text)
+    except Exception:
+        logging.exception("sentiment failed")
+        raise HTTPException(502, "Sentiment analysis is unavailable right now")
