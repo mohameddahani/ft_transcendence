@@ -134,12 +134,11 @@ export class WorkingHoursService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
@@ -160,12 +159,11 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     workingHourId: string,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
@@ -186,11 +184,11 @@ export class WorkingHoursService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
@@ -215,11 +213,11 @@ export class WorkingHoursService {
 
   // * Get One Working Hour By (Member)
   async findOneWorkingHourByMember(memberId: string, workingHourId: string) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
@@ -497,12 +495,11 @@ export class WorkingHoursService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
@@ -523,12 +520,11 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     specialHourId: string,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
@@ -549,11 +545,11 @@ export class WorkingHoursService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
@@ -578,11 +574,11 @@ export class WorkingHoursService {
 
   // * Get One Special Hour (Member)
   async findOneSpecialHourByMember(memberId: string, specialHourId: string) {
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
