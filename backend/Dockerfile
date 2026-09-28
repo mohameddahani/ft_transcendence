@@ -4,25 +4,23 @@
 # deps: install All dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma
-COPY backend/prisma.config.ts ./
+COPY package*.json ./
 RUN npm ci
-RUN npx prisma generate
 
 # build: compile source files to dist
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps ./app/node_modules ./node_modules
-COPY backend/ .
+COPY . .
+RUN npx prisma generate
 RUN npm run build
 
 # prod-deps: install ONLY production dependencies
 FROM node:20-alpine AS prod-deps
 WORKDIR /app
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma
-COPY backend/prisma.config.ts ./
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN npm ci --omit=dev
 RUN npx prisma generate
 
@@ -33,13 +31,13 @@ WORKDIR /app
 COPY --from=build ./app/dist ./dist
 COPY --from=build ./app/prisma ./prisma
 COPY --from=prod-deps ./app/node_modules ./node_modules
-COPY backend/prisma.config.ts ./
-COPY backend/package*.json ./
-COPY devops/scripts/backend-entrypoint.sh /usr/local/bin/backend-entrypoint.sh
+COPY prisma.config.ts ./
+COPY package*.json ./
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN chmod +x /usr/local/bin/backend-entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 3000
 
-ENTRYPOINT ["/usr/local/bin/backend-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["node", "dist/src/main"]
