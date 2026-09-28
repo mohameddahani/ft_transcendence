@@ -86,6 +86,19 @@ export class MembershipsService {
 
   // * Get Membership of Member
   async findMyMembership(memberId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
     // * Check membership is exist
     const memberships = await this.prisma.membership.findFirst({
       where: {
@@ -110,6 +123,19 @@ export class MembershipsService {
 
   // * Get All Memberships of Member
   async findAllMemberships(memberId: string, page: number, limit: number) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
     const memberships = await this.prisma.membership.findMany({
       where: {
         memberId: memberId,
