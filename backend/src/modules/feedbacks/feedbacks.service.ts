@@ -161,6 +161,9 @@ export class FeedbacksService {
 
   // * Like a Feedback (Member)
   async createLikeByMember(memberId: string, data: CreateFeedbackLikeDto) {
+    // * Check If The Member Has Permissions
+    await this.checkIfTheMemberHasPermissions(memberId);
+
     // * Check if feedback is exist
     await this.findOneFeedbackByMember(memberId, data.feedbackId);
 
@@ -189,6 +192,9 @@ export class FeedbacksService {
 
   // * Remove Like a Feedback (Member)
   async removeLikeByMember(memberId: string, data: RemoveFeedbackLikeDto) {
+    // * Check If The Member Has Permissions
+    await this.checkIfTheMemberHasPermissions(memberId);
+
     // * Check if feedback is exist
     await this.findOneFeedbackByMember(memberId, data.feedbackId);
 
@@ -219,6 +225,9 @@ export class FeedbacksService {
 
   // * Delete Feedback (Member)
   async removeFeedbackByMember(memberId: string, feedbackId: string) {
+    // * Check If The Member Has Permissions
+    await this.checkIfTheMemberHasPermissions(memberId);
+
     // * Check if this feedback already exist
     const feedback = await this.findOneFeedbackByMember(memberId, feedbackId);
 
@@ -239,12 +248,11 @@ export class FeedbacksService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const feedbacks = await this.prisma.feedback.findMany({
       where: {
@@ -299,12 +307,11 @@ export class FeedbacksService {
     accessTokenPayload: AccessTokenPayload,
     feedbackId: string,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const feedback = await this.prisma.feedback.findFirst({
       where: {
@@ -355,6 +362,9 @@ export class FeedbacksService {
     feedbackId: string,
     data: UpdateFeedbackStatusDto,
   ) {
+    // * Check Authorize Admin or Staff Access
+    await this.accessesService.authorizeAdminOrStaffAccess(accessTokenPayload);
+
     // * Check this feedback is exist
     await this.findOneFeedback(accessTokenPayload, feedbackId);
 
