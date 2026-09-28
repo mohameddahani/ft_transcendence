@@ -31,6 +31,20 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+  
+  frontend:
+    build:
+      context: ../owner-platform
+      dockerfile: ./Dockerfile
+    image: frontend:latest
+    container_name: frontend_container
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - backend
 
   redis:
     image: redis:7-alpine
