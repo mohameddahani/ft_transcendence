@@ -233,19 +233,19 @@ export default function ActivateSubscriptionModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-activate-sub-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-layout-margin"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-3 sm:p-layout-margin"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative bg-surface-container-high border border-outline-variant w-full max-w-lg shadow-2xl rounded-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-surface-container-high border border-outline-variant w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="p-layout-margin border-b border-outline-variant flex justify-between items-center bg-surface-container-highest">
+        <div className="p-3.5 sm:p-layout-margin border-b border-outline-variant flex justify-between items-center bg-surface-container-highest shrink-0">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-5 text-primary" />
+            <Sparkles className="size-5 text-primary shrink-0" />
             <h3
               id="modal-activate-sub-title"
-              className="font-headline-md text-headline-md text-on-surface font-semibold"
+              className="font-headline-md text-sm sm:text-headline-md text-on-surface font-semibold"
             >
               Activate Subscription
             </h3>
@@ -253,7 +253,7 @@ export default function ActivateSubscriptionModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded hover:bg-surface-container cursor-pointer"
+            className="text-on-surface-variant hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="size-5" />
@@ -261,7 +261,7 @@ export default function ActivateSubscriptionModal({
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-layout-margin space-y-layout-margin">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-layout-margin space-y-4 sm:space-y-layout-margin flex-1 overflow-y-auto flex flex-col">
           {/* Target User Autocomplete / Searchable Dropdown */}
           <div className="space-y-unit relative" ref={dropdownRef}>
             <div className="flex justify-between items-center">
@@ -496,12 +496,12 @@ export default function ActivateSubscriptionModal({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-container-padding pt-container-padding border-t border-outline-variant">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-container-padding pt-3 sm:pt-container-padding border-t border-outline-variant mt-auto shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-layout-margin py-unit font-headline-sm text-headline-sm text-on-surface-variant hover:bg-surface-container rounded transition-colors cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto px-4 py-2 font-headline-sm text-headline-sm text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors cursor-pointer disabled:opacity-50 text-center"
             >
               Cancel
             </button>
@@ -513,7 +513,7 @@ export default function ActivateSubscriptionModal({
                 availableDurations.length === 0 ||
                 !currentUserName
               }
-              className="bg-primary text-on-primary px-layout-margin py-unit font-headline-sm text-headline-sm rounded hover:brightness-110 active:opacity-80 transition-all shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto bg-primary text-on-primary px-layout-margin py-2.5 font-headline-sm text-headline-sm rounded-lg hover:brightness-110 active:opacity-80 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               <span>{isSubmitting ? "Activating..." : "Confirm Activation"}</span>

@@ -62,24 +62,24 @@ export default function AddDurationModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-add-duration-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm px-layout-margin"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-3 sm:p-layout-margin"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-surface-container-high border border-outline-variant w-full max-w-md overflow-hidden shadow-2xl rounded-xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-surface-container-high border border-outline-variant w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden shadow-2xl rounded-xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="p-container-padding border-b border-outline-variant flex justify-between items-center bg-surface-container-highest">
+        <div className="p-3.5 sm:p-container-padding border-b border-outline-variant flex justify-between items-center bg-surface-container-highest shrink-0">
           <div className="flex items-center gap-2">
-            <Clock className="size-5 text-primary" />
-            <h2 id="modal-add-duration-title" className="font-headline-md text-headline-md text-on-surface font-bold">
+            <Clock className="size-5 text-primary shrink-0" />
+            <h2 id="modal-add-duration-title" className="font-headline-md text-sm sm:text-headline-md text-on-surface font-bold">
               Add Pricing Duration
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded hover:bg-surface-container-high cursor-pointer"
+            className="text-on-surface-variant hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container-high cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="size-5" />
@@ -87,15 +87,15 @@ export default function AddDurationModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="p-layout-margin space-y-layout-margin">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <div className="p-4 sm:p-layout-margin space-y-4 sm:space-y-layout-margin overflow-y-auto flex-1">
             <div>
               <p className="text-body-sm text-on-surface-variant mb-3">
                 Adding duration to plan:{" "}
                 <span className="font-bold text-primary">{plan.planName}</span>
               </p>
 
-              <div className="grid grid-cols-2 gap-container-padding">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
                 <div>
                   <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
                     Duration (Days)
@@ -138,19 +138,19 @@ export default function AddDurationModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-container-padding bg-surface-container-highest border-t border-outline-variant flex justify-end items-center gap-container-padding">
+          <div className="p-3 sm:p-container-padding bg-surface-container-highest border-t border-outline-variant flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-2 sm:gap-container-padding shrink-0">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors px-3 py-1.5 rounded hover:bg-surface-container-high cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto font-body-md text-body-md text-on-surface-variant hover:text-on-surface transition-colors px-4 py-2 rounded-lg hover:bg-surface-container-high cursor-pointer disabled:opacity-50 text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-primary text-on-primary px-layout-margin py-2 rounded-lg font-headline-sm text-headline-sm hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto bg-primary text-on-primary px-layout-margin py-2.5 rounded-lg font-headline-sm text-headline-sm hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="size-4 animate-spin" />}
               <span>{isSubmitting ? "Adding..." : "Add Duration"}</span>

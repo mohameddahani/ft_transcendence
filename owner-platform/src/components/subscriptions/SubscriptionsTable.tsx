@@ -168,7 +168,7 @@ export default function SubscriptionsTable() {
   return (
     <div className="space-y-layout-margin animate-in fade-in duration-200">
       {/* Page Header & Action */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end gap-3 sm:gap-4">
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
             Platform Subscriptions
@@ -179,7 +179,7 @@ export default function SubscriptionsTable() {
         </div>
         <button
           onClick={() => setIsActivateModalOpen(true)}
-          className="bg-primary text-on-primary px-layout-margin py-unit h-row-height-md flex items-center gap-element-gap font-headline-sm text-headline-sm rounded hover:brightness-110 active:opacity-80 transition-all shadow-md cursor-pointer shrink-0"
+          className="bg-primary text-on-primary px-layout-margin py-unit h-row-height-md flex items-center justify-center gap-element-gap font-headline-sm text-headline-sm rounded hover:brightness-110 active:opacity-80 transition-all shadow-md cursor-pointer shrink-0 w-full sm:w-auto"
         >
           <Plus className="size-4" />
           <span>Activate Subscription</span>
@@ -187,7 +187,7 @@ export default function SubscriptionsTable() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-surface-container border border-outline-variant p-container-padding flex flex-col md:flex-row gap-4 items-stretch md:items-center rounded-lg">
+      <div className="bg-surface-container border border-outline-variant p-3 sm:p-container-padding flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center rounded-lg">
         {/* Search Input */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-on-surface-variant/60" />
@@ -203,50 +203,161 @@ export default function SubscriptionsTable() {
           />
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-element-gap">
-          <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap">
-            Status
-          </label>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-surface-container-high border border-outline-variant rounded px-container-padding py-1.5 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PENDING">Pending</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        </div>
+        {/* Filters Group (Status & Sort) */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4">
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap hidden sm:inline">
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-auto bg-surface-container-high border border-outline-variant rounded px-2 sm:px-container-padding py-1.5 font-body-md text-xs sm:text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
 
-        {/* Sort Filter */}
-        <div className="flex items-center gap-element-gap">
-          <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap">
-            Sort By
-          </label>
-          <select
-            value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="bg-surface-container-high border border-outline-variant rounded px-container-padding py-1.5 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-          >
-            <option value="latest-start">Latest Start</option>
-            <option value="renewal-date">Renewal Date</option>
-            <option value="company-az">Company A-Z</option>
-          </select>
+          {/* Sort Filter */}
+          <div className="flex items-center gap-2">
+            <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap hidden sm:inline">
+              Sort By
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-auto bg-surface-container-high border border-outline-variant rounded px-2 sm:px-container-padding py-1.5 font-body-md text-xs sm:text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="latest-start">Latest Start</option>
+              <option value="renewal-date">Renewal Date</option>
+              <option value="company-az">Company A-Z</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Data Grid / Table */}
+      {/* Subscriptions List / Table Container */}
       <div className="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Cards */}
+        <div className="block md:hidden divide-y divide-outline-variant">
+          {loading ? (
+            <div className="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
+              <Loader2 className="size-6 animate-spin text-primary" />
+              <span className="font-body-md text-body-md">Loading subscriptions...</span>
+            </div>
+          ) : subscriptions.length === 0 ? (
+            <div className="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+              <Building2 className="size-10 text-on-surface-variant/40" />
+              <p className="font-headline-sm text-on-surface font-semibold">
+                No subscriptions found
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                {searchQuery || statusFilter !== "ALL"
+                  ? "Try adjusting your search criteria or filter options."
+                  : "Click 'Activate Subscription' above to provision your first gym license."}
+              </p>
+            </div>
+          ) : (
+            subscriptions.map((sub) => {
+              const expired = isExpired(sub.expiresAt, sub.subscriptionStatus);
+
+              return (
+                <div key={sub.id} className="p-4 space-y-3 bg-surface hover:bg-surface-container-high transition-colors">
+                  {/* Card Header: Company, username, and status badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/admins/${sub.userId}`}
+                        className="font-bold text-on-surface hover:text-primary transition-colors flex items-center gap-1.5 truncate"
+                      >
+                        <span className="truncate">{sub.user?.companyName || "Independent Club"}</span>
+                        <ExternalLink className="size-3 shrink-0 opacity-40 hover:opacity-100" />
+                      </Link>
+                      <span className="font-mono-data text-xs text-on-surface-variant block truncate">
+                        @{sub.user?.userName || sub.userId.slice(0, 8)}
+                      </span>
+                    </div>
+                    <div className="shrink-0">{getStatusBadge(sub.subscriptionStatus)}</div>
+                  </div>
+
+                  {/* Plan & Pricing */}
+                  <div className="bg-surface-container p-2.5 rounded border border-outline-variant/60 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-medium text-on-surface block text-sm">
+                        {sub.plan?.planName || "Custom Plan"}
+                      </span>
+                      {sub.planDuration && (
+                        <span className="text-on-surface-variant font-mono-data text-[11px]">
+                          {sub.planDuration.durationDays} Days duration
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-on-surface text-sm">
+                        ${Number(sub.amount).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Dates Row */}
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono-data">
+                    <div className="bg-surface-container-high/60 p-2 rounded">
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Start Date
+                      </span>
+                      <span className="text-on-surface-variant">
+                        {formatDate(sub.startedAt)}
+                      </span>
+                    </div>
+                    <div className="bg-surface-container-high/60 p-2 rounded">
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Renewal Date
+                      </span>
+                      <span className={expired ? "text-error font-semibold" : "text-on-surface"}>
+                        {formatDate(sub.expiresAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-outline-variant/40">
+                    {sub.subscriptionStatus === "ACTIVE" && (
+                      <button
+                        onClick={() => setSubToCancel(sub)}
+                        title="Cancel Subscription"
+                        className="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <Ban className="size-3" />
+                        <span>Cancel</span>
+                      </button>
+                    )}
+                    <Link
+                      href={`/admins/${sub.userId}`}
+                      title="View Owner Details"
+                      className="text-xs text-on-surface-variant hover:text-primary bg-surface-container-high hover:bg-surface-variant border border-outline-variant px-3 py-1.5 rounded transition-colors"
+                    >
+                      Details
+                    </Link>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-high border-b border-outline-variant">
@@ -390,9 +501,9 @@ export default function SubscriptionsTable() {
         </div>
 
         {/* Pagination Bar */}
-        <div className="bg-surface-container border-t border-outline-variant px-layout-margin py-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-4">
-            <span className="font-body-sm text-body-sm text-on-surface-variant font-mono-data">
+        <div className="bg-surface-container border-t border-outline-variant p-3 sm:px-layout-margin sm:py-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4">
+            <span className="font-body-sm text-xs sm:text-body-sm text-on-surface-variant font-mono-data text-center sm:text-left">
               Showing{" "}
               {totalSubscriptions === 0
                 ? 0
@@ -432,7 +543,7 @@ export default function SubscriptionsTable() {
               <ChevronLeft className="size-4" />
             </button>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-wrap justify-center">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
@@ -472,19 +583,19 @@ export default function SubscriptionsTable() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-layout-margin"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-background/80 backdrop-blur-sm p-3 sm:p-layout-margin overflow-y-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget && !isCancelling) setSubToCancel(null);
           }}
         >
-          <div className="bg-surface-container-high border border-outline-variant w-full max-w-md shadow-2xl rounded-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-container-padding border-b border-outline-variant flex items-center gap-2 bg-surface-container-highest">
+          <div className="bg-surface-container-high border border-outline-variant w-full max-w-md shadow-2xl rounded-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
+            <div className="p-3 sm:p-container-padding border-b border-outline-variant flex items-center gap-2 bg-surface-container-highest shrink-0">
               <AlertTriangle className="size-5 text-red-400" />
               <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">
                 Cancel Subscription
               </h3>
             </div>
-            <div className="p-layout-margin space-y-3">
+            <div className="p-4 sm:p-layout-margin space-y-3 overflow-y-auto flex-1">
               <p className="font-body-md text-on-surface">
                 Are you sure you want to cancel the active subscription for:
               </p>
@@ -503,12 +614,12 @@ export default function SubscriptionsTable() {
                 This will revoke subscription access immediately. This action cannot be undone.
               </p>
             </div>
-            <div className="p-container-padding bg-surface-container-highest border-t border-outline-variant flex justify-end gap-3">
+            <div className="p-3 sm:p-container-padding bg-surface-container-highest border-t border-outline-variant flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setSubToCancel(null)}
                 disabled={isCancelling}
-                className="px-3 py-1.5 rounded font-body-md text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-3 py-1.5 rounded font-body-md text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50 text-center"
               >
                 Keep Active
               </button>
@@ -516,7 +627,7 @@ export default function SubscriptionsTable() {
                 type="button"
                 onClick={handleConfirmCancel}
                 disabled={isCancelling}
-                className="bg-error text-on-error px-4 py-1.5 rounded font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto justify-center bg-error text-on-error px-4 py-1.5 rounded font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isCancelling && <Loader2 className="size-4 animate-spin" />}
                 <span>{isCancelling ? "Cancelling..." : "Confirm Cancellation"}</span>

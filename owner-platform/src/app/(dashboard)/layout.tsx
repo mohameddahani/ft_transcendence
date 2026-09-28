@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import TopNavBar from "@/components/admins/TopNavBar";
 import SideNavBar from "@/components/admins/SideNavBar";
 import ToastProvider from "@/components/providers/ToastProvider";
+import DashboardShell from "@/components/layout/DashboardShell";
 import { parseJwtPayload, isAdminUser } from "@/lib/auth";
 
 export default async function DashboardLayout({
@@ -23,21 +24,21 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface font-body-md selection:bg-primary selection:text-on-primary">
+    <DashboardShell>
       {/* Single persistent Top Navigation Bar */}
       <TopNavBar />
 
-      {/* Single persistent Sidebar Navigation */}
+      {/* Persistent Sidebar (desktop) & Off-canvas drawer (mobile) */}
       <SideNavBar />
 
       {/* Main Content Area */}
-      <main className="ml-64 mt-[40px] p-layout-margin min-h-[calc(100vh-40px)] overflow-y-auto">
+      <main className="ml-0 md:ml-64 mt-[48px] sm:mt-[40px] p-3 sm:p-5 md:p-layout-margin min-h-[calc(100vh-48px)] sm:min-h-[calc(100vh-40px)] overflow-x-hidden">
         {children}
       </main>
 
       {/* Global Toast Container */}
       <ToastProvider />
-    </div>
+    </DashboardShell>
   );
 }
 

@@ -35,3 +35,15 @@ export function isAdminUser(
 ): boolean {
   return isOwnerUser(userOrPayload);
 }
+
+export function isTokenExpired(
+  tokenOrPayload?: string | TokenPayload | null
+): boolean {
+  if (!tokenOrPayload) return true;
+  const payload =
+    typeof tokenOrPayload === "string"
+      ? parseJwtPayload(tokenOrPayload)
+      : tokenOrPayload;
+  if (!payload || !payload.exp) return false;
+  return Math.floor(Date.now() / 1000) >= payload.exp;
+}

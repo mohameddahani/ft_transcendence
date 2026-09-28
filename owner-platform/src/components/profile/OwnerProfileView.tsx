@@ -212,11 +212,11 @@ export default function OwnerProfileView() {
       </div>
 
       {/* Hero / Avatar Card */}
-      <div className="bg-surface-container border border-outline-variant rounded-xl p-layout-margin flex flex-col md:flex-row items-center md:items-start justify-between gap-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+      <div className="bg-surface-container border border-outline-variant rounded-xl p-4 sm:p-layout-margin flex flex-col md:flex-row items-center md:items-start justify-between gap-5 sm:gap-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full md:w-auto">
           {/* Avatar Container with Upload Overlay */}
-          <div className="relative group">
-            <div className="w-24 h-24 rounded-full bg-secondary-container border-2 border-outline-variant flex items-center justify-center overflow-hidden shadow-md">
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-secondary-container border-2 border-outline-variant flex items-center justify-center overflow-hidden shadow-md">
               {hasCustomAvatar ? (
                 <img
                   src={profile?.profileImageUrl}
@@ -224,7 +224,7 @@ export default function OwnerProfileView() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="size-12 text-on-secondary-container" />
+                <User className="size-10 sm:size-12 text-on-secondary-container" />
               )}
             </div>
 
@@ -257,9 +257,9 @@ export default function OwnerProfileView() {
           />
 
           {/* Owner Identity Summary */}
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+              <h2 className="font-headline-md text-lg sm:text-headline-md text-on-surface font-bold">
                 {profile?.firstName} {profile?.lastName}
               </h2>
               <span className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full text-[11px] font-label-caps font-bold">
@@ -271,43 +271,40 @@ export default function OwnerProfileView() {
             <p className="font-mono-data text-body-sm text-primary">@{profile?.userName}</p>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-on-surface-variant pt-1">
-              <span className="flex items-center gap-1">
-                <Building2 className="size-3.5" />
-                {profile?.companyName}
+              <span className="flex items-center gap-1 truncate">
+                <Building2 className="size-3.5 shrink-0" />
+                <span className="truncate">{profile?.companyName}</span>
               </span>
-              <span className="flex items-center gap-1">
-                <Mail className="size-3.5" />
-                {profile?.email}
+              <span className="flex items-center gap-1 truncate">
+                <Mail className="size-3.5 shrink-0" />
+                <span className="truncate">{profile?.email}</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* Avatar Actions */}
-        <div className="flex items-center gap-2">
-        <button
-  type="button"
-  onClick={() => {
-    console.log(fileInputRef.current?.click());
-    fileInputRef.current?.click();
-  }}
-  disabled={uploadingImage}
-  className="bg-surface-container-high hover:bg-surface-variant border border-outline-variant text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
->
-  {uploadingImage ? (
-    <Loader2 className="size-3.5 animate-spin text-primary" />
-  ) : (
-    <Camera className="size-3.5 text-primary" />
-  )}
-  <span>{uploadingImage ? "Uploading..." : "Upload Photo"}</span>
-</button>
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-outline-variant/40">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingImage}
+            className="flex-1 sm:flex-initial justify-center bg-surface-container-high hover:bg-surface-variant border border-outline-variant text-on-surface px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {uploadingImage ? (
+              <Loader2 className="size-3.5 animate-spin text-primary" />
+            ) : (
+              <Camera className="size-3.5 text-primary" />
+            )}
+            <span>{uploadingImage ? "Uploading..." : "Upload Photo"}</span>
+          </button>
 
           {hasCustomAvatar && (
             <button
               type="button"
               onClick={() => setShowDeleteModal(true)}
               disabled={deletingImage}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="flex-1 sm:flex-initial justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-body-sm font-medium transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
               title="Remove custom profile picture"
             >
               <Trash2 className="size-3.5" />
@@ -318,10 +315,10 @@ export default function OwnerProfileView() {
       </div>
 
       {/* Main Grid: Edit Profile Form & Account Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-layout-margin items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-layout-margin items-start">
         {/* Left Column (2 spans): Edit Profile Form */}
-        <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-layout-margin shadow-sm">
-          <div className="border-b border-outline-variant pb-3 mb-layout-margin">
+        <div className="lg:col-span-2 bg-surface-container border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm">
+          <div className="border-b border-outline-variant pb-3 mb-4 sm:mb-layout-margin">
             <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold">
               Personal Information
             </h3>
@@ -512,12 +509,12 @@ export default function OwnerProfileView() {
             </div>
 
             {/* Form Actions */}
-            <div className="pt-4 border-t border-outline-variant flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-outline-variant flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => fetchProfile()}
                 disabled={isSubmitting || !isDirty}
-                className="px-4 py-2 rounded-lg font-body-md text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+                className="w-full sm:w-auto justify-center px-4 py-2 rounded-lg font-body-md text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
               >
                 <RotateCcw className="size-4" />
                 <span>Discard</span>
@@ -525,7 +522,7 @@ export default function OwnerProfileView() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-primary text-on-primary px-layout-margin py-2 rounded-lg font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto justify-center bg-primary text-on-primary px-layout-margin py-2.5 rounded-lg font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -539,9 +536,9 @@ export default function OwnerProfileView() {
         </div>
 
         {/* Right Column (1 span): System Identity & Account Security */}
-        <div className="space-y-layout-margin">
+        <div className="space-y-4 sm:space-y-layout-margin">
           {/* System Identity Card */}
-          <div className="bg-surface-container border border-outline-variant rounded-xl p-layout-margin shadow-sm space-y-4">
+          <div className="bg-surface-container border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm space-y-4">
             <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold border-b border-outline-variant pb-2">
               System Identity
             </h3>
@@ -609,19 +606,19 @@ export default function OwnerProfileView() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 backdrop-blur-sm p-layout-margin"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-background/80 backdrop-blur-sm p-3 sm:p-layout-margin"
           onClick={(e) => {
             if (e.target === e.currentTarget && !deletingImage) setShowDeleteModal(false);
           }}
         >
-          <div className="bg-surface-container-high border border-outline-variant w-full max-w-md shadow-2xl rounded-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-container-padding border-b border-outline-variant flex items-center gap-2 bg-surface-container-highest">
-              <AlertTriangle className="size-5 text-red-400" />
-              <h3 className="font-headline-md text-headline-md text-on-surface font-semibold">
+          <div className="bg-surface-container-high border border-outline-variant w-full max-w-md max-h-[92vh] flex flex-col shadow-2xl rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-3.5 sm:p-container-padding border-b border-outline-variant flex items-center gap-2 bg-surface-container-highest shrink-0">
+              <AlertTriangle className="size-5 text-red-400 shrink-0" />
+              <h3 className="font-headline-md text-sm sm:text-headline-md text-on-surface font-semibold">
                 Remove Profile Picture
               </h3>
             </div>
-            <div className="p-layout-margin space-y-3">
+            <div className="p-4 sm:p-layout-margin space-y-3 overflow-y-auto flex-1">
               <p className="font-body-md text-on-surface">
                 Are you sure you want to remove your profile picture?
               </p>
@@ -630,12 +627,12 @@ export default function OwnerProfileView() {
                 anytime.
               </p>
             </div>
-            <div className="p-container-padding bg-surface-container-highest border-t border-outline-variant flex justify-end gap-3">
+            <div className="p-3 sm:p-container-padding bg-surface-container-highest border-t border-outline-variant flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 items-stretch sm:items-center shrink-0">
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deletingImage}
-                className="px-3 py-1.5 rounded font-body-md text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2 rounded-lg font-body-md text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-50 text-center"
               >
                 Keep Image
               </button>
@@ -643,7 +640,7 @@ export default function OwnerProfileView() {
                 type="button"
                 onClick={handleConfirmDeleteImage}
                 disabled={deletingImage}
-                className="bg-error text-on-error px-4 py-1.5 rounded font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto bg-error text-on-error px-4 py-2.5 rounded-lg font-headline-sm text-headline-sm hover:brightness-110 active:opacity-80 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {deletingImage && <Loader2 className="size-4 animate-spin" />}
                 <span>{deletingImage ? "Removing..." : "Confirm Removal"}</span>
