@@ -17,13 +17,13 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     image: backend:latest
     container_name: backend_container
     restart: unless-stopped
     env_file:
-    - ../backend/.env
+      - ../backend/.env
     networks:
       - ft_transcendence-net
     depends_on:
@@ -35,7 +35,7 @@ services:
   frontend:
     build:
       context: ../owner-platform
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     image: frontend:latest
     container_name: frontend_container
     restart: unless-stopped
