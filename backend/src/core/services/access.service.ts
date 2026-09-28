@@ -84,8 +84,8 @@ export class AccessesService {
   ) {
     const membership = await this.prisma.membership.findFirst({
       where: {
-        adminId,
-        memberId,
+        adminId: adminId,
+        memberId: memberId,
         membershipStatus: MembershipStatus.ACTIVE,
         expiresAt: { gt: checkDate },
       },

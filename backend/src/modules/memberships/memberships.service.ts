@@ -17,12 +17,11 @@ export class MembershipsService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check if admin has subscription
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const memberships = await this.prisma.membership.findMany({
       where: {
@@ -53,12 +52,11 @@ export class MembershipsService {
 
   // * Get One Membership
   async findOne(accessTokenPayload: AccessTokenPayload, membershipId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check if admin has subscription
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const membership = await this.prisma.membership.findFirst({
       where: {
