@@ -1,14 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, clearToken, getMe, getThread, saveToken, streamChat, type Me, type Role } from "@/lib/assistant/api";
 
 type Message = { role: "user" | "model"; text: string; tools: string[] };
 
 const SUGGESTIONS: Record<Role, string[]> = {
-  ADMIN: ["How is the gym doing today?", "Who expires this week?", "How much did we make last month?"],
-  STAFF: ["Who expires this week?", "Who hasn't come for 3 weeks?", "Show me the negative feedback"],
-  MEMBER: ["When does my membership end?", "How many times did I come this month?", "Show my payments"],
+  ADMIN: ["How is the gym doing today?", "Who expires this week?", "How much did we make last month?",
+          "How many days notice do members need to cancel?"],
+  STAFF: ["Who expires this week?", "Who hasn't come for 3 weeks?", "Show me the negative feedback",
+          "What discount can I give at reception?"],
+  MEMBER: ["When does my membership end?", "How many times did I come this month?",
+           "What are the opening hours on Sunday?", "Can I bring a friend?"],
 };
 const ROLE_LABEL: Record<Role, string> = { ADMIN: "Owner", STAFF: "Staff", MEMBER: "Member" };
 
@@ -112,9 +116,14 @@ export default function AssistantPanel() {
           <h1 className="font-semibold">{me.gym_name} assistant</h1>
           <p className="text-xs text-neutral-500">{ROLE_LABEL[me.role]} view</p>
         </div>
-        <button onClick={newChat} disabled={busy} className="rounded-md border px-3 py-1 text-sm disabled:opacity-50">
-          New chat
-        </button>
+        <div className="flex items-center gap-3">
+          {me.role === "ADMIN" && (
+            <Link href="/assistant/documents" className="text-sm text-blue-600 hover:underline">Documents</Link>
+          )}
+          <button onClick={newChat} disabled={busy} className="rounded-md border px-3 py-1 text-sm disabled:opacity-50">
+            New chat
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">

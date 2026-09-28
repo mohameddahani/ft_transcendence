@@ -4,15 +4,18 @@ const TOKEN_KEY = "access_token"; // the same key the login page stores the back
 export type Role = "ADMIN" | "STAFF" | "MEMBER";
 export type Me = { role: Role; gym_name: string };
 export type SavedMessage = { role: "user" | "model"; text: string };
+export type DocumentInfo = { filename: string; visibility: "member" | "staff"; chunks: number };
 
 export class ApiError extends Error {
   status: number;
   retryAfter: number;
+  detail: string; // the server's own explanation, when it gives one
 
-  constructor(status: number, retryAfter: number) {
+  constructor(status: number, retryAfter: number, detail: string) {
     super(`HTTP ${status}`);
     this.status = status;
     this.retryAfter = retryAfter;
+    this.detail = detail;
   }
 }
 
@@ -20,15 +23,14 @@ export const saveToken = (token: string) => localStorage.setItem(TOKEN_KEY, toke
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
 async function call(path: string, init: RequestInit = {}): Promise<Response> {
-  const response = await fetch(AI_URL + path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY) ?? ""}`,
-    },
-  });
+  const headers: Record<string, string> = { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY) ?? ""}` };
+  // a file upload (FormData) must let the browser set its own Content-Type
+  if (typeof init.body === "string") headers["Content-Type"] = "application/json";
+  const response = await fetch(AI_URL + path, { ...init, headers });
   if (!response.ok) {
-    throw new ApiError(response.status, Number(response.headers.get("Retry-After") ?? 0));
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(response.status, Number(response.headers.get("Retry-After") ?? 0),
+                       typeof body.detail === "string" ? body.detail : "");
   }
   return response;
 }
@@ -39,6 +41,21 @@ export async function getMe(): Promise<Me> {
 
 export async function getThread(threadId: string): Promise<SavedMessage[]> {
   return (await call(`/ai/threads/${threadId}`)).json();
+}
+
+export async function listDocuments(): Promise<DocumentInfo[]> {
+  return (await call("/ai/documents")).json();
+}
+
+export async function uploadDocument(file: File, visibility: string): Promise<DocumentInfo> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("visibility", visibility);
+  return (await call("/ai/documents", { method: "POST", body: form })).json();
+}
+
+export async function deleteDocument(filename: string): Promise<void> {
+  await call(`/ai/documents/${encodeURIComponent(filename)}`, { method: "DELETE" });
 }
 
 // reads the server-sent events of /ai/chat as they arrive and calls onEvent for each one
