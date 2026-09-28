@@ -27,7 +27,7 @@ import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
-export class MembershipPlansController {
+export class AdminMembershipPlansController {
   constructor(
     private readonly membershipPlansService: MembershipPlansService,
   ) {}
@@ -92,11 +92,7 @@ export class MembershipPlansController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.membershipPlansService.findAll(
-      accessTokenPayload.id,
-      page,
-      limit,
-    );
+    return this.membershipPlansService.findAll(accessTokenPayload, page, limit);
   }
 
   // * Get one membership Plan
@@ -106,6 +102,6 @@ export class MembershipPlansController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membershipPlansService.findOne(accessTokenPayload.id, id);
+    return this.membershipPlansService.findOne(accessTokenPayload, id);
   }
 }
