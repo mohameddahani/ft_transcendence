@@ -12,6 +12,7 @@ import {
   Package,
   Layers,
   CheckCircle2,
+  XCircle,
   AlertCircle,
   Loader2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import AddPlanModal from "./AddPlanModal";
 import EditPlanModal from "./EditPlanModal";
 import AddDurationModal from "./AddDurationModal";
 import EditDurationModal from "./EditDurationModal";
+import AnimatedCounter from "./AnimatedCounter";
 import { cn } from "@/lib/utils";
 
 export default function PlansDashboard() {
@@ -338,22 +340,24 @@ export default function PlansDashboard() {
                         disabled={togglingPlanId === plan.id}
                         onClick={() => handleToggleStatus(plan)}
                         className={cn(
-                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-                          plan.isActive ? "bg-primary" : "bg-surface-container-highest"
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 disabled:opacity-50",
+                          plan.isActive
+                            ? "bg-emerald-500 focus-visible:ring-emerald-400"
+                            : "bg-rose-500 focus-visible:ring-rose-400"
                         )}
                         title={`Click to set ${plan.isActive ? "Inactive" : "Active"}`}
                       >
                         <span
                           className={cn(
-                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-surface shadow-lg ring-0 transition duration-200 ease-in-out",
-                            plan.isActive ? "translate-x-4 bg-on-primary" : "translate-x-0 bg-on-surface-variant"
+                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out",
+                            plan.isActive ? "translate-x-4" : "translate-x-0"
                           )}
                         />
                       </button>
                       <span
                         className={cn(
                           "font-label-caps text-[10px] mt-1 font-bold tracking-wider",
-                          plan.isActive ? "text-primary" : "text-on-surface-variant"
+                          plan.isActive ? "text-emerald-400" : "text-rose-400"
                         )}
                       >
                         {plan.isActive ? "ACTIVE" : "INACTIVE"}
@@ -441,9 +445,21 @@ export default function PlansDashboard() {
                     type="button"
                     onClick={() => handleToggleStatus(plan)}
                     disabled={togglingPlanId === plan.id}
-                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface rounded cursor-pointer border border-transparent disabled:opacity-50"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-2 transition-all font-body-sm text-body-sm font-semibold rounded cursor-pointer border disabled:opacity-50",
+                      plan.isActive
+                        ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50"
+                        : "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+                    )}
+                    title={plan.isActive ? "Deactivate plan" : "Activate plan"}
                   >
-                    <CheckCircle2 className="size-3.5" />
+                    {togglingPlanId === plan.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : plan.isActive ? (
+                      <XCircle className="size-3.5 text-rose-400" />
+                    ) : (
+                      <CheckCircle2 className="size-3.5 text-emerald-400" />
+                    )}
                     <span>{plan.isActive ? "Deactivate" : "Activate"}</span>
                   </button>
                 </div>
@@ -460,7 +476,7 @@ export default function PlansDashboard() {
             TOTAL ACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-primary font-mono-data font-bold">
-            {String(stats.totalActive).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalActive} />
           </div>
         </div>
 
@@ -469,7 +485,7 @@ export default function PlansDashboard() {
             INACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-amber-400 font-mono-data font-bold">
-            {String(stats.totalInactive).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalInactive} />
           </div>
         </div>
 
@@ -487,7 +503,7 @@ export default function PlansDashboard() {
             CONFIGURED DURATIONS
           </div>
           <div className="font-headline-md text-headline-md text-on-surface font-mono-data font-bold">
-            {String(stats.totalDurations).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalDurations} />
           </div>
         </div>
       </div>
