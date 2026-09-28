@@ -7,14 +7,11 @@
 # ==============================================================================
 FROM node:20-alpine AS deps
 
-# libc6-compat is needed on Alpine for certain native Node.js modules
-RUN apk add --no-cache libc6-compat
-
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci
 
 # ==============================================================================
 # Stage 2: Build Next.js application
