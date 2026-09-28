@@ -42,16 +42,18 @@ export class VisitsService {
       );
     }
 
-    // * Get Admin Id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
     const membership =
       await this.accessesService.validateMemberAccountAndMembership(
         memberId,
         adminId,
-        data.visitDateAndTime,
       );
 
     // * Check Special Hours
@@ -219,9 +221,12 @@ export class VisitsService {
 
   // * Cancel A Visit
   async cancelVisit(memberId: string, visitId: string) {
-    // * Get Admin Id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
     await this.accessesService.validateMemberAccountAndMembership(
@@ -268,12 +273,11 @@ export class VisitsService {
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
 
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const visitsToday = await this.prisma.visit.findMany({
       where: {
@@ -315,12 +319,11 @@ export class VisitsService {
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
 
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const visitToday = await this.prisma.visit.findFirst({
       where: {
@@ -360,11 +363,11 @@ export class VisitsService {
   ) {
     const now = new Date();
 
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
@@ -416,11 +419,11 @@ export class VisitsService {
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
 
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
@@ -468,11 +471,11 @@ export class VisitsService {
     const startOfToday = startOfDay(now);
     const endOfToday = endOfDay(now);
 
-    // * Get Admin id
+    // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
-    // * Check that the admin account, subscription, and associated plan are active.
+    // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check that the member account and membership are active.
