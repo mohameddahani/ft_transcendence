@@ -248,6 +248,9 @@ export class StaffsService {
   // ! Change Status Staff
   // * Active a Staff
   async ActiveStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 
@@ -270,6 +273,9 @@ export class StaffsService {
 
   // * Pending a Staff
   async pendingStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 
@@ -302,6 +308,9 @@ export class StaffsService {
 
   // * Ban a Staff
   async banStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 
