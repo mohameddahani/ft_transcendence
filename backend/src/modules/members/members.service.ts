@@ -40,13 +40,11 @@ export class MembersService {
 
   // * Add Member by Admin or Staff
   async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    const subscription =
-      await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId, subscription } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Check if admin has place for new member
     // * Count Members
@@ -205,12 +203,11 @@ export class MembersService {
     memberId: string,
     data: UpdateMemberDto,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Check if we have member already in DB
     await this.findOne(accessTokenPayload, memberId);
@@ -332,12 +329,11 @@ export class MembersService {
 
   // * Active a Member
   async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -358,12 +354,11 @@ export class MembersService {
 
   // * Freeze a Member
   async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -391,12 +386,11 @@ export class MembersService {
 
   // * Ban a Member
   async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
@@ -422,12 +416,11 @@ export class MembersService {
     page: number,
     limit: number,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -466,12 +459,11 @@ export class MembersService {
 
   // * Get one Member
   async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     const member = await this.prisma.member.findFirst({
       where: {
