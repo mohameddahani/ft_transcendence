@@ -31,19 +31,19 @@ export class AttendancesService {
     accessTokenPayload: AccessTokenPayload,
     data: AttendanceManualCheckInDto,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
-
-    // * Check that the member account and membership are active.
+    // * Check that the member has an active account and membership.
     const membership =
       await this.accessesService.validateMemberAccountAndMembership(
         data.memberId,
         adminId,
       );
+
     return this.confirmCheckIn(
       accessTokenPayload,
       adminId,
@@ -58,12 +58,11 @@ export class AttendancesService {
     accessTokenPayload: AccessTokenPayload,
     data: AttendanceQrCheckInDto,
   ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminId(accessTokenPayload);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
 
     // * Hash the Token from Qr
     const qrTokenHash = createHash('sha256')
@@ -81,12 +80,13 @@ export class AttendancesService {
       throw new NotFoundException('Invalid QR code.');
     }
 
-    // * Chekc if Member has Membership
+    // * Check that the member has an active account and membership.
     const membership =
       await this.accessesService.validateMemberAccountAndMembership(
         visit.memberId,
         adminId,
       );
+
     return this.confirmCheckIn(
       accessTokenPayload,
       adminId,
@@ -95,6 +95,98 @@ export class AttendancesService {
       AttendanceMethod.QR_CODE,
       visit.id,
     );
+  }
+
+  // * Get All Attendances (Member)
+  async findAllAttendanceByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: { adminId: adminId, memberId: memberId },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        membership: true,
+        staff: {
+          select: safeStaffSelect,
+        },
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (attendances.length === 0) {
+      throw new NotFoundException('There is No Attendances To Show');
+    }
+
+    return attendances;
+  }
+
+  // * Get One Attendance (Member)
+  async findOneAttendanceByMember(memberId: string, attendanceId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const attendance = await this.prisma.attendance.findFirst({
+      where: {
+        id: attendanceId,
+        adminId: adminId,
+        memberId: memberId,
+      },
+      select: {
+        id: true,
+        admin: {
+          select: safeUserSelect,
+        },
+        membership: true,
+        staff: {
+          select: safeStaffSelect,
+        },
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('There is No Attendance To Show');
+    }
+
+    return attendance;
   }
 
   // ! Private
@@ -250,97 +342,5 @@ export class AttendancesService {
         },
       });
     });
-  }
-
-  // * Get All Attendances (Member)
-  async findAllAttendanceByMember(
-    memberId: string,
-    page: number,
-    limit: number,
-  ) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminIdFromMemberId(memberId);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
-
-    // * Check that the member account and membership are active.
-    await this.accessesService.validateMemberAccountAndMembership(
-      memberId,
-      adminId,
-    );
-
-    const attendances = await this.prisma.attendance.findMany({
-      where: { adminId: adminId, memberId: memberId },
-      skip: (page - 1) * limit,
-      take: limit,
-      select: {
-        id: true,
-        admin: {
-          select: safeUserSelect,
-        },
-        membership: true,
-        staff: {
-          select: safeStaffSelect,
-        },
-        visit: true,
-        attendanceMethod: true,
-        checkedInAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (attendances.length === 0) {
-      throw new NotFoundException('There is No Attendances To Show');
-    }
-
-    return attendances;
-  }
-
-  // * Get One Attendance (Member)
-  async findOneAttendanceByMember(memberId: string, attendanceId: string) {
-    // * Get Admin id
-    const adminId =
-      await this.accessesService.resolveAdminIdFromMemberId(memberId);
-
-    // * Check that the admin account, subscription, and associated plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
-
-    // * Check that the member account and membership are active.
-    await this.accessesService.validateMemberAccountAndMembership(
-      memberId,
-      adminId,
-    );
-
-    const attendance = await this.prisma.attendance.findFirst({
-      where: {
-        id: attendanceId,
-        adminId: adminId,
-        memberId: memberId,
-      },
-      select: {
-        id: true,
-        admin: {
-          select: safeUserSelect,
-        },
-        membership: true,
-        staff: {
-          select: safeStaffSelect,
-        },
-        visit: true,
-        attendanceMethod: true,
-        checkedInAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!attendance) {
-      throw new NotFoundException('There is No Attendance To Show');
-    }
-
-    return attendance;
   }
 }
