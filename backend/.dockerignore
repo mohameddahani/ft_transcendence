@@ -1,25 +1,24 @@
-backend/node_modules
-backend/dist
-backend/.gitignore
+node_modules
+dist
+.gitignore
 .git
 .gitignore
 
-backend/.env
-backend/.env.*
+.env
+.env.*
 
-backend/.prettierrc
+.prettierrc
 
-backned/Dockerfile
-backned/.dockerignore
-devops/docker-compose.yml
+Dockerfile
+.dockerignore
 
 frontend/
 
 *.log
 npm-debug*.log
 
-backend/test
-backend/tests
+test
+tests
 
 .vscode
 .idea
