@@ -21,6 +21,10 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { AccessesService } from '@/core/services/access.service';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
 @Injectable()
 export class StaffsService {
@@ -33,9 +37,9 @@ export class StaffsService {
 
   // * Add Staff by Admin
   async addStaff(adminId: string, data: AddStaffDto) {
-    // * Check if admin is has already a subscription
+    // * Check that the admin account, subscription, and associated plan are active.
     const subscription =
-      await this.accessesService.validateActiveSubscription(adminId);
+      await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if staff already exist
     const existingStaff = await this.prisma.staff.findFirst({
@@ -81,6 +85,8 @@ export class StaffsService {
         userName: userName,
         email: data.email,
         phoneNumber: data.phoneNumber,
+        profileImageUrl: DEFAULT_AVATARS.STAFF,
+        profileImagePublicId: DEFAULT_AVATARS_ID.STAFF,
         companyName: subscription.user.companyName,
       },
     });
@@ -121,8 +127,8 @@ export class StaffsService {
 
   // * Update Data of Staff
   async update(adminId: string, staffId: string, data: UpdateStaffDto) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if we have staff already in DB
     await this.findOne(adminId, staffId);
@@ -166,8 +172,8 @@ export class StaffsService {
 
   // * Get All Staffs
   async findAll(adminId: string, page: number, limit: number) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const staffs = await this.prisma.staff.findMany({
       where: {
@@ -204,8 +210,8 @@ export class StaffsService {
 
   // * Get One Staff
   async findOne(adminId: string, staffId: string) {
-    // * Check if admin is has already a subscription
-    await this.accessesService.validateActiveSubscription(adminId);
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const staff = await this.prisma.staff.findFirst({
       where: {
@@ -242,6 +248,9 @@ export class StaffsService {
   // ! Change Status Staff
   // * Active a Staff
   async ActiveStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 
@@ -264,6 +273,9 @@ export class StaffsService {
 
   // * Pending a Staff
   async pendingStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 
@@ -296,6 +308,9 @@ export class StaffsService {
 
   // * Ban a Staff
   async banStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     // * Check if Staff already exist
     const staff = await this.findOne(adminId, staffId);
 

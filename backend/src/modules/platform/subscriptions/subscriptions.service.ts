@@ -13,10 +13,14 @@ import {
 } from '@/generated/prisma/enums';
 import { addDays } from 'date-fns';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
+import { AccessesService } from '@/core/services/access.service';
 
 @Injectable()
 export class SubscriptionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessesService: AccessesService,
+  ) {}
 
   // * Active Subscription
   async activeSubscription(data: ActiveSubscriptionDto) {
@@ -78,7 +82,7 @@ export class SubscriptionsService {
       throw new NotFoundException('Duration does not exist for this plan');
     }
 
-    // * Check if admin is has already a subscription
+    // * Check that the admin account, subscription, and associated plan are active.
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: user.id,
@@ -222,6 +226,9 @@ export class SubscriptionsService {
 
   // * Get Subscription of Admin
   async findMySubscription(adminId: string) {
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         userId: adminId,
@@ -246,6 +253,9 @@ export class SubscriptionsService {
 
   // * Get All Subscriptions of Admin
   async findAllSubscriptions(adminId: string, page: number, limit: number) {
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
         userId: adminId,

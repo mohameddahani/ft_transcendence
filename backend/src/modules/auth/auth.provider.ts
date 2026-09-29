@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BadRequestException,
   Injectable,
@@ -32,8 +33,16 @@ import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
 import { LoginStaffDto } from './dtos/login-staff.dto';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
+import {
+  safeMemberSelect,
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 @Injectable()
 export class AuthProvider {
   constructor(
@@ -100,6 +109,8 @@ export class AuthProvider {
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
+        profileImageUrl: DEFAULT_AVATARS.ADMIN,
+        profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         companyName: data.companyName,
         termsAccepted: data.termsAccepted,
       },
@@ -145,6 +156,10 @@ export class AuthProvider {
     // * Check if user already exist by email before login
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
+      select: {
+        ...safeUserSelect,
+        password: true,
+      },
     });
     if (!user) {
       throw new UnauthorizedException('Invalid Email or Password');
@@ -250,10 +265,15 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeUser } = user;
+    // * Exculde Some Fields
+    const { password, ...safeUser } = user;
 
-    return { user: safeUser, accessToken, refreshToken, refreshExpiresIn };
+    return {
+      user: safeUser,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Logout (Admin)
@@ -264,7 +284,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -322,7 +342,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -380,7 +400,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
 
     if (!storedToken) {
@@ -435,6 +455,10 @@ export class AuthProvider {
     // * Check if staff already exist by userName before login
     const staff = await this.prisma.staff.findUnique({
       where: { userName: data.userName },
+      select: {
+        ...safeStaffSelect,
+        password: true,
+      },
     });
     if (!staff) {
       throw new UnauthorizedException('Invalid User Name or Password');
@@ -543,9 +567,15 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeStaff } = staff;
-    return { staff: safeStaff, accessToken, refreshToken, refreshExpiresIn };
+    // * Exculde Some Fields
+    const { password, ...safeStaff } = staff;
+
+    return {
+      staff: safeStaff,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Logout (Staff)
@@ -556,7 +586,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
 
     if (!storedToken) {
@@ -613,7 +643,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -716,7 +746,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -771,6 +801,10 @@ export class AuthProvider {
     // * Check if member already exist by userName before login
     const member = await this.prisma.member.findUnique({
       where: { userName: data.userName },
+      select: {
+        ...safeMemberSelect,
+        password: true,
+      },
     });
     if (!member) {
       throw new UnauthorizedException('Invalid User Name or Password');
@@ -850,10 +884,15 @@ export class AuthProvider {
       },
     });
 
-    // * Exclude Some Fields
-    const { id, password, createdAt, updatedAt, ...safeMember } = member;
+    // * Exculde Some Fields
+    const { password, ...safeMember } = member;
 
-    return { member: safeMember, accessToken, refreshToken, refreshExpiresIn };
+    return {
+      member: safeMember,
+      accessToken,
+      refreshToken,
+      refreshExpiresIn,
+    };
   }
 
   // * Set Password Member
@@ -863,7 +902,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -926,7 +965,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
 
     if (!storedToken) {
@@ -982,7 +1021,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: true },
+      include: { staff: { select: safeStaffSelect } },
     });
 
     if (!storedToken) {
@@ -1035,7 +1074,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
 
     if (!storedToken) {
@@ -1087,7 +1126,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1181,7 +1220,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { user: true },
+      include: { user: { select: safeUserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1271,7 +1310,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash },
-      include: { member: true },
+      include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');

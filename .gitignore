@@ -13,3 +13,5 @@ Thumbs.db
 !.env.example
 
 devops/nginx/certs
+
+docker-compose.dev.yml

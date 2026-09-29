@@ -120,8 +120,8 @@ model User {
   phoneNumber          String            @unique @map("phone_number")
   companyName          String            @map("company_name")
   role                 Role              @default(ADMIN)
-  profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
-  profileImagePublicId String?           @map("profile_image_public_id")
+  profileImageUrl      String            @map("profile_image_url")
+  profileImagePublicId String            @map("profile_image_public_id")
   isAccountVerified    Boolean           @default(false) @map("is_account_verified")
   accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
   termsAccepted        Boolean           @map("terms_accepted")
@@ -233,8 +233,8 @@ model Staff {
   admin   User   @relation(fields: [adminId], references: [id])
 
   role                 Role              @default(STAFF)
-  profileImageUrl      String            @default("default-image.jpg") @map("profile_image_url")
-  profileImagePublicId String?           @map("profile_image_public_id")
+  profileImageUrl      String            @map("profile_image_url")
+  profileImagePublicId String            @map("profile_image_public_id")
   accountStatus        UserAccountStatus @default(ACTIVE) @map("account_status")
 
   members            Member[]
@@ -273,8 +273,8 @@ model Member {
   email                String
   password             String?
   phoneNumber          String              @map("phone_number")
-  profileImageUrl      String              @default("default-member-image.jpg") @map("profile_image_url")
-  profileImagePublicId String?             @map("profile_image_public_id")
+  profileImageUrl      String              @map("profile_image_url")
+  profileImagePublicId String              @map("profile_image_public_id")
   address              String
   emergencyContact     String              @map("emergency_contact")
   role                 Role                @default(MEMBER)

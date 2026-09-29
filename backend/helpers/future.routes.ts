@@ -65,7 +65,7 @@
 // * Create Staff by admin
 // * Add Staff role
 // * Make company name added auto
-// ! Add default image profile to staff
+// * Add default image profile to staff
 // * ban or freeze or ... a staff
 // * edit profile of staff (like profile image ...)
 // ! Check emails of staffs is correct(reset password and confirmation ...)
@@ -81,6 +81,8 @@
 // ! When a staff or admin update the membership of member with same data the server create multiple memberships
 
 // ! test all Notifications
+
+// ! return new data in all updates endpoints
 
 // * GET /api/admins/visits/today
 // * GET All or one visits for admin/staff/member
