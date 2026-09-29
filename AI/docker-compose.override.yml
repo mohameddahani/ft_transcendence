@@ -1,4 +1,4 @@
-# dev only: reload on code change (production: docker compose -f docker-compose.yml up -d)
+# Development only: mount local code into the container and auto-reload Uvicorn on changes.
 services:
   ai:
     volumes:
