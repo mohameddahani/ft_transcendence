@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
 import { parseJwtPayload, isOwnerUser } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
@@ -8,17 +9,18 @@ export async function POST(req: Request) {
 
   try {
     // Exact endpoint for authentication
-    const backendRes = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).catch(() => null);
+    const backendRes = await axios
+      .post(`${API_URL}/api/auth/login`, body, {
+        headers: { "Content-Type": "application/json" },
+        validateStatus: () => true,
+      })
+      .catch(() => null);
 
     if (backendRes) {
-      const data = await backendRes.json().catch(() => ({}));
+      const data = backendRes.data ?? {};
 
       // If backend rejected credentials (401, 400, etc.)
-      if (!backendRes.ok) {
+      if (backendRes.status >= 400) {
         return NextResponse.json(data, { status: backendRes.status });
       }
 
@@ -42,7 +44,12 @@ export async function POST(req: Request) {
       const res = NextResponse.json(data, { status: 200 });
 
       // Forward cookies from backend (including refresh_token)
-      const setCookies = backendRes.headers.getSetCookie?.() ?? [];
+      const rawCookies = backendRes.headers["set-cookie"];
+      const setCookies = Array.isArray(rawCookies)
+        ? rawCookies
+        : typeof rawCookies === "string"
+        ? [rawCookies]
+        : [];
       for (const cookie of setCookies) {
         res.headers.append("set-cookie", cookie);
       }

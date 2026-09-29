@@ -269,11 +269,19 @@ export default function SubscriptionsTable() {
               </p>
             </div>
           ) : (
-            subscriptions.map((sub) => {
+            subscriptions.map((sub, idx) => {
               const expired = isExpired(sub.expiresAt, sub.subscriptionStatus);
+              const isEven = idx % 2 === 1;
 
               return (
-                <div key={sub.id} className="p-4 space-y-3 bg-surface hover:bg-surface-container-high transition-colors">
+                <div
+                  key={sub.id}
+                  className={`p-4 space-y-3 transition-colors hover:bg-surface-container-high ${
+                    isEven
+                      ? "bg-slate-50 dark:bg-[#1c1b1b]"
+                      : "bg-slate-100 dark:bg-surface"
+                  }`}
+                >
                   {/* Card Header: Company, username, and status badge */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -418,7 +426,9 @@ export default function SubscriptionsTable() {
                     <tr
                       key={sub.id}
                       className={`h-row-height-md transition-colors hover:bg-surface-container-high ${
-                        isEven ? "bg-[#1c1b1b]" : "bg-surface"
+                        isEven
+                          ? "bg-slate-50 dark:bg-[#1c1b1b]"
+                          : "bg-slate-100 dark:bg-surface"
                       }`}
                     >
                       {/* Admin / Company */}

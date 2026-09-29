@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -24,16 +25,22 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Forward request to backend POST /api/auth/owners/refresh
-    const backendRes = await fetch(`${API_URL}/api/auth/owners/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: `refresh_token=${refreshToken}`,
-      },
-    }).catch((err) => {
-      console.error("Backend refresh request error:", err);
-      return null;
-    });
+    const backendRes = await axios
+      .post(
+        `${API_URL}/api/auth/owners/refresh`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `refresh_token=${refreshToken}`,
+          },
+          validateStatus: () => true,
+        }
+      )
+      .catch((err) => {
+        console.error("Backend refresh request error:", err);
+        return null;
+      });
 
     if (!backendRes) {
       return NextResponse.json(
@@ -42,10 +49,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!backendRes.ok) {
-      const errorData = await backendRes.json().catch(() => ({}));
+    if (backendRes.status >= 400) {
+      const errorData = backendRes.data || { message: "Failed to refresh session" };
       const response = NextResponse.json(
-        errorData || { message: "Failed to refresh session" },
+        errorData,
         { status: backendRes.status }
       );
 
@@ -55,11 +62,16 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    const data = await backendRes.json();
+    const data = backendRes.data;
     const response = NextResponse.json(data, { status: 200 });
 
     // Forward any Set-Cookie headers from backend (e.g. if refresh token rotated)
-    const setCookies = backendRes.headers.getSetCookie?.() ?? [];
+    const rawCookies = backendRes.headers["set-cookie"];
+    const setCookies = Array.isArray(rawCookies)
+      ? rawCookies
+      : typeof rawCookies === "string"
+      ? [rawCookies]
+      : [];
     for (const cookie of setCookies) {
       response.headers.append("set-cookie", cookie);
     }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, Building2, Package, CreditCard, Settings, X } from "lucide-react";
+import { Terminal, Building2, Package, CreditCard, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/layout/DashboardShell";
 import { ThemeToggle } from "@/components/theme/ThemeProvider";
@@ -92,22 +92,11 @@ export default function SideNavBar() {
               {renderNavLinks(closeSidebar)}
             </nav>
 
-            {/* Mobile Footer Settings & Theme */}
-            <div className="mt-auto border-t border-outline-variant pt-3 space-y-1">
+            {/* Mobile Footer Theme */}
+            <div className="mt-auto border-t border-outline-variant pt-3">
               <div className="px-layout-margin">
                 <ThemeToggle showLabel className="w-full justify-start px-0 py-2" />
               </div>
-              <Link
-                href="/settings"
-                onClick={closeSidebar}
-                className={cn(
-                  "flex items-center gap-element-gap px-layout-margin py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out font-body-md text-body-md",
-                  pathname === "/settings" && "bg-secondary-container text-on-secondary-container border-r-2 border-primary"
-                )}
-              >
-                <Settings className="size-5 shrink-0" />
-                <span>Settings</span>
-              </Link>
             </div>
           </aside>
         </div>
@@ -133,21 +122,11 @@ export default function SideNavBar() {
           {renderNavLinks()}
         </nav>
 
-        {/* Footer Settings & Theme Link */}
-        <div className="mt-auto border-t border-outline-variant pt-container-padding space-y-1">
+        {/* Footer Theme Toggle */}
+        <div className="mt-auto border-t border-outline-variant pt-container-padding">
           <div className="px-layout-margin">
             <ThemeToggle showLabel className="w-full justify-start px-0 py-1.5" />
           </div>
-          <Link
-            href="/settings"
-            className={cn(
-              "flex items-center gap-element-gap px-layout-margin py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out font-body-md text-body-md",
-              pathname === "/settings" && "bg-secondary-container text-on-secondary-container border-r-2 border-primary"
-            )}
-          >
-            <Settings className="size-5 shrink-0" />
-            <span>Settings</span>
-          </Link>
         </div>
       </aside>
     </>

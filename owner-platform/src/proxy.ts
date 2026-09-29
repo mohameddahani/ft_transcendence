@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import axios from "axios";
 import { parseJwtPayload, isTokenExpired } from "@/lib/auth";
 
 // Protected routes that strictly require platform owner authentication
@@ -7,7 +8,6 @@ const protectedRoutes = [
   "/admins",
   "/plans",
   "/subscriptions",
-  "/settings",
   "/dashboard",
   "/profile",
 ];
@@ -41,20 +41,22 @@ export async function proxy(request: NextRequest) {
   // If visiting protected route (or root) and access token is missing or expired, attempt refresh
   if ((isProtectedRoute || pathname === "/") && (!token || isTokenExpired(token)) && refreshToken) {
     try {
-      const refreshRes = await fetch(`${API_URL}/api/auth/owners/refresh`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `refresh_token=${refreshToken}`,
-        },
-      });
-
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-        if (data?.accessToken && isOwnerToken(data.accessToken)) {
-          newAccessToken = data.accessToken;
-          token = newAccessToken;
+      const refreshRes = await axios.post(
+        `${API_URL}/api/auth/owners/refresh`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `refresh_token=${refreshToken}`,
+          },
+          validateStatus: (status) => status >= 200 && status < 300,
         }
+      );
+
+      const data = refreshRes.data;
+      if (data?.accessToken && isOwnerToken(data.accessToken)) {
+        newAccessToken = data.accessToken;
+        token = newAccessToken;
       }
     } catch {
       // Backend unavailable or refresh failed

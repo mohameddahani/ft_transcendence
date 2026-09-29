@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import axios from "axios";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -9,14 +10,20 @@ export async function POST(req: NextRequest) {
   // Best-effort notify backend logout
   if (authToken || refreshToken) {
     try {
-      await fetch(`${API_URL}/api/auth/owners/logout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-          ...(refreshToken ? { Cookie: `refresh_token=${refreshToken}` } : {}),
-        },
-      }).catch(() => null);
+      await axios
+        .post(
+          `${API_URL}/api/auth/owners/logout`,
+          {},
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+              ...(refreshToken ? { Cookie: `refresh_token=${refreshToken}` } : {}),
+            },
+            validateStatus: () => true,
+          }
+        )
+        .catch(() => null);
     } catch {
       // Ignore network errors on logout
     }

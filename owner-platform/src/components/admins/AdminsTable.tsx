@@ -687,16 +687,7 @@ export default function AdminsTable() {
           </div>
         </div>
       )}
-
-      {/* Floating Action Button (Add Gym Owner) */}
-      <button
-        type="button"
-        onClick={handleAddAdmin}
-        aria-label="Create New Gym Owner"
-        className="fixed bottom-4 right-4 sm:bottom-layout-margin sm:right-layout-margin w-12 h-12 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 cursor-pointer border-none"
-      >
-        <UserPlus className="size-5" />
-      </button>
+      
     </div>
   );
 }
