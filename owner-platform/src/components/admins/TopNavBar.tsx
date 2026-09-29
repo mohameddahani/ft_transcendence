@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Loader2, User } from "lucide-react";
+import { LogOut, Loader2, User, Menu } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
+import { useSidebar } from "@/components/layout/DashboardShell";
+import { ThemeToggle } from "@/components/theme/ThemeProvider";
 
 export default function TopNavBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { toggleSidebar } = useSidebar();
   const [loggingOut, setLoggingOut] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState<string>("");
@@ -71,19 +74,32 @@ export default function TopNavBar() {
   const isProfileActive = pathname === "/profile";
 
   return (
-    <header className="fixed top-0 w-full z-50 h-row-height-md bg-surface-container dark:bg-surface-container-highest flex justify-between items-center px-layout-margin border-b border-outline-variant">
-      <div className="flex items-center gap-element-gap">
-        <span className="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">
+    <header className="fixed top-0 w-full z-40 h-[48px] sm:h-row-height-md bg-surface-container dark:bg-surface-container-highest flex justify-between items-center px-3 sm:px-layout-margin border-b border-outline-variant">
+      <div className="flex items-center gap-2 sm:gap-element-gap">
+        {/* Mobile Sidebar Hamburger Toggle */}
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="md:hidden p-1.5 -ml-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded transition-colors cursor-pointer"
+          aria-label="Open mobile navigation menu"
+        >
+          <Menu className="size-5" />
+        </button>
+
+        <span className="font-headline-md text-sm sm:text-headline-md font-bold text-primary dark:text-primary-fixed truncate">
           Platform Owner Portal
         </span>
       </div>
 
-      <div className="flex items-center gap-layout-margin">
+      <div className="flex items-center gap-2 sm:gap-layout-margin">
+        {/* Theme Toggle Button */}
+        <ThemeToggle />
+
         <button
           type="button"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="flex items-center gap-element-gap cursor-pointer active:opacity-80 hover:bg-surface-container-high transition-colors p-1 px-2 rounded disabled:opacity-50 text-left border-none bg-transparent"
+          className="flex items-center gap-element-gap cursor-pointer active:opacity-80 hover:bg-surface-container-high transition-colors p-1.5 px-2 rounded disabled:opacity-50 text-left border-none bg-transparent"
           title="Log out of Super Admin Portal"
         >
           {loggingOut ? (
@@ -91,7 +107,7 @@ export default function TopNavBar() {
           ) : (
             <LogOut className="size-4 text-primary dark:text-primary-fixed" />
           )}
-          <span className="font-body-md text-body-md text-on-surface-variant">
+          <span className="font-body-md text-body-md text-on-surface-variant hidden sm:inline">
             {loggingOut ? "Logging out..." : "Logout"}
           </span>
         </button>

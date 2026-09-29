@@ -110,18 +110,18 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-layout-margin pb-12">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-layout-margin pb-12">
       {/* Top Breadcrumb & Back Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Link
           href="/admins"
-          className="inline-flex items-center gap-2 text-body-sm font-medium text-on-surface-variant hover:text-primary transition-colors cursor-pointer group"
+          className="inline-flex items-center gap-2 text-body-sm font-medium text-on-surface-variant hover:text-primary transition-colors cursor-pointer group truncate"
         >
-          <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-          <span>Back to Gym Owners</span>
+          <ArrowLeft className="size-4 shrink-0 group-hover:-translate-x-1 transition-transform" />
+          <span className="truncate">Back to Gym Owners</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleCopyId}
@@ -139,20 +139,20 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
       </div>
 
       {/* Hero Profile Banner Card */}
-      <div className="bg-surface border border-outline-variant rounded-xl p-layout-margin shadow-sm relative overflow-hidden">
+      <div className="bg-surface border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-layout-margin relative z-10">
-          <div className="flex items-start sm:items-center gap-layout-margin">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-layout-margin relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-layout-margin w-full lg:w-auto">
             {/* Avatar */}
-            <div className="w-20 h-20 rounded-2xl bg-secondary-container text-on-secondary-container font-headline-md font-bold flex items-center justify-center border-2 border-outline-variant/60 shadow-inner shrink-0">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-secondary-container text-on-secondary-container font-headline-md font-bold flex items-center justify-center border-2 border-outline-variant/60 shadow-inner shrink-0">
               {initials}
             </div>
 
             {/* Profile Identity */}
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold">
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h1 className="font-headline-lg text-xl sm:text-headline-lg text-on-surface font-bold break-words">
                   {fullName}
                 </h1>
                 {renderStatusBadge(currentStatus)}
@@ -164,13 +164,13 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                   <span className="font-mono-data text-primary">@{admin.userName}</span>
                 )}
                 {admin.companyName && (
-                  <span className="flex items-center gap-1">
-                    <Building2 className="size-3.5" />
-                    {admin.companyName}
+                  <span className="flex items-center gap-1 truncate">
+                    <Building2 className="size-3.5 shrink-0" />
+                    <span className="truncate">{admin.companyName}</span>
                   </span>
                 )}
                 <span className="flex items-center gap-1">
-                  <Shield className="size-3.5 text-on-surface-variant" />
+                  <Shield className="size-3.5 text-on-surface-variant shrink-0" />
                   Role: <span className="font-semibold text-on-surface">{admin.role}</span>
                 </span>
               </div>
@@ -178,13 +178,13 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
           </div>
 
           {/* Quick Status Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-outline-variant/40 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 pt-3 lg:pt-0 border-t lg:border-t-0 border-outline-variant/40 w-full lg:w-auto">
             {currentStatus !== "ACTIVE" && (
               <button
                 type="button"
                 disabled={updatingAction !== null}
                 onClick={() => handleUpdateStatus("active")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-body-sm font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
                 title="Activate this user account"
               >
                 {updatingAction === "active" ? (
@@ -202,7 +202,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                   type="button"
                   disabled={updatingAction !== null}
                   onClick={() => handleUpdateStatus("pending")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-body-sm font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
                   title="Move account to pending verification"
                 >
                   {updatingAction === "pending" ? (
@@ -217,7 +217,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                   type="button"
                   disabled={updatingAction !== null}
                   onClick={() => handleUpdateStatus("ban")}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-body-sm font-bold bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+                  className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-body-sm font-bold bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/30 transition-all disabled:opacity-50 cursor-pointer shadow-xs"
                   title="Suspend / Ban this user account"
                 >
                   {updatingAction === "ban" ? (
@@ -234,9 +234,9 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
       </div>
 
       {/* Information Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-layout-margin">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-layout-margin">
         {/* Card 1: Personal Information */}
-        <div className="bg-surface border border-outline-variant rounded-xl p-layout-margin shadow-sm space-y-4">
+        <div className="bg-surface border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-outline-variant/50 pb-3">
             <User className="size-5 text-primary" />
             <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
@@ -294,7 +294,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
         </div>
 
         {/* Card 2: Contact & Gymnasium Info */}
-        <div className="bg-surface border border-outline-variant rounded-xl p-layout-margin shadow-sm space-y-4">
+        <div className="bg-surface border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-outline-variant/50 pb-3">
             <Building2 className="size-5 text-primary" />
             <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
@@ -308,8 +308,8 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                 Gymnasium / Company Name
               </dt>
               <dd className="mt-1 text-on-surface font-semibold text-base flex items-center gap-2">
-                <Building2 className="size-4 text-primary" />
-                {admin.companyName || "—"}
+                <Building2 className="size-4 text-primary shrink-0" />
+                <span className="truncate">{admin.companyName || "—"}</span>
               </dd>
             </div>
 
@@ -317,11 +317,11 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
               <dt className="text-label-caps text-on-surface-variant uppercase font-bold text-[11px]">
                 Email Address
               </dt>
-              <dd className="mt-1 font-mono-data text-on-surface flex items-center gap-2">
-                <Mail className="size-4 text-on-surface-variant/60" />
+              <dd className="mt-1 font-mono-data text-on-surface flex items-center gap-2 min-w-0">
+                <Mail className="size-4 text-on-surface-variant/60 shrink-0" />
                 <a
                   href={`mailto:${admin.email}`}
-                  className="hover:text-primary hover:underline transition-colors"
+                  className="hover:text-primary hover:underline transition-colors truncate"
                 >
                   {admin.email}
                 </a>
@@ -333,7 +333,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                 Phone Number
               </dt>
               <dd className="mt-1 font-mono-data text-on-surface flex items-center gap-2">
-                <Phone className="size-4 text-on-surface-variant/60" />
+                <Phone className="size-4 text-on-surface-variant/60 shrink-0" />
                 <a
                   href={`tel:${admin.phoneNumber}`}
                   className="hover:text-primary hover:underline transition-colors"
@@ -346,7 +346,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
         </div>
 
         {/* Card 3: Account & System Security */}
-        <div className="bg-surface border border-outline-variant rounded-xl p-layout-margin shadow-sm space-y-4">
+        <div className="bg-surface border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-outline-variant/50 pb-3">
             <ShieldCheck className="size-5 text-primary" />
             <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
@@ -359,12 +359,12 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
               <dt className="text-label-caps text-on-surface-variant uppercase font-bold text-[11px]">
                 User ID
               </dt>
-              <dd className="mt-1 font-mono-data text-xs text-on-surface-variant bg-surface-container p-2 rounded border border-outline-variant flex items-center justify-between">
-                <span>{admin.id}</span>
+              <dd className="mt-1 font-mono-data text-xs text-on-surface-variant bg-surface-container p-2 rounded border border-outline-variant flex items-center justify-between gap-2 overflow-hidden">
+                <span className="truncate">{admin.id}</span>
                 <button
                   type="button"
                   onClick={handleCopyId}
-                  className="text-on-surface-variant hover:text-primary cursor-pointer p-1"
+                  className="text-on-surface-variant hover:text-primary cursor-pointer p-1 shrink-0"
                   title="Copy ID"
                 >
                   {copiedId ? (
@@ -445,7 +445,7 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
         </div>
 
         {/* Card 4: SaaS Subscription */}
-        <div className="bg-surface border border-outline-variant rounded-xl p-layout-margin shadow-sm space-y-4">
+        <div className="bg-surface border border-outline-variant rounded-xl p-4 sm:p-layout-margin shadow-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-outline-variant/50 pb-3">
             <CreditCard className="size-5 text-primary" />
             <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">

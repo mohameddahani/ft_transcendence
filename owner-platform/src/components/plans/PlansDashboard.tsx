@@ -12,6 +12,7 @@ import {
   Package,
   Layers,
   CheckCircle2,
+  XCircle,
   AlertCircle,
   Loader2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import AddPlanModal from "./AddPlanModal";
 import EditPlanModal from "./EditPlanModal";
 import AddDurationModal from "./AddDurationModal";
 import EditDurationModal from "./EditDurationModal";
+import AnimatedCounter from "./AnimatedCounter";
 import { cn } from "@/lib/utils";
 
 export default function PlansDashboard() {
@@ -151,7 +153,7 @@ export default function PlansDashboard() {
   return (
     <div className="space-y-layout-margin pb-12">
       {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-layout-margin mb-layout-margin">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end gap-3 sm:gap-layout-margin mb-layout-margin">
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface mb-unit font-bold">
             Platform Plans
@@ -161,12 +163,12 @@ export default function PlansDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-element-gap">
+        <div className="flex items-center gap-2 sm:gap-element-gap">
           <button
             type="button"
             onClick={fetchPlans}
             disabled={loading}
-            className="flex items-center gap-element-gap px-3 py-2 bg-surface-container-high border border-outline-variant rounded-md text-on-surface hover:border-primary transition-colors text-body-sm cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial justify-center flex items-center gap-element-gap px-3 py-2 bg-surface-container-high border border-outline-variant rounded-md text-on-surface hover:border-primary transition-colors text-body-sm cursor-pointer disabled:opacity-50"
             title="Refresh plans"
           >
             <RefreshCw className={cn("size-4", loading && "animate-spin text-primary")} />
@@ -176,7 +178,7 @@ export default function PlansDashboard() {
           <button
             type="button"
             onClick={() => setIsAddPlanOpen(true)}
-            className="bg-primary text-on-primary px-container-padding h-row-height-md flex items-center gap-unit rounded-lg hover:opacity-90 active:scale-95 transition-all font-headline-sm text-headline-sm font-bold shadow-md cursor-pointer border-none"
+            className="flex-1 sm:flex-initial justify-center bg-primary text-on-primary px-container-padding h-row-height-md flex items-center gap-unit rounded-lg hover:opacity-90 active:scale-95 transition-all font-headline-sm text-headline-sm font-bold shadow-md cursor-pointer border-none"
           >
             <Plus className="size-4" />
             <span>Add New Plan</span>
@@ -185,44 +187,46 @@ export default function PlansDashboard() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-surface-container-low border border-outline-variant p-container-padding mb-layout-margin flex flex-wrap items-center gap-container-padding rounded-lg">
-        <div className="flex items-center gap-unit text-on-surface-variant">
-          <Filter className="size-4 text-on-surface-variant" />
-          <span className="font-label-caps text-label-caps uppercase font-bold tracking-wider">
-            Filters:
-          </span>
+      <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding mb-layout-margin flex flex-col md:flex-row gap-3 sm:gap-container-padding rounded-lg">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-unit text-on-surface-variant">
+            <Filter className="size-4 text-on-surface-variant" />
+            <span className="font-label-caps text-label-caps uppercase font-bold tracking-wider">
+              Filters:
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-surface-container-high border border-outline-variant text-xs sm:text-body-sm px-2 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-surface-container-high border border-outline-variant text-xs sm:text-body-sm px-2 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
+            >
+              <option value="NAME">Sort by Name</option>
+              <option value="PRICE">Sort by Price</option>
+              <option value="MEMBERS">Sort by Max Members</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-element-gap">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-surface-container-high border border-outline-variant text-body-sm font-body-sm px-2 py-1 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
-
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="bg-surface-container-high border border-outline-variant text-body-sm font-body-sm px-2 py-1 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
-          >
-            <option value="NAME">Sort by Name</option>
-            <option value="PRICE">Sort by Price</option>
-            <option value="MEMBERS">Sort by Max Members</option>
-          </select>
-        </div>
-
-        <div className="sm:ml-auto flex items-center bg-surface-container-high border border-outline-variant rounded px-unit w-full sm:w-64">
+        <div className="md:ml-auto flex items-center bg-surface-container-high border border-outline-variant rounded px-unit w-full md:w-64">
           <Search className="size-4 text-on-surface-variant mx-1.5 shrink-0" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search plans..."
-            className="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm w-full py-1 text-on-surface placeholder:text-on-surface-variant/50 outline-none"
+            className="bg-transparent border-none focus:ring-0 text-body-sm font-body-md w-full py-1.5 text-on-surface placeholder:text-on-surface-variant/50 outline-none"
           />
         </div>
       </div>
@@ -338,22 +342,24 @@ export default function PlansDashboard() {
                         disabled={togglingPlanId === plan.id}
                         onClick={() => handleToggleStatus(plan)}
                         className={cn(
-                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50",
-                          plan.isActive ? "bg-primary" : "bg-surface-container-highest"
+                          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 disabled:opacity-50",
+                          plan.isActive
+                            ? "bg-emerald-500 focus-visible:ring-emerald-400"
+                            : "bg-rose-500 focus-visible:ring-rose-400"
                         )}
                         title={`Click to set ${plan.isActive ? "Inactive" : "Active"}`}
                       >
                         <span
                           className={cn(
-                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-surface shadow-lg ring-0 transition duration-200 ease-in-out",
-                            plan.isActive ? "translate-x-4 bg-on-primary" : "translate-x-0 bg-on-surface-variant"
+                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out",
+                            plan.isActive ? "translate-x-4" : "translate-x-0"
                           )}
                         />
                       </button>
                       <span
                         className={cn(
                           "font-label-caps text-[10px] mt-1 font-bold tracking-wider",
-                          plan.isActive ? "text-primary" : "text-on-surface-variant"
+                          plan.isActive ? "text-emerald-400" : "text-rose-400"
                         )}
                       >
                         {plan.isActive ? "ACTIVE" : "INACTIVE"}
@@ -419,11 +425,11 @@ export default function PlansDashboard() {
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-1 bg-surface-container-low border-t border-outline-variant grid grid-cols-3 gap-1">
+                <div className="p-1.5 bg-surface-container-low border-t border-outline-variant grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-1">
                   <button
                     type="button"
                     onClick={() => setEditPlanModalPlan(plan)}
-                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent font-medium"
+                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent font-medium"
                     title="Edit Plan Details"
                   >
                     <Edit2 className="size-3.5 text-primary" />
@@ -432,7 +438,7 @@ export default function PlansDashboard() {
                   <button
                     type="button"
                     onClick={() => setDurationModalPlan(plan)}
-                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
+                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
                   >
                     <Clock className="size-3.5" />
                     <span>+ Duration</span>
@@ -441,9 +447,21 @@ export default function PlansDashboard() {
                     type="button"
                     onClick={() => handleToggleStatus(plan)}
                     disabled={togglingPlanId === plan.id}
-                    className="flex items-center justify-center gap-1 py-2 hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface rounded cursor-pointer border border-transparent disabled:opacity-50"
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-2 min-h-[38px] transition-all font-body-sm text-body-sm font-semibold rounded cursor-pointer border disabled:opacity-50",
+                      plan.isActive
+                        ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50"
+                        : "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
+                    )}
+                    title={plan.isActive ? "Deactivate plan" : "Activate plan"}
                   >
-                    <CheckCircle2 className="size-3.5" />
+                    {togglingPlanId === plan.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : plan.isActive ? (
+                      <XCircle className="size-3.5 text-rose-400" />
+                    ) : (
+                      <CheckCircle2 className="size-3.5 text-emerald-400" />
+                    )}
                     <span>{plan.isActive ? "Deactivate" : "Activate"}</span>
                   </button>
                 </div>
@@ -454,27 +472,27 @@ export default function PlansDashboard() {
       )}
 
       {/* System Stats Bar */}
-      <div className="mt-layout-margin grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-container-padding">
-        <div className="bg-surface-container-low border border-outline-variant p-container-padding rounded-lg">
-          <div className="font-label-caps text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+      <div className="mt-layout-margin grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-container-padding">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
             TOTAL ACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-primary font-mono-data font-bold">
-            {String(stats.totalActive).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalActive} />
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-container-padding rounded-lg">
-          <div className="font-label-caps text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
             INACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-amber-400 font-mono-data font-bold">
-            {String(stats.totalInactive).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalInactive} />
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-container-padding rounded-lg">
-          <div className="font-label-caps text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
             TOP CAPACITY TIER
           </div>
           <div className="font-headline-md text-headline-md text-on-surface font-bold truncate">
@@ -482,12 +500,12 @@ export default function PlansDashboard() {
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-container-padding rounded-lg">
-          <div className="font-label-caps text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
             CONFIGURED DURATIONS
           </div>
           <div className="font-headline-md text-headline-md text-on-surface font-mono-data font-bold">
-            {String(stats.totalDurations).padStart(2, "0")}
+            <AnimatedCounter value={stats.totalDurations} />
           </div>
         </div>
       </div>

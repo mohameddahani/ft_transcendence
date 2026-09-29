@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import axios from "axios";
+import { parseJwtPayload, isTokenExpired } from "@/lib/auth";
 
 // Protected routes that strictly require platform owner authentication
-const protectedRoutes = ["/admins", "/plans", "/subscriptions", "/settings", "/dashboard"];
+const protectedRoutes = [
+  "/admins",
+  "/plans",
+  "/subscriptions",
+  "/dashboard",
+  "/profile",
+];
 
 // Authentication routes that authenticated owners shouldn't revisit
 const authRoutes = ["/login"];
 
-function parseJwtPayload(token: string) {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const base64Url = parts[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = Buffer.from(base64, "base64").toString("utf-8");
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
+const API_URL = process.env.API_URL || "http://localhost:3000";
 
 function isOwnerToken(token?: string): boolean {
   if (!token) return false;
@@ -27,8 +24,9 @@ function isOwnerToken(token?: string): boolean {
   return role === "OWNER";
 }
 
-export function proxy(request: NextRequest) {
-  const token = request.cookies.get("auth_token")?.value;
+export async function proxy(request: NextRequest) {
+  let token = request.cookies.get("auth_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
 
   const isProtectedRoute = protectedRoutes.some(
@@ -38,12 +36,49 @@ export function proxy(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  const hasOwnerAccess = isOwnerToken(token);
+  let newAccessToken: string | undefined = undefined;
+
+  // If visiting protected route (or root) and access token is missing or expired, attempt refresh
+  if ((isProtectedRoute || pathname === "/") && (!token || isTokenExpired(token)) && refreshToken) {
+    try {
+      const refreshRes = await axios.post(
+        `${API_URL}/api/auth/owners/refresh`,
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: `refresh_token=${refreshToken}`,
+          },
+          validateStatus: (status) => status >= 200 && status < 300,
+        }
+      );
+
+      const data = refreshRes.data;
+      if (data?.accessToken && isOwnerToken(data.accessToken)) {
+        newAccessToken = data.accessToken;
+        token = newAccessToken;
+      }
+    } catch {
+      // Backend unavailable or refresh failed
+    }
+  }
+
+  const hasOwnerAccess = isOwnerToken(token) && !isTokenExpired(token);
 
   // If user tries to access root /
   if (pathname === "/") {
     if (hasOwnerAccess) {
-      return NextResponse.redirect(new URL("/admins", request.url));
+      const response = NextResponse.redirect(new URL("/admins", request.url));
+      if (newAccessToken) {
+        response.cookies.set("auth_token", newAccessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 7,
+        });
+      }
+      return response;
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -56,9 +91,9 @@ export function proxy(request: NextRequest) {
 
       const response = NextResponse.redirect(loginUrl);
       if (token) {
-        // Token exists but is not an owner (e.g. admin or member) -> clear cookie
         response.cookies.delete("auth_token");
-        loginUrl.searchParams.set("error", "unauthorized");
+        response.cookies.delete("refresh_token");
+        loginUrl.searchParams.set("error", "session_expired");
       }
       return response;
     }
@@ -69,7 +104,20 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/admins", request.url));
   }
 
-  return NextResponse.next();
+  // Pass refreshed cookie to downstream server components
+  const response = NextResponse.next();
+
+  if (newAccessToken) {
+    response.cookies.set("auth_token", newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  }
+
+  return response;
 }
 
 export const config = {

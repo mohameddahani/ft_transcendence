@@ -1,60 +1,95 @@
-import { createHmac } from "crypto";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
-const OWNER_SECRET =
-  process.env.JWT_OWNER_ACCESS_SECRET ||
-  "8a3ba193ffd56ca7018cab475c56c2d400cffda5dbf2dc3e68573a62f138816c523ca9f3e9723f9fc95a6873bd39ad258178f4183b61de8b63e7aa8db3b0a873";
 
-// Generate a valid platform token using standard HS256
-export function getServiceToken(): string {
-  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-  const payload = Buffer.from(
-    JSON.stringify({
-      id: "29c8ae66-7431-4c02-a2ce-170c71168482",
-      role: "OWNER",
-      exp: Math.floor(Date.now() / 1000) + 3600,
-    })
-  ).toString("base64url");
-  const signature = createHmac("sha256", OWNER_SECRET)
-    .update(`${header}.${body_payload(payload)}`)
-    .digest("base64url");
-  return `${header}.${payload}.${signature}`;
+export interface BackendResponse<T = any> {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  data: T;
+  json: () => Promise<T>;
+  text: () => Promise<string>;
+  headers: {
+    get: (name: string) => string | null;
+    getSetCookie?: () => string[];
+  };
+  raw: AxiosResponse<T>;
 }
 
-function body_payload(payload: string) {
-  return payload;
-}
-
-export async function fetchFromBackend(
+export async function fetchFromBackend<T = any>(
   endpoint: string,
   userToken?: string,
-  options?: RequestInit
-): Promise<Response> {
+  options?: RequestInit | {
+    method?: string;
+    headers?: Record<string, string> | HeadersInit;
+    body?: any;
+    [key: string]: any;
+  }
+): Promise<BackendResponse<T>> {
   const url = `${API_URL}${endpoint}`;
 
-  // Try with client token if provided
-  if (userToken) {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        ...options?.headers,
-        Authorization: `Bearer ${userToken}`,
-      },
-    }).catch(() => null);
-
-    if (res && res.status !== 401 && res.status !== 403) {
-      return res;
+  let headers: Record<string, string> = {};
+  if (options?.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else if (Array.isArray(options.headers)) {
+      options.headers.forEach(([key, value]) => {
+        headers[key] = value;
+      });
+    } else {
+      headers = { ...(options.headers as Record<string, string>) };
     }
   }
 
-  // Fallback to service token if client token was unauthorized (e.g. ADMIN role calling OWNER-only backend endpoints)
-  const serviceToken = getServiceToken();
-  return fetch(url, {
-    ...options,
-    headers: {
-      ...options?.headers,
-      Authorization: `Bearer ${serviceToken}`,
-    },
-  });
-}
+  if (userToken) {
+    headers.Authorization = `Bearer ${userToken}`;
+  }
 
+  let data = options?.body;
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      // keep raw string if not JSON
+    }
+  }
+
+  const config: AxiosRequestConfig = {
+    url,
+    method: ((options?.method as string) || "GET").toUpperCase(),
+    headers,
+    data,
+    validateStatus: () => true, // Don't throw on error status codes
+  };
+
+  const axiosRes = await axios(config);
+
+  const getHeader = (name: string): string | null => {
+    const val = axiosRes.headers[name.toLowerCase()];
+    if (Array.isArray(val)) return val.join(", ");
+    return val !== undefined && val !== null ? String(val) : null;
+  };
+
+  const getSetCookie = (): string[] => {
+    const cookies = axiosRes.headers["set-cookie"];
+    if (Array.isArray(cookies)) return cookies;
+    if (typeof cookies === "string") return [cookies];
+    return [];
+  };
+
+  return {
+    ok: axiosRes.status >= 200 && axiosRes.status < 300,
+    status: axiosRes.status,
+    statusText: axiosRes.statusText,
+    data: axiosRes.data,
+    json: async () => axiosRes.data,
+    text: async () => (typeof axiosRes.data === "string" ? axiosRes.data : JSON.stringify(axiosRes.data)),
+    headers: {
+      get: getHeader,
+      getSetCookie,
+    },
+    raw: axiosRes,
+  };
+}

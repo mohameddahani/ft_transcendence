@@ -159,8 +159,8 @@ export default function AdminsTable() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center justify-between bg-surface-container p-unit border border-outline-variant rounded-lg gap-2">
-          <div className="flex items-center flex-1 min-w-[260px] max-w-xl px-container-padding gap-element-gap">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-surface-container p-2 sm:p-unit border border-outline-variant rounded-lg gap-2">
+          <div className="flex items-center flex-1 px-container-padding gap-element-gap">
             <Search className="size-5 text-on-surface-variant shrink-0" aria-hidden="true" />
             <input
               type="text"
@@ -174,10 +174,10 @@ export default function AdminsTable() {
             />
           </div>
 
-          <div className="flex items-center gap-3 px-container-padding border-t sm:border-t-0 sm:border-l border-outline-variant pt-2 sm:pt-0">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 px-container-padding border-t sm:border-t-0 sm:border-l border-outline-variant pt-2 sm:pt-0">
             {/* Filter by Status */}
             <div className="flex items-center gap-2">
-              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold">
+              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold hidden sm:inline">
                 STATUS
               </span>
               <select
@@ -186,7 +186,7 @@ export default function AdminsTable() {
                   setStatusFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
+                className="w-full sm:w-auto bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="ACTIVE">Active</option>
@@ -197,8 +197,8 @@ export default function AdminsTable() {
             </div>
 
             {/* Filter by Verified */}
-            <div className="flex items-center gap-2 border-l border-outline-variant pl-3">
-              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold">
+            <div className="flex items-center gap-2 sm:border-l sm:border-outline-variant sm:pl-3">
+              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold hidden sm:inline">
                 VERIFIED
               </span>
               <select
@@ -207,7 +207,7 @@ export default function AdminsTable() {
                   setVerifiedFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
+                className="w-full sm:w-auto bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
               >
                 <option value="ALL">All</option>
                 <option value="VERIFIED">Verified</option>
@@ -218,35 +218,187 @@ export default function AdminsTable() {
         </div>
       </div>
 
-      {/* Data Grid */}
-      <div className="overflow-x-auto border border-outline-variant rounded-lg bg-surface shadow-sm">
-        <table className="w-full text-left border-collapse min-w-[960px]">
-          <thead>
-            <tr className="bg-surface-container-high text-label-caps text-on-surface-variant border-b border-outline-variant">
-              <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
-                NAME
-              </th>
-              <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
-                EMAIL
-              </th>
-              <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
-                COMPANY NAME
-              </th>
-              <th className="px-container-padding py-3 font-bold text-center uppercase tracking-wider">
-                ACCOUNT VERIFIED
-              </th>
-              <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
-                STATUS & ACTIONS
-              </th>
-              <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
-                PHONE NUMBER
-              </th>
-              <th className="px-container-padding py-3 font-bold text-right uppercase tracking-wider">
-                DETAILS
-              </th>
-            </tr>
-          </thead>
-          <tbody className="text-body-sm divide-y divide-outline-variant/30">
+      {/* Data Container: Dual View (Cards on Mobile, Table on Desktop) */}
+      <div className="border border-outline-variant rounded-lg bg-surface shadow-sm overflow-hidden">
+        {/* Mobile View: Cards */}
+        <div className="block md:hidden divide-y divide-outline-variant">
+          {loading ? (
+            <div className="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
+              <Loader2 className="size-6 animate-spin text-primary" />
+              <span className="font-body-md">Loading gym owners...</span>
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
+              <p className="font-body-md text-error">{error}</p>
+              <button
+                type="button"
+                onClick={fetchAdmins}
+                className="px-4 py-1.5 bg-primary text-on-primary rounded text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : admins.length === 0 ? (
+            <div className="p-8 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
+              <ShieldCheck className="size-8 text-on-surface-variant/40" />
+              <p className="font-body-md text-on-surface font-semibold">No gym owners found</p>
+              <p className="text-body-sm text-on-surface-variant">
+                No gymnasium owner accounts match your current filter or search criteria.
+              </p>
+            </div>
+          ) : (
+            admins.map((admin) => {
+              const displayName =
+                `${admin.firstName || ""} ${admin.lastName || ""}`.trim() ||
+                admin.userName ||
+                "Owner";
+              const initials =
+                (
+                  (admin.firstName?.[0] || "") + (admin.lastName?.[0] || "")
+                ).toUpperCase() || (admin.userName?.[0] || "O").toUpperCase();
+              const isCurrentUpdating = updatingUserId?.startsWith(admin.id);
+
+              return (
+                <div
+                  key={admin.id}
+                  className="p-4 space-y-3 hover:bg-surface-container-high transition-colors"
+                >
+                  {/* Top Row: Avatar + Name + Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container font-headline-sm font-bold flex items-center justify-center border border-outline-variant shrink-0">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div
+                          onClick={() => handleRowClick(admin.id)}
+                          className="font-bold text-on-surface hover:text-primary transition-colors cursor-pointer truncate"
+                        >
+                          {displayName}
+                        </div>
+                        {admin.userName && (
+                          <div className="font-mono-data text-xs text-on-surface-variant truncate">
+                            @{admin.userName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0">{renderStatusBadge(admin.accountStatus)}</div>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-surface-container p-2.5 rounded border border-outline-variant/60">
+                    <div>
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Company
+                      </span>
+                      <span className="font-medium text-on-surface truncate block">
+                        {admin.companyName || "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Verification
+                      </span>
+                      <div>{renderVerifiedBadge(admin.isAccountVerified)}</div>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Email
+                      </span>
+                      <span className="font-mono-data text-on-surface-variant truncate block">
+                        {admin.email || "—"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block text-[10px] uppercase font-bold tracking-wider">
+                        Phone
+                      </span>
+                      <span className="font-mono-data text-on-surface-variant truncate block">
+                        {admin.phoneNumber || "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-outline-variant/40">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {admin.accountStatus !== "ACTIVE" && (
+                        <button
+                          type="button"
+                          disabled={isCurrentUpdating}
+                          onClick={(e) => handleUpdateStatus(e, admin.id, "active", displayName)}
+                          className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          Activate
+                        </button>
+                      )}
+                      {admin.accountStatus === "ACTIVE" && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isCurrentUpdating}
+                            onClick={(e) => handleUpdateStatus(e, admin.id, "pending", displayName)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                          >
+                            Pending
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isCurrentUpdating}
+                            onClick={(e) => handleUpdateStatus(e, admin.id, "ban", displayName)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                          >
+                            Ban
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRowClick(admin.id)}
+                      className="px-3 py-1 text-xs font-medium text-primary hover:bg-surface-container-high rounded transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Details</span>
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[960px]">
+            <thead>
+              <tr className="bg-surface-container-high text-label-caps text-on-surface-variant border-b border-outline-variant">
+                <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
+                  NAME
+                </th>
+                <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
+                  EMAIL
+                </th>
+                <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
+                  COMPANY NAME
+                </th>
+                <th className="px-container-padding py-3 font-bold text-center uppercase tracking-wider">
+                  ACCOUNT VERIFIED
+                </th>
+                <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
+                  STATUS & ACTIONS
+                </th>
+                <th className="px-container-padding py-3 font-bold uppercase tracking-wider">
+                  PHONE NUMBER
+                </th>
+                <th className="px-container-padding py-3 font-bold text-right uppercase tracking-wider">
+                  DETAILS
+                </th>
+              </tr>
+            </thead>
+            <tbody className="text-body-sm divide-y divide-outline-variant/30">
             {loading ? (
               // Loading Skeleton
               Array.from({ length: 5 }).map((_, index) => (
@@ -466,13 +618,14 @@ export default function AdminsTable() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pagination Bar */}
       {!loading && totalAdmins > 0 && (
-        <div className="mt-layout-margin flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span className="text-body-sm text-on-surface-variant font-mono-data">
+        <div className="mt-layout-margin flex flex-col sm:flex-row items-center justify-between gap-3 text-body-sm text-on-surface-variant p-2">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4">
+            <span className="text-body-sm text-on-surface-variant font-mono-data text-center sm:text-left">
               Showing {totalAdmins === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-
               {Math.min(totalAdmins, currentPage * itemsPerPage)} of {totalAdmins} gym owners
             </span>
@@ -506,7 +659,7 @@ export default function AdminsTable() {
             >
               Previous
             </button>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-center">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                 <button
                   key={pageNum}
@@ -534,16 +687,7 @@ export default function AdminsTable() {
           </div>
         </div>
       )}
-
-      {/* Floating Action Button (Add Gym Owner) */}
-      <button
-        type="button"
-        onClick={handleAddAdmin}
-        aria-label="Create New Gym Owner"
-        className="fixed bottom-layout-margin right-layout-margin w-12 h-12 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50 cursor-pointer border-none"
-      >
-        <UserPlus className="size-5" />
-      </button>
+      
     </div>
   );
 }
