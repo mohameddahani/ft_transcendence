@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Forward request to backend POST /api/auth/owners/refresh
+    // 2. Forward request to backend POST /api/auth/admins/refresh
     const backendRes = await axios
       .post(
-        `${API_URL}/api/auth/owners/refresh`,
+        `${API_URL}/api/auth/admins/refresh`,
         {},
         {
           headers: {
@@ -51,10 +51,7 @@ export async function POST(req: NextRequest) {
 
     if (backendRes.status >= 400) {
       const errorData = backendRes.data || { message: "Failed to refresh session" };
-      const response = NextResponse.json(
-        errorData,
-        { status: backendRes.status }
-      );
+      const response = NextResponse.json(errorData, { status: backendRes.status });
 
       // Refresh token is invalid/revoked/expired -> clear cookies
       response.cookies.delete("auth_token");
@@ -87,7 +84,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // If backend returned rotated refresh token in body or cookies, ensure it's saved at path: "/"
+    // If backend returned rotated refresh token, ensure it's saved at path "/"
     let newRefreshToken = data?.refreshToken;
     if (!newRefreshToken) {
       for (const cookie of setCookies) {

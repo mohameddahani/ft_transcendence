@@ -1,27 +1,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import axios from "axios";
-import { parseJwtPayload, isTokenExpired } from "@/lib/auth";
+import { parseJwtPayload, isTokenExpired, isAdminOrStaffUser } from "@/lib/auth";
 
-// Protected routes that strictly require platform owner authentication
+// Protected routes that strictly require admin or staff authentication
 const protectedRoutes = [
-  "/admins",
-  "/plans",
-  "/subscriptions",
   "/dashboard",
-  "/profile",
+  "/members",
+  "/staff",
+  "/classes",
+  "/reports",
+  "/settings",
 ];
 
-// Authentication routes that authenticated owners shouldn't revisit
+// Authentication routes that authenticated users shouldn't revisit
 const authRoutes = ["/login"];
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
-function isOwnerToken(token?: string): boolean {
+function hasAdminOrStaffAccess(token?: string): boolean {
   if (!token) return false;
   const payload = parseJwtPayload(token);
-  const role = (payload?.role || payload?.userType || "").toUpperCase();
-  return role === "OWNER";
+  return isAdminOrStaffUser(payload) && !isTokenExpired(payload);
 }
 
 export async function proxy(request: NextRequest) {
@@ -38,11 +38,11 @@ export async function proxy(request: NextRequest) {
 
   let newAccessToken: string | undefined = undefined;
 
-  // If visiting protected route (or root) and access token is missing or expired, attempt refresh
-  if ((isProtectedRoute || pathname === "/") && (!token || isTokenExpired(token)) && refreshToken) {
+  // If visiting protected route and access token is missing or expired, attempt refresh
+  if (isProtectedRoute && (!token || isTokenExpired(token)) && refreshToken) {
     try {
       const refreshRes = await axios.post(
-        `${API_URL}/api/auth/owners/refresh`,
+        `${API_URL}/api/auth/admins/refresh`,
         {},
         {
           headers: {
@@ -54,7 +54,7 @@ export async function proxy(request: NextRequest) {
       );
 
       const data = refreshRes.data;
-      if (data?.accessToken && isOwnerToken(data.accessToken)) {
+      if (data?.accessToken && hasAdminOrStaffAccess(data.accessToken)) {
         newAccessToken = data.accessToken;
         token = newAccessToken;
       }
@@ -63,29 +63,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const hasOwnerAccess = isOwnerToken(token) && !isTokenExpired(token);
+  const authorized = hasAdminOrStaffAccess(token);
 
-  // If user tries to access root /
-  if (pathname === "/") {
-    if (hasOwnerAccess) {
-      const response = NextResponse.redirect(new URL("/admins", request.url));
-      if (newAccessToken) {
-        response.cookies.set("auth_token", newAccessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 7,
-        });
-      }
-      return response;
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // If user tries to access a protected route without valid owner role
+  // If user tries to access a protected route without valid admin/staff role
   if (isProtectedRoute) {
-    if (!hasOwnerAccess) {
+    if (!authorized) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
 
@@ -99,12 +81,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // If already authenticated as owner and visiting /login, redirect directly to /admins
-  if (isAuthRoute && hasOwnerAccess) {
-    return NextResponse.redirect(new URL("/admins", request.url));
+  // If already authenticated as admin/staff and visiting /login, redirect directly to /dashboard
+  if (isAuthRoute && authorized) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Pass refreshed cookie to downstream server components
   const response = NextResponse.next();
 
   if (newAccessToken) {
@@ -113,7 +94,7 @@ export async function proxy(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 15,
     });
   }
 
