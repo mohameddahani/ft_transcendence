@@ -15,3 +15,5 @@ Thumbs.db
 devops/nginx/certs
 
 docker-compose.dev.yml
+
+node_modules/
