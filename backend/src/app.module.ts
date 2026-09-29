@@ -25,6 +25,7 @@ import { VisitsModule } from './modules/visits/visits.module';
 import { WorkingHoursModule } from './modules/working-hours/working-hours.module';
 import { VisitCron } from './jobs/visit.cron';
 import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
     VisitsModule,
     AttendancesModule,
     FeedbacksModule,
+    HealthModule,
   ],
 
   providers: [

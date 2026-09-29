@@ -76,7 +76,7 @@
 // * Check All Crons is Work
 // * Check All Crons of Notifications is Work
 
-// ! Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
+// * Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
 
 // ! When a staff or admin update the membership of member with same data the server create multiple memberships
 
