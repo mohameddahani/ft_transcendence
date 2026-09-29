@@ -3,7 +3,7 @@ COMPOSE = docker compose -f devops/docker-compose.yml
 all: up
 
 up:
-	$(COMPOSE) up 
+	$(COMPOSE) up -d
 
 build:
 	$(COMPOSE) build

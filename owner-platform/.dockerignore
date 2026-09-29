@@ -1,28 +1,26 @@
 node_modules
+.next
+out
+build
 dist
-.gitignore
-.git
 .gitignore
 
 .env
 .env.*
 
-.prettierrc
-
 Dockerfile
 .dockerignore
-
-frontend/
+devops/docker-compose.yml
 
 *.log
-npm-debug*.log
 
-test
-tests
+AGENTS.md
+CLAUDE.md
+
+.git
+.gitignore
 
 .vscode
 .idea
-
-Makefile
 
 README.md
