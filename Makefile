@@ -1,13 +1,31 @@
-DOCKER_COMPOSE_PATH = $(HOME)/Desktop/projects/ft_transcendence/devops
-COMPOSE_FILE = $(DOCKER_COMPOSE_PATH)/docker-compose.yml
-
-.PHONY: all up down
+COMPOSE = docker compose -f devops/docker-compose.yml
 
 all: up
 
 up:
-	mkdir -p "$(HOME)/Desktop/projects/volumes/postgres_db"
-	docker compose -f "$(COMPOSE_FILE)" up -d
+	$(COMPOSE) up -d
+
+build:
+	$(COMPOSE) build
 
 down:
-	docker compose -f "$(COMPOSE_FILE)" down
+	$(COMPOSE) down
+
+logs:
+	$(COMPOSE) logs -f
+
+ps:
+	$(COMPOSE) ps
+
+restart:
+	$(COMPOSE) restart
+
+clean:
+	$(COMPOSE) down --volumes --remove-orphans
+
+fclean: clean
+	docker system prune -af
+
+re: fclean build up 
+
+.PHONY: all up build down logs ps restart clean fclean re

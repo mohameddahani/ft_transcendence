@@ -1,24 +1,46 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AccessTokenPayload } from '../types/jwt-payload.type';
 import {
+  MemberAccountStatus,
   MembershipStatus,
   Role,
   SubscriptionStatus,
   UserAccountStatus,
 } from '@/generated/prisma/enums';
+import { AccessTokenPayload } from '../types/jwt-payload.type';
+import { safeMemberSelect, safeUserSelect } from '../types/safe-selects.type';
 
 @Injectable()
 export class AccessesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ! Global Methods
-  // * Check if admin has subscription
-  async validateActiveSubscription(
+  // * Authorize an admin or staff caller and validate the admin's access.
+  async authorizeAdminOrStaffAccess(
+    payload: AccessTokenPayload,
+    checkDate: Date = new Date(),
+  ) {
+    // * Get admin id and check staff account status if payload belong to staff
+    const adminId = await this.resolveAdminId(payload);
+
+    // * Check Subscription of admin and check his account status
+    const subscription = await this.validateAdminAccountAndSubscription(
+      adminId,
+      checkDate,
+    );
+
+    return {
+      adminId,
+      subscription,
+    };
+  }
+
+  // * Check that the admin account, subscription, and plan are active.
+  async validateAdminAccountAndSubscription(
     adminId: string,
     checkDate: Date = new Date(),
   ) {
@@ -28,35 +50,34 @@ export class AccessesService {
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         expiresAt: { gt: checkDate },
       },
-      include: { plan: true, user: true },
+      include: {
+        plan: true,
+        user: { select: safeUserSelect },
+      },
     });
-    if (!subscription || !subscription.plan.isActive) {
-      throw new UnauthorizedException(
-        'You don’t have an active subscription. Upgrade your plan to continue.',
+
+    if (!subscription) {
+      throw new ForbiddenException(
+        'An active admin subscription is required to continue.',
       );
-    } else if (subscription.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (subscription.user.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new UnauthorizedException(
-          'Your account is inactive. Please activate your account to continue.',
-        );
-      } else if (
-        subscription.user.accountStatus === UserAccountStatus.PENDING
-      ) {
-        throw new UnauthorizedException(
-          'Your account is currently pending approval. Please wait until your account has been reviewed, or Please contact support for assistance.',
-        );
-      } else if (subscription.user.accountStatus === UserAccountStatus.BANNED) {
-        throw new UnauthorizedException(
-          'Your account has been suspended. Please contact support for assistance.',
-        );
-      }
+    }
+
+    // * Check account status
+    this.assertUserAccountActive(
+      subscription.user.accountStatus,
+      'The admin account',
+    );
+
+    if (!subscription.plan.isActive) {
+      throw new ForbiddenException('The subscription plan is inactive.');
     }
 
     return subscription;
   }
 
-  // * Chekc if Member has Membership
-  async validateActiveMembership(
+  // * Check that the member has an active account and membership
+  // * belonging to the specified admin.
+  async validateMemberAccountAndMembership(
     memberId: string,
     adminId: string,
     checkDate: Date = new Date(),
@@ -70,39 +91,24 @@ export class AccessesService {
       },
       include: {
         membershipPlan: true,
+        member: { select: safeMemberSelect },
       },
     });
+
     if (!membership) {
-      throw new NotFoundException('This Member Has No Membership');
+      throw new ForbiddenException(
+        'An active membership under this admin is required to continue.',
+      );
     }
+
+    // * Check account status
+    this.assertMemberAccountActive(membership.member.accountStatus);
+
     return membership;
   }
 
-  // * Resolve Admin Id
-  async resolveAdminId(accessTokenPayload: AccessTokenPayload) {
-    if (accessTokenPayload.role === Role.ADMIN) {
-      return accessTokenPayload.id;
-    }
-
-    if (accessTokenPayload.role === Role.STAFF) {
-      const staff = await this.prisma.staff.findUnique({
-        where: { id: accessTokenPayload.id },
-        select: {
-          adminId: true,
-        },
-      });
-
-      if (!staff) {
-        throw new NotFoundException('Staff not found');
-      }
-
-      return staff.adminId;
-    }
-
-    throw new UnauthorizedException();
-  }
-
-  // * Get Admin Id from Access Token Payload Of Member
+  // * Look up a member's admin ID.
+  // * This lookup alone does not authorize access to the member.
   async resolveAdminIdFromMemberId(memberId: string) {
     const member = await this.prisma.member.findUnique({
       where: { id: memberId },
@@ -110,10 +116,78 @@ export class AccessesService {
         adminId: true,
       },
     });
+
     if (!member) {
-      throw new NotFoundException('Member Not Found');
+      throw new NotFoundException('Member not found.');
     }
 
     return member.adminId;
+  }
+
+  // ! Private
+  // * Resolve the caller's admin ID and check staff status when applicable.
+  // * Admin account validation is completed by authorizeAdminOrStaffAccess().
+  private async resolveAdminId(payload: AccessTokenPayload) {
+    if (payload.role === Role.ADMIN) {
+      return payload.id;
+    } else if (payload.role === Role.STAFF) {
+      const staff = await this.prisma.staff.findUnique({
+        where: { id: payload.id },
+        select: {
+          adminId: true,
+          accountStatus: true,
+        },
+      });
+
+      if (!staff) {
+        throw new UnauthorizedException(
+          'The account associated with this session no longer exists.',
+        );
+      }
+
+      // * Check account status
+      this.assertUserAccountActive(staff.accountStatus, 'Your staff account');
+
+      return staff.adminId;
+    } else {
+      throw new ForbiddenException(
+        'This action is only available to admins and staff.',
+      );
+    }
+  }
+
+  // * Validate an already-loaded admin or staff status without querying the DB.
+  private assertUserAccountActive(
+    status: UserAccountStatus,
+    accountLabel: string,
+  ): void {
+    if (status === UserAccountStatus.ACTIVE) {
+      return;
+    } else if (status === UserAccountStatus.INACTIVE) {
+      throw new ForbiddenException(
+        `${accountLabel} is inactive. Please contact support for assistance.`,
+      );
+    } else if (status === UserAccountStatus.PENDING) {
+      throw new ForbiddenException(`${accountLabel} is pending approval.`);
+    } else if (status === UserAccountStatus.BANNED) {
+      throw new ForbiddenException(
+        `${accountLabel} has been suspended. Please contact support for assistance.`,
+      );
+    } else {
+      throw new ForbiddenException(`${accountLabel} is not active.`);
+    }
+  }
+
+  // * Validate an already-loaded member status without querying the DB.
+  private assertMemberAccountActive(status: MemberAccountStatus) {
+    if (status === MemberAccountStatus.ACTIVE) {
+      return;
+    } else if (status === MemberAccountStatus.FROZEN) {
+      throw new ForbiddenException('The member account is frozen.');
+    } else if (status === MemberAccountStatus.BANNED) {
+      throw new ForbiddenException('The member account has been suspended.');
+    } else {
+      throw new ForbiddenException('The member account is not active.');
+    }
   }
 }

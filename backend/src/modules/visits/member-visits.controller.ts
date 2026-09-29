@@ -1,4 +1,5 @@
 import {
+  Get,
   Body,
   Controller,
   Param,
@@ -6,6 +7,8 @@ import {
   Patch,
   Post,
   UseGuards,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Role } from '@/generated/prisma/enums';
@@ -35,12 +38,55 @@ export class MemberVisitsController {
   }
 
   // * Cancel A Visit
-  @Patch(':id/cancel')
+  @Patch('cancel/:id')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   cancelVisit(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.visitsService.cancelVisit(accessTokenPayload.id, id);
+  }
+
+  // * Get all Upcoming visits of Today (Member)
+  @Get('upcoming')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAllUpcoming(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.visitsService.findAllUpcomingVisitsByMember(
+      accessTokenPayload.id,
+      page,
+      limit,
+    );
+  }
+
+  // * Get all visits of Today (Member)
+  @Get('today')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAll(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+  ) {
+    return this.visitsService.findAllVisitsTodayByMember(
+      accessTokenPayload.id,
+      page,
+      limit,
+    );
+  }
+
+  // * Get one visit of Today (Member)
+  @Get('today/:id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  findOne(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.visitsService.findOneVisitTodayByMember(
+      accessTokenPayload.id,
+      id,
+    );
   }
 }
