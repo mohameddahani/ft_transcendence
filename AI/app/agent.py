@@ -9,6 +9,7 @@ from app.auth import User
 
 MAX_ROUNDS = 5
 
+# creates one Gemini client object that the rest of this file uses to make API calls.
 # 30 s without an answer from Gemini becomes an error instead of an endless wait
 client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
 
@@ -18,6 +19,7 @@ WHO = {
     "MEMBER": "a member of the gym (members can only see their own data)",
 }
 
+# this is the system prompt. it gives Gemini instructions and context before Gemini handles the user's question
 PROMPT = """You are the assistant of {gym}, a gym in Morocco. Today is {today}.
 You are talking to {who}.
 
@@ -56,6 +58,8 @@ def run(user: User, gym_name: str, question: str, history: list[dict]):
         tools=[types.Tool(function_declarations=tools.tools_for(user.role))],
         # thinking made tool calling worse and slower in our tests
         thinking_config=types.ThinkingConfig(thinking_budget=0),
+        # we run the tools ourselves in the loop below, so the SDK's own automatic loop is off
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
 
     for _ in range(MAX_ROUNDS):
