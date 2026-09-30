@@ -33,7 +33,7 @@ def _find_gym(role: str, user_id: str) -> str | None:
     return row["admin_id"] if row else None
 
 
-def current_user(authorization: str = Header(default="")) -> User:
+def current_user(authorization: str = Header(default="")) -> User: # FastAPI fill this parameter from the HTTP Authorization header
     token = authorization.removeprefix("Bearer ")
     for role, secret in config.JWT_SECRETS.items():
         try:
@@ -51,7 +51,7 @@ def current_user(authorization: str = Header(default="")) -> User:
     raise HTTPException(401, "Invalid or expired token")
 
 
-_requests: dict[str, list[float]] = {}
+_requests: dict[str, list[float]] = {} # This dictionary stores recent request times per user
 _lock = threading.Lock()
 
 
@@ -66,7 +66,7 @@ def check_rate_limit(user: User) -> None:
         recent.append(now)
         _requests[user.id] = recent
 
-
+# authenticate the user and apply the rate limit
 def rate_limited_user(user: User = Depends(current_user)) -> User:
     check_rate_limit(user)
     return user
