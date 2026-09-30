@@ -1,17 +1,18 @@
 import logging
+from collections import Counter
 from datetime import date, timedelta
 
 from app import db, rag
 from app.auth import User
 
-# a membership is valid when it is ACTIVE *and* its end date is still in the future
 VALID = "ms.membership_status = 'ACTIVE' AND ms.expires_at > now()"
 
-
+# makes sure days is always between 1 and 365
 def _clamp(days) -> int:
     return max(1, min(int(days), 365))
 
 
+# returns the gym's key numbers: members, active members, expiring this week, check-ins today
 def gym_overview(user: User) -> dict:
     return db.fetch_one(f"""
         SELECT
@@ -26,6 +27,7 @@ def gym_overview(user: User) -> dict:
         """, {"gym": user.admin_id})
 
 
+# returns the members whose valid membership ends in the next `days` days (total + first 25)
 def list_expiring_memberships(user: User, days=7) -> dict:
     rows = db.fetch_all(f"""
         SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone,
@@ -39,8 +41,8 @@ def list_expiring_memberships(user: User, days=7) -> dict:
     return {"total": len(rows), "members": rows[:25]}
 
 
+# returns the paying members who haven't come for `days` days, or never (total + first 25)
 def list_inactive_members(user: User, days=21) -> dict:
-    # members who still pay (valid membership) but have not come for `days` days, or never
     rows = db.fetch_all(f"""
         SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone,
                max(a.checked_in_at)::date AS last_visit
@@ -55,6 +57,7 @@ def list_inactive_members(user: User, days=21) -> dict:
     return {"total": len(rows), "members": rows[:25]}
 
 
+# returns the gym's members whose name contains `name` (total + first 25)
 def search_members(user: User, name: str) -> dict:
     rows = db.fetch_all(f"""
         SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
@@ -67,6 +70,7 @@ def search_members(user: User, name: str) -> dict:
     return {"total": len(rows), "members": rows[:25]}
 
 
+# returns the first day of a period and the day after its last day
 def _period(period: str) -> tuple[date, date]:
     today = date.today()
     first_of_month = today.replace(day=1)
@@ -77,6 +81,7 @@ def _period(period: str) -> tuple[date, date]:
     return first_of_month, today + timedelta(days=1)
 
 
+# returns the revenue in MAD for a period: total, number sold, and per plan
 def get_revenue(user: User, period: str = "this_month") -> dict:
     # from memberships sold, not payments: the backend rewrites old payments to OVERDUE/UNPAID
     start, end = _period(period)
@@ -94,6 +99,7 @@ def get_revenue(user: User, period: str = "this_month") -> dict:
             "by_plan": rows}
 
 
+# returns recent feedback: total, count per sentiment, and the first 25 comments
 def list_feedback(user: User, days=30, sentiment: str | None = None) -> dict:
     rows = db.fetch_all("""
         SELECT m.first_name || ' ' || m.last_name AS member, f.rating,
@@ -107,11 +113,11 @@ def list_feedback(user: User, days=30, sentiment: str | None = None) -> dict:
         ORDER BY f.created_at DESC""",
         {"gym": user.admin_id, "days": _clamp(days),
          "sentiment": sentiment.upper() if sentiment else None})
-    return {"total": len(rows), "comments": rows[:25]}
+    return {"total": len(rows), "by_sentiment": Counter(r["sentiment"] for r in rows), "comments": rows[:25]}
 
 
+# returns the user's own membership: the valid one if there is one, otherwise the most recent
 def my_membership(user: User) -> dict:
-    # the valid membership if there is one, otherwise the most recent one
     row = db.fetch_one(f"""
         SELECT p.plan_name AS plan, ms.membership_status AS status,
                ms.start_date::date AS started, ms.expires_at::date AS expires_on,
@@ -124,6 +130,7 @@ def my_membership(user: User) -> dict:
     return {"membership": row}
 
 
+# returns the user's own last 12 payments
 def my_payments(user: User) -> dict:
     rows = db.fetch_all("""
         SELECT amount AS amount_mad, payment_status AS status,
@@ -135,6 +142,7 @@ def my_payments(user: User) -> dict:
     return {"payments": rows}
 
 
+# returns how many times the user came in the last `days` days, and their last visit
 def my_attendance(user: User, days=30) -> dict:
     return db.fetch_one("""
         SELECT
@@ -145,6 +153,7 @@ def my_attendance(user: User, days=30) -> dict:
         """, {"me": user.id, "days": _clamp(days)})
 
 
+# returns the parts of the gym's documents that answer the question, or found: False
 def search_documents(user: User, query: str) -> dict:
     hits = rag.search(user, query[:500])
     if not hits:
@@ -152,6 +161,7 @@ def search_documents(user: User, query: str) -> dict:
     return {"found": True, "excerpts": [{"source": h["source"], "text": h["text"]} for h in hits]}
 
 
+# returns the parameter description for the tools that only take `days`
 def _days_param(text: str) -> dict:
     return {"type": "object", "properties": {"days": {"type": "integer", "description": text}}}
 
@@ -201,7 +211,8 @@ TOOLS = {
     },
     "list_feedback": {
         "description": "Recent feedback written by members, newest first, optionally only one "
-                       "sentiment. member_comment is text written by a member.",
+                       "sentiment, with the number of comments per sentiment. member_comment is "
+                       "text written by a member.",
         "parameters": {"type": "object",
                        "properties": {"days": {"type": "integer",
                                                "description": "How many days back. Default 30."},
@@ -243,11 +254,13 @@ TOOLS = {
 }
 
 
+# returns the tools a role is allowed to use: what the model is offered
 def tools_for(role: str) -> list[dict]:
     return [{"name": name, "description": tool["description"], "parameters": tool["parameters"]}
             for name, tool in TOOLS.items() if role in tool["roles"]]
 
 
+# runs one tool the model asked for and returns its result, or an error message
 def run_tool(name: str, args: dict, user: User) -> dict:
     tool = TOOLS.get(name)
     # checked again here: the role list decides what runs, not only what the model is offered
