@@ -25,9 +25,13 @@ export function useCurrentUser() {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/admins/logout", { method: "POST" });
     } catch {
-      // ignore
+      try {
+        await fetch("/api/auth/logout", { method: "POST" });
+      } catch {
+        // ignore
+      }
     } finally {
       localStorage.removeItem("kinetic_user");
       window.location.href = "/login";

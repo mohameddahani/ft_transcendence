@@ -98,17 +98,8 @@
   --color-surface-container-high: #e7e8ea;
   --color-on-primary-fixed: #0f0069;
 
-  /* Spacing Scale */
-  --spacing-base: 4px;
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-2xl: 48px;
-  --spacing-3xl: 64px;
-  --spacing-gutter: 24px;
-  --spacing-container-max: 1440px;
+  /* Container Max Width */
+  --container-container-max: 1440px;
 
   /* Typography Sizes & Fonts */
   --font-headline-lg: var(--font-sora), sans-serif;

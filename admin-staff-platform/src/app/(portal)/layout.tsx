@@ -31,7 +31,7 @@ export default function PortalLayout({
         />
 
         {/* Dynamic Main Workspace Area */}
-        <main className="flex-1 lg:ml-64 rtl:lg:ml-0 rtl:lg:mr-64 min-h-[calc(100vh-64px)] bg-surface p-4 sm:p-6 lg:p-lg transition-all">
+        <main className="flex-1 min-w-0 w-full lg:ml-64 rtl:lg:ml-0 rtl:lg:mr-64 min-h-[calc(100vh-64px)] bg-surface p-4 sm:p-6 lg:p-8 transition-all">
           {children}
         </main>
       </div>

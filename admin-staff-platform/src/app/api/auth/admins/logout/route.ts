@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Call backend admin logout API
     await axios.post(`${API_URL}/api/auth/admins/logout`, {}, {
       headers,
-      validateStatus: () => true,
+      validateStatus: () => true, // Proceed even if backend token is already invalid/expired
     });
   } catch (error) {
     console.error("Backend logout proxy error:", error);
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     { status: 200 }
   );
 
+  // Clear auth_token cookie
   response.cookies.delete("auth_token");
   response.cookies.set("auth_token", "", {
     httpOnly: true,
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     maxAge: 0,
   });
 
+  // Clear refresh_token cookies (both at root and /api/auth path)
   response.cookies.delete("refresh_token");
   response.cookies.set("refresh_token", "", {
     httpOnly: true,

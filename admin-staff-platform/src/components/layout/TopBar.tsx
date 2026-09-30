@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  Search,
   Bell,
   HelpCircle,
   Menu,
@@ -37,7 +36,6 @@ export default function TopBar({
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -66,9 +64,9 @@ export default function TopBar({
   const brandInitial = (displayBrand[0] || "K").toUpperCase();
 
   return (
-    <header className="flex justify-between items-center w-full px-lg h-16 sticky top-0 z-40 bg-surface-bright/80 backdrop-blur-md border-b border-outline-variant transition-colors">
-      {/* Left: Brand Logo & Search */}
-      <div className="flex items-center gap-4 lg:gap-xl">
+    <header className="flex justify-between items-center w-full px-4 sm:px-6 h-16 sticky top-0 z-40 bg-surface-bright/80 backdrop-blur-md border-b border-outline-variant transition-colors">
+      {/* Left: Brand Logo */}
+      <div className="flex items-center gap-4 lg:gap-8">
         {/* Mobile Sidebar Hamburger Toggle */}
         <button
           type="button"
@@ -92,22 +90,10 @@ export default function TopBar({
           </span>
           <span className="hidden sm:inline">{displayBrand}</span>
         </Link>
-
-        {/* Global Search Input */}
-        <div className="relative hidden md:block">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search operations..."
-            className="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full w-64 text-label-md text-on-surface placeholder:text-on-surface-variant/70 focus:ring-2 focus:ring-primary-container outline-none transition-all"
-          />
-        </div>
       </div>
 
       {/* Right: Actions, Theme, Language & User Profile */}
-      <div className="flex items-center gap-2 sm:gap-md">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* Notifications Dropdown */}
         <div ref={notificationsRef} className="relative">
           <button
@@ -148,14 +134,26 @@ export default function TopBar({
         <LanguageSwitcher inline />
 
         {/* Vertical Divider */}
-        <div className="h-8 w-[1px] bg-outline-variant mx-1 sm:mx-sm" />
+        <div className="h-8 w-[1px] bg-outline-variant mx-1 sm:mx-2" />
+
+        {/* Quick Log Out Button */}
+        <button
+          type="button"
+          onClick={logout}
+          title="Log Out"
+          aria-label="Log Out"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-error hover:bg-error/10 border border-error/20 transition-all text-xs font-semibold cursor-pointer active:scale-95"
+        >
+          <LogOut className="w-4 h-4 text-error" />
+          <span className="hidden sm:inline">Log Out</span>
+        </button>
 
         {/* User Profile Dropdown */}
         <div ref={profileRef} className="relative">
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-sm hover:opacity-90 transition-all rounded-full sm:rounded-xl p-1 sm:px-2 sm:py-1 cursor-pointer"
+            className="flex items-center gap-2 hover:opacity-90 transition-all rounded-full sm:rounded-xl p-1 sm:px-2 sm:py-1 cursor-pointer"
             aria-expanded={isProfileOpen}
             aria-haspopup="menu"
           >
@@ -223,7 +221,7 @@ export default function TopBar({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-error hover:bg-error/10 transition-colors text-left rtl:text-right cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-error" />
-                <span>Sign Out</span>
+                <span>Log Out</span>
               </button>
             </div>
           )}

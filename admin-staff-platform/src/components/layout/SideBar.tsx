@@ -11,7 +11,9 @@ import {
   Settings,
   PlusCircle,
   X,
+  LogOut,
 } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface SideBarProps {
   isMobileOpen: boolean;
@@ -25,6 +27,11 @@ export default function SideBar({
   onQuickAction,
 }: SideBarProps) {
   const pathname = usePathname();
+  const { logout } = useCurrentUser();
+
+  const isRouteActive = (route: string) => {
+    return pathname === route || pathname.startsWith(`${route}/`);
+  };
 
   const navLinks = [
     {
@@ -32,14 +39,14 @@ export default function SideBar({
       href: "/dashboard",
       icon: LayoutDashboard,
       materialIcon: "dashboard",
-      isActive: pathname === "/dashboard",
+      isActive: isRouteActive("/dashboard"),
     },
     {
       name: "Members",
       href: "/members",
       icon: Users,
       materialIcon: "group",
-      isActive: pathname.startsWith("/members"),
+      isActive: isRouteActive("/members"),
     },
     {
       name: "Membership Plans",
@@ -47,27 +54,27 @@ export default function SideBar({
       icon: CreditCard,
       materialIcon: "card_membership",
       isActive:
-        pathname.startsWith("/membership-plans") ||
-        pathname.startsWith("/subscriptions"),
+        isRouteActive("/membership-plans") ||
+        isRouteActive("/subscriptions"),
     },
     {
       name: "Payments",
       href: "/payments",
       icon: Receipt,
       materialIcon: "payments",
-      isActive: pathname.startsWith("/payments"),
+      isActive: isRouteActive("/payments"),
     },
     {
       name: "Settings",
       href: "/settings",
       icon: Settings,
       materialIcon: "settings",
-      isActive: pathname.startsWith("/settings"),
+      isActive: isRouteActive("/settings"),
     },
   ];
 
   const renderNavItems = () => (
-    <nav className="flex-1 py-md">
+    <nav className="flex-1 py-4">
       {navLinks.map((link) => {
         const Icon = link.icon;
         return (
@@ -88,6 +95,20 @@ export default function SideBar({
           </Link>
         );
       })}
+
+      <div className="my-2 mx-4 border-t border-outline-variant/60" />
+
+      <button
+        type="button"
+        onClick={() => {
+          onCloseMobile();
+          logout();
+        }}
+        className="flex items-center gap-3 px-4 py-3 transition-colors text-error hover:bg-error/10 w-full text-left rtl:text-right cursor-pointer group"
+      >
+        <LogOut className="w-5 h-5 text-error transition-transform group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5" />
+        <span className="text-label-md font-bold text-error">Log Out</span>
+      </button>
     </nav>
   );
 

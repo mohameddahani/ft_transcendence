@@ -78,7 +78,7 @@ export default function MembershipsPage() {
   return (
     <div className="space-y-6 max-w-container-max mx-auto">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-md mb-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="font-headline-lg text-headline-lg text-on-surface">
             Members
@@ -87,7 +87,7 @@ export default function MembershipsPage() {
             Manage and monitor active registered gym members across the facility.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-sm">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={loadMembers}
@@ -100,7 +100,7 @@ export default function MembershipsPage() {
           <button
             type="button"
             onClick={handleExport}
-            className="flex items-center gap-xs px-4 py-2 bg-surface-container-highest border border-outline-variant rounded-lg text-label-md hover:bg-surface-variant transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-surface-container-highest border border-outline-variant rounded-lg text-label-md hover:bg-surface-variant transition-all cursor-pointer"
           >
             <Download className="w-4 h-4 text-on-surface-variant" />
             <span>Export</span>
@@ -109,7 +109,7 @@ export default function MembershipsPage() {
       </div>
 
       {/* Filter & Search Bar Section */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-md bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant">
         <div className="md:col-span-8 relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
           <input
@@ -164,25 +164,25 @@ export default function MembershipsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant">
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Member
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Username
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Plan
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider">
                     Joined Date
                   </th>
-                  <th className="px-lg py-4 font-label-sm text-on-surface-variant uppercase tracking-wider text-right">
+                  <th className="px-6 py-4 font-label-sm text-on-surface-variant uppercase tracking-wider text-right">
                     Actions
                   </th>
                 </tr>
@@ -200,8 +200,8 @@ export default function MembershipsPage() {
                       key={member.id}
                       className="hover:bg-primary-container/[0.02] transition-colors group"
                     >
-                      <td className="px-lg py-sm">
-                        <div className="flex items-center gap-md">
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-4">
                           {hasPhoto ? (
                             <img
                               className="w-10 h-10 rounded-full object-cover border border-outline-variant/60"
@@ -221,13 +221,13 @@ export default function MembershipsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-lg py-sm text-body-sm font-mono text-on-surface-variant text-xs">
+                      <td className="px-6 py-3 text-body-sm font-mono text-on-surface-variant text-xs">
                         @{member.userName || "—"}
                       </td>
-                      <td className="px-lg py-sm text-body-sm text-on-surface-variant">
+                      <td className="px-6 py-3 text-body-sm text-on-surface-variant">
                         {member.phoneNumber || "—"}
                       </td>
-                      <td className="px-lg py-sm">
+                      <td className="px-6 py-3">
                         <span
                           className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full border ${
                             member.status === "ACTIVE"
@@ -238,13 +238,13 @@ export default function MembershipsPage() {
                           {member.status || "ACTIVE"}
                         </span>
                       </td>
-                      <td className="px-lg py-sm text-body-sm text-on-surface font-medium">
+                      <td className="px-6 py-3 text-body-sm text-on-surface font-medium">
                         {activePlan}
                       </td>
-                      <td className="px-lg py-sm text-body-sm text-on-surface-variant">
+                      <td className="px-6 py-3 text-body-sm text-on-surface-variant">
                         {joinedDate}
                       </td>
-                      <td className="px-lg py-sm text-right">
+                      <td className="px-6 py-3 text-right">
                         <button
                           type="button"
                           className="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
@@ -262,16 +262,16 @@ export default function MembershipsPage() {
       </div>
 
       {/* Summary Chips (Real Data) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-md">
-        <div className="p-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
           <p className="text-label-sm text-on-surface-variant mb-1">TOTAL MEMBERS</p>
           <p className="font-headline-md text-headline-md text-primary">{totalCount}</p>
         </div>
-        <div className="p-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
+        <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
           <p className="text-label-sm text-on-surface-variant mb-1">ACTIVE</p>
           <p className="font-headline-md text-headline-md text-secondary">{activeCount}</p>
         </div>
-        <div className="p-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
+        <div className="p-4 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm">
           <p className="text-label-sm text-on-surface-variant mb-1">INACTIVE / OTHER</p>
           <p className="font-headline-md text-headline-md text-on-surface">{inactiveCount}</p>
         </div>
