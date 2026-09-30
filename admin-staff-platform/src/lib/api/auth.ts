@@ -5,13 +5,16 @@ import {
   LoginUserPayload,
   LoginResponse,
 } from "@/types/auth";
+import { getApiEndpoint } from "@/lib/api/config";
 
 export async function registerAdmin(data: RegisterUserPayload): Promise<RegisterResponse> {
-  const response = await api.post<RegisterResponse>("/api/auth/register", data);
+  const url = getApiEndpoint("/api/auth/register");
+  const response = await api.post<RegisterResponse>(url, data);
   return response.data;
 }
 
 export async function loginUser(data: LoginUserPayload): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>("/api/auth/login", data);
+  const url = getApiEndpoint("/api/auth/login");
+  const response = await api.post<LoginResponse>(url, data);
   return response.data;
 }

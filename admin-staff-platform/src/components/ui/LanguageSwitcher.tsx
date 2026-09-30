@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Globe, ChevronDown, Check } from "lucide-react";
 
@@ -17,16 +18,17 @@ const LANGUAGES: LanguageOption[] = [
   { code: "ar", name: "Arabic", nativeName: "العربية", flag: "🇲🇦" },
 ];
 
-export default function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  inline?: boolean;
+}
+
+export default function LanguageSwitcher({ inline = false }: LanguageSwitcherProps) {
+  const pathname = usePathname();
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentCode = (i18n.language || "en").slice(0, 2);
-  const currentLang =
-    LANGUAGES.find((lang) => lang.code === currentCode) || LANGUAGES[0];
-
-  // Close dropdown on click outside
+  // Close dropdown on click outside - must be called unconditionally before any early returns
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -51,6 +53,23 @@ export default function LanguageSwitcher() {
     };
   }, []);
 
+  const isPortalRoute =
+    pathname?.startsWith("/dashboard") ||
+    pathname?.startsWith("/members") ||
+    pathname?.startsWith("/membership-plans") ||
+    pathname?.startsWith("/subscriptions") ||
+    pathname?.startsWith("/payments") ||
+    pathname?.startsWith("/settings");
+
+  // Don't render floating language switcher on portal pages where TopBar provides inline switcher
+  if (!inline && isPortalRoute) {
+    return null;
+  }
+
+  const currentCode = (i18n.language || "en").slice(0, 2);
+  const currentLang =
+    LANGUAGES.find((lang) => lang.code === currentCode) || LANGUAGES[0];
+
   const handleSelectLanguage = (code: string) => {
     i18n.changeLanguage(code);
     const isRtl = code === "ar";
@@ -62,7 +81,11 @@ export default function LanguageSwitcher() {
   return (
     <div
       ref={dropdownRef}
-      className="fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 select-none"
+      className={
+        inline
+          ? "relative select-none"
+          : "fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 select-none"
+      }
     >
       {/* Switcher Trigger Button */}
       <button
@@ -70,7 +93,11 @@ export default function LanguageSwitcher() {
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container-lowest/90 backdrop-blur-md border border-outline-variant/60 shadow-sm hover:shadow-md hover:border-primary/50 text-on-surface text-sm font-medium transition-all active:scale-[0.98] cursor-pointer"
+        className={`flex items-center gap-1.5 rounded-xl border border-outline-variant/60 text-on-surface text-sm font-medium transition-all active:scale-[0.98] cursor-pointer ${
+          inline
+            ? "px-2.5 py-1.5 bg-surface-container-low hover:bg-surface-container"
+            : "px-3.5 py-2 bg-surface-container-lowest/90 backdrop-blur-md shadow-sm hover:shadow-md hover:border-primary/50"
+        }`}
       >
         <Globe className="w-4 h-4 text-primary" />
         <span className="font-semibold uppercase text-xs tracking-wider">

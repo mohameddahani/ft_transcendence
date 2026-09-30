@@ -1,11 +1,25 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "",
+  baseURL: typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || ""),
   headers: {
     "Content-Type": "application/json",
   },
   withCredentials: true,
+});
+
+// Normalize full API_URL in browser to route through Next.js proxy and preserve cookies without CORS blocks
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    config.baseURL = "";
+    if (config.url) {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      if (config.url.startsWith(backendUrl)) {
+        config.url = config.url.slice(backendUrl.length);
+      }
+    }
+  }
+  return config;
 });
 
 interface RetryQueueItem {

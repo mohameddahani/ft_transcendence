@@ -7,6 +7,9 @@ import { parseJwtPayload, isTokenExpired, isAdminOrStaffUser } from "@/lib/auth"
 const protectedRoutes = [
   "/dashboard",
   "/members",
+  "/membership-plans",
+  "/subscriptions",
+  "/payments",
   "/staff",
   "/classes",
   "/reports",

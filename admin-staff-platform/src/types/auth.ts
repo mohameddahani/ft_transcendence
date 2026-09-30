@@ -38,13 +38,17 @@ export interface LoginUserPayload {
 
 export interface AuthUser {
   id?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+  userType?: string;
   userName?: string;
   phoneNumber?: string;
   companyName?: string;
+  profileImage?: string | null;
+  photo?: string | null;
+  avatar?: string | null;
   accountStatus?: string;
   [key: string]: unknown;
 }

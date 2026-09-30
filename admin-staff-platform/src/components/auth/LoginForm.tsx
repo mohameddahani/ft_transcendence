@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -26,7 +26,6 @@ export default function LoginForm() {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const {
     register,
@@ -40,18 +39,6 @@ export default function LoginForm() {
     },
   });
 
-  // Smooth subtle parallax for left hero section
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const moveX = (e.clientX - window.innerWidth / 2) * 0.005;
-      const moveY = (e.clientY - window.innerHeight / 2) * 0.005;
-      setMousePos({ x: moveX, y: moveY });
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     try {
@@ -59,6 +46,14 @@ export default function LoginForm() {
         email: data.email.trim(),
         password: data.password.trim(),
       });
+
+      if (response.user) {
+        try {
+          localStorage.setItem("kinetic_user", JSON.stringify(response.user));
+        } catch {
+          // ignore localStorage error if in private mode
+        }
+      }
 
       const userGreeting = response.user?.firstName
         ? `${response.user.firstName}!`
@@ -93,13 +88,7 @@ export default function LoginForm() {
   return (
     <main className="flex h-screen w-screen overflow-hidden">
       {/* Left Side: Motivational Fitness Imagery (Desktop Only) */}
-      <section
-        className="hidden lg:flex lg:w-7/12 relative h-full bg-on-surface overflow-hidden select-none"
-        style={{
-          transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0)`,
-          transition: "transform 0.1s ease-out",
-        }}
-      >
+      <section className="hidden lg:flex lg:w-7/12 relative h-full bg-on-surface overflow-hidden select-none">
         <div
           className="absolute inset-0 z-0 opacity-80 bg-cover bg-center"
           style={{
