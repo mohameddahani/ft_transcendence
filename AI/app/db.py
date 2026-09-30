@@ -32,12 +32,12 @@ def _memory(sql: str, params: tuple = ()) -> list[tuple]:
     conn = sqlite3.connect(config.MEMORY_DB)
     try:
         rows = conn.execute(sql, params).fetchall()
-        conn.commit()
+        conn.commit() # save changes
         return rows
     finally:
         conn.close()
 
-
+# make sure required SQLite structures exist
 def init_memory() -> None:
     _memory("""
         CREATE TABLE IF NOT EXISTS messages (
