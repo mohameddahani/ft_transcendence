@@ -84,6 +84,8 @@
 
 // ! return new data in all updates endpoints
 
+// ! make the notification read
+
 // * GET /api/admins/visits/today
 // * GET All or one visits for admin/staff/member
 // * GET All or one attendance for admin/staff/member
