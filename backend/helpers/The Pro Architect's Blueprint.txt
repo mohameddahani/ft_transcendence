@@ -1,0 +1,307 @@
+enterprise-saas/
+├── apps/
+│   ├── api/                           # Primary REST/GraphQL Gateway
+│   │   └── src/
+│   │       ├── main.ts
+│   │       └── app.module.ts          # Imports CoreModule & Domain Modules
+│   └── background-worker/             # Queue processors, Cron jobs
+│       └── src/
+│           └── main.ts
+├── libs/
+│   ├── core/                          # Bootstrapping & Global concerns
+│   │   ├── config/                    # Zod env validation
+│   │   ├── exceptions/                # Global filters (Prisma, HTTP)
+│   │   ├── guards/                    # JwtAuthGuard, RBAC guards
+│   │   ├── interceptors/              # Logging, Timeout, Response mapping
+│   │   └── logger/                    # Pino setup
+│   ├── infrastructure/                # External adapters
+│   │   ├── database/                  # Prisma schema, migrations, client
+│   │   ├── cache/                     # Redis module
+│   │   └── messaging/                 # Kafka/RabbitMQ client wrappers
+│   └── shared/                        # Reusable domain-agnostic code
+│       ├── decorators/                # @CurrentUser(), @Roles()
+│       └── pagination/                # Generic pagination DTOs
+├── src/modules/                       # The Domain Modules
+│   ├── iam/                           # Identity & Access (Auth)
+│   ├── users/                         # User profiles
+│   ├── workspaces/                    # Multi-tenancy (Members, Owners)
+│   │   ├── application/
+│   │   │   ├── commands/              # E.g., AddMemberCommand
+│   │   │   ├── queries/               # E.g., GetWorkspaceQuery
+│   │   │   └── dtos/
+│   │   ├── domain/
+│   │   │   ├── entities/              # Workspace, Member (rich models)
+│   │   │   ├── events/                # WorkspaceCreatedEvent
+│   │   │   └── interfaces/            # IWorkspaceRepository
+│   │   ├── infrastructure/
+│   │   │   └── repositories/          # PrismaWorkspaceRepository
+│   │   ├── presentation/
+│   │   │   └── controllers/           # WorkspaceController
+│   │   └── workspaces.module.ts
+│   ├── billing/                       # Stripe integration, Subscriptions
+│   ├── files/                         # S3 Uploads
+│   └── ai/                            # AI Orchestration
+├── test/
+│   ├── e2e/                           # Supertest files
+│   └── fixtures/                      # Test data factories
+├── .eslintrc.js                       # Boundary enforcement rules
+└── package.json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+├── 📁 prisma
+│   ├── 📁 migrations
+│   └── 📄 schema.prisma
+├── 📁 src
+│   ├── 📁 core                          # App-wide global concerns
+│   │   ├── 📁 decorators                # current-user.decorator.ts, roles.decorator.ts
+│   │   ├── 📁 exceptions                # global-exception.filter.ts
+│   │   └── 📁 guards                    # jwt.guard.ts, roles.guard.ts (Moved from users)
+│   ├── 📁 infrastructure                # External services & adapters
+│   │   ├── 📁 database                  # prisma.module.ts, prisma.service.ts
+│   │   ├── 📁 mail                      # email.module.ts, email.service.ts
+│   │   └── 📁 storage                   # s3.service.ts (Replaces local 📁 images folder)
+│   ├── 📁 modules                       # 📦 BOUNDED CONTEXTS (Business Logic)
+│   │   ├── 📁 iam                       # Identity & Access Management
+│   │   │   ├── 📁 application           # auth.service.ts
+│   │   │   │   └── 📁 dtos              # login.dto.ts, register.dto.ts, forgot-password.dto.ts
+│   │   │   ├── 📁 presentation          # auth.controller.ts
+│   │   │   └── 📄 iam.module.ts
+│   │   ├── 📁 users                     # Core User Profiles
+│   │   │   ├── 📁 application           # users.service.ts
+│   │   │   │   └── 📁 dtos              # update-user.dto.ts
+│   │   │   ├── 📁 domain                # user.entity.ts, user.repository.interface.ts
+│   │   │   ├── 📁 infrastructure        # prisma-user.repository.ts (Calls Prisma)
+│   │   │   ├── 📁 presentation          # users.controller.ts
+│   │   │   └── 📄 users.module.ts
+│   │   ├── 📁 organizations             # Merges 'Owners' and 'Members'
+│   │   │   ├── 📁 application           # organizations.service.ts, members.service.ts
+│   │   │   ├── 📁 domain                # organization.entity.ts, member.entity.ts
+│   │   │   ├── 📁 infrastructure        # organization.repository.ts
+│   │   │   ├── 📁 presentation          # organizations.controller.ts, members.controller.ts
+│   │   │   └── 📄 organizations.module.ts
+│   │   ├── 📁 billing                   # Merges Payments, Subscriptions, and Plans
+│   │   │   ├── 📁 application           # payments.service.ts, subscriptions.service.ts
+│   │   │   ├── 📁 domain                # plan.entity.ts, subscription.entity.ts
+│   │   │   ├── 📁 infrastructure        # stripe.adapter.ts, billing.repository.ts
+│   │   │   ├── 📁 presentation          # billing.controller.ts, webhooks.controller.ts
+│   │   │   └── 📄 billing.module.ts
+│   │   ├── 📁 catalog                   # Replaces 'Products'
+│   │   │   ├── 📁 application
+│   │   │   ├── 📁 domain
+│   │   │   ├── 📁 infrastructure
+│   │   │   ├── 📁 presentation
+│   │   │   └── 📄 catalog.module.ts
+│   │   └── 📁 memberships               # Membership specific logic
+│   │       └── ... (same layered structure as above)
+│   ├── 📁 worker                        # Background tasks (Moved from 📁 cron)
+│   │   ├── 📁 jobs                      # membership.job.ts, payment.job.ts
+│   │   └── 📄 worker.module.ts
+│   ├── 📄 app.module.ts
+│   └── 📄 main.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+src/
+
+core/
+    decorators/
+    guards/
+    filters/
+    interceptors/
+    pipes/
+    constants/
+
+infrastructure/
+    database/
+    mail/
+    storage/
+    cache/
+    queue/
+
+modules/
+
+    auth/
+
+    users/
+        controllers/
+        services/
+        repositories/
+        dto/
+
+    members/
+        controllers/
+        services/
+        repositories/
+        dto/
+
+    memberships/
+        controllers/
+        services/
+        repositories/
+        dto/
+
+    membership-plans/
+        ...
+
+    payments/
+        ...
+
+    subscriptions/
+        ...
+
+    notifications/
+        ...
+
+    owners/
+        ...
+
+jobs/
+    membership.job.ts
+    payment.job.ts
+    subscription.job.ts

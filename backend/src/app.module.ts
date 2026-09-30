@@ -1,21 +1,31 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { JwtModule } from '@nestjs/jwt';
-import { StringValue } from 'ms';
+import { ConfigModule } from '@nestjs/config';
+import { ProfilesModule } from './modules/profiles/profiles.module';
+import { PrismaModule } from './infrastructure/database/prisma.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
-import { MembershipPlanModule } from './membership-plans/membership-plans.module';
-import { MembersModule } from './members/members.module';
-import { PlansModule } from './plans/plans.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { MembershipPlansModule } from './modules/membership-plans/membership-plans.module';
+import { MembersModule } from './modules/members/members.module';
+import { PlansModule } from './modules/platform/plans/plans.module';
+import { SubscriptionsModule } from './modules/platform/subscriptions/subscriptions.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SubscriptionCron } from './cron/subscription.cron';
-import { MembershipCron } from './cron/membership.cron';
-import { PaymentCron } from './cron/payment.cron';
-import { PaymentsModule } from './payments/payments.module';
-import { MembershipsModule } from './memberships/memberships.module';
+import { SubscriptionCron } from './jobs/subscription.cron';
+import { MembershipCron } from './jobs/membership.cron';
+import { PaymentCron } from './jobs/payment.cron';
+import { AuthModule } from './modules/auth/auth.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { MembershipsModule } from './modules/memberships/memberships.module';
+import { OwnersModule } from './modules/platform/owners/owners.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { MembershipNotificationCron } from './jobs/membership-notification.cron';
+import { SubscriptionNotificationCron } from './jobs/subscription-notification.cron';
+import { StaffsModule } from './modules/staffs/staffs.module';
+import { AttendancesModule } from './modules/attendances/attendances.module';
+import { VisitsModule } from './modules/visits/visits.module';
+import { WorkingHoursModule } from './modules/working-hours/working-hours.module';
+import { VisitCron } from './jobs/visit.cron';
+import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -29,16 +39,16 @@ import { MembershipsModule } from './memberships/memberships.module';
 
     // * Config the JWT
     // * Use registerAsync to get dynamic data from .env
-    JwtModule.registerAsync({
-      global: true,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_SECRET'),
-        signOptions: {
-          expiresIn: config.getOrThrow<StringValue>('JWT_EXPIRES_IN'),
-        },
-      }),
-    }),
+    // JwtModule.registerAsync({
+    //   global: true,
+    //   inject: [ConfigService],
+    //   useFactory: (config: ConfigService) => ({
+    //     secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+    //     signOptions: {
+    //       expiresIn: config.getOrThrow<StringValue>('JWT_ACCESS_EXPIRES_IN'),
+    //     },
+    //   }),
+    // }),
 
     // * Rate Limiting
     ThrottlerModule.forRoot([
@@ -52,15 +62,24 @@ import { MembershipsModule } from './memberships/memberships.module';
     // * Task scheduling (Cron)
     ScheduleModule.forRoot(),
 
-    UsersModule,
+    AuthModule,
+    ProfilesModule,
+    OwnersModule,
     // * import prisma module to access prisma from any where in our app
     PrismaModule,
-    MembershipPlanModule,
+    MembershipPlansModule,
     MembersModule,
     PlansModule,
     SubscriptionsModule,
     PaymentsModule,
     MembershipsModule,
+    NotificationsModule,
+    StaffsModule,
+    WorkingHoursModule,
+    VisitsModule,
+    AttendancesModule,
+    FeedbacksModule,
+    HealthModule,
   ],
 
   providers: [
@@ -72,6 +91,9 @@ import { MembershipsModule } from './memberships/memberships.module';
     SubscriptionCron,
     MembershipCron,
     PaymentCron,
+    MembershipNotificationCron,
+    SubscriptionNotificationCron,
+    VisitCron,
   ],
 })
 export class AppModule {}

@@ -1,0 +1,118 @@
+import { Injectable } from '@nestjs/common';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { LoginUserDto } from './dtos/login-user.dto';
+import { AuthProvider } from './auth.provider';
+import { RefreshTokenPayload } from '@/core/types/jwt-payload.type';
+import { Request } from 'express';
+import { LoginMemberDto } from './dtos/login-member.dto';
+import { SetPasswordMemberDto } from './dtos/set-password-member.dto';
+import { LoginStaffDto } from './dtos/login-staff.dto';
+import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(private readonly authProvider: AuthProvider) {}
+
+  // * Register
+  register(data: RegisterUserDto) {
+    return this.authProvider.register(data);
+  }
+
+  // * Login
+  login(request: Request, data: LoginUserDto) {
+    return this.authProvider.login(request, data);
+  }
+
+  // * Logout (Admin)
+  logoutAdmin(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutAdmin(refreshToken, refreshTokenPayload);
+  }
+
+  // * Logout (Owner)
+  logoutOwner(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutOwner(refreshToken, refreshTokenPayload);
+  }
+
+  // * Logout (Member)
+  logoutMember(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutMember(refreshToken, refreshTokenPayload);
+  }
+
+  // * Login Staff
+  loginStaff(request: Request, data: LoginStaffDto) {
+    return this.authProvider.loginStaff(request, data);
+  }
+
+  // * Logout (Staff)
+  logoutStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.logoutStaff(refreshToken, refreshTokenPayload);
+  }
+
+  // * Set Password Staff
+  setPasswordStaff(rawToken: string, data: SetPasswordStaffDto) {
+    return this.authProvider.setPasswordStaff(rawToken, data);
+  }
+
+  // * Forgot password (Staff)
+  forgotPasswordStaff(username: string) {
+    return this.authProvider.forgotPasswordStaff(username);
+  }
+
+  // * Password reset (Staff)
+  resetPasswordStaff(rawToken: string, password: string) {
+    return this.authProvider.resetPasswordStaff(rawToken, password);
+  }
+
+  // * Login Member
+  loginMember(request: Request, data: LoginMemberDto) {
+    return this.authProvider.loginMember(request, data);
+  }
+
+  // * Set Password Member
+  setPasswordMember(rawToken: string, data: SetPasswordMemberDto) {
+    return this.authProvider.setPasswordMember(rawToken, data);
+  }
+
+  // * Refresh
+  refresh(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.refresh(refreshToken, refreshTokenPayload);
+  }
+
+  // * Refresh Staff
+  refreshStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
+    return this.authProvider.refreshStaff(refreshToken, refreshTokenPayload);
+  }
+
+  // * Refresh Member
+  refreshMember(
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authProvider.refreshMember(refreshToken, refreshTokenPayload);
+  }
+
+  // * Activate user account
+  activateAccount(rawToken: string) {
+    return this.authProvider.activateAccount(rawToken);
+  }
+
+  // * Forgot password
+  forgotPassword(email: string) {
+    return this.authProvider.forgotPassword(email);
+  }
+
+  // * Password reset
+  resetPassword(rawToken: string, password: string) {
+    return this.authProvider.resetPassword(rawToken, password);
+  }
+
+  // * Forgot password (Member)
+  forgotPasswordMember(username: string) {
+    return this.authProvider.forgotPasswordMember(username);
+  }
+
+  // * Password reset (Member)
+  resetPasswordMember(rawToken: string, password: string) {
+    return this.authProvider.resetPasswordMember(rawToken, password);
+  }
+}

@@ -1,0 +1,6 @@
+# Development only: mount local code into the container and auto-reload Uvicorn on changes.
+services:
+  ai:
+    volumes:
+      - ./app:/app/app:ro
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

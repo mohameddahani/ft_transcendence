@@ -1,0 +1,174 @@
+src/
+│
+├── core/                                      # Global reusable application code
+│   │
+│   ├── constants/
+│   │   ├── jwt.constants.ts
+│   │   ├── app.constants.ts
+│   │   ├── roles.constants.ts
+│   │   ├── pagination.constants.ts
+│   │   └── index.ts
+│   │
+│   ├── decorators/
+│   │   ├── current-user.decorator.ts
+│   │   ├── roles.decorator.ts
+│   │   ├── public.decorator.ts
+│   │   ├── throttle.decorator.ts
+│   │   └── index.ts
+│   │
+│   ├── guards/
+│   │   ├── access-token.guard.ts
+│   │   ├── refresh-token.guard.ts
+│   │   ├── roles.guard.ts
+│   │   ├── optional-auth.guard.ts
+│   │   └── index.ts
+│   │
+│   ├── filters/
+│   │   ├── http-exception.filter.ts
+│   │   ├── prisma-exception.filter.ts
+│   │   ├── validation.filter.ts
+│   │   └── index.ts
+│   │
+│   ├── interceptors/
+│   │   ├── logging.interceptor.ts
+│   │   ├── transform.interceptor.ts
+│   │   ├── timeout.interceptor.ts
+│   │   └── index.ts
+│   │
+│   ├── pipes/
+│   │   ├── parse-date.pipe.ts
+│   │   ├── parse-decimal.pipe.ts
+│   │   ├── trim.pipe.ts
+│   │   └── index.ts
+│   │
+│   ├── types/
+│   │   ├── jwt-payload.type.ts
+│   │   ├── pagination.type.ts
+│   │   ├── request.type.ts
+│   │   └── index.ts
+│   │
+│   └── utils/
+│       ├── generate-username.ts
+│       ├── password.validator.ts
+│       ├── date.util.ts
+│       ├── pagination.util.ts
+│       ├── file.util.ts
+│       └── index.ts
+│
+├── infrastructure/                            # External services
+│   │
+│   ├── database/
+│   │   ├── prisma.module.ts
+│   │   ├── prisma.service.ts
+│   │   └── prisma.provider.ts
+│   │
+│   ├── mail/
+│   │   ├── mail.module.ts
+│   │   ├── mail.service.ts
+│   │   ├── templates.ts
+│   │   └── mail.provider.ts
+│   │
+│   ├── storage/
+│   │   ├── storage.module.ts
+│   │   ├── storage.service.ts
+│   │   └── local-storage.provider.ts
+│   │
+│   ├── cache/
+│   │   ├── cache.module.ts
+│   │   ├── cache.service.ts
+│   │   └── redis.provider.ts
+│   │
+│   └── queue/
+│       ├── queue.module.ts
+│       ├── queue.service.ts
+│       └── bull.provider.ts
+│
+├── modules/
+│   │
+│   ├── auth/
+│   │   ├── dto/
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   ├── jwt.service.ts
+│   │   ├── access-token.strategy.ts
+│   │   ├── refresh-token.strategy.ts
+│   │   ├── auth.module.ts
+│   │   └── index.ts
+│   │
+│   ├── users/
+│   │   ├── dto/
+│   │   ├── users.controller.ts
+│   │   ├── users.service.ts
+│   │   ├── users.module.ts
+│   │   └── index.ts
+│   │
+│   ├── owners/
+│   │   ├── dto/
+│   │   ├── owners.controller.ts
+│   │   ├── owners.service.ts
+│   │   ├── owners.module.ts
+│   │   └── index.ts
+│   │
+│   ├── members/
+│   │   ├── dto/
+│   │   ├── accounts/                     # Member self-service
+│   │   │   ├── dto/
+│   │   │   ├── members-accounts.controller.ts
+│   │   │   ├── members-accounts.service.ts
+│   │   │   └── index.ts
+│   │   ├── members.controller.ts
+│   │   ├── members.service.ts
+│   │   ├── members.module.ts
+│   │   └── index.ts
+│   │
+│   ├── memberships/
+│   │   ├── dto/
+│   │   ├── memberships.controller.ts
+│   │   ├── memberships.service.ts
+│   │   ├── memberships.module.ts
+│   │   └── index.ts
+│   │
+│   ├── membership-plans/
+│   │   ├── dto/
+│   │   ├── membership-plans.controller.ts
+│   │   ├── membership-plans.service.ts
+│   │   ├── membership-plans.module.ts
+│   │   └── index.ts
+│   │
+│   ├── subscriptions/
+│   │   ├── dto/
+│   │   ├── subscriptions.controller.ts
+│   │   ├── subscriptions.service.ts
+│   │   ├── subscriptions.module.ts
+│   │   └── index.ts
+│   │
+│   ├── payments/
+│   │   ├── dto/
+│   │   ├── payments.controller.ts
+│   │   ├── payments.service.ts
+│   │   ├── payments.module.ts
+│   │   └── index.ts
+│   │
+│   ├── notifications/
+│   │   ├── dto/
+│   │   ├── notifications.controller.ts
+│   │   ├── notifications.service.ts
+│   │   ├── notifications.module.ts
+│   │   └── index.ts
+│   │
+│   └── products/
+│       ├── dto/
+│       ├── products.controller.ts
+│       ├── products.service.ts
+│       ├── products.module.ts
+│       └── index.ts
+│
+├── jobs/
+│   ├── membership.job.ts
+│   ├── payment.job.ts
+│   ├── subscription.job.ts
+│   ├── notification.job.ts
+│   └── jobs.module.ts
+│
+├── app.module.ts
+└── main.ts

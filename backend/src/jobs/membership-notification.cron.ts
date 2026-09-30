@@ -1,0 +1,36 @@
+import { NotificationType, PaymentStatus } from '@/generated/prisma/enums';
+import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+
+@Injectable()
+export class MembershipNotificationCron {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async createNotification() {
+    // * Get Payments of Members and Check it if OVERDUE
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        paymentStatus: PaymentStatus.DUE_SOON,
+      },
+    });
+
+    if (payments.length === 0) {
+      return;
+    }
+
+    // * Create Notification to all this payments
+    for (let i = 0; i < payments.length; i++) {
+      await this.prisma.memberNotification.create({
+        data: {
+          member: { connect: { id: payments[i].memberId } },
+          notificationType: NotificationType.MEMBERSHIP_EXPIRATION,
+          title: 'Membership Payment Overdue',
+          message:
+            'Your membership payment is overdue. Please complete your payment to keep your membership active.',
+        },
+      });
+    }
+  }
+}

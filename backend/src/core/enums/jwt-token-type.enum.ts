@@ -1,0 +1,7 @@
+export enum JwtTokenType {
+  ACCESS,
+  REFRESH,
+  EMAIL_VERIFICATION,
+  RESET_PASSWORD,
+  SET_PASSWORD,
+}
