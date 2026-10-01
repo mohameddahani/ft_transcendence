@@ -293,6 +293,7 @@ model Member {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@unique([adminId, email])
   @@index([adminId])
   @@index([adminId, firstName, lastName])
   @@index([adminId, email, phoneNumber])

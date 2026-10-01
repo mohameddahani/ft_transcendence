@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -11,10 +12,15 @@ import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class PlansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   // * Add Plan by Owner
   async addPlan(data: AddPlanDto) {
