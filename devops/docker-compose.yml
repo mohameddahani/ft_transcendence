@@ -26,6 +26,12 @@ services:
       - ../backend/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,7 +48,8 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
