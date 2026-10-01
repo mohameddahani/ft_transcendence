@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { getAuthenticatedSession, attachSessionCookies } from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -9,32 +10,21 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const token = req.cookies.get("auth_token")?.value;
+    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+    const backendPath = isStaff
+      ? `/api/staffs/membership-plans/${id}`
+      : `/api/admins/membership-plans/${id}`;
 
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+    const backendRes = await axios.get(`${API_URL}${backendPath}`, {
+      headers,
+      validateStatus: () => true,
+    });
 
-    const rawCookies = req.headers.get("cookie");
-    if (rawCookies) {
-      headers["Cookie"] = rawCookies;
-    }
-
-    const backendRes = await axios.get(
-      `${API_URL}/api/membership-plans/${id}`,
-      {
-        headers,
-        validateStatus: () => true,
-      }
-    );
-
-    return NextResponse.json(backendRes.data, {
+    const res = NextResponse.json(backendRes.data, {
       status: backendRes.status,
     });
+    return attachSessionCookies(res, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
     return NextResponse.json(
@@ -50,24 +40,11 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const token = req.cookies.get("auth_token")?.value;
+    const { headers, newAccessToken } = await getAuthenticatedSession(req);
     const body = await req.json();
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const rawCookies = req.headers.get("cookie");
-    if (rawCookies) {
-      headers["Cookie"] = rawCookies;
-    }
-
     const backendRes = await axios.patch(
-      `${API_URL}/api/membership-plans/${id}`,
+      `${API_URL}/api/admins/membership-plans/${id}`,
       body,
       {
         headers,
@@ -75,9 +52,10 @@ export async function PATCH(
       }
     );
 
-    return NextResponse.json(backendRes.data, {
+    const res = NextResponse.json(backendRes.data, {
       status: backendRes.status,
     });
+    return attachSessionCookies(res, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
     return NextResponse.json(

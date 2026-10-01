@@ -14,6 +14,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useTranslation } from "react-i18next";
 
 interface TopBarProps {
   onToggleMobileSidebar: () => void;
@@ -24,6 +25,7 @@ export default function TopBar({
   onToggleMobileSidebar,
   isMobileSidebarOpen,
 }: TopBarProps) {
+  const { t } = useTranslation();
   const {
     user,
     fullName,
@@ -64,7 +66,7 @@ export default function TopBar({
   const brandInitial = (displayBrand[0] || "K").toUpperCase();
 
   return (
-    <header className="flex justify-between items-center w-full px-4 sm:px-6 h-16 sticky top-0 z-40 bg-surface-bright/80 backdrop-blur-md border-b border-outline-variant transition-colors">
+    <header className="flex justify-between items-center w-full px-4 sm:px-6 h-16 sticky top-0 z-40 bg-surface/80 dark:bg-surface-container/90 backdrop-blur-md border-b border-outline-variant transition-colors">
       {/* Left: Brand Logo */}
       <div className="flex items-center gap-4 lg:gap-8">
         {/* Mobile Sidebar Hamburger Toggle */}
@@ -108,10 +110,10 @@ export default function TopBar({
           {isNotificationsOpen && (
             <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-80 rounded-2xl bg-surface-container-lowest/95 backdrop-blur-lg border border-outline-variant shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden">
               <div className="px-4 py-3 border-b border-outline-variant/60 flex items-center justify-between">
-                <span className="font-bold text-sm text-on-surface">Notifications</span>
+                <span className="font-bold text-sm text-on-surface">{t("notifications")}</span>
               </div>
               <div className="p-6 text-center text-on-surface-variant text-xs">
-                No new notifications
+                {t("noNotifications")}
               </div>
             </div>
           )}
@@ -120,8 +122,8 @@ export default function TopBar({
         {/* Help Button */}
         <button
           type="button"
-          title="Help & Documentation"
-          aria-label="Help"
+          title={t("help")}
+          aria-label={t("help")}
           className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-primary transition-all cursor-pointer hidden sm:flex"
         >
           <HelpCircle className="w-5 h-5 text-on-surface-variant" />
@@ -140,12 +142,12 @@ export default function TopBar({
         <button
           type="button"
           onClick={logout}
-          title="Log Out"
-          aria-label="Log Out"
+          title={t("logOut")}
+          aria-label={t("logOut")}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-error hover:bg-error/10 border border-error/20 transition-all text-xs font-semibold cursor-pointer active:scale-95"
         >
           <LogOut className="w-4 h-4 text-error" />
-          <span className="hidden sm:inline">Log Out</span>
+          <span className="hidden sm:inline">{t("logOut")}</span>
         </button>
 
         {/* User Profile Dropdown */}
@@ -198,7 +200,7 @@ export default function TopBar({
                 <div className="flex items-center gap-1.5 mt-2">
                   <ShieldCheck className="w-3.5 h-3.5 text-primary" />
                   <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">
-                    {role} Access
+                    {role} {t("workspace")}
                   </span>
                 </div>
               </div>
@@ -209,7 +211,7 @@ export default function TopBar({
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-surface-container-low transition-colors"
               >
                 <Settings className="w-4 h-4 text-on-surface-variant" />
-                <span>Settings</span>
+                <span>{t("navSettings")}</span>
               </Link>
 
               <button
@@ -221,7 +223,7 @@ export default function TopBar({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-error hover:bg-error/10 transition-colors text-left rtl:text-right cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-error" />
-                <span>Log Out</span>
+                <span>{t("logOut")}</span>
               </button>
             </div>
           )}

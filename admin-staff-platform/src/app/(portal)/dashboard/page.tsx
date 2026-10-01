@@ -18,8 +18,10 @@ import { fetchMembers } from "@/lib/api/members";
 import { BackendMember } from "@/types/member";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { fullName, companyName, role, user } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,15 +67,15 @@ export default function DashboardPage() {
               </span>
             )}
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-container text-on-surface-variant">
-              {role} Workspace
+              {role} {t("workspace")}
             </span>
           </div>
 
           <h1 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface">
-            Welcome back, {fullName}
+            {t("welcomeBack")}, {fullName}
           </h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Real-time management dashboard and facility operations.
+            {t("dashboardSubtitle")}
           </p>
         </div>
 
@@ -85,15 +87,15 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-3.5 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-xs font-semibold text-on-surface hover:bg-surface-container transition-all cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
+            <span>{t("refresh")}</span>
           </button>
 
           <Link
             href="/members"
             className="flex items-center gap-2 px-4 py-2 primary-gradient text-white rounded-xl text-sm font-bold shadow-md hover:opacity-95 transition-all"
           >
-            <span>View All Members</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>{t("viewAllMembers")}</span>
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
           </Link>
         </div>
       </div>
@@ -104,7 +106,7 @@ export default function DashboardPage() {
         <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-              Total Members
+              {t("totalMembers")}
             </span>
             <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
               <Users className="w-5 h-5" />
@@ -129,7 +131,7 @@ export default function DashboardPage() {
         <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-              Active Members
+              {t("activeSubscriptions")}
             </span>
             <div className="w-10 h-10 rounded-xl bg-secondary-container/20 text-on-secondary-container flex items-center justify-center">
               <UserCheck className="w-5 h-5 text-secondary" />
@@ -145,12 +147,12 @@ export default function DashboardPage() {
             )}
             <span className="text-xs font-semibold text-secondary">
               {totalMembers > 0
-                ? `${Math.round((activeMembers / totalMembers) * 100)}% active`
+                ? `${Math.round((activeMembers / totalMembers) * 100)}% ${t("active")}`
                 : "—"}
             </span>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            Currently active status
+            {t("totalActiveMembers")}
           </p>
         </div>
 
@@ -158,7 +160,7 @@ export default function DashboardPage() {
         <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-              Inactive / Pending
+              {t("inactiveOrOther")}
             </span>
             <div className="w-10 h-10 rounded-xl bg-surface-variant text-on-surface-variant flex items-center justify-center">
               <UserX className="w-5 h-5" />
@@ -172,10 +174,10 @@ export default function DashboardPage() {
                 {inactiveOrOther}
               </span>
             )}
-            <span className="text-xs text-on-surface-variant">Non-active</span>
+            <span className="text-xs text-on-surface-variant">{t("inactive")}</span>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            Frozen or inactive accounts
+            {t("frozenPausedMembers")}
           </p>
         </div>
       </div>
@@ -185,14 +187,14 @@ export default function DashboardPage() {
         <div className="p-5 border-b border-outline-variant flex items-center justify-between">
           <div>
             <h3 className="font-headline font-bold text-base text-on-surface">
-              Recent Members
+              {t("recentMembers")}
             </h3>
             <p className="text-xs text-on-surface-variant">
               Fetched from <code className="bg-surface-container px-1 py-0.5 rounded text-[11px]">GET /api/admins/members</code>
             </p>
           </div>
           <span className="text-xs font-semibold text-on-surface-variant">
-            {totalMembers} {totalMembers === 1 ? "member" : "members"} found
+            {totalMembers} {t("navMembers")}
           </span>
         </div>
 
@@ -200,7 +202,7 @@ export default function DashboardPage() {
         {isLoading && (
           <div className="py-16 text-center text-on-surface-variant flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <p className="text-xs">Loading members from API...</p>
+            <p className="text-xs">Loading members...</p>
           </div>
         )}
 
@@ -222,17 +224,17 @@ export default function DashboardPage() {
               <Users className="w-6 h-6" />
             </div>
             <h4 className="font-headline font-bold text-base text-on-surface">
-              No members found
+              {t("noMembersYet")}
             </h4>
             <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1 mb-4">
-              Your member registry is currently empty. As soon as members register or are added, they will appear here in real-time.
+              {t("clickAddMember")}
             </p>
             <Link
               href="/members"
               className="inline-flex items-center gap-1.5 px-4 py-2 primary-gradient text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-95"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Go to Members Page</span>
+              <span>{t("viewAllMembers")}</span>
             </Link>
           </div>
         )}
@@ -243,12 +245,12 @@ export default function DashboardPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low border-b border-outline-variant text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <th className="px-6 py-3">Member</th>
-                  <th className="px-6 py-3">Username</th>
-                  <th className="px-6 py-3">Contact</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Plan</th>
-                  <th className="px-6 py-3">Joined Date</th>
+                  <th className="px-6 py-3">{t("member")}</th>
+                  <th className="px-6 py-3">{t("username")}</th>
+                  <th className="px-6 py-3">{t("phone")}</th>
+                  <th className="px-6 py-3">{t("status")}</th>
+                  <th className="px-6 py-3">{t("planName")}</th>
+                  <th className="px-6 py-3">{t("joinedDate")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant text-xs">

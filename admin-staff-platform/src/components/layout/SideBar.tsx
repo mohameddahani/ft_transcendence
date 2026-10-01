@@ -12,8 +12,10 @@ import {
   PlusCircle,
   X,
   LogOut,
+  UserCheck,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useTranslation } from "react-i18next";
 
 interface SideBarProps {
   isMobileOpen: boolean;
@@ -28,6 +30,7 @@ export default function SideBar({
 }: SideBarProps) {
   const pathname = usePathname();
   const { logout } = useCurrentUser();
+  const { t } = useTranslation();
 
   const isRouteActive = (route: string) => {
     return pathname === route || pathname.startsWith(`${route}/`);
@@ -35,21 +38,28 @@ export default function SideBar({
 
   const navLinks = [
     {
-      name: "Dashboard",
+      name: t("navDashboard"),
       href: "/dashboard",
       icon: LayoutDashboard,
       materialIcon: "dashboard",
       isActive: isRouteActive("/dashboard"),
     },
     {
-      name: "Members",
+      name: t("navMembers"),
       href: "/members",
       icon: Users,
       materialIcon: "group",
       isActive: isRouteActive("/members"),
     },
     {
-      name: "Membership Plans",
+      name: t("navStaffs"),
+      href: "/staffs",
+      icon: UserCheck,
+      materialIcon: "badge",
+      isActive: isRouteActive("/staffs"),
+    },
+    {
+      name: t("navMembershipPlans"),
       href: "/membership-plans",
       icon: CreditCard,
       materialIcon: "card_membership",
@@ -58,14 +68,14 @@ export default function SideBar({
         isRouteActive("/subscriptions"),
     },
     {
-      name: "Payments",
+      name: t("navPayments"),
       href: "/payments",
       icon: Receipt,
       materialIcon: "payments",
       isActive: isRouteActive("/payments"),
     },
     {
-      name: "Settings",
+      name: t("navSettings"),
       href: "/settings",
       icon: Settings,
       materialIcon: "settings",
@@ -107,7 +117,7 @@ export default function SideBar({
         className="flex items-center gap-3 px-4 py-3 transition-colors text-error hover:bg-error/10 w-full text-left rtl:text-right cursor-pointer group"
       >
         <LogOut className="w-5 h-5 text-error transition-transform group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5" />
-        <span className="text-label-md font-bold text-error">Log Out</span>
+        <span className="text-label-md font-bold text-error">{t("logOut")}</span>
       </button>
     </nav>
   );
@@ -116,7 +126,7 @@ export default function SideBar({
     <div className="p-4 mt-auto">
       <div className="p-4 bg-primary-container/5 rounded-xl border border-primary-container/20">
         <p className="text-label-sm text-primary mb-2 font-bold tracking-wider">
-          QUICK ACTION
+          {t("quickAction")}
         </p>
         <button
           type="button"
@@ -129,7 +139,7 @@ export default function SideBar({
           className="w-full py-2 primary-gradient text-white font-bold rounded-lg text-label-md shadow-sm active:scale-[0.98] transition-all hover:opacity-95 flex items-center justify-center gap-2 cursor-pointer"
         >
           <PlusCircle className="w-4 h-4" />
-          <span>Add New Member</span>
+          <span>{t("addNewMember")}</span>
         </button>
       </div>
     </div>

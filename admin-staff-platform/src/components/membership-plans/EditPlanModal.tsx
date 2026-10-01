@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { updateMembershipPlan } from "@/lib/api/membership-plans";
 import { MembershipPlan } from "@/types/membership-plan";
 import {
@@ -34,6 +35,7 @@ export default function EditPlanModal({
   onClose,
   onSuccess,
 }: EditPlanModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -113,7 +115,7 @@ export default function EditPlanModal({
             </div>
             <div>
               <h2 className="font-headline font-bold text-lg text-on-surface">
-                Edit Membership Plan
+                {t("editPlan")}
               </h2>
               <p className="text-xs text-on-surface-variant font-mono">
                 {plan.planName}
@@ -136,9 +138,9 @@ export default function EditPlanModal({
           {/* Plan Status (Active / Inactive) with Red and Green indicator */}
           <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/60 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-on-surface">Plan Status</p>
+              <p className="text-xs font-bold text-on-surface">{t("status")}</p>
               <p className="text-[11px] text-on-surface-variant">
-                Inactive plans cannot be selected for new member registrations.
+                {isActive ? t("active") : t("inactive")}
               </p>
             </div>
 
@@ -156,14 +158,14 @@ export default function EditPlanModal({
                   isActive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
                 }`}
               />
-              <span>{isActive ? "ACTIVE (Green)" : "INACTIVE (Red)"}</span>
+              <span>{isActive ? t("active") : t("inactive")}</span>
             </button>
           </div>
 
           {/* Plan Name */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Plan Name <span className="text-error">*</span>
+              {t("planName")} <span className="text-error">*</span>
             </label>
             <input
               type="text"
@@ -185,7 +187,7 @@ export default function EditPlanModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Description
+              {t("description")}
             </label>
             <textarea
               rows={2}
@@ -208,10 +210,10 @@ export default function EditPlanModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-on-surface">
-                Weekly Visit Limit <span className="text-error">*</span>
+                {t("weeklyVisitLimit")} <span className="text-error">*</span>
               </label>
               <span className="text-xs font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                {weeklyVisitLimit === 7 ? "7 Days (Unlimited)" : `${weeklyVisitLimit} visits / week`}
+                {weeklyVisitLimit === 7 ? t("unlimitedVisits") : `${weeklyVisitLimit} ${t("visitsPerWeek")}`}
               </span>
             </div>
 
@@ -249,7 +251,7 @@ export default function EditPlanModal({
               disabled={isSubmitting}
               className="px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -261,7 +263,7 @@ export default function EditPlanModal({
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>Save Changes</span>
+              <span>{t("saveChanges")}</span>
             </button>
           </div>
         </form>

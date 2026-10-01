@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import {
   fetchMembershipPlans,
   updateMembershipPlan,
@@ -37,6 +38,7 @@ import EditPlanModal from "@/components/membership-plans/EditPlanModal";
 import DurationModal from "@/components/membership-plans/DurationModal";
 
 export default function MembershipPlansPage() {
+  const { t } = useTranslation();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -127,10 +129,10 @@ export default function MembershipPlansPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
-            Membership Plans & Pricing Tiers
+            {t("membershipPlans")}
           </h1>
           <p className="text-body-md text-on-surface-variant">
-            Create, configure, and monitor membership privileges, durations, and pricing.
+            {t("plansSubtitle")}
           </p>
         </div>
 
@@ -144,7 +146,7 @@ export default function MembershipPlansPage() {
             <RefreshCw
               className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : ""}`}
             />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{t("refresh")}</span>
           </button>
 
           <button
@@ -153,7 +155,7 @@ export default function MembershipPlansPage() {
             className="flex items-center gap-2 px-5 py-2.5 primary-gradient text-white font-bold rounded-xl text-sm shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Create New Plan</span>
+            <span>{t("createNewPlan")}</span>
           </button>
         </div>
       </div>
@@ -166,7 +168,7 @@ export default function MembershipPlansPage() {
             <CreditCard className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-on-surface-variant font-medium">Total Plans</p>
+            <p className="text-xs text-on-surface-variant font-medium">{t("total")}</p>
             <p className="text-2xl font-bold text-on-surface">{totalPlans}</p>
           </div>
         </div>
@@ -177,7 +179,7 @@ export default function MembershipPlansPage() {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-on-surface-variant font-medium">Active Plans</p>
+            <p className="text-xs text-on-surface-variant font-medium">{t("activePlans")}</p>
             <p className="text-2xl font-bold text-emerald-500">{activePlansCount}</p>
           </div>
         </div>
@@ -188,7 +190,7 @@ export default function MembershipPlansPage() {
             <XCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-on-surface-variant font-medium">Inactive Plans</p>
+            <p className="text-xs text-on-surface-variant font-medium">{t("inactive")}</p>
             <p className="text-2xl font-bold text-rose-500">{inactivePlansCount}</p>
           </div>
         </div>
@@ -199,7 +201,7 @@ export default function MembershipPlansPage() {
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-on-surface-variant font-medium">Duration Tiers</p>
+            <p className="text-xs text-on-surface-variant font-medium">{t("durationsCount")}</p>
             <p className="text-2xl font-bold text-on-surface">{totalDurationsCount}</p>
           </div>
         </div>
@@ -214,7 +216,7 @@ export default function MembershipPlansPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search plans by name or privileges..."
+            placeholder={`${t("search")}...`}
             className="w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:ring-2 focus:ring-primary-container outline-none transition-all"
           />
         </div>
@@ -230,7 +232,7 @@ export default function MembershipPlansPage() {
                 : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
-            All ({totalPlans})
+            {t("allStatuses")} ({totalPlans})
           </button>
           <button
             type="button"
@@ -242,7 +244,7 @@ export default function MembershipPlansPage() {
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Active ({activePlansCount})</span>
+            <span>{t("active")} ({activePlansCount})</span>
           </button>
           <button
             type="button"
@@ -254,7 +256,7 @@ export default function MembershipPlansPage() {
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-rose-500" />
-            <span>Inactive ({inactivePlansCount})</span>
+            <span>{t("inactive")} ({inactivePlansCount})</span>
           </button>
         </div>
       </div>
@@ -264,7 +266,7 @@ export default function MembershipPlansPage() {
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
           <p className="text-body-md text-on-surface-variant font-medium">
-            Loading membership plans...
+            {t("savingChanges")}
           </p>
         </div>
       )}
@@ -276,10 +278,10 @@ export default function MembershipPlansPage() {
             <CreditCard className="w-8 h-8" />
           </div>
           <h3 className="font-headline font-bold text-xl text-on-surface">
-            No Membership Plans Created Yet
+            {t("noPlansFound")}
           </h3>
           <p className="text-sm text-on-surface-variant max-w-md mx-auto mt-1.5 mb-6">
-            Get started by creating your gym's first membership tier. You can set weekly visit quotas, descriptions, and flexible pricing durations.
+            {t("plansSubtitle")}
           </p>
           <button
             type="button"
@@ -287,7 +289,7 @@ export default function MembershipPlansPage() {
             className="inline-flex items-center gap-2 px-6 py-3 primary-gradient text-white font-bold rounded-xl text-sm shadow-lg hover:opacity-95 active:scale-98 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Create First Plan</span>
+            <span>{t("createNewPlan")}</span>
           </button>
         </div>
       )}
@@ -296,7 +298,7 @@ export default function MembershipPlansPage() {
       {!isLoading && plans.length > 0 && filteredPlans.length === 0 && (
         <div className="p-12 bg-surface-container-lowest rounded-2xl border border-outline-variant text-center">
           <p className="text-sm text-on-surface-variant font-medium">
-            No plans found matching your search or status filter.
+            {t("noPlansFound")}
           </p>
           <button
             type="button"
@@ -306,7 +308,7 @@ export default function MembershipPlansPage() {
             }}
             className="mt-3 text-xs text-primary font-bold hover:underline cursor-pointer"
           >
-            Clear filters
+            {t("clearFilters")}
           </button>
         </div>
       )}
@@ -344,7 +346,7 @@ export default function MembershipPlansPage() {
                         {plan.planName}
                       </h3>
                       <p className="text-xs text-on-surface-variant mt-1 line-clamp-2 min-h-[32px]">
-                        {plan.description || "No specific description configured for this tier."}
+                        {plan.description || "—"}
                       </p>
                     </div>
 
@@ -353,7 +355,6 @@ export default function MembershipPlansPage() {
                       type="button"
                       onClick={() => handleToggleActive(plan)}
                       disabled={isToggling}
-                      title="Click to toggle active status"
                       className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
                         plan.isActive
                           ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20"
@@ -369,7 +370,7 @@ export default function MembershipPlansPage() {
                           }`}
                         />
                       )}
-                      <span>{plan.isActive ? "Active" : "Inactive"}</span>
+                      <span>{plan.isActive ? t("active") : t("inactive")}</span>
                     </button>
                   </div>
 
@@ -379,14 +380,14 @@ export default function MembershipPlansPage() {
                       <Zap className="w-3.5 h-3.5" />
                       <span>
                         {plan.weeklyVisitLimit === 7
-                          ? "Everyday Access (7 days/wk)"
-                          : `${plan.weeklyVisitLimit} visits / week`}
+                          ? t("unlimitedVisits")
+                          : `${plan.weeklyVisitLimit} ${t("visitsPerWeek")}`}
                       </span>
                     </span>
 
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-surface-container-low text-on-surface-variant border border-outline-variant">
                       <Clock className="w-3.5 h-3.5 text-secondary" />
-                      <span>{durations.length} duration tier{durations.length === 1 ? "" : "s"}</span>
+                      <span>{durations.length} {t("durationsCount")}</span>
                     </span>
                   </div>
 
@@ -394,7 +395,7 @@ export default function MembershipPlansPage() {
                   <div className="pt-2 border-t border-outline-variant/60">
                     <div className="flex items-center justify-between mb-2.5">
                       <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                        Pricing & Durations
+                        {t("durationsCount")}
                       </span>
                       <button
                         type="button"
@@ -405,14 +406,14 @@ export default function MembershipPlansPage() {
                         className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
-                        <span>Add Duration</span>
+                        <span>{t("addDuration")}</span>
                       </button>
                     </div>
 
                     {durations.length === 0 ? (
                       <div className="p-3.5 rounded-2xl bg-surface-container-low/60 border border-dashed border-outline-variant text-center">
                         <p className="text-xs text-on-surface-variant">
-                          No durations configured yet.
+                          {t("noPlansFound")}
                         </p>
                         <button
                           type="button"
@@ -422,7 +423,7 @@ export default function MembershipPlansPage() {
                           }}
                           className="mt-1 text-xs font-bold text-primary hover:underline cursor-pointer"
                         >
-                          + Set duration & price
+                          + {t("addDuration")}
                         </button>
                       </div>
                     ) : (
@@ -435,10 +436,7 @@ export default function MembershipPlansPage() {
                             <div className="flex items-center gap-2.5">
                               <Calendar className="w-4 h-4 text-secondary" />
                               <span className="text-xs font-bold text-on-surface">
-                                {dur.durationDays} Days
-                              </span>
-                              <span className="text-[11px] text-on-surface-variant">
-                                ({Math.round(dur.durationDays / 30)} mo)
+                                {dur.durationDays} {t("days")}
                               </span>
                             </div>
 
@@ -452,7 +450,7 @@ export default function MembershipPlansPage() {
                                   setDurationPlan(plan);
                                   setEditingDuration(dur);
                                 }}
-                                title="Edit duration or price"
+                                title={t("editDuration")}
                                 className="p-1 hover:bg-surface-container-lowest rounded-lg text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
                               >
                                 <Edit className="w-3.5 h-3.5" />
@@ -468,7 +466,7 @@ export default function MembershipPlansPage() {
                 {/* Card Footer: Edit Plan Details Button */}
                 <div className="p-4 px-6 bg-surface-container-low/40 border-t border-outline-variant/60 flex items-center justify-between">
                   <span className="text-[11px] text-on-surface-variant font-mono">
-                    ID: {plan.id.slice(0, 8)}...
+                    {t("id")}: {plan.id.slice(0, 8)}...
                   </span>
 
                   <button
@@ -477,7 +475,7 @@ export default function MembershipPlansPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-on-surface hover:bg-surface-container border border-outline-variant transition-colors cursor-pointer"
                   >
                     <Edit className="w-3.5 h-3.5 text-primary" />
-                    <span>Edit Plan</span>
+                    <span>{t("editPlan")}</span>
                   </button>
                 </div>
               </div>

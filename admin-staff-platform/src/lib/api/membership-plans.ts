@@ -36,7 +36,6 @@ export async function updateMembershipPlan(
   data: UpdateMembershipPlanInput
 ): Promise<void> {
   const url = getApiEndpoint(`/api/membership-plans/${id}`);
-  console.log(url);
   await api.patch(url, data);
 }
 

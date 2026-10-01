@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useTranslation } from "react-i18next";
 import {
   User,
   Mail,
@@ -39,6 +40,7 @@ import {
 } from "@/schemas/profile";
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -188,7 +190,7 @@ export default function SettingsPage() {
       }
 
       await updateAdminProfile(payload);
-      toast.success("Profile information updated successfully!");
+      toast.success(t("profileUpdatedSuccess", "Profile updated successfully!"));
       // Reload profile so the top banner and local cache update cleanly
       await loadProfile();
     } catch (err: unknown) {
@@ -284,7 +286,7 @@ export default function SettingsPage() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
         <p className="text-body-md text-on-surface-variant font-medium">
-          Loading administrator profile...
+          {t("loadingProfile", "Loading administrator profile...")}
         </p>
       </div>
     );
@@ -296,10 +298,13 @@ export default function SettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
-            Account & Profile Settings
+            {t("settingsTitle", "Account & Facility Settings")}
           </h1>
           <p className="text-body-md text-on-surface-variant">
-            Manage your admin credentials, personal info, gym facility details, and avatar.
+            {t(
+              "settingsSubtitle",
+              "Manage your profile details, operational preferences, and gym information."
+            )}
           </p>
         </div>
 
@@ -310,7 +315,7 @@ export default function SettingsPage() {
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant text-on-surface text-sm font-semibold transition-colors cursor-pointer w-fit"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : ""}`} />
-          <span>Refresh</span>
+          <span>{t("refresh", "Refresh")}</span>
         </button>
       </div>
 
@@ -354,7 +359,7 @@ export default function SettingsPage() {
               {profile?.isAccountVerified && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                   <CheckCircle2 className="w-3 h-3" />
-                  Verified
+                  {t("verified", "Verified")}
                 </span>
               )}
             </div>
@@ -391,7 +396,7 @@ export default function SettingsPage() {
                 ) : (
                   <Camera className="w-3.5 h-3.5" />
                 )}
-                <span>Change Photo</span>
+                <span>{t("changePhoto", "Change Photo")}</span>
               </button>
 
               {hasCustomPhoto && (
@@ -406,12 +411,12 @@ export default function SettingsPage() {
                   ) : (
                     <Trash2 className="w-3.5 h-3.5" />
                   )}
-                  <span>Remove</span>
+                  <span>{t("removePhoto", "Remove")}</span>
                 </button>
               )}
 
               <span className="text-[11px] text-on-surface-variant/80">
-                Max 1MB (PNG, JPG, WebP)
+                {t("maxPhotoSize", "Max 1MB (PNG, JPG, WebP)")}
               </span>
             </div>
           </div>
@@ -425,7 +430,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
             <User className="w-5 h-5 text-primary" />
             <h3 className="font-headline font-bold text-base text-on-surface">
-              Personal Information
+              {t("personalInformation", "Personal Information")}
             </h3>
           </div>
 
@@ -433,7 +438,7 @@ export default function SettingsPage() {
             {/* First Name */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                First Name <span className="text-error">*</span>
+                {t("firstName", "First Name")} <span className="text-error">*</span>
               </label>
               <input
                 type="text"
@@ -456,7 +461,7 @@ export default function SettingsPage() {
             {/* Last Name */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Last Name <span className="text-error">*</span>
+                {t("lastName", "Last Name")} <span className="text-error">*</span>
               </label>
               <input
                 type="text"
@@ -479,7 +484,7 @@ export default function SettingsPage() {
             {/* Gender */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Gender <span className="text-error">*</span>
+                {t("gender", "Gender")} <span className="text-error">*</span>
               </label>
               <select
                 {...register("gender")}
@@ -489,8 +494,8 @@ export default function SettingsPage() {
                     : "border-outline-variant focus:ring-primary-container"
                 } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all cursor-pointer`}
               >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
+                <option value="MALE">{t("male", "Male")}</option>
+                <option value="FEMALE">{t("female", "Female")}</option>
               </select>
               {errors.gender && (
                 <p className="text-xs text-error mt-1 flex items-center gap-1">
@@ -503,7 +508,7 @@ export default function SettingsPage() {
             {/* Birth Date */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Birth Date <span className="text-error">*</span>
+                {t("birthDate", "Birth Date")} <span className="text-error">*</span>
               </label>
               <input
                 type="date"
@@ -529,7 +534,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
             <Building className="w-5 h-5 text-secondary" />
             <h3 className="font-headline font-bold text-base text-on-surface">
-              Contact & Gym Organization Details
+              {t("contactGymDetails", "Contact & Gym Organization Details")}
             </h3>
           </div>
 
@@ -537,7 +542,7 @@ export default function SettingsPage() {
             {/* Email */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Email Address <span className="text-error">*</span>
+                {t("emailAddress", "Email Address")} <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -563,7 +568,7 @@ export default function SettingsPage() {
             {/* Phone Number */}
             <div>
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Phone Number (International) <span className="text-error">*</span>
+                {t("phoneNumberInternational", "Phone Number (International)")} <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <Phone className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -585,7 +590,10 @@ export default function SettingsPage() {
                 </p>
               ) : (
                 <p className="text-[11px] text-on-surface-variant/80 mt-1">
-                  Must include country code (e.g. +14155552671 or +212607080904)
+                  {t(
+                    "phoneHelperText",
+                    "Must include country code (e.g. +14155552671 or +212607080904)"
+                  )}
                 </p>
               )}
             </div>
@@ -593,7 +601,7 @@ export default function SettingsPage() {
             {/* Company / Gym Name */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                Company / Gym Facility Name <span className="text-error">*</span>
+                {t("companyGymName", "Company / Gym Facility Name")} <span className="text-error">*</span>
               </label>
               <div className="relative">
                 <Building className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -624,18 +632,18 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2.5">
               <Lock className="w-5 h-5 text-tertiary" />
               <h3 className="font-headline font-bold text-base text-on-surface">
-                Security & Password
+                {t("securityPassword", "Security & Password")}
               </h3>
             </div>
             <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full w-fit">
-              Optional • Leave blank to keep current password
+              {t("leaveBlankOptional", "Optional • Leave blank to keep current password")}
             </span>
           </div>
 
           <div className="space-y-4 pt-1">
             <div className="w-full">
               <label className="block text-xs font-bold text-on-surface mb-1.5">
-                New Password
+                {t("newPassword", "New Password")}
               </label>
 
               {/* Password Input with balanced padding and centered toggle */}
@@ -647,7 +655,7 @@ export default function SettingsPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
-                  placeholder="Leave blank to keep current password"
+                  placeholder={t("leaveBlankPlaceholder", "Leave blank to keep current password")}
                   autoComplete="new-password"
                   className={`w-full pl-10 pr-12 rtl:pl-12 rtl:pr-10 py-2.5 bg-surface-container-low border ${
                     errors.password
@@ -683,7 +691,7 @@ export default function SettingsPage() {
               <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/60 space-y-2 animate-in fade-in-0 duration-200">
                 <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>Password Requirements:</span>
+                  <span>{t("passwordRequirements", "Password Requirements:")}</span>
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div
@@ -692,7 +700,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {passChecks.length ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>At least 8 characters</span>
+                    <span>{t("reqLength", "At least 8 characters")}</span>
                   </div>
                   <div
                     className={`flex items-center gap-1.5 ${
@@ -700,7 +708,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {passChecks.upper ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>One uppercase letter</span>
+                    <span>{t("reqUpper", "One uppercase letter")}</span>
                   </div>
                   <div
                     className={`flex items-center gap-1.5 ${
@@ -708,7 +716,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {passChecks.lower ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>One lowercase letter</span>
+                    <span>{t("reqLower", "One lowercase letter")}</span>
                   </div>
                   <div
                     className={`flex items-center gap-1.5 ${
@@ -716,7 +724,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {passChecks.number ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>One number</span>
+                    <span>{t("reqNumber", "One number")}</span>
                   </div>
                   <div
                     className={`flex items-center gap-1.5 sm:col-span-2 ${
@@ -724,7 +732,7 @@ export default function SettingsPage() {
                     }`}
                   >
                     {passChecks.special ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>One special symbol (!@#$%^&*...)</span>
+                    <span>{t("reqSpecial", "One special symbol (!@#$%^&*...)")}</span>
                   </div>
                 </div>
               </div>
@@ -740,7 +748,7 @@ export default function SettingsPage() {
             disabled={isSaving}
             className="px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
           >
-            Cancel / Revert
+            {t("cancelRevert", "Cancel / Revert")}
           </button>
 
           <button
@@ -753,10 +761,11 @@ export default function SettingsPage() {
             ) : (
               <Save className="w-4 h-4" />
             )}
-            <span>Save Profile</span>
+            <span>{isSaving ? t("savingProfile", "Saving Profile...") : t("saveProfile", "Save Profile")}</span>
           </button>
         </div>
       </form>
     </div>
   );
 }
+

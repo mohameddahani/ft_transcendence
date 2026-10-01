@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import {
   createMembershipPlan,
   addMembershipPlanDuration,
@@ -36,6 +37,7 @@ export default function CreatePlanModal({
   onClose,
   onSuccess,
 }: CreatePlanModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -105,10 +107,10 @@ export default function CreatePlanModal({
             </div>
             <div>
               <h2 className="font-headline font-bold text-lg text-on-surface">
-                Create Membership Plan
+                {t("createNewPlan")}
               </h2>
               <p className="text-xs text-on-surface-variant">
-                Configure a new tier for facility access & privileges
+                {t("plansSubtitle")}
               </p>
             </div>
           </div>
@@ -128,12 +130,12 @@ export default function CreatePlanModal({
           {/* Plan Name */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Plan Name <span className="text-error">*</span>
+              {t("planName")} <span className="text-error">*</span>
             </label>
             <input
               type="text"
               {...register("planName")}
-              placeholder="e.g. Platinum Access"
+              placeholder={t("planName")}
               className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
                 errors.planName
                   ? "border-error focus:ring-error"
@@ -151,12 +153,12 @@ export default function CreatePlanModal({
           {/* Description */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Description <span className="text-xs font-normal text-on-surface-variant">(Optional)</span>
+              {t("description")}
             </label>
             <textarea
               rows={2}
               {...register("description")}
-              placeholder="e.g. Unrestricted access to main gym, olympic pool, and sauna facilities"
+              placeholder={t("description")}
               className={`w-full px-3.5 py-2 bg-surface-container-low border ${
                 errors.description
                   ? "border-error focus:ring-error"
@@ -175,10 +177,10 @@ export default function CreatePlanModal({
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-on-surface">
-                Weekly Visit Limit <span className="text-error">*</span>
+                {t("weeklyVisitLimit")} <span className="text-error">*</span>
               </label>
               <span className="text-xs font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                {weeklyVisitLimit === 7 ? "7 Days (Unlimited)" : `${weeklyVisitLimit} visits / week`}
+                {weeklyVisitLimit === 7 ? t("unlimitedVisits") : `${weeklyVisitLimit} ${t("visitsPerWeek")}`}
               </span>
             </div>
 
@@ -212,7 +214,7 @@ export default function CreatePlanModal({
           <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/60 flex items-start gap-2.5 text-xs text-on-surface-variant">
             <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p>
-              Once created, you can add multiple pricing tiers and durations (e.g. 1 Month, 3 Months, 1 Year) to this plan.
+              {t("plansSubtitle")}
             </p>
           </div>
 
@@ -224,7 +226,7 @@ export default function CreatePlanModal({
               disabled={isSubmitting}
               className="px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -236,7 +238,7 @@ export default function CreatePlanModal({
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              <span>Create Plan</span>
+              <span>{t("createNewPlan")}</span>
             </button>
           </div>
         </form>

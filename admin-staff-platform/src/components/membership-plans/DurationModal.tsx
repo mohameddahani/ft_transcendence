@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import {
   addMembershipPlanDuration,
   updateMembershipPlanDuration,
@@ -41,6 +42,7 @@ export default function DurationModal({
   onClose,
   onSuccess,
 }: DurationModalProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = Boolean(durationToEdit);
 
@@ -133,10 +135,10 @@ export default function DurationModal({
             </div>
             <div>
               <h2 className="font-headline font-bold text-lg text-on-surface">
-                {isEditing ? "Edit Duration Tier" : "Add Duration Tier"}
+                {isEditing ? t("editDuration") : t("addDuration")}
               </h2>
               <p className="text-xs text-on-surface-variant font-medium">
-                Plan: <span className="font-bold text-primary">{plan.planName}</span>
+                {t("planName")}: <span className="font-bold text-primary">{plan.planName}</span>
               </p>
             </div>
           </div>
@@ -156,7 +158,7 @@ export default function DurationModal({
           {/* Preset Buttons */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-2">
-              Common Presets
+              {t("durationDays")}
             </label>
             <div className="grid grid-cols-4 gap-2">
               {presets.map((preset) => (
@@ -166,7 +168,7 @@ export default function DurationModal({
                   onClick={() => setValue("durationDays", preset.days)}
                   className="px-2 py-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold transition-all cursor-pointer text-center"
                 >
-                  {preset.label}
+                  {preset.days} {t("days")}
                 </button>
               ))}
             </div>
@@ -175,7 +177,7 @@ export default function DurationModal({
           {/* Duration Days */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Duration (Days) <span className="text-error">*</span>
+              {t("durationDays")} <span className="text-error">*</span>
             </label>
             <div className="relative">
               <Calendar className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -202,7 +204,7 @@ export default function DurationModal({
           {/* Price */}
           <div>
             <label className="block text-xs font-bold text-on-surface mb-1.5">
-              Price (USD / Currency) <span className="text-error">*</span>
+              {t("price")} <span className="text-error">*</span>
             </label>
             <div className="relative">
               <DollarSign className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
@@ -235,7 +237,7 @@ export default function DurationModal({
               disabled={isSubmitting}
               className="px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -249,7 +251,7 @@ export default function DurationModal({
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              <span>{isEditing ? "Save Duration" : "Add Duration"}</span>
+              <span>{isEditing ? t("saveChanges") : t("addDuration")}</span>
             </button>
           </div>
         </form>

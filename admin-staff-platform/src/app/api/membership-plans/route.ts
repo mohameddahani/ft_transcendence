@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { getAuthenticatedSession, attachSessionCookies } from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get("auth_token")?.value;
+    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
     const { searchParams } = new URL(req.url);
 
     const page = searchParams.get("page") || "1";
@@ -23,21 +24,13 @@ export async function GET(req: NextRequest) {
 
     const queryString = `?${query.toString()}`;
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const rawCookies = req.headers.get("cookie");
-    if (rawCookies) {
-      headers["Cookie"] = rawCookies;
-    }
+    // Route to staffs endpoint if user is staff, else admins endpoint
+    const backendPath = isStaff
+      ? `/api/staffs/membership-plans`
+      : `/api/admins/membership-plans`;
 
     const backendRes = await axios.get(
-      `${API_URL}/api/membership-plans${queryString}`,
+      `${API_URL}${backendPath}${queryString}`,
       {
         headers,
         validateStatus: () => true,
@@ -51,12 +44,14 @@ export async function GET(req: NextRequest) {
       (backendRes.data.message.toLowerCase().includes("no member") ||
         backendRes.data.message.toLowerCase().includes("not found"))
     ) {
-      return NextResponse.json([], { status: 200 });
+      const res = NextResponse.json([], { status: 200 });
+      return attachSessionCookies(res, newAccessToken);
     }
 
-    return NextResponse.json(backendRes.data, {
+    const res = NextResponse.json(backendRes.data, {
       status: backendRes.status,
     });
+    return attachSessionCookies(res, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
     return NextResponse.json(
@@ -68,30 +63,22 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("auth_token")?.value;
+    const { headers, newAccessToken } = await getAuthenticatedSession(req);
     const body = await req.json();
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+    const backendRes = await axios.post(
+      `${API_URL}/api/admins/membership-plans`,
+      body,
+      {
+        headers,
+        validateStatus: () => true,
+      }
+    );
 
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const rawCookies = req.headers.get("cookie");
-    if (rawCookies) {
-      headers["Cookie"] = rawCookies;
-    }
-
-    const backendRes = await axios.post(`${API_URL}/api/membership-plans`, body, {
-      headers,
-      validateStatus: () => true,
-    });
-
-    return NextResponse.json(backendRes.data, {
+    const res = NextResponse.json(backendRes.data, {
       status: backendRes.status,
     });
+    return attachSessionCookies(res, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
     return NextResponse.json(

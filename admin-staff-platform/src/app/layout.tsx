@@ -3,7 +3,6 @@ import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import "./globals.css";
 import ToastProvider from "@/components/providers/ToastProvider";
 import I18nProvider from "@/components/providers/I18nProvider";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -32,6 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${plusJakartaSans.variable} ${sora.variable} h-full antialiased`}
     >
       <head>
@@ -42,7 +42,6 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans">
         <I18nProvider>
-          <LanguageSwitcher />
           {children}
         </I18nProvider>
         <ToastProvider />

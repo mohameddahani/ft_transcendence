@@ -22,13 +22,12 @@ interface LanguageSwitcherProps {
   inline?: boolean;
 }
 
-export default function LanguageSwitcher({ inline = false }: LanguageSwitcherProps) {
-  const pathname = usePathname();
+export default function LanguageSwitcher({ inline = true }: LanguageSwitcherProps) {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside - must be called unconditionally before any early returns
+  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -52,19 +51,6 @@ export default function LanguageSwitcher({ inline = false }: LanguageSwitcherPro
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  const isPortalRoute =
-    pathname?.startsWith("/dashboard") ||
-    pathname?.startsWith("/members") ||
-    pathname?.startsWith("/membership-plans") ||
-    pathname?.startsWith("/subscriptions") ||
-    pathname?.startsWith("/payments") ||
-    pathname?.startsWith("/settings");
-
-  // Don't render floating language switcher on portal pages where TopBar provides inline switcher
-  if (!inline && isPortalRoute) {
-    return null;
-  }
 
   const currentCode = (i18n.language || "en").slice(0, 2);
   const currentLang =
@@ -93,11 +79,7 @@ export default function LanguageSwitcher({ inline = false }: LanguageSwitcherPro
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className={`flex items-center gap-1.5 rounded-xl border border-outline-variant/60 text-on-surface text-sm font-medium transition-all active:scale-[0.98] cursor-pointer ${
-          inline
-            ? "px-2.5 py-1.5 bg-surface-container-low hover:bg-surface-container"
-            : "px-3.5 py-2 bg-surface-container-lowest/90 backdrop-blur-md shadow-sm hover:shadow-md hover:border-primary/50"
-        }`}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-low hover:bg-surface-container rounded-xl border border-outline-variant/60 text-on-surface text-sm font-medium transition-all active:scale-[0.98] cursor-pointer"
       >
         <Globe className="w-4 h-4 text-primary" />
         <span className="font-semibold uppercase text-xs tracking-wider">
