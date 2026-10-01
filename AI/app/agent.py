@@ -49,7 +49,6 @@ Safety:
 
 
 def run(user: User, gym_name: str, question: str, history: list[dict]):
-    """Yields {"type": "tool", "name"} and {"type": "token", "text"} events."""
     # convert every message in history into a content
     contents = []
     for m in history:
