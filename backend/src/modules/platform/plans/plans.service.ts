@@ -60,6 +60,11 @@ export class PlansService {
         plan: { connect: { id: data.planId } },
       },
     });
+
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Update a Plan
@@ -108,6 +113,11 @@ export class PlansService {
       },
       data,
     });
+
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Update a Plan Duration
@@ -175,6 +185,11 @@ export class PlansService {
       },
       data,
     });
+
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Get all Plans

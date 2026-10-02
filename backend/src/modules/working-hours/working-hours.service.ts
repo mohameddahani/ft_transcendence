@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,12 +14,15 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddSpecialHourDto } from './dtos/add-special-hour.dto';
 import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
 import { format, parse } from 'date-fns';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class WorkingHoursService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessesService: AccessesService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   /* 
@@ -61,6 +65,11 @@ export class WorkingHoursService {
         isClosed: data.isClosed,
       },
     });
+
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Update Working Hours By (Admin)
@@ -126,6 +135,11 @@ export class WorkingHoursService {
         isClosed: isClosed,
       },
     });
+
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Get All Working Hours By (Admin / Staff)
@@ -140,6 +154,17 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:working-hours:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedWorkingHours = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedWorkingHours) {
+      return cachedWorkingHours;
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
@@ -150,6 +175,9 @@ export class WorkingHoursService {
     if (workingHours.length === 0) {
       throw new NotFoundException('There is No Working Hours To show');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
 
     return workingHours;
   }
@@ -165,6 +193,17 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Get data from redis server
+    const cachedWorkingHour = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedWorkingHour) {
+      return cachedWorkingHour;
+    }
+
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
         id: workingHourId,
@@ -174,6 +213,9 @@ export class WorkingHoursService {
     if (!workingHour) {
       throw new NotFoundException('Working Hour Not Found');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, workingHour, 300_000); // * ttl: 5min
 
     return workingHour;
   }
@@ -197,6 +239,17 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:working-hours:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedWorkingHours = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedWorkingHours) {
+      return cachedWorkingHours;
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
@@ -207,6 +260,9 @@ export class WorkingHoursService {
     if (workingHours.length === 0) {
       throw new NotFoundException('There is No Working Hours To show');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
 
     return workingHours;
   }
@@ -226,6 +282,17 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Get data from redis server
+    const cachedWorkingHour = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedWorkingHour) {
+      return cachedWorkingHour;
+    }
+
     const workingHour = await this.prisma.workingHour.findFirst({
       where: {
         id: workingHourId,
@@ -235,6 +302,9 @@ export class WorkingHoursService {
     if (!workingHour) {
       throw new NotFoundException('Working Hour Not Found');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, workingHour, 300_000); // * ttl: 5min
 
     return workingHour;
   }
@@ -261,6 +331,11 @@ export class WorkingHoursService {
         id: workingHourId,
       },
     });
+
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   /* 
@@ -373,6 +448,11 @@ export class WorkingHoursService {
         endTime: data.endTime,
       },
     });
+
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Update Special Hours By (Admin)
@@ -487,6 +567,11 @@ export class WorkingHoursService {
         endTime: endTimeValue,
       },
     });
+
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // * Get All Special Hours (Admin / Staff)
@@ -501,6 +586,18 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:special-hours:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedSpecialHours = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedSpecialHours) {
+      console.log(cachedSpecialHours === true);
+      return cachedSpecialHours;
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
@@ -511,6 +608,9 @@ export class WorkingHoursService {
     if (specialHours.length === 0) {
       throw new NotFoundException('There is No Special Hours To show');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
 
     return specialHours;
   }
@@ -526,6 +626,17 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Get data from redis server
+    const cachedSpecialHour = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedSpecialHour) {
+      return cachedSpecialHour;
+    }
+
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
         id: specialHourId,
@@ -535,6 +646,9 @@ export class WorkingHoursService {
     if (!specialHour) {
       throw new NotFoundException('Special Hour Not Found');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, specialHour, 300_000); // * ttl: 5min
 
     return specialHour;
   }
@@ -558,6 +672,17 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:special-hours:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedSpecialgHours = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedSpecialgHours) {
+      return cachedSpecialgHours;
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
@@ -568,6 +693,9 @@ export class WorkingHoursService {
     if (specialHours.length === 0) {
       throw new NotFoundException('There is No Special Hours To show');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
 
     return specialHours;
   }
@@ -587,6 +715,17 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check if Data is already store in caching
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Get data from redis server
+    const cachedSpecialgHour = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedSpecialgHour) {
+      return cachedSpecialgHour;
+    }
+
     const specialHour = await this.prisma.specialHour.findFirst({
       where: {
         id: specialHourId,
@@ -596,6 +735,9 @@ export class WorkingHoursService {
     if (!specialHour) {
       throw new NotFoundException('Special Hour Not Found');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, specialHour, 300_000); // * ttl: 5min
 
     return specialHour;
   }
@@ -622,6 +764,11 @@ export class WorkingHoursService {
         id: specialHourId,
       },
     });
+
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
   }
 
   // ! Private
