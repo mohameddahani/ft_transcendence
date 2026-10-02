@@ -55,8 +55,13 @@ export class WorkingHoursService {
       throw new ForbiddenException('This Day Already Added');
     }
 
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add Working Hour
-    await this.prisma.workingHour.create({
+    return await this.prisma.workingHour.create({
       data: {
         admin: { connect: { id: adminId } },
         dayOfWeek: data.dayOfWeek,
@@ -65,11 +70,6 @@ export class WorkingHoursService {
         isClosed: data.isClosed,
       },
     });
-
-    const key = `admin:${adminId}:working-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Update Working Hours By (Admin)
@@ -125,8 +125,13 @@ export class WorkingHoursService {
       throw new ConflictException('Day Of Week already exists');
     }
 
+    const key = `admin:${adminId}:working-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Save New Data
-    await this.prisma.workingHour.update({
+    return await this.prisma.workingHour.update({
       where: { id: workingHourId },
       data: {
         dayOfWeek: dayOfWeek,
@@ -135,11 +140,6 @@ export class WorkingHoursService {
         isClosed: isClosed,
       },
     });
-
-    const key = `admin:${adminId}:working-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Get All Working Hours By (Admin / Staff)
@@ -438,8 +438,13 @@ export class WorkingHoursService {
       }
     }
 
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add Working Hour
-    await this.prisma.specialHour.create({
+    return await this.prisma.specialHour.create({
       data: {
         admin: { connect: { id: adminId } },
         startDate: startDate,
@@ -448,11 +453,6 @@ export class WorkingHoursService {
         endTime: data.endTime,
       },
     });
-
-    const key = `admin:${adminId}:special-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Update Special Hours By (Admin)
@@ -555,8 +555,13 @@ export class WorkingHoursService {
       throw new ConflictException('This special hour already exists.');
     }
 
+    const key = `admin:${adminId}:special-hours`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Update Special Hour
-    await this.prisma.specialHour.update({
+    return await this.prisma.specialHour.update({
       where: {
         id: specialHourId,
       },
@@ -567,11 +572,6 @@ export class WorkingHoursService {
         endTime: endTimeValue,
       },
     });
-
-    const key = `admin:${adminId}:special-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Get All Special Hours (Admin / Staff)

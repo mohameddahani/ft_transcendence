@@ -154,7 +154,7 @@ export class StaffsService {
     }
 
     // * Save new Data to Staff
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -259,7 +259,7 @@ export class StaffsService {
       throw new BadRequestException('This account is already active.');
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -294,7 +294,7 @@ export class StaffsService {
       }
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -325,7 +325,7 @@ export class StaffsService {
       }
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,

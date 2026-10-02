@@ -341,7 +341,7 @@ export class MembersService {
       throw new ConflictException('The Member is already Active!');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -373,7 +373,7 @@ export class MembersService {
       );
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -399,7 +399,7 @@ export class MembersService {
       throw new ConflictException('The member is already banned.');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,

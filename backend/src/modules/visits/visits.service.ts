@@ -253,7 +253,7 @@ export class VisitsService {
     }
 
     // * Cancel the visit
-    await this.prisma.visit.update({
+    return await this.prisma.visit.update({
       where: {
         id: visitId,
       },

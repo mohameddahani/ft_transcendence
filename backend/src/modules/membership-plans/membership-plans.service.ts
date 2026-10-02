@@ -38,7 +38,7 @@ export class MembershipPlansService {
     }
 
     // * Add membership plan to database
-    await this.prisma.membershipPlan.create({
+    return await this.prisma.membershipPlan.create({
       data: {
         admin: { connect: { id: adminId } },
         planName: data.planName,
@@ -84,7 +84,7 @@ export class MembershipPlansService {
     }
 
     // * Add plan duration to database
-    await this.prisma.membershipPlanDuration.create({
+    return await this.prisma.membershipPlanDuration.create({
       data: {
         durationDays: data.durationDays,
         price: data.price,
@@ -138,7 +138,7 @@ export class MembershipPlansService {
     }
 
     // * Update data
-    await this.prisma.membershipPlan.update({
+    return await this.prisma.membershipPlan.update({
       where: {
         id: id,
         adminId: adminId,
@@ -225,7 +225,7 @@ export class MembershipPlansService {
     }
 
     // * Update data
-    await this.prisma.membershipPlanDuration.update({
+    return await this.prisma.membershipPlanDuration.update({
       where: {
         id: id,
       },

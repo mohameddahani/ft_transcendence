@@ -36,8 +36,13 @@ export class PlansService {
       throw new UnauthorizedException('Plan Name already exists');
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add plan to database
-    await this.prisma.plan.create({ data });
+    return await this.prisma.plan.create({ data });
   }
 
   // * Add Plan Duration by Owner
@@ -52,19 +57,19 @@ export class PlansService {
       data.price,
     );
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add plan duration to database
-    await this.prisma.planDuration.create({
+    return await this.prisma.planDuration.create({
       data: {
         durationDays: data.durationDays,
         price: data.price,
         plan: { connect: { id: data.planId } },
       },
     });
-
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Update a Plan
@@ -106,18 +111,18 @@ export class PlansService {
       }
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Update data
-    await this.prisma.plan.update({
+    return await this.prisma.plan.update({
       where: {
         id: id,
       },
       data,
     });
-
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Update a Plan Duration
@@ -178,18 +183,18 @@ export class PlansService {
       }
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Update data
-    await this.prisma.planDuration.update({
+    return await this.prisma.planDuration.update({
       where: {
         id: id,
       },
       data,
     });
-
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
   }
 
   // * Get all Plans

@@ -82,7 +82,7 @@
 
 // ! test all Notifications
 
-// ! return new data in all updates endpoints
+// * return new data in all updates & create endpoints
 
 // ! make the notification read
 
