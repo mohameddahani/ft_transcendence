@@ -363,6 +363,25 @@ model MembershipPlan {
   @@map("membership_plans")
 }
 
+// * Table of Membership plan Duration
+model MembershipPlanDuration {
+  id String @id @default(uuid())
+
+  durationDays Int     @map("duration_days")
+  price        Decimal @db.Decimal(10, 2)
+
+  membershipPlanId String         @map("membership_plan_id")
+  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  memberships Membership[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([membershipPlanId])
+  @@map("membership_plan_durations")
+}
+
 // * Table of Working Hour
 model WorkingHour {
   id String @id @default(uuid())
@@ -476,26 +495,7 @@ model Visit {
   @@map("visits")
 }
 
-// * Table of Membership plan Duration
-model MembershipPlanDuration {
-  id String @id @default(uuid())
-
-  durationDays Int     @map("duration_days")
-  price        Decimal @db.Decimal(10, 2)
-
-  membershipPlanId String         @map("membership_plan_id")
-  membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
-
-  memberships Membership[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([membershipPlanId])
-  @@map("membership_plan_durations")
-}
-
-// * Table of Membership Plan
+// * Table of Payments
 model Payment {
   id String @id @default(uuid())
 
