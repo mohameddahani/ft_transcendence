@@ -1,4 +1,4 @@
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { saasName } from "@/utils/constants";
 import { Moon, Sun } from "lucide-react";
 import Link from "next/link";

@@ -1,25 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Check,
-  MessageSquare,
-  Users,
-  IdCard,
-  Banknote,
-  MessageCircle,
-  LayoutDashboard,
-  Bot,
-  LogIn,
-  LineChart,
-  ChevronDown,
-  Mail,
-  Globe,
-} from "lucide-react";
-import Link from "next/link";
 import Header from "@/components/header/Header";
 import Hero from "@/components/hero/Hero";
-import TrustStrip from "@/components/trust-strip/TrustStrip";
 import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
 import Carousel from "@/components/carousel/Carousel";
 import GridItems from "@/components/grid-items/GridItems";
@@ -32,7 +15,6 @@ import Cta from "@/components/cta/Cta";
 
 export default function Home() {
   const [isDark, setIsDark] = useState(false);
-  const [isAnnual, setIsAnnual] = useState(false);
 
   const toggleTheme = () => {
     setIsDark(!isDark);
