@@ -38,6 +38,7 @@ export class AdminNotificationsController {
   }
 
   // * Get All Notifications
+  @Get()
   @SkipThrottle() // * Skip Rate Limiting
   findAllNotificationsAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,

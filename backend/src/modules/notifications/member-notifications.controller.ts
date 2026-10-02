@@ -38,6 +38,7 @@ export class MemberNotificationsController {
   }
 
   // * Get All Notifications
+  @Get()
   @SkipThrottle() // * Skip Rate Limiting
   findAllNotificationsMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
