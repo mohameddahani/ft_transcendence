@@ -14,6 +14,7 @@ import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 import { SubscriptionStatus } from '@/generated/prisma/enums';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { Plan } from '@/generated/prisma/client';
 
 @Injectable()
 export class PlansService {
@@ -178,6 +179,17 @@ export class PlansService {
 
   // * Get all Plans
   async findAll(page: number, limit: number) {
+    // * Check if Data is already store in caching
+    const key = `platform:plans:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedPlans = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedPlans) {
+      return cachedPlans;
+    }
+
     const plans = await this.prisma.plan.findMany({
       skip: (page - 1) * limit,
       take: limit,
@@ -190,11 +202,25 @@ export class PlansService {
       throw new NotFoundException('No Plan To Show');
     }
 
+    // * Set Data in Redis
+    await this.cache.set(key, plans, 300_000); // * ttl: 5min
+
     return plans;
   }
 
   // * Get one Plan
   async findOne(planId: string) {
+    // * Check if Data is already store in caching
+    const key = `platform:plans`;
+
+    // * Get data from redis server
+    const cachedPlan = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedPlan) {
+      return cachedPlan as Plan;
+    }
+
     const plan = await this.prisma.plan.findUnique({
       where: {
         id: planId,
@@ -207,6 +233,9 @@ export class PlansService {
     if (!plan) {
       throw new NotFoundException('Plan Not Found!');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, plan, 300_000); // * ttl: 5min
 
     return plan;
   }
