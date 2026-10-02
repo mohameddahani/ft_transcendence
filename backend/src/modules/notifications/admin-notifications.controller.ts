@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -47,6 +48,18 @@ export class AdminNotificationsController {
       accessTokenPayload.id,
       page,
       limit,
+    );
+  }
+
+  // * Make Notification as Read (Admin)
+  @Patch(':id')
+  makeNotificationReadAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.notificationService.makeNotificationReadAdmin(
+      accessTokenPayload.id,
+      id,
     );
   }
 }
