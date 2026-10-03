@@ -30,7 +30,7 @@ def _gym_name(user: User) -> str:
 
 
 def _sse(event: str, data: dict) -> str:
-    # one Server-Sent Event: a name, a JSON line, and an empty line to end it
+    # one Server-Sent Event: a name, a JSON line, and double \n mean event finished
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
@@ -65,22 +65,16 @@ def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):
         try:
             for event in agent.run(user, gym, body.question, history):
                 if event["type"] == "token":
-                    answer += event["text"]
-                    yield _sse("token", {"text": event["text"]})
-                else:
-                    yield _sse("tool", {"name": event["name"]})
+                    answer += event["text"]  # keep the whole answer to save it at the end
+                yield _sse(event["type"], event)
+            if answer:
+                db.save_message(thread_id, user.id, "user", body.question)
+                db.save_message(thread_id, user.id, "model", answer)
+            yield _sse("done", {})
         except Exception:
-            # the real error goes to the logs; the user gets a message without internal details
             logging.exception("chat failed")
             yield _sse("error", {"message": "The assistant is unavailable right now. Please try again."})
-            return
-        # saved only when the turn finished, so a failed answer never enters the memory
-        if answer:
-            db.save_message(thread_id, user.id, "user", body.question)
-            db.save_message(thread_id, user.id, "model", answer)
-        yield _sse("done", {})
 
-    # no-cache and no proxy buffering, so each event reaches the browser immediately
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 

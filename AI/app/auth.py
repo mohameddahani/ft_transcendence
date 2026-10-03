@@ -8,8 +8,8 @@ from fastapi import Depends, Header, HTTPException
 
 from app import config, db
 
-RATE_LIMIT = 20    # requests per user...
-RATE_WINDOW = 60   # ...in any 60 seconds
+RATE_LIMIT = 20
+RATE_WINDOW = 60
 
 
 @dataclass(frozen=True)
