@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useTheme } from "next-themes";
 import Header from "@/components/header/Header";
 import Hero from "@/components/hero/Hero";
 import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
@@ -14,17 +14,19 @@ import { ToastContainer } from "react-toastify";
 import Cta from "@/components/cta/Cta";
 
 export default function Home() {
-  const [isDark, setIsDark] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
+    // * Theme information may be unavailable before mounting.
+    if (!resolvedTheme) return;
+
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   return (
     <div className="min-h-screen transition-all">
       {/* Top Navigation Bar */}
-      <Header isDark={isDark} toggleTheme={toggleTheme} />
+      <Header toggleTheme={toggleTheme} />
 
       <div className="container mx-auto px-5">
         {/* Hero */}

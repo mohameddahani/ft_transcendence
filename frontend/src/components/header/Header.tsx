@@ -3,13 +3,12 @@ import { saasName } from "@/utils/constants";
 import { Moon, Sun } from "lucide-react";
 import Link from "next/link";
 
-// Define the types for the props you are receiving
+// * Define the types for the props you are receiving
 type HeaderProps = {
-  isDark: boolean;
   toggleTheme: () => void;
 };
 
-const Header = ({ isDark, toggleTheme }: HeaderProps) => {
+const Header = ({ toggleTheme }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 border-b bg-surface/80 backdrop-blur-md shadow-sm border-outline-variant transition-all">
       <nav className="max-w-6xl mx-auto flex items-center justify-between h-20 px-6">
@@ -32,18 +31,20 @@ const Header = ({ isDark, toggleTheme }: HeaderProps) => {
         </div>
         <div className="flex items-center justify-between gap-4">
           <Button
-            variant={"ghost"}
-            size={"icon-lg"}
-            className={"cursor-pointer"}
+            variant="ghost"
+            size="icon-lg"
+            className="cursor-pointer"
             onClick={toggleTheme}
+            aria-label="Toggle color theme"
           >
-            {isDark ? <Sun /> : <Moon />}
+            <Sun className="dark:hidden" />
+            <Moon className="hidden dark:block" />
           </Button>
           <Button variant={"secondary"} size={"lg"}>
             Login
           </Button>
           <Button className="rounded-full btn-primary-gradient" size={"lg"}>
-            Get Started
+            Register
           </Button>
         </div>
       </nav>
