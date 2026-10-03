@@ -12,6 +12,7 @@ import Faq from "@/components/faq/Faq";
 import ContactUs from "@/components/contact-us/ContactUs";
 import { ToastContainer } from "react-toastify";
 import Cta from "@/components/cta/Cta";
+import Footer from "@/components/footer/Footer";
 
 export default function Home() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -56,7 +57,9 @@ export default function Home() {
         {/* CTA */}
         <Cta />
       </div>
-      <ToastContainer />
+      {/* Footer */}
+      <Footer />
+      <ToastContainer theme={resolvedTheme === "dark" ? "dark" : "colored"} />
     </div>
   );
 }
