@@ -8,26 +8,52 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const backendRes = await axios.post(`${API_URL}/api/auth/login`, body, {
+    let backendRes = await axios.post(`${API_URL}/api/auth/login`, body, {
       headers: {
         "Content-Type": "application/json",
       },
       validateStatus: () => true, // Forward all status codes
     });
 
-    const data = backendRes.data;
+    let data = backendRes.data;
 
-    // If backend rejected login credentials
+    // If admin login failed, attempt staff login via /api/auth/staffs/login
+    if (backendRes.status >= 400) {
+      const staffBody = {
+        userName: body.email || body.userName,
+        password: body.password,
+      };
+
+      const staffRes = await axios.post(`${API_URL}/api/auth/staffs/login`, staffBody, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        validateStatus: () => true,
+      });
+
+      if (staffRes.status < 400) {
+        backendRes = staffRes;
+        data = staffRes.data;
+      }
+    }
+
+    // If both admin and staff login failed
     if (backendRes.status >= 400) {
       return NextResponse.json(data, {
         status: backendRes.status,
       });
     }
 
+    // Normalize user object so both Admin and Staff accounts provide user profile
+    if (data?.staff && !data?.user) {
+      data.user = data.staff;
+    }
+
     // Check user role from backend user object and JWT accessToken payload
     const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
     const isAuthorizedRole =
       isAdminOrStaffUser(data?.user) ||
+      isAdminOrStaffUser(data?.staff) ||
       isAdminOrStaffUser(jwtPayload);
 
     // Strictly deny non-admin and non-staff accounts

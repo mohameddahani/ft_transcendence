@@ -14,6 +14,8 @@ const protectedRoutes = [
   "/classes",
   "/reports",
   "/settings",
+  "/profile",
+  "/gymflow-subscription",
 ];
 
 // Authentication routes that authenticated users shouldn't revisit
@@ -44,8 +46,12 @@ export async function proxy(request: NextRequest) {
   // If visiting protected route and access token is missing or expired, attempt refresh
   if (isProtectedRoute && (!token || isTokenExpired(token)) && refreshToken) {
     try {
+      const tokenPayload = parseJwtPayload(refreshToken);
+      const isStaffToken = tokenPayload?.role === "STAFF";
+      const refreshPath = isStaffToken ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
+
       const refreshRes = await axios.post(
-        `${API_URL}/api/auth/admins/refresh`,
+        `${API_URL}${refreshPath}`,
         {},
         {
           headers: {

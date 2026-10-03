@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { parseJwtPayload } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Extract refresh token from cookie, header, or body
     let refreshToken = req.cookies.get("refresh_token")?.value;
 
     if (!refreshToken) {
@@ -25,14 +23,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Determine if token belongs to Staff or Admin and forward to correct backend endpoint
-    const tokenPayload = parseJwtPayload(refreshToken);
-    const isStaff = tokenPayload?.role === "STAFF";
-    const refreshPath = isStaff ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
-
     const backendRes = await axios
       .post(
-        `${API_URL}${refreshPath}`,
+        `${API_URL}/api/auth/staffs/refresh`,
         {},
         {
           headers: {
@@ -43,7 +36,7 @@ export async function POST(req: NextRequest) {
         }
       )
       .catch((err) => {
-        console.error("Backend refresh request error:", err);
+        console.error("Backend staff refresh request error:", err);
         return null;
       });
 
@@ -58,7 +51,6 @@ export async function POST(req: NextRequest) {
       const errorData = backendRes.data || { message: "Failed to refresh session" };
       const response = NextResponse.json(errorData, { status: backendRes.status });
 
-      // Refresh token is invalid/revoked/expired -> clear cookies
       response.cookies.delete("auth_token");
       response.cookies.delete("refresh_token");
       return response;
@@ -67,7 +59,6 @@ export async function POST(req: NextRequest) {
     const data = backendRes.data;
     const response = NextResponse.json(data, { status: 200 });
 
-    // Forward any Set-Cookie headers from backend (e.g. if refresh token rotated)
     const rawCookies = backendRes.headers["set-cookie"];
     const setCookies = Array.isArray(rawCookies)
       ? rawCookies
@@ -78,7 +69,6 @@ export async function POST(req: NextRequest) {
       response.headers.append("set-cookie", cookie);
     }
 
-    // Update auth_token cookie with the new accessToken
     if (data?.accessToken) {
       response.cookies.set("auth_token", data.accessToken, {
         httpOnly: true,
@@ -89,33 +79,32 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // If backend returned rotated refresh token, ensure it's saved at path "/"
-    let newRefreshToken = data?.refreshToken;
-    if (!newRefreshToken) {
-      for (const cookie of setCookies) {
-        const match = cookie.match(/refresh_token=([^;]+)/);
+    let nextRefreshToken = data?.refreshToken;
+    if (!nextRefreshToken && rawCookies) {
+      for (const cookieStr of setCookies) {
+        const match = cookieStr.match(/refresh_token=([^;]+)/);
         if (match) {
-          newRefreshToken = match[1];
+          nextRefreshToken = match[1];
           break;
         }
       }
     }
 
-    if (newRefreshToken) {
-      response.cookies.set("refresh_token", newRefreshToken, {
+    if (nextRefreshToken) {
+      response.cookies.set("refresh_token", nextRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
+        maxAge: 60 * 60 * 24 * 30,
       });
     }
 
     return response;
-  } catch (error) {
-    console.error("Error in refresh route handler:", error);
+  } catch (error: unknown) {
+    console.error("Staff refresh proxy handler error:", error);
     return NextResponse.json(
-      { message: "An unexpected error occurred during token refresh" },
+      { message: "Internal server error during session refresh" },
       { status: 500 }
     );
   }

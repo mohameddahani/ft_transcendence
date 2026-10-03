@@ -3,17 +3,18 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  Bell,
   HelpCircle,
   Menu,
   X,
   LogOut,
   Settings,
   ShieldCheck,
+  User,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import { useTranslation } from "react-i18next";
 
 interface TopBarProps {
@@ -37,10 +38,7 @@ export default function TopBar({
   } = useCurrentUser();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
   const profileRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -50,12 +48,6 @@ export default function TopBar({
         !profileRef.current.contains(e.target as Node)
       ) {
         setIsProfileOpen(false);
-      }
-      if (
-        notificationsRef.current &&
-        !notificationsRef.current.contains(e.target as Node)
-      ) {
-        setIsNotificationsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -97,27 +89,7 @@ export default function TopBar({
       {/* Right: Actions, Theme, Language & User Profile */}
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Notifications Dropdown */}
-        <div ref={notificationsRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            aria-label="Notifications"
-            className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-primary transition-all relative cursor-pointer"
-          >
-            <Bell className="w-5 h-5 text-on-surface-variant" />
-          </button>
-
-          {isNotificationsOpen && (
-            <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-80 rounded-2xl bg-surface-container-lowest/95 backdrop-blur-lg border border-outline-variant shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden">
-              <div className="px-4 py-3 border-b border-outline-variant/60 flex items-center justify-between">
-                <span className="font-bold text-sm text-on-surface">{t("notifications")}</span>
-              </div>
-              <div className="p-6 text-center text-on-surface-variant text-xs">
-                {t("noNotifications")}
-              </div>
-            </div>
-          )}
-        </div>
+        <NotificationDropdown />
 
         {/* Help Button */}
         <button
@@ -206,12 +178,12 @@ export default function TopBar({
               </div>
 
               <Link
-                href="/settings"
+                href="/profile"
                 onClick={() => setIsProfileOpen(false)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-on-surface hover:bg-surface-container-low transition-colors"
               >
-                <Settings className="w-4 h-4 text-on-surface-variant" />
-                <span>{t("navSettings")}</span>
+                <User className="w-4 h-4 text-on-surface-variant" />
+                <span>{t("navProfile") || "Profile"}</span>
               </Link>
 
               <button

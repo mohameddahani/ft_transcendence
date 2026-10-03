@@ -29,8 +29,12 @@ export async function getAuthenticatedSession(
   // If token is missing or expired, attempt refresh via backend
   if ((!token || isTokenExpired(token)) && refreshToken) {
     try {
+      const tokenPayload = parseJwtPayload(refreshToken);
+      const isStaffToken = tokenPayload?.role === "STAFF";
+      const refreshPath = isStaffToken ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
+
       const refreshRes = await axios.post(
-        `${API_URL}/api/auth/admins/refresh`,
+        `${API_URL}${refreshPath}`,
         {},
         {
           headers: {

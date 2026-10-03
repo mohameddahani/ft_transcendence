@@ -21,7 +21,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
 export class AdminNotificationsController {
-  constructor(private readonly notificationService: NotificationsService) {}
+  constructor(private readonly notificationService: NotificationsService) { }
 
   // * Get One Notification
   @Get(':id')
@@ -37,6 +37,7 @@ export class AdminNotificationsController {
   }
 
   // * Get All Notifications
+  @Get()
   @SkipThrottle() // * Skip Rate Limiting
   findAllNotificationsAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
