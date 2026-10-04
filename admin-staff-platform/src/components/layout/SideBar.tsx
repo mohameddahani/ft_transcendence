@@ -3,7 +3,22 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, LogOut, PlusCircle } from "lucide-react";
+import {
+  X,
+  LogOut,
+  PlusCircle,
+  LayoutDashboard,
+  ScanLine,
+  Users,
+  CreditCard,
+  Layers,
+  Clock,
+  UserCheck,
+  MessageSquareQuote,
+  Sparkles,
+  Crown,
+  User,
+} from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -20,7 +35,7 @@ export default function SideBar({
   onQuickAction,
 }: SideBarProps) {
   const pathname = usePathname();
-  const { logout, role } = useCurrentUser();
+  const { logout, role, companyName } = useCurrentUser();
   const { t } = useTranslation();
 
   const isAdmin = role === "Admin" || role === "Owner";
@@ -50,31 +65,57 @@ export default function SideBar({
     toast.info(`${featureName} ${t("featureComingSoon") || "is coming soon!"}`);
   };
 
+  const getItemClasses = (active: boolean) =>
+    `relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group select-none ${
+      active
+        ? "bg-primary/10 text-primary dark:bg-primary/15 dark:text-primary font-semibold border border-primary/20 shadow-2xs"
+        : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+    }`;
+
   const renderContent = () => (
     <>
-      {/* Brand Header: GymFlow */}
-      <div className="h-16 flex items-center justify-between gap-2.5 px-5 border-b border-[#e2e8f0] dark:border-slate-800 text-[17px] font-semibold text-slate-900 dark:text-white shrink-0 bg-white dark:bg-[#0c1322]">
+      {/* Brand Header: GymFlow & Facility Monogram (Exclusive to Sidebar) */}
+      <div className="h-16 flex items-center justify-between gap-3 px-4 sm:px-5 border-b border-outline-variant/50 shrink-0 bg-surface-container-lowest transition-colors">
         <Link
           href="/dashboard"
           onClick={onCloseMobile}
-          className="flex items-center gap-2.5 hover:opacity-95 transition-opacity"
+          className="flex items-center gap-3 hover:opacity-95 transition-opacity min-w-0"
         >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 32 32"
-            aria-hidden="true"
-            className="shrink-0"
-          >
-            <rect width="32" height="32" rx="8" fill="#2563eb" />
-            <path d="M9 12.5h3v7H9zM20 12.5h3v7h-3zM12 15h8v2h-8z" fill="#fff" />
-            <path
-              d="M6.5 14h2.5v4H6.5zM23 14h2.5v4H23z"
-              fill="#fff"
-              opacity=".75"
-            />
-          </svg>
-          <span className="tracking-tight">GymFlow</span>
+          {/* Bespoke GymFlow Kinetic Icon */}
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-xs shrink-0 ring-1 ring-white/10">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 5v14" />
+              <path d="M18 5v14" />
+              <path d="M2 9v6" />
+              <path d="M22 9v6" />
+              <path d="M6 12h12" />
+            </svg>
+          </div>
+
+          {/* Brand & Gym Title */}
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-headline font-bold text-base text-on-surface tracking-tight leading-tight">
+                GymFlow
+              </span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase tracking-wider border border-primary/20 leading-none">
+                PRO
+              </span>
+            </div>
+            <span className="text-[11px] font-medium text-on-surface-variant truncate leading-none mt-1">
+              {companyName || "Kinetic Enterprise"}
+            </span>
+          </div>
         </Link>
 
         {/* Mobile Close Button */}
@@ -82,7 +123,7 @@ export default function SideBar({
           type="button"
           onClick={onCloseMobile}
           aria-label="Close Navigation"
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="lg:hidden p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -91,7 +132,7 @@ export default function SideBar({
       {/* Main Navigation Scroll Area */}
       <nav
         aria-label="Main"
-        className="flex-1 py-5 px-3 flex flex-col gap-4 text-sm font-medium overflow-y-auto"
+        className="flex-1 py-4 px-3 flex flex-col gap-3 text-xs overflow-y-auto"
       >
         {/* Top Standalone: Dashboard */}
         <div>
@@ -99,34 +140,21 @@ export default function SideBar({
             href="/dashboard"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/dashboard") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/dashboard")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/dashboard"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="m12 14 4-4" />
-              <path d="M3.34 19a10 10 0 1 1 17.32 0" />
-            </svg>
-            <span>{t("navDashboard") || "Dashboard"}</span>
+            {isRouteActive("/dashboard") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <LayoutDashboard className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navDashboard") || "Dashboard"}
+            </span>
           </Link>
         </div>
 
         {/* Group 1: Front desk */}
-        <div className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1.5 text-[11px] font-semibold tracking-wider uppercase text-[#5b6b80] dark:text-slate-400">
+        <div className="flex flex-col gap-1">
+          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
             {t("frontDesk") || "Front desk"}
           </span>
 
@@ -135,27 +163,15 @@ export default function SideBar({
             href="/check-in"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/check-in") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/check-in")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/check-in"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />
-            </svg>
-            <span>{t("navCheckIn") || "Check-in"}</span>
+            {isRouteActive("/check-in") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <ScanLine className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navCheckIn") || "Check-in"}
+            </span>
           </Link>
 
           {/* Members */}
@@ -163,29 +179,15 @@ export default function SideBar({
             href="/members"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/members") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/members")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/members"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <span>{t("navMembers") || "Members"}</span>
+            {isRouteActive("/members") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <Users className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navMembers") || "Members"}
+            </span>
           </Link>
 
           {/* Payments */}
@@ -193,34 +195,21 @@ export default function SideBar({
             href="/payments"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/payments") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/payments")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/payments"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
-              <path d="M8 7h8M8 11h8M8 15h5" />
-            </svg>
-            <span>{t("navPayments") || "Payments"}</span>
+            {isRouteActive("/payments") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <CreditCard className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navPayments") || "Payments"}
+            </span>
           </Link>
         </div>
 
         {/* Group 2: Gym setup */}
-        <div className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1.5 text-[11px] font-semibold tracking-wider uppercase text-[#5b6b80] dark:text-slate-400">
+        <div className="flex flex-col gap-1">
+          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
             {t("gymSetup") || "Gym setup"}
           </span>
 
@@ -229,28 +218,15 @@ export default function SideBar({
             href="/membership-plans"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/membership-plans") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/membership-plans")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/membership-plans"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="m12 2 10 5-10 5L2 7Z" />
-              <path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span>{t("navMembershipPlans") || "Membership plans"}</span>
+            {isRouteActive("/membership-plans") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <Layers className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navMembershipPlans") || "Membership plans"}
+            </span>
           </Link>
 
           {/* Opening hours */}
@@ -258,28 +234,15 @@ export default function SideBar({
             href="/operating-hours"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/operating-hours") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/operating-hours")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/operating-hours"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-            <span>{t("navOpeningHours") || "Opening hours"}</span>
+            {isRouteActive("/operating-hours") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <Clock className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navOpeningHours") || "Opening hours"}
+            </span>
           </Link>
 
           {/* Staff */}
@@ -287,34 +250,21 @@ export default function SideBar({
             href="/staffs"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/staffs") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/staffs")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/staffs"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0 1 16 0" />
-            </svg>
-            <span>{t("navStaff") || "Staff"}</span>
+            {isRouteActive("/staffs") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <UserCheck className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navStaff") || "Staff"}
+            </span>
           </Link>
         </div>
 
         {/* Group 3: Insight */}
-        <div className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1.5 text-[11px] font-semibold tracking-wider uppercase text-[#5b6b80] dark:text-slate-400">
+        <div className="flex flex-col gap-1">
+          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
             {t("insight") || "Insight"}
           </span>
 
@@ -323,61 +273,40 @@ export default function SideBar({
             href="/feedbacks"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/feedbacks") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/feedbacks")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/feedbacks"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <span>{t("navFeedback") || "Feedback"}</span>
+            {isRouteActive("/feedbacks") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <MessageSquareQuote className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navFeedback") || "Feedback"}
+            </span>
           </Link>
 
-          {/* AI assistant (No page yet) */}
+          {/* AI assistant (Preview trigger) */}
           <button
             type="button"
-            onClick={() => handleComingSoon(t("navAiAssistant") || "AI assistant")}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 text-sm transition-colors text-left rtl:text-right cursor-pointer"
+            onClick={() =>
+              handleComingSoon(t("navAiAssistant") || "AI assistant")
+            }
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all text-xs font-medium text-left rtl:text-right cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="shrink-0 text-blue-600 dark:text-blue-400"
-              >
-                <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8" />
-              </svg>
-              <span>{t("navAiAssistant") || "AI assistant"}</span>
+              <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
+              <span className="tracking-tight">
+                {t("navAiAssistant") || "AI assistant"}
+              </span>
             </div>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 tracking-tight">
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant/40 tracking-wider">
               AI
             </span>
           </button>
         </div>
 
         {/* Group 4: Account */}
-        <div className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1.5 text-[11px] font-semibold tracking-wider uppercase text-[#5b6b80] dark:text-slate-400">
+        <div className="flex flex-col gap-1">
+          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
             {t("account") || "Account"}
           </span>
 
@@ -388,57 +317,31 @@ export default function SideBar({
             aria-current={
               isRouteActive("/gymflow-subscription") ? "page" : undefined
             }
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/gymflow-subscription")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/gymflow-subscription"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <rect x="2" y="5" width="20" height="14" rx="2" />
-              <path d="M2 10h20" />
-            </svg>
-            <span>{t("navGymflowSubscription") || "GymFlow subscription"}</span>
+            {isRouteActive("/gymflow-subscription") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <Crown className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navGymflowSubscription") || "GymFlow subscription"}
+            </span>
           </Link>
 
-          {/* Profile (renamed from settings) */}
+          {/* Profile */}
           <Link
             href="/profile"
             onClick={onCloseMobile}
             aria-current={isRouteActive("/profile") ? "page" : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isRouteActive("/profile")
-                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
-                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
-            }`}
+            className={getItemClasses(isRouteActive("/profile"))}
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 21a8 8 0 0 1 16 0" />
-            </svg>
-            <span>{t("navProfile") || "Profile"}</span>
+            {isRouteActive("/profile") && (
+              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+            )}
+            <User className="w-[18px] h-[18px] shrink-0" />
+            <span className="font-medium tracking-tight">
+              {t("navProfile") || "Profile"}
+            </span>
           </Link>
         </div>
 
@@ -451,25 +354,28 @@ export default function SideBar({
                 onCloseMobile();
                 onQuickAction();
               }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary-container/10 hover:bg-primary-container/20 text-primary border border-primary/20 text-xs font-bold transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface border border-outline-variant/50 text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:border-primary/40"
             >
-              <PlusCircle className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4 text-primary" />
               <span>{t("addNewMember") || "Add Member"}</span>
             </button>
           </div>
         )}
       </nav>
 
-      {/* Bottom Footer Pill: Gym Administrator */}
-      <div className="p-3 px-5 border-t border-[#e2e8f0] dark:border-slate-800 flex items-center justify-between shrink-0 bg-white dark:bg-[#0c1322]">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#eff6ff] dark:bg-blue-950/60 text-[#2563eb] dark:text-blue-400 text-[11px] font-semibold border border-blue-100 dark:border-blue-900/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2563eb] dark:bg-blue-400 animate-pulse"></span>
-          <span>
+      {/* Bottom Footer Pill: Session & Workspace Role */}
+      <div className="p-3 px-4 border-t border-outline-variant/50 flex items-center justify-between shrink-0 bg-surface-container-lowest transition-colors">
+        <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/50 text-on-surface text-[11px] font-medium">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="truncate max-w-[130px]">
             {isAdmin
               ? t("roleGymAdministrator") || "Gym administrator"
               : t("roleGymStaff") || "Gym staff"}
           </span>
-        </span>
+        </div>
 
         {/* Direct Log Out Button */}
         <button
@@ -479,7 +385,8 @@ export default function SideBar({
             logout();
           }}
           title={t("logOut") || "Log Out"}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+          aria-label={t("logOut") || "Log Out"}
+          className="p-1.5 rounded-xl text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>
@@ -490,7 +397,7 @@ export default function SideBar({
   return (
     <>
       {/* Desktop Fixed SideBar: Width 256px (w-64) */}
-      <aside className="fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 flex flex-col bg-white dark:bg-[#0c1322] border-r rtl:border-r-0 rtl:border-l border-[#e2e8f0] dark:border-slate-800 hidden lg:flex z-40 transition-colors">
+      <aside className="fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 flex flex-col bg-surface-container-lowest border-r rtl:border-r-0 rtl:border-l border-outline-variant/50 hidden lg:flex z-40 transition-colors shadow-2xs">
         {renderContent()}
       </aside>
 
@@ -504,7 +411,7 @@ export default function SideBar({
 
       {/* Mobile Offcanvas Drawer */}
       <div
-        className={`fixed inset-y-0 left-0 rtl:left-auto rtl:right-0 w-64 bg-white dark:bg-[#0c1322] border-r rtl:border-r-0 rtl:border-l border-[#e2e8f0] dark:border-slate-800 z-50 flex flex-col lg:hidden transform transition-transform duration-300 ease-in-out shadow-2xl ${
+        className={`fixed inset-y-0 left-0 rtl:left-auto rtl:right-0 w-64 bg-surface-container-lowest border-r rtl:border-r-0 rtl:border-l border-outline-variant/50 z-50 flex flex-col lg:hidden transform transition-transform duration-300 ease-in-out shadow-2xl ${
           isMobileOpen
             ? "translate-x-0"
             : "-translate-x-full rtl:translate-x-full"
