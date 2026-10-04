@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 
 import { ProgressiveBlur } from "../motion-primitives/progressive-blur";
+import { Container, SectionHeading } from "@/components/landing/primitives";
+import { Reveal } from "@/components/landing/motion";
 
 type CarouselApi = NonNullable<ReturnType<typeof useEmblaCarousel>[1]>;
 
@@ -40,6 +42,7 @@ const sports = [
     category: "Fitness & CrossFit",
     description: "For the clubs that make every rep count.",
     image: "/crossFit.jpg",
+    alt: "Athletes training together in a CrossFit class",
     icon: Dumbbell,
   },
   {
@@ -47,6 +50,7 @@ const sports = [
     category: "Martial arts",
     description: "A home for every belt and every ambition.",
     image: "/martialArts.jpg",
+    alt: "Martial arts students practicing in a dojo",
     icon: Swords,
   },
   {
@@ -54,6 +58,7 @@ const sports = [
     category: "Swimming",
     description: "From the first length to the next personal best.",
     image: "/aquatic.jpg",
+    alt: "Swimmer training in a pool lane",
     icon: Waves,
   },
   {
@@ -61,6 +66,7 @@ const sports = [
     category: "Yoga & movement",
     description: "Spaces that bring balance to everyday life.",
     image: "/yogaFlow.jpg",
+    alt: "Yoga class practicing in a studio",
     icon: Flower2,
   },
   {
@@ -68,6 +74,7 @@ const sports = [
     category: "Running clubs",
     description: "Shared miles. Stronger connections.",
     image: "/runClub.jpg",
+    alt: "Running club members on a group run",
     icon: Footprints,
   },
 ];
@@ -76,10 +83,11 @@ const categoryItems = [...categories, ...categories, ...categories];
 const sportItems = [...sports, ...sports];
 
 const controlClassName =
-  "inline-flex h-10 w-10 shrink-0 items-center justify-center " +
-  "rounded-full border border-border bg-background text-foreground " +
-  "transition-colors duration-200 hover:border-primary/40 " +
-  "hover:bg-primary/5 hover:text-primary " +
+  "inline-flex size-11 shrink-0 items-center justify-center " +
+  "rounded-full border border-border bg-card text-foreground shadow-xs " +
+  "transition-[background-color,border-color,color,transform] duration-200 " +
+  "hover:border-primary/40 hover:bg-selected hover:text-primary " +
+  "active:scale-95 motion-reduce:active:scale-100 " +
   "focus-visible:outline-none focus-visible:ring-2 " +
   "focus-visible:ring-primary focus-visible:ring-offset-2 " +
   "focus-visible:ring-offset-background disabled:opacity-40 " +
@@ -99,13 +107,15 @@ function EdgeBlur({ images = false }: { images?: boolean }) {
           className={[
             "pointer-events-none absolute inset-y-0 z-20",
             direction === "left" ? "left-0" : "right-0",
-            images ? "w-10 sm:w-20 lg:w-28" : "w-12 sm:w-24 lg:w-36",
+            // Narrow on phones so captions stay readable.
+            images ? "w-5 sm:w-14 lg:w-24" : "w-8 sm:w-20 lg:w-32",
           ].join(" ")}
         >
           <ProgressiveBlur
             className="absolute inset-0 h-full w-full"
             direction={direction}
-            blurIntensity={images ? 1.2 : 1}
+            blurLayers={6}
+            blurIntensity={images ? 1 : 0.8}
           />
 
           <div
@@ -177,8 +187,10 @@ export default function Carousel() {
     },
     [
       AutoScroll({
-        speed: 0.45,
+        speed: 0.4,
         startDelay: 500,
+        // Opposite direction keeps the two ribbons visually independent.
+        direction: "backward",
         playOnInit: false,
         stopOnInteraction: false,
         stopOnMouseEnter: true,
@@ -195,7 +207,7 @@ export default function Carousel() {
     },
     [
       AutoScroll({
-        speed: 0.65,
+        speed: 0.6,
         startDelay: 500,
         playOnInit: false,
         stopOnInteraction: false,
@@ -301,37 +313,39 @@ export default function Carousel() {
 
   return (
     <section
-      aria-label="Built for your sports club"
-      className="relative w-full min-w-0 overflow-hidden bg-background py-16 sm:py-24"
+      id="sports"
+      aria-labelledby="sports-title"
+      className="relative w-full min-w-0 overflow-hidden py-16 sm:py-24"
     >
       {/* Section introduction */}
-      <div className="container mx-auto mb-8 px-5 sm:mb-10">
+      <Container className="mb-10 sm:mb-12">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-2xl">
-            <p className="mb-4 flex items-center gap-3 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
-              <span aria-hidden="true" className="h-px w-8 bg-primary/60" />
-              Built around your club
-            </p>
-
-            <h2 className="text-3xl font-semibold leading-[1.12] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Different sports.
-              <br />
-              <span className="text-muted-foreground">One connected club.</span>
-            </h2>
-
-            <p className="mt-5 max-w-lg text-sm leading-7 text-muted-foreground sm:text-base">
-              From martial arts schools to fitness studios, bring your team,
-              your members, and your daily operations together.
-            </p>
-          </div>
+          <Reveal>
+            <SectionHeading
+              id="sports-title"
+              eyebrow="Built around your club"
+              icon={Trophy}
+              title={
+                <>
+                  Different sports.
+                  <br />
+                  <span className="text-muted-foreground">
+                    One connected club.
+                  </span>
+                </>
+              }
+              description="From martial arts schools to swimming clubs, bring your team, your members and your daily operations together."
+            />
+          </Reveal>
 
           {/* Working carousel controls */}
-          <div className="flex items-center gap-2">
+          <Reveal delay={0.08} className="flex items-center gap-2">
             {!reducedMotion && (
               <button
                 type="button"
                 className={controlClassName}
                 onClick={() => setPaused((value) => !value)}
+                aria-pressed={paused}
                 aria-label={
                   paused
                     ? "Resume automatic scrolling"
@@ -347,7 +361,9 @@ export default function Carousel() {
               </button>
             )}
 
-            <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+            {!reducedMotion && (
+              <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+            )}
 
             <button
               type="button"
@@ -368,26 +384,32 @@ export default function Carousel() {
             >
               <ArrowRight size={18} aria-hidden="true" />
             </button>
-          </div>
+          </Reveal>
         </div>
-      </div>
+      </Container>
 
       {/* Sports category ribbon */}
       <div className="relative isolate mb-6 w-full">
-        <div ref={categoriesRef} className="touch-pan-y overflow-hidden">
+        <div
+          ref={categoriesRef}
+          role="list"
+          aria-label="Sports organizations we support"
+          className="touch-pan-y overflow-hidden"
+        >
           <div className="flex cursor-grab select-none py-3 active:cursor-grabbing">
             {categoryItems.map(({ label, icon: Icon }, index) => (
               <div
                 key={`${label}-${index}`}
-                className="shrink-0 px-2"
+                role={index < categories.length ? "listitem" : undefined}
+                className="shrink-0 px-1.5 sm:px-2"
                 aria-hidden={index >= categories.length ? true : undefined}
               >
-                <div className="group flex items-center gap-3 rounded-full border border-border/70 bg-muted/30 py-2 pr-5 pl-2 transition-colors duration-300 hover:border-primary/30 hover:bg-primary/5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-background text-primary ring-1 ring-border/60">
+                <div className="group flex items-center gap-3 rounded-full border border-border bg-card py-2 pr-5 pl-2 shadow-xs transition-colors duration-200 hover:border-primary/30 hover:bg-selected">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-selected text-primary">
                     <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
                   </span>
 
-                  <span className="whitespace-nowrap text-sm font-medium text-foreground/80">
+                  <span className="whitespace-nowrap text-sm font-medium text-foreground/85">
                     {label}
                   </span>
                 </div>
@@ -426,10 +448,11 @@ export default function Carousel() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={sport.image}
-                        alt=""
+                        alt={sport.alt}
+                        loading={index < 3 ? "eager" : "lazy"}
                         draggable={false}
                         decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.045] motion-reduce:transform-none motion-reduce:transition-none"
+                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04] motion-reduce:transform-none motion-reduce:transition-none"
                       />
                     </div>
 
@@ -446,7 +469,7 @@ export default function Carousel() {
 
                     {/* Category label */}
                     <div className="absolute top-5 left-5 sm:top-6 sm:left-6">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/25 px-3.5 py-2 text-xs font-medium text-white backdrop-blur-md">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3.5 py-2 text-xs font-medium text-white backdrop-blur-sm">
                         <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
                         {sport.category}
                       </span>
@@ -456,14 +479,14 @@ export default function Carousel() {
                     <div className="absolute inset-x-0 bottom-0 p-6 sm:p-7">
                       <div
                         aria-hidden="true"
-                        className="mb-5 h-px w-10 bg-white/60 transition-[width] duration-500 group-hover:w-16 motion-reduce:transition-none"
+                        className="mb-5 h-px w-10 bg-white/60 transition-[width] duration-300 group-hover:w-16 motion-reduce:transition-none"
                       />
 
                       <h3 className="max-w-[14ch] text-3xl font-semibold leading-[1.08] tracking-tight text-white sm:text-[2.1rem]">
                         {sport.title}
                       </h3>
 
-                      <p className="mt-3 max-w-[30ch] text-sm leading-relaxed text-white/80">
+                      <p className="mt-3 max-w-[30ch] text-sm leading-relaxed text-white/85">
                         {sport.description}
                       </p>
                     </div>
@@ -484,11 +507,11 @@ export default function Carousel() {
         <EdgeBlur images />
       </div>
 
-      <div className="container mx-auto mt-5 px-5">
-        <p className="text-center text-xs tracking-wide text-muted-foreground">
-          Your sport. Your community. Your club.
+      <Container className="mt-6">
+        <p className="text-center text-sm text-muted-foreground">
+          Drag to explore, or use the arrows above.
         </p>
-      </div>
+      </Container>
     </section>
   );
 }

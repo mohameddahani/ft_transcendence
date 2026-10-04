@@ -1,65 +1,54 @@
 "use client";
 
-import { useTheme } from "next-themes";
 import Header from "@/components/header/Header";
 import Hero from "@/components/hero/Hero";
-import FeatureHighlights from "@/components/feature-highlights/FeatureHighlights";
+import ProductPreview from "@/components/product-preview/ProductPreview";
 import Carousel from "@/components/carousel/Carousel";
-import GridItems from "@/components/grid-items/GridItems";
-import Testimonials from "@/components/testimonials/Testimonials";
+import Features from "@/components/features/Features";
+import HowItWorks from "@/components/how-it-works/HowItWorks";
 import Pricing from "@/components/pricing/Pricing";
 import Faq from "@/components/faq/Faq";
-import ContactUs from "@/components/contact-us/ContactUs";
-import { ToastContainer } from "react-toastify";
 import Cta from "@/components/cta/Cta";
 import Footer from "@/components/footer/Footer";
+import { LandingMotion } from "@/components/landing/motion";
 
 export default function Home() {
-  const { resolvedTheme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    // * Theme information may be unavailable before mounting.
-    if (!resolvedTheme) return;
-
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  };
-
   return (
-    <div className="min-h-screen transition-all">
-      {/* Top Navigation Bar */}
-      <Header toggleTheme={toggleTheme} />
+    <LandingMotion>
+      <div className="min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground">
+        {/* Navigation */}
+        <Header />
 
-      <div className="container mx-auto px-5">
-        {/* Hero */}
-        <Hero />
+        <main className="flex-1">
+          {/* Hero */}
+          <Hero />
+
+          {/* Product Preview */}
+          <ProductPreview />
+
+          {/* Full-width Carousel */}
+          <Carousel />
+
+          {/* Role-based Features */}
+          <Features />
+
+          {/* How It Works */}
+          <HowItWorks />
+
+          {/* Platform Pricing */}
+          <Pricing />
+
+          {/* FAQ */}
+          <Faq />
+
+          {/* Registration CTA */}
+          <Cta />
+        </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
-      <Carousel />
-      <div className="container mx-auto px-5">
-        {/* Feature Highlights */}
-        <FeatureHighlights />
-
-        {/* Grid Items */}
-        <GridItems />
-
-        {/* Testimonials */}
-        <Testimonials />
-
-        {/* Pricing */}
-        <Pricing />
-
-        {/* Contact Section */}
-        <ContactUs />
-      </div>
-      {/* FAQ */}
-      <Faq />
-
-      <div className="container mx-auto px-5">
-        {/* CTA */}
-        <Cta />
-      </div>
-      {/* Footer */}
-      <Footer />
-      <ToastContainer theme={resolvedTheme === "dark" ? "dark" : "colored"} />
-    </div>
+    </LandingMotion>
   );
 }
+
