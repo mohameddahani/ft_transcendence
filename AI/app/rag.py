@@ -1,8 +1,6 @@
 import io
-import re
 
 import chromadb
-from chromadb.config import Settings
 from google import genai
 from google.genai import types
 from pypdf import PdfReader
@@ -16,7 +14,7 @@ MAX_DISTANCE = 0.35    # a chunk further than this from the question is not rele
 VISIBILITIES = ("member", "staff")
 
 gemini = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
-store = chromadb.PersistentClient(path=config.VECTORS_DIR, settings=Settings(anonymized_telemetry=False))
+store = chromadb.PersistentClient(path=config.VECTORS_DIR)
 collection = store.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"})
 
 
@@ -31,17 +29,25 @@ def extract_text(data: bytes) -> str:
 
 
 def chunk(text: str) -> list[str]:
+    # first cut the document into sections: each Markdown heading (#) starts a new one
+    sections = [""]
+    for line in text.split("\n"):
+        if line.startswith("#"):
+            sections.append("")
+        sections[-1] += line + "\n"
+
     chunks = []
-    # a new section starts at every Markdown heading line
-    for section in re.split(r"\n(?=#)", text):
+    for section in sections:
         section = section.strip()
-        if not section:
-            continue
-        heading = section.splitlines()[0] if section.startswith("#") else ""
-        for start in range(0, max(len(section) - CHUNK_OVERLAP, 1), CHUNK_SIZE - CHUNK_OVERLAP):
-            piece = section[start:start + CHUNK_SIZE]
-            # a piece cut from the middle of a section still says which section it came from
-            chunks.append(piece if start == 0 or not heading else heading + "\n" + piece)
+        start = 0
+        end = 0
+        while end < len(section):
+            end = start + CHUNK_SIZE
+            piece = section[start:end]
+            if start > 0 and section.startswith("#"):
+                piece = section.splitlines()[0] + "\n" + piece
+            chunks.append(piece)
+            start = end - CHUNK_OVERLAP
     return chunks
 
 
