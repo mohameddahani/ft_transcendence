@@ -53,7 +53,7 @@ def chunk(text: str) -> list[str]:
 
 def embed(texts: list[str], task: str) -> list[list[float]]:
     vectors = []
-    for i in range(0, len(texts), 100):  # the API takes at most 100 texts per call
+    for i in range(0, len(texts), 100):
         result = gemini.models.embed_content(
             model=config.EMBED_MODEL, contents=texts[i:i + 100],
             config=types.EmbedContentConfig(task_type=task, output_dimensionality=768))
@@ -67,8 +67,8 @@ def add_document(admin_id: str, filename: str, visibility: str, text: str) -> in
     pieces = chunk(text)
     if not pieces:
         raise ValueError("The document has no text")
-    vectors = embed(pieces, "RETRIEVAL_DOCUMENT")  # first: if Gemini fails, the old version stays
-    remove_document(admin_id, filename)            # uploading the same file again replaces it
+    vectors = embed(pieces, "RETRIEVAL_DOCUMENT")
+    remove_document(admin_id, filename)
     collection.add(
         ids=[f"{admin_id}:{filename}:{i}" for i in range(len(pieces))],
         documents=pieces,
@@ -91,11 +91,19 @@ def list_documents(admin_id: str) -> list[dict]:
 
 
 def search(user: User, query: str, k: int = 5) -> list[dict]:
-    # the filter comes from the token: always this gym, and only member documents for a member
-    where = {"admin_id": user.admin_id}
     if user.role == "MEMBER":
-        where = {"$and": [where, {"visibility": "member"}]}
-    result = collection.query(query_embeddings=embed([query], "RETRIEVAL_QUERY"), n_results=k, where=where)
-    hits = zip(result["documents"][0], result["metadatas"][0], result["distances"][0])
-    return [{"source": meta["filename"], "text": text, "distance": round(distance, 3)}
-            for text, meta, distance in hits if distance <= MAX_DISTANCE]
+        where = {"$and": [{"admin_id": user.admin_id}, {"visibility": "member"}]}
+    else:
+        where = {"admin_id": user.admin_id}
+
+    vector = embed([query], "RETRIEVAL_QUERY")
+    result = collection.query(query_embeddings=vector, n_results=k, where=where)
+    texts = result["documents"][0]
+    files = result["metadatas"][0]
+    distances = result["distances"][0]
+
+    hits = []
+    for text, file, distance in zip(texts, files, distances):
+        if distance <= MAX_DISTANCE:
+            hits.append({"source": file["filename"], "text": text, "distance": round(distance, 3)})
+    return hits
