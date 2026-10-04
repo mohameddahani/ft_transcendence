@@ -1,3 +1,4 @@
+import { saasName } from "@/utils/constants";
 import { CircleCheck } from "lucide-react";
 
 const FeatureHighlights = () => {
@@ -9,7 +10,9 @@ const FeatureHighlights = () => {
           <span className="text-primary mb-2.5 font-medium block">
             EFFORTLESS OPERATIONS
           </span>
-          <h2 className="text-4xl font-semibold">Run your gym on autopilot</h2>
+          <h2 className="text-4xl font-semibold">
+            Run your sports club on autopilot
+          </h2>
           <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Stop wasting hours on manual spreadsheets. Our intelligent system
             handles Circle-ins, attendance tracking, and capacity management
@@ -18,15 +21,11 @@ const FeatureHighlights = () => {
           <ul className="flex flex-col justify-between gap-y-4">
             <li className="flex gap-sm items-start gap-x-2">
               <CircleCheck className="text-primary" />
-              <span className="font-medium">
-                Automated attendance logging
-              </span>
+              <span className="font-medium">Automated attendance logging</span>
             </li>
             <li className="flex gap-sm items-start gap-x-2">
               <CircleCheck className="text-primary" />
-              <span className="font-medium">
-                Smart capacity alerts
-              </span>
+              <span className="font-medium">Smart capacity alerts</span>
             </li>
           </ul>
         </div>
@@ -50,9 +49,9 @@ const FeatureHighlights = () => {
             Never chase a payment again
           </h2>
           <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
-            Set up recurring billing and let GymFlow do the rest. Our integrated
-            WhatsApp automation sends friendly reminders for failed payments
-            instantly.
+            Set up recurring billing and let {saasName} do the rest. Our
+            integrated WhatsApp automation sends friendly reminders for failed
+            payments instantly.
           </p>
           <div className="bg-secondary p-7 rounded-xl flex gap-4 items-center">
             <div className="w-12 h-12 rounded-full flex items-center justify-center text-white">
@@ -84,7 +83,9 @@ const FeatureHighlights = () => {
           <span className="text-tertiary mb-2.5 font-medium block">
             AI ANALYTICS
           </span>
-          <h2 className="text-4xl font-semibold">Ask your gym anything</h2>
+          <h2 className="text-4xl font-semibold">
+            Ask your sports club anything
+          </h2>
           <p className="my-4 leading-relaxed text-lg font-light text-muted-foreground">
             Our AI Assistant analyzes your data in real-time. Just ask {'"'}Who
             is at risk of churning?{'"'} or {'"'}What{"'"}s my busiest hour?

@@ -4,6 +4,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { saasName } from "@/utils/constants";
 
 const items = [
   {
@@ -14,15 +15,13 @@ const items = [
   },
   {
     value: "locations",
-    trigger: "Can I manage multiple gym locations?",
-    content:
-      "Yes, GymFlow Enterprise is built specifically for franchises and multi-location groups, providing a global view of all your centers.",
+    trigger: "Can I manage multiple sports club locations?",
+    content: `Yes, ${saasName} Enterprise is built specifically for franchises and multi-location groups, providing a global view of all your centers.`,
   },
   {
     value: "hardware",
     trigger: "Do I need to buy any special hardware?",
-    content:
-      "No special hardware is required. GymFlow runs on any tablet, computer, or smartphone. We also support standard QR and RFID scanners.",
+    content: `No special hardware is required. ${saasName} runs on any tablet, computer, or smartphone. We also support standard QR and RFID scanners.`,
   },
 ];
 

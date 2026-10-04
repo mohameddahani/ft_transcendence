@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/input-group";
 import { toast } from "react-toastify";
 import { Mail, MessageSquareText } from "lucide-react";
+import { saasName } from "@/utils/constants";
 
 const ContactUs = () => {
   const formSchema = z.object({
@@ -83,12 +84,12 @@ const ContactUs = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-4xl font-semibold mt-10">
-              Let{"'"}s get your gym flowing
+              Let{"'"}s get your sports club flowing
             </CardTitle>
 
             <CardDescription className="my-5">
-              Tell us about your gym and how we can help you get started with
-              GymFlow.
+              Tell us about your sports club and how we can help you get started
+              with {saasName}.
             </CardDescription>
           </CardHeader>
 
@@ -178,14 +179,14 @@ const ContactUs = () => {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="form-rhf-demo-description">
-                        Tell us about your gym
+                        Tell us about your sports club
                       </FieldLabel>
 
                       <InputGroup>
                         <InputGroupTextarea
                           {...field}
                           id="form-rhf-demo-description"
-                          placeholder="Tell us about your gym"
+                          placeholder="Tell us about your sports club"
                           rows={6}
                           className="min-h-24 resize-none p-6"
                           aria-invalid={fieldState.invalid}
@@ -199,8 +200,8 @@ const ContactUs = () => {
                       </InputGroup>
 
                       <FieldDescription>
-                        Tell us about your gym, your current software, or what
-                        you would like to achieve with GymFlow.
+                        Tell us about your sports club, your current software,
+                        or what you would like to achieve with {saasName}.
                       </FieldDescription>
 
                       {fieldState.invalid && (
@@ -214,7 +215,7 @@ const ContactUs = () => {
 
             <CardFooter className="flex items-center justify-center">
               <Button
-              type="submit"
+                type="submit"
                 size={"lg"}
                 className={
                   "w-full shadow-lg rounded-full text-md p-6 btn-primary-gradient"
@@ -236,8 +237,8 @@ const ContactUs = () => {
           </h3>
 
           <p className="font-light  text-green-800 ">
-            Chat with us directly to get your gym activated instantly. Our
-            agents are standing by.
+            Chat with us directly to get your sports club activated instantly.
+            Our agents are standing by.
           </p>
 
           <button className="bg-green-500 hover:bg-green-600 text-white px-10 py-3 rounded-full flex items-center gap-2 transition-all shadow-md">
@@ -254,7 +255,7 @@ const ContactUs = () => {
           <div>
             <div className="text-sm uppercase opacity-60">Support</div>
 
-            <div className="text-lg">support@gymflow.saas</div>
+            <div className="text-lg">support@{saasName}.saas</div>
           </div>
         </div>
       </div>

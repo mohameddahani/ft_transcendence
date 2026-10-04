@@ -184,7 +184,7 @@
       <section className="py-3xl bg-surface-container-lowest">
         <div className="max-w-container-max mx-auto px-lg">
           <h2 className="font-headline-lg text-headline-lg text-center mb-2xl">
-            Loved by gym owners everywhere
+            Loved by sports club owners everywhere
           </h2>
           <div className="grid md:grid-cols-2 gap-xl">
             <div className="p-2xl rounded-3xl bg-surface-container-low border border-outline-variant flex flex-col items-center text-center">
@@ -371,7 +371,7 @@
             </details>
             <details className="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant group cursor-pointer">
               <summary className="flex justify-between items-center font-label-md text-label-md list-none">
-                <span>Can I manage multiple gym locations?</span>
+                <span>Can I manage multiple sports club locations?</span>
                 <ChevronDown className="w-6 h-6 transition-transform group-open:rotate-180" />
               </summary>
               <p className="mt-md font-body-sm text-body-sm text-on-surface-variant">
@@ -400,7 +400,7 @@
         <div className="max-w-container-max mx-auto px-lg grid lg:grid-cols-2 gap-2xl">
           <div>
             <h2 className="font-headline-lg text-headline-lg mb-lg">
-              Let's get your gym flowing
+              Let's get your sports club flowing
             </h2>
             <form className="space-y-md" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-2 gap-md">
@@ -422,7 +422,7 @@
               />
               <textarea
                 rows={4}
-                placeholder="Tell us about your gym"
+                placeholder="Tell us about your sports club"
                 className="p-md rounded-lg border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none w-full"
               ></textarea>
               <button className="btn-primary text-white px-2xl py-md rounded-lg font-label-md w-full shadow-lg">
@@ -439,7 +439,7 @@
                 Prefer WhatsApp?
               </h3>
               <p className="font-body-md text-body-md text-green-800 mb-xl">
-                Chat with us directly to get your gym activated instantly. Our
+                Chat with us directly to get your sports club activated instantly. Our
                 agents are standing by.
               </p>
               <button className="bg-green-500 hover:bg-green-600 text-white px-2xl py-md rounded-full font-label-md flex items-center gap-sm transition-all shadow-md">
@@ -469,7 +469,7 @@
         <div className="max-w-container-max mx-auto bg-primary rounded-3xl p-3xl text-center text-white relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="font-headline-lg text-headline-lg mb-lg">
-              Ready to transform your gym?
+              Ready to transform your sports club?
             </h2>
             <p className="font-body-lg text-body-lg mb-2xl opacity-80 max-w-2xl mx-auto">
               Join the hundreds of high-performance fitness centers already

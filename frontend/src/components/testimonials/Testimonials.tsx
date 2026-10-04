@@ -6,12 +6,13 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { saasName } from "@/utils/constants";
 
 const Testimonials = () => {
   return (
     <section className="my-15 w-full">
       <h2 className="text-4xl font-semibold text-center">
-        Loved by gym owners everywhere
+        Loved by sports club owners everywhere
       </h2>
       <div className="my-12 text-center grid grid-cols-3 items-center gap-5 max-md:grid-cols-2">
         <div className="border rounded-2xl p-5 bg-secondary flex items-center justify-center flex-col gap-1">
@@ -55,7 +56,8 @@ const Testimonials = () => {
                         src="https://github.com/mohameddahani.png"
                       />
                       <p className="italic mb-8 leading-relaxed font-medium text-base text-muted-foreground">
-                        {'"'}GymFlow completely transformed how we handle
+                        {'"'}
+                        {saasName} completely transformed how we handle
                         memberships. We{"'"}ve seen a 30% reduction in late
                         payments thanks to the WhatsApp automation.{'"'}
                       </p>

@@ -40,10 +40,14 @@ const Header = ({ toggleTheme }: HeaderProps) => {
             <Sun className="dark:hidden" />
             <Moon className="hidden dark:block" />
           </Button>
-          <Button variant={"secondary"} size={"lg"}>
+          <Button
+            variant={"outline"}
+            size={"lg"}
+            className={"shadow-lg rounded-full px-6"}
+          >
             Login
           </Button>
-          <Button className="rounded-full btn-primary-gradient" size={"lg"}>
+          <Button className="shadow-lg rounded-full px-6 btn-primary-gradient" size={"lg"}>
             Register
           </Button>
         </div>
