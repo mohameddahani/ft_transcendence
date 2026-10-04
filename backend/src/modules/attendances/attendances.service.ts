@@ -287,6 +287,7 @@ export class AttendancesService {
             gte: monday,
             lte: sunday,
           },
+          visitStatus: { not: VisitStatus.CANCELLED },
         },
       });
 
