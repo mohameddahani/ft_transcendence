@@ -15,6 +15,7 @@
     "class-variance-authority": "^0.7.1",
     "cn": "^0.3.0",
     "framer-motion": "^13.4.4",
+    "html5-qrcode": "^2.3.8",
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.46.0",

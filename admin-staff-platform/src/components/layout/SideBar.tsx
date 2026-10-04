@@ -130,33 +130,33 @@ export default function SideBar({
             {t("frontDesk") || "Front desk"}
           </span>
 
-          {/* Check-in (No page yet) */}
-          <button
-            type="button"
-            onClick={() => handleComingSoon(t("navCheckIn") || "Check-in")}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 text-sm transition-colors text-left rtl:text-right cursor-pointer"
+          {/* Check-in */}
+          <Link
+            href="/check-in"
+            onClick={onCloseMobile}
+            aria-current={isRouteActive("/check-in") ? "page" : undefined}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isRouteActive("/check-in")
+                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
+                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="shrink-0"
-              >
-                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />
-              </svg>
-              <span>{t("navCheckIn") || "Check-in"}</span>
-            </div>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 tracking-tight">
-              Soon
-            </span>
-          </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="shrink-0"
+            >
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />
+            </svg>
+            <span>{t("navCheckIn") || "Check-in"}</span>
+          </Link>
 
           {/* Members */}
           <Link
@@ -318,33 +318,33 @@ export default function SideBar({
             {t("insight") || "Insight"}
           </span>
 
-          {/* Feedback (No page yet) */}
-          <button
-            type="button"
-            onClick={() => handleComingSoon(t("navFeedback") || "Feedback")}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100 text-sm transition-colors text-left rtl:text-right cursor-pointer"
+          {/* Feedback */}
+          <Link
+            href="/feedbacks"
+            onClick={onCloseMobile}
+            aria-current={isRouteActive("/feedbacks") ? "page" : undefined}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+              isRouteActive("/feedbacks")
+                ? "bg-[#eff6ff] text-[#2563eb] dark:bg-blue-950/50 dark:text-blue-400 font-semibold border border-blue-100/70 dark:border-blue-500/20"
+                : "text-[#475569] dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100"
+            }`}
           >
-            <div className="flex items-center gap-3">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="shrink-0"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              <span>{t("navFeedback") || "Feedback"}</span>
-            </div>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 tracking-tight">
-              Soon
-            </span>
-          </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="shrink-0"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span>{t("navFeedback") || "Feedback"}</span>
+          </Link>
 
           {/* AI assistant (No page yet) */}
           <button

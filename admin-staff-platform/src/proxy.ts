@@ -16,6 +16,8 @@ const protectedRoutes = [
   "/settings",
   "/profile",
   "/gymflow-subscription",
+  "/check-in",
+  "/feedbacks",
 ];
 
 // Authentication routes that authenticated users shouldn't revisit
