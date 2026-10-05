@@ -122,7 +122,7 @@ export class NotificationsService {
     });
   }
 
-  // * Make Notification as Read (Member)
+  // * Make All Notification as Read (Member)
   async makeAllNotificationsReadMember(memberId: string) {
     // * check if his as any notification non read
     const notifications = await this.prisma.memberNotification.findMany({
