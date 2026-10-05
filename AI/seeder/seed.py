@@ -157,15 +157,17 @@ def generate_members(gym: GymSpec, count: int, rng: random.Random) -> list[Gener
     return members
 
 
+# the avatars are the backend's defaults, so seeded people look like real ones
 _MEMBER_UPSERT = """
 INSERT INTO members (
     id, admin_id, first_name, last_name, email, user_name, phone_number,
     address, emergency_contact, gender, birth_date, account_status, role,
-    profile_image_url, created_at, updated_at
+    profile_image_url, profile_image_public_id, created_at, updated_at
 ) VALUES (
     gen_random_uuid()::text, $1, $2, $3, $4, $5, $6,
     $7, $8, $9::"Gender", $10, $11::"MemberAccountStatus", 'MEMBER'::"Role",
-    'default-member-image.jpg', $12, NOW()
+    'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521882/avatars-default-member.png',
+    'avatars-default-member', $12, NOW()
 )
 ON CONFLICT (user_name) DO UPDATE SET
     admin_id = EXCLUDED.admin_id,
@@ -192,11 +194,14 @@ async def ensure_gym(conn: asyncpg.Connection, gym: GymSpec) -> str:
         INSERT INTO users (
             id, first_name, last_name, company_name, email, user_name, password,
             phone_number, gender, birth_date, role, account_status,
-            is_account_verified, terms_accepted, profile_image_url, created_at, updated_at
+            is_account_verified, terms_accepted, profile_image_url, profile_image_public_id,
+            created_at, updated_at
         ) VALUES (
             gen_random_uuid()::text, $1, $2, $3, $4, $5, 'seeded_not_a_real_hash',
             $6, $7::"Gender", $8, 'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus",
-            true, true, 'default-image.jpg', NOW(), NOW()
+            true, true,
+            'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png',
+            'avatars-default-admin', NOW(), NOW()
         ) RETURNING id
         """,
         gym.owner_first, gym.owner_last, gym.company_name, gym.email, gym.user_name,
@@ -286,10 +291,13 @@ async def ensure_staff(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
                 """INSERT INTO staffs (id, admin_id, first_name, last_name, gender,
                                        birth_date, user_name, email, phone_number,
                                        company_name, role, account_status,
+                                       profile_image_url, profile_image_public_id,
                                        created_at, updated_at)
                    VALUES (gen_random_uuid()::text, $1, $2, $3, 'FEMALE'::"Gender",
                            $4, $5, $6, $7, $8, 'STAFF'::"Role",
-                           $9::"UserAccountStatus", NOW(), NOW())""",
+                           $9::"UserAccountStatus",
+                           'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521794/avatars-default-staff.png',
+                           'avatars-default-staff', NOW(), NOW())""",
                 admin_id, "Hafsa" if status == "ACTIVE" else "Yassine",
                 "Ouazzani" if status == "ACTIVE" else "Berrada",
                 today_utc() - timedelta(days=31 * 365),

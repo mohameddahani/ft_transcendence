@@ -74,7 +74,7 @@ Fitness Casablanca), `medina` (Medina Wellness Fes).
 
 | Email | Gym | State |
 |---|---|---|
-| `omar@gmail.com` | Atlas | membership expired 30 days ago, payment overdue |
+| `omar@gmail.com` | Atlas | membership expired 30 days ago, payment unpaid |
 | `siham@gmail.com` | Atlas | expires in 5 days |
 | `youssef@gmail.com` | Atlas | expires in 20 days |
 | `rachid@gmail.com`, `latifa@gmail.com` | Oasis | active |

@@ -15,14 +15,16 @@ admin_user AS (
     INSERT INTO users (
         id, first_name, last_name, company_name, email, user_name, password,
         phone_number, gender, birth_date, role, account_status,
-        is_account_verified, terms_accepted, profile_image_url, created_at, updated_at
+        is_account_verified, terms_accepted, profile_image_url, profile_image_public_id,
+        created_at, updated_at
     )
     VALUES (
         gen_random_uuid()::text, 'Nadia', 'Berrada', 'Oasis Gym Marrakech',
         'nadia@oasisgym.ma', 'nadia_admin', 'hashed_password_456',
         '+212600000002', 'FEMALE'::"Gender", '1985-09-30'::timestamp,
         'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus", true, true,
-        'default-image.jpg', NOW(), NOW()
+        'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png', 'avatars-default-admin',
+        NOW(), NOW()
     )
     RETURNING id
 ),
@@ -52,13 +54,13 @@ member_rows AS (
     INSERT INTO members (
         id, admin_id, first_name, last_name, email, user_name, phone_number,
         address, emergency_contact, gender, birth_date, account_status, role,
-        profile_image_url, created_at, updated_at
+        profile_image_url, profile_image_public_id, created_at, updated_at
     )
     SELECT gen_random_uuid()::text, a.id, s.first_name, s.last_name, s.email, s.user_name,
            s.phone_number, s.address, s.emergency_contact,
            s.gender::"Gender", s.birth_date::timestamp,
            'ACTIVE'::"MemberAccountStatus", 'MEMBER'::"Role",
-           'default-member-image.jpg',
+           'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521882/avatars-default-member.png', 'avatars-default-member',
            NOW() + make_interval(days => s.days_to_expiry)
                  - make_interval(days => gpd.duration_days),
            NOW()

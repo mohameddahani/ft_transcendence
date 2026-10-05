@@ -102,8 +102,8 @@ def search(user: User, query: str, k: int = 5) -> list[dict]:
     files = result["metadatas"][0]
     distances = result["distances"][0]
 
-    hits = []
+    matches = []
     for text, file, distance in zip(texts, files, distances):
         if distance <= MAX_DISTANCE:
-            hits.append({"source": file["filename"], "text": text, "distance": round(distance, 3)})
-    return hits
+            matches.append({"source": file["filename"], "text": text, "distance": round(distance, 3)})
+    return matches

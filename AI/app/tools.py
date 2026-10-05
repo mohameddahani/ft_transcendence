@@ -83,7 +83,6 @@ def _period(period: str) -> tuple[date, date]:
 
 # returns the revenue in MAD for a period: total, number sold, and per plan
 def get_revenue(user: User, period: str = "this_month") -> dict:
-    # from memberships sold, not payments: the backend rewrites old payments to OVERDUE/UNPAID
     start, end = _period(period)
     rows = db.fetch_all("""
         SELECT p.plan_name AS plan, count(*) AS sold, sum(d.price) AS revenue_mad
