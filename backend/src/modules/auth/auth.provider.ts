@@ -165,6 +165,20 @@ export class AuthProvider {
       throw new UnauthorizedException('Invalid Email or Password');
     }
 
+    // * Check if the user's account is verified.
+    if (!user.isAccountVerified) {
+      throw new UnauthorizedException(
+        'Please verify your email address to continue.',
+      );
+    }
+
+    // * Check if the user has accepted the terms.
+    if (!user.termsAccepted) {
+      throw new UnauthorizedException(
+        'Please accept the terms and conditions to continue.',
+      );
+    }
+
     // * Check status of account
     if (user.accountStatus === UserAccountStatus.PENDING) {
       throw new UnauthorizedException(
