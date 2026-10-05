@@ -82,6 +82,10 @@
 
 // ! test all Notifications
 
+// ! test anything is expired
+// ! change generate username
+// ! check email by lowercase
+
 // * return new data in all updates & create endpoints
 
 // * make the notification read

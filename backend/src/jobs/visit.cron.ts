@@ -8,7 +8,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class VisitCron {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   // * Check for expired visits and update their status from READY to EXPIRED
   async expireVisits() {
     await this.prisma.visit.updateMany({
