@@ -52,6 +52,15 @@ export class MemberNotificationsController {
     );
   }
 
+  // * Make All Notification as Read (Member)
+  makeAllNotificationsReadMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.makeAllNotificationsReadMember(
+      accessTokenPayload.id,
+    );
+  }
+
   // * Make Notification as Read (Member)
   @Patch(':id')
   makeNotificationReadMember(

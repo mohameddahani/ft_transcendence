@@ -52,6 +52,15 @@ export class AdminNotificationsController {
     );
   }
 
+  // * Make All Notifications as Read (Admin)
+  makeAllNotificationsReadAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.makeAllNotificationsReadAdmin(
+      accessTokenPayload.id,
+    );
+  }
+
   // * Make Notification as Read (Admin)
   @Patch(':id')
   makeNotificationReadAdmin(

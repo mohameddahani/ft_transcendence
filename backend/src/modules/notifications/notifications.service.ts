@@ -73,6 +73,32 @@ export class NotificationsService {
     return notifications;
   }
 
+  // * Make All Notification as Read (Admin)
+  async makeAllNotificationsReadAdmin(adminId: string) {
+    // * check if his as any notification non read
+    const notifications = await this.prisma.adminNotification.findMany({
+      where: {
+        adminId: adminId,
+        isRead: false,
+      },
+    });
+
+    // * Check it if already mark as read
+    if (notifications.length === 0) {
+      throw new ConflictException('All Notifications Already Mark As Read');
+    }
+
+    await this.prisma.adminNotification.updateMany({
+      where: {
+        adminId: adminId,
+        isRead: false,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+  }
+
   // * Make Notification as Read (Admin)
   async makeNotificationReadAdmin(adminId: string, notificationId: string) {
     // * check if notification is exist
@@ -89,6 +115,32 @@ export class NotificationsService {
     return await this.prisma.adminNotification.update({
       where: {
         id: notification.id,
+      },
+      data: {
+        isRead: true,
+      },
+    });
+  }
+
+  // * Make Notification as Read (Member)
+  async makeAllNotificationsReadMember(memberId: string) {
+    // * check if his as any notification non read
+    const notifications = await this.prisma.memberNotification.findMany({
+      where: {
+        memberId: memberId,
+        isRead: false,
+      },
+    });
+
+    // * Check it if already mark as read
+    if (notifications.length === 0) {
+      throw new ConflictException('All Notifications Already Mark As Read');
+    }
+
+    await this.prisma.memberNotification.updateMany({
+      where: {
+        memberId: memberId,
+        isRead: false,
       },
       data: {
         isRead: true,
