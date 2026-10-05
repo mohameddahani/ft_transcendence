@@ -84,7 +84,7 @@
 
 // ! test anything is expired
 // ! change generate username
-// ! check email by lowercase
+// * check email by lowercase
 // ! if user set wrong password 5 times stop him
 // ! Make email send only once
 
