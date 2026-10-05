@@ -275,10 +275,22 @@ export class MembersService {
         where: {
           adminId: adminId,
           memberId: memberId,
+          membershipStatus: MemberAccountStatus.ACTIVE,
         },
       });
       if (!membership) {
         throw new NotFoundException('Membership Not Found!');
+      }
+
+      // * Check if the new membership is duplicate or already active
+      if (
+        data.membershipPlanId === membership.membershipPlanId &&
+        data.membershipPlanDurationId === membership.membershipPlanDurationId &&
+        membership.membershipStatus === MembershipStatus.ACTIVE
+      ) {
+        throw new ConflictException(
+          'This member already has an active membership with the same plan and duration.',
+        );
       }
 
       // * Interactive transaction (function)
