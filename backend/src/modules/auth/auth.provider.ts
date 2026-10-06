@@ -187,6 +187,22 @@ export class AuthProvider {
     }
 
     if (user.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.userActionToken.findFirst({
+        where: {
+          userId: user.id,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A verification email has already been requested. Please check your inbox.',
+        );
+      }
+
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
@@ -486,6 +502,22 @@ export class AuthProvider {
     }
 
     if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.staffActionToken.findFirst({
+        where: {
+          StaffId: staff.id,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A set password email has already been requested. Please check your inbox.',
+        );
+      }
+
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
@@ -720,6 +752,22 @@ export class AuthProvider {
     });
     if (!staff) {
       throw new NotFoundException('Staff Not Found');
+    }
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.staffActionToken.findFirst({
+      where: {
+        StaffId: staff.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
     }
 
     // * Send Email of reset password to Staff
@@ -1199,6 +1247,22 @@ export class AuthProvider {
       throw new UnauthorizedException('Invalid Email');
     }
 
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.userActionToken.findFirst({
+      where: {
+        userId: user.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
+    }
+
     // * Send Email of reset password to user
     try {
       // * Generate Token
@@ -1284,6 +1348,22 @@ export class AuthProvider {
     });
     if (!member) {
       throw new NotFoundException('Member Not Found');
+    }
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.memberActionToken.findFirst({
+      where: {
+        memberId: member.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
     }
 
     // * Send Email of reset password to member
