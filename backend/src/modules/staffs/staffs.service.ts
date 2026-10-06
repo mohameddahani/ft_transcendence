@@ -120,7 +120,7 @@ export class StaffsService {
       );
     } catch {
       throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+        'Failed to send set password of staff email',
       );
     }
   }
@@ -335,5 +335,64 @@ export class StaffsService {
         accountStatus: UserAccountStatus.BANNED,
       },
     });
+  }
+
+  // * Resend Set Password for staff
+  async resendSetPasswordStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check staff exists
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.staffActionToken.findFirst({
+      where: {
+        StaffId: staff.id,
+        type: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of staff.',
+      );
+    }
+
+    // * Send Email of Set password to staff
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.staffActionToken.create({
+        data: {
+          staff: { connect: { id: staff.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email of Password Set to staff
+      await this.emailService.sendSetPasswordStaffEmail(
+        staff.userName,
+        staff.email,
+        rawToken,
+      );
+      console.log('mchaaaaaaaaaaaaaaaaaa');
+    } catch {
+      throw new RequestTimeoutException(
+        'Failed to send set password of staff email',
+      );
+    }
   }
 }

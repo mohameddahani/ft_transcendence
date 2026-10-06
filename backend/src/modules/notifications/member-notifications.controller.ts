@@ -53,6 +53,7 @@ export class MemberNotificationsController {
   }
 
   // * Make All Notification as Read (Member)
+  @Patch()
   makeAllNotificationsReadMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

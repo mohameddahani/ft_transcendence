@@ -100,4 +100,14 @@ export class StaffsController {
   ) {
     return this.staffsService.banStaff(accessTokenPayload.id, id);
   }
+
+  // * Resend Set Password for staff
+  @Post('resend-set-password/:id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  resendSetPasswordStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.staffsService.resendSetPasswordStaff(accessTokenPayload.id, id);
+  }
 }

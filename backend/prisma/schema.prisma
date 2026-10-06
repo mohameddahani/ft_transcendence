@@ -109,17 +109,21 @@ enum FeedbackStatus {
 
 // * Table of users
 model User {
-  id                   String            @id @default(uuid())
-  firstName            String            @map("first_name")
-  lastName             String            @map("last_name")
-  gender               Gender
-  birthDate            DateTime          @map("birth_date")
-  userName             String            @unique @map("user_name")
-  email                String            @unique
-  password             String
-  phoneNumber          String            @unique @map("phone_number")
-  companyName          String            @map("company_name")
-  role                 Role              @default(ADMIN)
+  id          String   @id @default(uuid())
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  gender      Gender
+  birthDate   DateTime @map("birth_date")
+  userName    String   @unique @map("user_name")
+  email       String   @unique
+  password    String
+  phoneNumber String   @unique @map("phone_number")
+  companyName String   @map("company_name")
+  role        Role     @default(ADMIN)
+
+  // ! BLOCK_CHAINE
+  walletAddress String? @map("wallet_address")
+
   profileImageUrl      String            @map("profile_image_url")
   profileImagePublicId String            @map("profile_image_public_id")
   isAccountVerified    Boolean           @default(false) @map("is_account_verified")
@@ -139,10 +143,10 @@ model User {
   attendances       Attendance[]
   visits            Visit[]
   feedbacks         Feedback[]
+  specialHours      SpecialHour[]
 
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  specialHours SpecialHour[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([firstName, lastName])
   @@index([role])
@@ -265,20 +269,24 @@ model Member {
   staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
-  firstName            String              @map("first_name")
-  lastName             String              @map("last_name")
+  firstName            String   @map("first_name")
+  lastName             String   @map("last_name")
   gender               Gender
-  birthDate            DateTime            @map("birth_date")
-  userName             String              @unique @map("user_name")
+  birthDate            DateTime @map("birth_date")
+  userName             String   @unique @map("user_name")
   email                String
   password             String?
-  phoneNumber          String              @map("phone_number")
-  profileImageUrl      String              @map("profile_image_url")
-  profileImagePublicId String              @map("profile_image_public_id")
+  phoneNumber          String   @map("phone_number")
+  profileImageUrl      String   @map("profile_image_url")
+  profileImagePublicId String   @map("profile_image_public_id")
   address              String
-  emergencyContact     String              @map("emergency_contact")
-  role                 Role                @default(MEMBER)
-  accountStatus        MemberAccountStatus @default(ACTIVE) @map("account_status")
+  emergencyContact     String   @map("emergency_contact")
+  role                 Role     @default(MEMBER)
+
+  // ! BLOCK_CHAINE
+  adminWalletAddress String? @map("admin_wallet_address")
+
+  accountStatus MemberAccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
@@ -369,6 +377,9 @@ model MembershipPlanDuration {
 
   durationDays Int     @map("duration_days")
   price        Decimal @db.Decimal(10, 2)
+
+  // ! BLOCK_CHAINE
+  priceByG Int @map("price_by_g")
 
   membershipPlanId String         @map("membership_plan_id")
   membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])

@@ -85,8 +85,9 @@
 // ! test anything is expired
 // ! change generate username
 // * check email by lowercase
-// ! if user set wrong password 5 times stop him
-// ! Make email send only once
+// * if user set wrong password 5 times stop him
+// * Make email send only once
+// ! if admin or staff add member but the member exipre the email of set password
 
 // * return new data in all updates & create endpoints
 

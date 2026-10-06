@@ -53,6 +53,7 @@ export class AdminNotificationsController {
   }
 
   // * Make All Notifications as Read (Admin)
+  @Patch()
   makeAllNotificationsReadAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
