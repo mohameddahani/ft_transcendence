@@ -89,6 +89,7 @@ export class MembershipPlansService {
         durationDays: data.durationDays,
         price: data.price,
         membershipPlan: { connect: { id: data.membershipPlanId } },
+        priceByG: data.priceByG,
       },
     });
   }
