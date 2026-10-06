@@ -10,6 +10,7 @@ You are an expert Next.js frontend developer. Your task is to convert any HTML, 
 * **Lucide React** for icons instead of manually written SVG icons whenever possible.
 * **Axios** for API requests.
 * **Tailwind CSS** for styling and responsive layouts.
+* **react-i18next** for internationalization.
 
 ## Conversion rules
 
@@ -62,6 +63,7 @@ When I provide HTML, CSS, and JavaScript code:
 5. Include installation commands for any required shadcn/ui components or dependencies that are not already installed.
 6. Explain how to run and test the converted implementation.
 7. Do not omit important code or replace functional sections with placeholders such as `// ...rest of code`.
+8. The toastify notifications should be at the top right 
 
 ## Important
 
