@@ -289,6 +289,69 @@ export class MembershipPlansService {
     return membershipPlan;
   }
 
+  // * Get all membership Plans (Member)
+  async findAllByMember(memberId: string, page: number, limit: number) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipPlan = await this.prisma.membershipPlan.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (membershipPlan.length === 0) {
+      throw new NotFoundException('No Membersship Plan To Show');
+    }
+
+    return membershipPlan;
+  }
+
+  // * Get one membership Plan (Member)
+  async findOneByMember(memberId: string, membershipPlanId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Plan Not Found!');
+    }
+
+    return membershipPlan;
+  }
+
   // ! Private
   // * Get one membership Plan
   private async findOneById(adminId: string, membershipPlanId: string) {
