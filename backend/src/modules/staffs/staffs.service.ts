@@ -60,8 +60,13 @@ export class StaffsService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.staff.findUnique({
