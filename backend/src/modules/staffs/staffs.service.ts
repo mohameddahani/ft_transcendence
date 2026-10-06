@@ -388,7 +388,6 @@ export class StaffsService {
         staff.email,
         rawToken,
       );
-      console.log('mchaaaaaaaaaaaaaaaaaa');
     } catch {
       throw new RequestTimeoutException(
         'Failed to send set password of staff email',

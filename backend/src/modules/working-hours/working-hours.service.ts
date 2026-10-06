@@ -594,7 +594,6 @@ export class WorkingHoursService {
 
     // * Check if redis store Data
     if (cachedSpecialHours) {
-      console.log(cachedSpecialHours === true);
       return cachedSpecialHours;
     }
 
