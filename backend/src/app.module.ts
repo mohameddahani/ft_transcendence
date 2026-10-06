@@ -26,6 +26,7 @@ import { WorkingHoursModule } from './modules/working-hours/working-hours.module
 import { VisitCron } from './jobs/visit.cron';
 import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
 import { HealthModule } from './modules/health/health.module';
+import { RedisModule } from './infrastructure/redis/redis.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { HealthModule } from './modules/health/health.module';
     AttendancesModule,
     FeedbacksModule,
     HealthModule,
+    RedisModule,
   ],
 
   providers: [

@@ -86,7 +86,7 @@ export class ProfilesService {
     }
 
     // * Save new data to user
-    await this.prisma.user.update({ where: { id }, data });
+    return await this.prisma.user.update({ where: { id }, data });
   }
 
   // * Upload profile image

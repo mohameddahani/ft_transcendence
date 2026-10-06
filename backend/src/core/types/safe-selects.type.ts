@@ -66,6 +66,7 @@ export const safeUserSelect = {
   profileImageUrl: true,
   isAccountVerified: true,
   accountStatus: true,
+  termsAccepted: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;

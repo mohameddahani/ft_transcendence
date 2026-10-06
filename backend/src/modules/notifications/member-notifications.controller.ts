@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -37,6 +38,7 @@ export class MemberNotificationsController {
   }
 
   // * Get All Notifications
+  @Get()
   @SkipThrottle() // * Skip Rate Limiting
   findAllNotificationsMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -47,6 +49,28 @@ export class MemberNotificationsController {
       accessTokenPayload.id,
       page,
       limit,
+    );
+  }
+
+  // * Make All Notification as Read (Member)
+  @Patch()
+  makeAllNotificationsReadMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.makeAllNotificationsReadMember(
+      accessTokenPayload.id,
+    );
+  }
+
+  // * Make Notification as Read (Member)
+  @Patch(':id')
+  makeNotificationReadMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.notificationService.makeNotificationReadMember(
+      accessTokenPayload.id,
+      id,
     );
   }
 }

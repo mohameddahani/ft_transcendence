@@ -171,7 +171,7 @@ export class SubscriptionsService {
     }
 
     // * Cancel the Subscription
-    await this.prisma.subscription.update({
+    return await this.prisma.subscription.update({
       where: {
         id: subscription.id,
       },
