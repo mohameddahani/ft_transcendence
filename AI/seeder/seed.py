@@ -34,7 +34,7 @@ from seeder.names import (
 
 MIN_MEMBERS, MAX_MEMBERS = 150, 400
 
-# bcrypt of "Demo1234!": every demo owner and staff member can log in with it (demo data only)
+# bcrypt of "Demo1234!": every demo owner, staff member and member can log in with it (demo data only)
 DEMO_PASSWORD_HASH = "$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELViG"
 
 # families share one phone number, which is why phone_number is not unique
@@ -266,11 +266,12 @@ async def ensure_plans(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
                 """SELECT id FROM membership_plan_durations
                    WHERE membership_plan_id = $1 AND duration_days = $2""", plan_id, days)
             if existing is None:
+                # price_by_g is the price in G, at the rate of the backend's example (200 MAD = 50 G)
                 await conn.execute(
                     """INSERT INTO membership_plan_durations (id, membership_plan_id,
-                           duration_days, price, created_at, updated_at)
-                       VALUES (gen_random_uuid()::text, $1, $2, $3, NOW(), NOW())""",
-                    plan_id, days, price)
+                           duration_days, price, price_by_g, created_at, updated_at)
+                       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, NOW(), NOW())""",
+                    plan_id, days, price, round(price / 4))
             else:
                 await conn.execute(
                     "UPDATE membership_plan_durations SET price = $1, updated_at = NOW()"
@@ -339,6 +340,7 @@ async def sync_members(
             await conn.execute(f"DELETE FROM {table} WHERE member_id = ANY($1::text[])", ids)
         await conn.execute("DELETE FROM members WHERE id = ANY($1::text[])", ids)
 
+    await conn.execute("UPDATE members SET password = $2 WHERE admin_id = $1", admin_id, DEMO_PASSWORD_HASH)
     return len(members), len(stale)
 
 
