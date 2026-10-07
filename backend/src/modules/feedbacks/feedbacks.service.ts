@@ -17,12 +17,14 @@ import {
   safeStaffSelect,
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
+import { ExternalApiService } from '@/infrastructure/external-api/external-api.service';
 
 @Injectable()
 export class FeedbacksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessesService: AccessesService,
+    private readonly externalApiService: ExternalApiService,
   ) {}
 
   // * Create Feedback
@@ -43,6 +45,9 @@ export class FeedbacksService {
     }
 
     // * Create feedback
+    // * Get Sentiment From Ai
+    const response = await this.externalApiService.getSentiment(data);
+
     return await this.prisma.feedback.create({
       data: {
         admin: { connect: { id: adminId } },
@@ -50,6 +55,8 @@ export class FeedbacksService {
         staff: member.staffId ? { connect: { id: member.staffId } } : undefined,
         content: data.content,
         rating: data.rating,
+        sentiment: response?.sentiment ?? null,
+        sentimentScore: response?.sentimentScore ?? null,
       },
     });
   }

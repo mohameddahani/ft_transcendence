@@ -5,6 +5,7 @@ import { AccessesService } from '@/core/services/access.service';
 import { AuthModule } from '../auth/auth.module';
 import { AdminFeedbacksController } from './admin-feedbacks.controller';
 import { StaffFeedbacksController } from './staff-feedbacks.controller';
+import { ExternalApiModule } from '@/infrastructure/external-api/external-api.module';
 
 @Module({
   controllers: [
@@ -15,6 +16,7 @@ import { StaffFeedbacksController } from './staff-feedbacks.controller';
   providers: [AccessesService, FeedbacksService],
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
+    ExternalApiModule,
   ],
   exports: [],
 })
