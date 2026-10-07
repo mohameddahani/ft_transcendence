@@ -43,7 +43,7 @@ export class FeedbacksService {
     }
 
     // * Create feedback
-    await this.prisma.feedback.create({
+    return await this.prisma.feedback.create({
       data: {
         admin: { connect: { id: adminId } },
         member: { connect: { id: memberId } },
@@ -182,7 +182,7 @@ export class FeedbacksService {
     }
 
     // * Like this feedback
-    await this.prisma.feedbackLike.create({
+    return await this.prisma.feedbackLike.create({
       data: {
         feedback: { connect: { id: data.feedbackId } },
         member: { connect: { id: memberId } },
@@ -369,7 +369,7 @@ export class FeedbacksService {
     await this.findOneFeedback(accessTokenPayload, feedbackId);
 
     // * update status of feedback
-    await this.prisma.feedback.update({
+    return await this.prisma.feedback.update({
       where: {
         id: feedbackId,
       },

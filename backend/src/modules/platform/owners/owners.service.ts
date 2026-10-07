@@ -102,7 +102,7 @@ export class OwnersService {
       throw new BadRequestException('This account is already active.');
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.ACTIVE,
@@ -130,7 +130,7 @@ export class OwnersService {
       }
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.PENDING,
@@ -154,7 +154,7 @@ export class OwnersService {
       }
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.BANNED,

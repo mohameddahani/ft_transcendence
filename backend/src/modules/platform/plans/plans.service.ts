@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -11,10 +12,16 @@ import { AddPlanDurationDto } from './dtos/add-plan-duration.dto';
 import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 import { SubscriptionStatus } from '@/generated/prisma/enums';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
+import { Plan } from '@/generated/prisma/client';
 
 @Injectable()
 export class PlansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   // * Add Plan by Owner
   async addPlan(data: AddPlanDto) {
@@ -29,8 +36,13 @@ export class PlansService {
       throw new UnauthorizedException('Plan Name already exists');
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add plan to database
-    await this.prisma.plan.create({ data });
+    return await this.prisma.plan.create({ data });
   }
 
   // * Add Plan Duration by Owner
@@ -45,8 +57,13 @@ export class PlansService {
       data.price,
     );
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Add plan duration to database
-    await this.prisma.planDuration.create({
+    return await this.prisma.planDuration.create({
       data: {
         durationDays: data.durationDays,
         price: data.price,
@@ -94,8 +111,13 @@ export class PlansService {
       }
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Update data
-    await this.prisma.plan.update({
+    return await this.prisma.plan.update({
       where: {
         id: id,
       },
@@ -161,8 +183,13 @@ export class PlansService {
       }
     }
 
+    const key = `platform:plans`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
     // * Update data
-    await this.prisma.planDuration.update({
+    return await this.prisma.planDuration.update({
       where: {
         id: id,
       },
@@ -172,6 +199,17 @@ export class PlansService {
 
   // * Get all Plans
   async findAll(page: number, limit: number) {
+    // * Check if Data is already store in caching
+    const key = `platform:plans:page:${page}:limit:${limit}`;
+
+    // * Get data from redis server
+    const cachedPlans = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedPlans) {
+      return cachedPlans;
+    }
+
     const plans = await this.prisma.plan.findMany({
       skip: (page - 1) * limit,
       take: limit,
@@ -184,11 +222,25 @@ export class PlansService {
       throw new NotFoundException('No Plan To Show');
     }
 
+    // * Set Data in Redis
+    await this.cache.set(key, plans, 300_000); // * ttl: 5min
+
     return plans;
   }
 
   // * Get one Plan
   async findOne(planId: string) {
+    // * Check if Data is already store in caching
+    const key = `platform:plans`;
+
+    // * Get data from redis server
+    const cachedPlan = await this.cache.get(key);
+
+    // * Check if redis store Data
+    if (cachedPlan) {
+      return cachedPlan as Plan;
+    }
+
     const plan = await this.prisma.plan.findUnique({
       where: {
         id: planId,
@@ -201,6 +253,9 @@ export class PlansService {
     if (!plan) {
       throw new NotFoundException('Plan Not Found!');
     }
+
+    // * Set Data in Redis
+    await this.cache.set(key, plan, 300_000); // * ttl: 5min
 
     return plan;
   }

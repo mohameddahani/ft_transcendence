@@ -23,6 +23,7 @@ import {
   safeMemberSelect,
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
+import { VISIT_EXPIRATION_MINUTES } from '@/core/constants/visit.constants';
 
 @Injectable()
 export class VisitsService {
@@ -177,6 +178,7 @@ export class VisitsService {
           gte: monday,
           lte: sunday,
         },
+        visitStatus: { not: VisitStatus.CANCELLED },
       },
     });
 
@@ -213,7 +215,10 @@ export class VisitsService {
         membership: { connect: { id: membership.id } },
         visitDateAndTime: data.visitDateAndTime,
         qrTokenHash: tokenHash,
-        visitDateAndTimeExpiresAt: addMinutes(data.visitDateAndTime, 30), // * Add 30 min
+        visitDateAndTimeExpiresAt: addMinutes(
+          data.visitDateAndTime,
+          VISIT_EXPIRATION_MINUTES,
+        ), // * Add 30 min
       },
     });
     return { rawToken: rawToken };
@@ -253,7 +258,7 @@ export class VisitsService {
     }
 
     // * Cancel the visit
-    await this.prisma.visit.update({
+    return await this.prisma.visit.update({
       where: {
         id: visitId,
       },

@@ -55,7 +55,7 @@ export class AddStaffDto {
   @IsEmail()
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
   @ApiProperty({ example: 'ayman@gmail.com', description: 'Member Email' }) // * Swagger Document
   email!: string;

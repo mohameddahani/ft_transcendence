@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -21,7 +22,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
 export class AdminNotificationsController {
-  constructor(private readonly notificationService: NotificationsService) {}
+  constructor(private readonly notificationService: NotificationsService) { }
 
   // * Get One Notification
   @Get(':id')
@@ -37,6 +38,7 @@ export class AdminNotificationsController {
   }
 
   // * Get All Notifications
+  @Get()
   @SkipThrottle() // * Skip Rate Limiting
   findAllNotificationsAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -47,6 +49,28 @@ export class AdminNotificationsController {
       accessTokenPayload.id,
       page,
       limit,
+    );
+  }
+
+  // * Make All Notifications as Read (Admin)
+  @Patch()
+  makeAllNotificationsReadAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.makeAllNotificationsReadAdmin(
+      accessTokenPayload.id,
+    );
+  }
+
+  // * Make Notification as Read (Admin)
+  @Patch(':id')
+  makeNotificationReadAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.notificationService.makeNotificationReadAdmin(
+      accessTokenPayload.id,
+      id,
     );
   }
 }

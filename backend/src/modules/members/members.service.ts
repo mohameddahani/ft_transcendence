@@ -8,6 +8,7 @@ import {
   Injectable,
   NotFoundException,
   RequestTimeoutException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ActionTokenType,
@@ -275,10 +276,22 @@ export class MembersService {
         where: {
           adminId: adminId,
           memberId: memberId,
+          membershipStatus: MemberAccountStatus.ACTIVE,
         },
       });
       if (!membership) {
         throw new NotFoundException('Membership Not Found!');
+      }
+
+      // * Check if the new membership is duplicate or already active
+      if (
+        data.membershipPlanId === membership.membershipPlanId &&
+        data.membershipPlanDurationId === membership.membershipPlanDurationId &&
+        membership.membershipStatus === MembershipStatus.ACTIVE
+      ) {
+        throw new ConflictException(
+          'This member already has an active membership with the same plan and duration.',
+        );
       }
 
       // * Interactive transaction (function)
@@ -341,7 +354,7 @@ export class MembersService {
       throw new ConflictException('The Member is already Active!');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -373,7 +386,7 @@ export class MembersService {
       );
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -399,7 +412,7 @@ export class MembersService {
       throw new ConflictException('The member is already banned.');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -408,6 +421,67 @@ export class MembersService {
         accountStatus: MemberAccountStatus.BANNED,
       },
     });
+  }
+
+  // * Resend Set Password for member
+  async resendSetPasswordMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    await this.accessesService.authorizeAdminOrStaffAccess(accessTokenPayload);
+
+    // * Check member exists
+    const member = await this.findOne(accessTokenPayload, memberId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.memberActionToken.findFirst({
+      where: {
+        memberId: member.id,
+        type: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of member.',
+      );
+    }
+
+    // * Send Email of Set password to member
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.memberActionToken.create({
+        data: {
+          member: { connect: { id: member.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email of Password Set to member
+      await this.emailService.sendSetPasswordMemberEmail(
+        member.userName,
+        member.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException(
+        'Failed to send set password of member email',
+      );
+    }
   }
 
   // * Get all Members

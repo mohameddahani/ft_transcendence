@@ -38,7 +38,7 @@ export class MembershipPlansService {
     }
 
     // * Add membership plan to database
-    await this.prisma.membershipPlan.create({
+    return await this.prisma.membershipPlan.create({
       data: {
         admin: { connect: { id: adminId } },
         planName: data.planName,
@@ -84,11 +84,12 @@ export class MembershipPlansService {
     }
 
     // * Add plan duration to database
-    await this.prisma.membershipPlanDuration.create({
+    return await this.prisma.membershipPlanDuration.create({
       data: {
         durationDays: data.durationDays,
         price: data.price,
         membershipPlan: { connect: { id: data.membershipPlanId } },
+        priceByG: data.priceByG,
       },
     });
   }
@@ -138,7 +139,7 @@ export class MembershipPlansService {
     }
 
     // * Update data
-    await this.prisma.membershipPlan.update({
+    return await this.prisma.membershipPlan.update({
       where: {
         id: id,
         adminId: adminId,
@@ -225,7 +226,7 @@ export class MembershipPlansService {
     }
 
     // * Update data
-    await this.prisma.membershipPlanDuration.update({
+    return await this.prisma.membershipPlanDuration.update({
       where: {
         id: id,
       },
@@ -272,6 +273,69 @@ export class MembershipPlansService {
       await this.accessesService.authorizeAdminOrStaffAccess(
         accessTokenPayload,
       );
+
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Plan Not Found!');
+    }
+
+    return membershipPlan;
+  }
+
+  // * Get all membership Plans (Member)
+  async findAllByMember(memberId: string, page: number, limit: number) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipPlan = await this.prisma.membershipPlan.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (membershipPlan.length === 0) {
+      throw new NotFoundException('No Membersship Plan To Show');
+    }
+
+    return membershipPlan;
+  }
+
+  // * Get one membership Plan (Member)
+  async findOneByMember(memberId: string, membershipPlanId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
 
     const membershipPlan = await this.prisma.membershipPlan.findFirst({
       where: {

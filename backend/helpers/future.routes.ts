@@ -78,11 +78,20 @@
 
 // * Check if any account type (admin / staff / member) can do any action after change status of acount like is banned
 
-// ! When a staff or admin update the membership of member with same data the server create multiple memberships
+// * When a staff or admin update the membership of member with same data the server create multiple memberships
 
 // ! test all Notifications
 
-// ! return new data in all updates endpoints
+// ! test anything is expired
+// ! change generate username
+// * check email by lowercase
+// * if user set wrong password 5 times stop him
+// * Make email send only once
+// * if admin or staff add member but the member exipre the email of set password
+
+// * return new data in all updates & create endpoints
+
+// * make the notification read
 
 // * GET /api/admins/visits/today
 // * GET All or one visits for admin/staff/member
