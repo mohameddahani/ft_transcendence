@@ -79,6 +79,19 @@ Fitness Casablanca), `medina` (Medina Wellness Fes).
 | `youssef@gmail.com` | Atlas | expires in 20 days |
 | `rachid@gmail.com`, `latifa@gmail.com` | Oasis | active |
 
+**Demo logins** (for the app's login page; demo data only). The password for all of them is
+**`Demo1234!`**:
+
+| Gym | Owner (email) | Staff (username) |
+|---|---|---|
+| Atlas | `karim@atlasfitness.ma` | `reception.atl` (`ex.reception.atl` is banned) |
+| Oasis | `nadia@oasisgym.ma` | `reception.oas` (`ex.reception.oas` is banned) |
+| Titan | `mehdi@titanfitness.ma` | `reception.tit` (`ex.reception.tit` is banned) |
+| Medina | `salma@medinawellness.ma` | `reception.med` (`ex.reception.med` is banned) |
+
+Demo data created before these logins existed has no working password: run
+`.venv/bin/python -m seeder.seed` again (no reset needed).
+
 ## 4. Get a login token
 
 Until the chat page is connected to the app's login, you can create a token for any demo user.
