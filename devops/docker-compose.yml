@@ -10,7 +10,7 @@ services:
     networks:
       - ft_transcendence-net
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,13 +37,26 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-  
+
   frontend:
     build:
-      context: ../owner-platform
+      context: ../admin-staff-platform
       dockerfile: Dockerfile
     image: frontend:latest
     container_name: frontend_container
+    restart: unless-stopped
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  superadmin:
+    build:
+      context: ../owner-platform
+      dockerfile: Dockerfile
+    image: superadmin:latest
+    container_name: superadmin_container
     restart: unless-stopped
     networks:
       - ft_transcendence-net
@@ -56,7 +69,7 @@ services:
     container_name: redis_container
     restart: unless-stopped
     env_file:
-    - .env
+      - .env
     command: >
         redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -85,6 +98,7 @@ services:
       - ft_transcendence-net
     depends_on:
       - frontend
+      - superadmin
 
 volumes:
   postgres_data:
