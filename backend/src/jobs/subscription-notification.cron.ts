@@ -2,7 +2,7 @@ import { NotificationType, SubscriptionStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { endOfTomorrow, startOfTomorrow } from 'date-fns';
+import { addHours } from 'date-fns';
 
 @Injectable()
 export class SubscriptionNotificationCron {
@@ -11,17 +11,18 @@ export class SubscriptionNotificationCron {
   @Cron(CronExpression.EVERY_HOUR)
   async createNotification() {
     // * Create Range Of Date
-    const start = startOfTomorrow();
-    const end = endOfTomorrow();
+    const now = new Date();
+    const tomorrow = addHours(now, 24);
 
     // * Get All subscriptions that will exipred after 1 day
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
         subscriptionStatus: SubscriptionStatus.ACTIVE,
         expiresAt: {
-          gte: start,
-          lte: end,
+          gt: now,
+          lte: tomorrow,
         },
+        expirationNotifiedAt: null,
       },
     });
 
@@ -30,15 +31,37 @@ export class SubscriptionNotificationCron {
     }
 
     // * Create Notification to all this susbscriptions
-    for (let i = 0; i < subscriptions.length; i++) {
-      await this.prisma.adminNotification.create({
-        data: {
-          admin: { connect: { id: subscriptions[i].userId } },
-          notificationType: NotificationType.SUBSCRIPTION_EXPIRATION,
-          title: 'Subscription Payment Overdue',
-          message:
-            'Your Subscription payment is overdue. Please complete your payment to keep your Subscription active.',
-        },
+    for (const subscription of subscriptions) {
+      await this.prisma.$transaction(async (tx) => {
+        const { count } = await tx.subscription.updateMany({
+          where: {
+            id: subscription.id,
+            subscriptionStatus: SubscriptionStatus.ACTIVE,
+            expirationNotifiedAt: null,
+            expiresAt: {
+              equals: subscription.expiresAt,
+              gt: now,
+              lte: tomorrow,
+            },
+          },
+          data: {
+            expirationNotifiedAt: now,
+          },
+        });
+
+        if (count === 0) {
+          return;
+        }
+
+        await tx.adminNotification.create({
+          data: {
+            admin: { connect: { id: subscription.userId } },
+            notificationType: NotificationType.SUBSCRIPTION_EXPIRATION,
+            title: 'Subscription Expiring Soon',
+            message:
+              'Your subscription expires within 24 hours. Please renew it to keep your subscription active.',
+          },
+        });
       });
     }
   }

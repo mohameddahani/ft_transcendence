@@ -204,13 +204,15 @@ model Subscription {
   planDurationId String       @map("plan_duration_id")
   planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
 
-  subscriptionStatus SubscriptionStatus @default(ACTIVE) @map("subscription_status")
-  startedAt          DateTime           @default(now()) @map("started_at")
-  expiresAt          DateTime           @map("expires_at")
+  subscriptionStatus   SubscriptionStatus @default(ACTIVE) @map("subscription_status")
+  startedAt            DateTime           @default(now()) @map("started_at")
+  expiresAt            DateTime           @map("expires_at")
   // autoRenew Boolean @default(false)
-  amount             Decimal            @db.Decimal(10, 2)
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  amount               Decimal            @db.Decimal(10, 2)
+  expirationNotifiedAt DateTime?          @map("expiration_notified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([subscriptionStatus])
