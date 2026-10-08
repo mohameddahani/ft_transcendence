@@ -808,6 +808,9 @@ export class AuthProvider {
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+    return {
+      message: 'Please check your email and set your password',
+    };
   }
 
   // * Password reset (Staff)
@@ -1348,6 +1351,9 @@ export class AuthProvider {
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+    return {
+      message: 'Please check your email and set your password.',
+    };
   }
 
   // * Password reset
@@ -1454,6 +1460,10 @@ export class AuthProvider {
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+
+    return {
+      message: 'Please check your email and set your password.',
+    };
   }
 
   // * Password reset (Member)
