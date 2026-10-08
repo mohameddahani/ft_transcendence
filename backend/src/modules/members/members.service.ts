@@ -23,12 +23,12 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
 import { addDays } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class MembersService {

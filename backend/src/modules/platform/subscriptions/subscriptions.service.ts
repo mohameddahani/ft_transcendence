@@ -13,7 +13,7 @@ import {
 } from '@/generated/prisma/enums';
 import { addDays } from 'date-fns';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
-import { AccessesService } from '@/core/services/access.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class SubscriptionsService {

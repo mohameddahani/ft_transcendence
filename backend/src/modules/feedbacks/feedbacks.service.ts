@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { AccessesService } from '@/core/services/access.service';
 import { CreateFeedbackLikeDto } from './dto/create-feedback-like.dto';
 import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
@@ -18,6 +17,7 @@ import {
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
 import { ExternalApiService } from '@/infrastructure/external-api/external-api.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class FeedbacksService {

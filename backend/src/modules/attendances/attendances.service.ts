@@ -8,7 +8,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AccessesService } from '@/core/services/access.service';
 import { AttendanceMethod, Role, VisitStatus } from '@/generated/prisma/enums';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
@@ -18,6 +17,7 @@ import {
   safeStaffSelect,
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class AttendancesService {

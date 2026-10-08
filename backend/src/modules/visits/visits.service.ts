@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { AccessesService } from '@/core/services/access.service';
 import {
   addMinutes,
   endOfDay,
@@ -24,6 +23,7 @@ import {
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
 import { VISIT_EXPIRATION_MINUTES } from '@/core/constants/visit.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class VisitsService {

@@ -19,12 +19,12 @@ import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
-import { AccessesService } from '@/core/services/access.service';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class StaffsService {

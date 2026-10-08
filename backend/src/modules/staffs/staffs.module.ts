@@ -3,14 +3,15 @@ import { AuthModule } from '../auth/auth.module';
 import { StaffsController } from './staffs.controller';
 import { StaffsService } from './staffs.service';
 import { EmailModule } from '@/infrastructure/email/email.module';
-import { AccessesService } from '@/core/services/access.service';
+import { AccessesModule } from '@/core/access/access.module';
 
 @Module({
   controllers: [StaffsController],
-  providers: [StaffsService, AccessesService],
+  providers: [StaffsService],
   imports: [
     AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
     EmailModule,
+    AccessesModule,
   ],
   exports: [],
 })

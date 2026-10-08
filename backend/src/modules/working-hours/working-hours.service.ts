@@ -1,4 +1,3 @@
-import { AccessesService } from '@/core/services/access.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   BadRequestException,
@@ -16,6 +15,7 @@ import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
 import { format, parse } from 'date-fns';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class WorkingHoursService {
