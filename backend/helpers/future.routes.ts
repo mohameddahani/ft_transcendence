@@ -80,9 +80,9 @@
 
 // * When a staff or admin update the membership of member with same data the server create multiple memberships
 
-// ! test all Notifications
+// * test all Notifications
 
-// ! test anything is expired
+// * test anything is expired
 // * change generate username
 // * check email by lowercase
 // * if user set wrong password 5 times stop him

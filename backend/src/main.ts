@@ -63,14 +63,14 @@ async function bootstrap() {
       .build();
     const documentation = SwaggerModule.createDocument(app, swagger); // * create document
     SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
-  }
 
-  // * Count how many endpoints in this project
-  // let totalEndpoints = 0;
-  // for (const path of Object.values(documentation.paths)) {
-  //   totalEndpoints += Object.keys(path).length;
-  // }
-  // console.log('Total endpoints:', totalEndpoints);
+    // // * Count how many endpoints in this project
+    // let totalEndpoints = 0;
+    // for (const path of Object.values(documentation.paths)) {
+    //   totalEndpoints += Object.keys(path).length;
+    // }
+    // console.log('Total endpoints:', totalEndpoints);
+  }
 
   // * CORS
   app.enableCors({

@@ -511,7 +511,7 @@ export class AuthProvider {
       const existingToken = await this.prisma.staffActionToken.findFirst({
         where: {
           StaffId: staff.id,
-          type: ActionTokenType.EMAIL_VERIFICATION,
+          type: ActionTokenType.SET_PASSWORD,
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
@@ -539,18 +539,22 @@ export class AuthProvider {
           data: {
             staff: { connect: { id: staff.id } },
             tokenHash: tokenHash,
-            type: ActionTokenType.EMAIL_VERIFICATION,
+            type: ActionTokenType.SET_PASSWORD,
             expiresAt: expiresAt,
           },
         });
 
         // * Send email of verification to user
-        await this.emailService.sendVerificationEmail(staff.email, rawToken);
+        await this.emailService.sendSetPasswordStaffEmail(
+          staff.userName,
+          staff.email,
+          rawToken,
+        );
       } catch {
         throw new RequestTimeoutException('Failed to send verification email');
       }
       throw new UnauthorizedException(
-        'Your account is inactive. Please activate your account through the email we sent.',
+        'Your account has not been activated yet. Please check your email and set your password to continue.',
       );
     }
 
@@ -797,7 +801,7 @@ export class AuthProvider {
       });
 
       // * Send email
-      await this.emailService.sendResetPasswordMemberEmail(
+      await this.emailService.sendResetPasswordStaffEmail(
         staff.email,
         rawToken,
       );
@@ -892,6 +896,56 @@ export class AuthProvider {
 
     // * Check the member if he set a password
     if (!member.password) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.memberActionToken.findFirst({
+        where: {
+          memberId: member.id,
+          type: ActionTokenType.SET_PASSWORD,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A set password email has already been requested. Please check your inbox.',
+        );
+      }
+
+      // * Send Email verification to new user if he try to login without activating his account
+      try {
+        // * Generate Action Token
+        const { rawToken, tokenHash } = generateActionToken();
+
+        // * Calc the expir
+        const emailVerificationTokenExpiresIn =
+          this.config.getOrThrow<StringValue>(
+            'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
+          );
+        const expiresAt = new Date(
+          Date.now() + ms(emailVerificationTokenExpiresIn),
+        );
+
+        // * Store the hash Token in DB
+        await this.prisma.memberActionToken.create({
+          data: {
+            member: { connect: { id: member.id } },
+            tokenHash: tokenHash,
+            type: ActionTokenType.SET_PASSWORD,
+            expiresAt: expiresAt,
+          },
+        });
+
+        // * Send email of verification to user
+        await this.emailService.sendSetPasswordMemberEmail(
+          member.userName,
+          member.email,
+          rawToken,
+        );
+      } catch {
+        throw new RequestTimeoutException('Failed to send verification email');
+      }
+
       throw new UnauthorizedException(
         'Your account has not been activated yet. Please check your email and set your password to continue.',
       );
