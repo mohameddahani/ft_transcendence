@@ -1,5 +1,4 @@
 import { AiApiType } from '@/core/types/ai-api.type';
-import { CreateFeedbackDto } from '@/modules/feedbacks/dto/create-feedback.dto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -13,11 +12,15 @@ export class ExternalApiService {
     this.aiApiUrl = config.getOrThrow<string>('AI_API_URL');
   }
 
-  async getSentiment(data: CreateFeedbackDto): Promise<AiApiType | null> {
+  async getSentiment(content: string): Promise<AiApiType | null> {
     try {
-      const response = await axios.post<AiApiType>(this.aiApiUrl, data, {
-        timeout: 5_000,
-      });
+      const response = await axios.post<AiApiType>(
+        this.aiApiUrl,
+        { content },
+        {
+          timeout: 5_000, // Stop waiting after 5 seconds.
+        },
+      );
 
       return response.data;
     } catch {

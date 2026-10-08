@@ -46,7 +46,7 @@ export class FeedbacksService {
 
     // * Create feedback
     // * Get Sentiment From Ai
-    const response = await this.externalApiService.getSentiment(data);
+    const response = await this.externalApiService.getSentiment(data.content);
 
     return await this.prisma.feedback.create({
       data: {
