@@ -27,6 +27,8 @@ import { VisitCron } from './jobs/visit.cron';
 import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
 import { HealthModule } from './modules/health/health.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { SentimentCron } from './jobs/sentiment.cron';
+import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 
 @Module({
   imports: [
@@ -82,6 +84,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     FeedbacksModule,
     HealthModule,
     RedisModule,
+    ExternalApiModule,
   ],
 
   providers: [
@@ -96,6 +99,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     MembershipNotificationCron,
     SubscriptionNotificationCron,
     VisitCron,
+    SentimentCron,
   ],
 })
 export class AppModule {}
