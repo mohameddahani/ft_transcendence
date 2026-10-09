@@ -45,6 +45,8 @@ services:
     image: frontend:latest
     container_name: frontend_container
     restart: unless-stopped
+    env_file:
+      - ../admin-staff-platform/.env
     networks:
       - ft_transcendence-net
     depends_on:
@@ -60,6 +62,8 @@ services:
     image: superadmin:latest
     container_name: superadmin_container
     restart: unless-stopped
+    env_file:
+      - ../owner-platform/.env
     networks:
       - ft_transcendence-net
     depends_on:
