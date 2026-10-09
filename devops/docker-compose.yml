@@ -50,6 +50,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      ai:
+        condition: service_healthy
 
   superadmin:
     build:
@@ -62,6 +64,23 @@ services:
       - ft_transcendence-net
     depends_on:
       backend:
+        condition: service_healthy
+
+  ai:
+    build:
+      context: ../AI
+      dockerfile: Dockerfile
+    image: ai:latest
+    container_name: ai_container
+    restart: unless-stopped
+    env_file:
+      - ../AI/.env
+    networks:
+      - ft_transcendence-net
+    volumes:
+      - ai_data:/data
+    depends_on:
+      postgres:
         condition: service_healthy
 
   redis:
@@ -102,6 +121,7 @@ services:
 
 volumes:
   postgres_data:
+  ai_data:
   redisdata:
 
 networks:
