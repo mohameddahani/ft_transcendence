@@ -11,9 +11,7 @@ import {
 } from './contract.js';
 import { JsonRpcProvider } from 'ethers';
 import { Contract } from 'ethers';
-import { sign } from 'crypto';
 import { Wallet } from 'ethers';
-import { Signature } from 'ethers';
 
 export type SignedForwardRequest = {
   from: string;

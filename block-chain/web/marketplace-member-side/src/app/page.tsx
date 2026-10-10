@@ -2,13 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import {
-  BrowserProvider,
-  Contract,
-  JsonRpcSigner,
-  formatUnits,
-  parseUnits,
-} from "ethers";
+import "dotenv/config";
+import { BrowserProvider, Contract, JsonRpcSigner, formatUnits } from "ethers";
 import {
   AlertTriangle,
   CreditCard,
@@ -63,6 +58,7 @@ import {
   GYMTOKEN_ABI,
 } from "./contract";
 import { relayForwarderMethod } from "@/lib/gasless";
+import axios from "axios";
 
 export type Product = {
   id: bigint;
@@ -81,6 +77,12 @@ export type Purchase = {
   quantity: bigint;
   time: bigint;
   totalPrice: bigint;
+};
+
+export type MembershipPlan = {
+  planName: string;
+  description: string;
+  priceByG: number;
 };
 
 type RawProductItem = {
@@ -138,6 +140,7 @@ export default function ClientPlatformPage() {
   // Subscription state
   const [subOwner, setSubOwner] = useState("");
   const [subAmount, setSubAmount] = useState("");
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [subscribing, setSubscribing] = useState(false);
 
   // Quick buy confirmation dialog
@@ -265,6 +268,49 @@ export default function ClientPlatformPage() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!readContract || !account) return;
+
+    async function fetch_plans() {
+      const query = new URLSearchParams({
+        page: "1",
+        limit: "10000",
+      }).toString();
+
+      try {
+        const API_URL = `${process.env.NEXT_PUBLIC_FETCH_PLANS_URL}?${query}`;
+        const response = await axios.get(API_URL, {
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg4MDBjZmM0LTVhNTAtNGYxYi1hNDQ0LTgxNjdjYWFlMzNkMCIsInJvbGUiOiJNRU1CRVIiLCJpYXQiOjE3OTE2NDkyODUsImV4cCI6MTc5MTY1MDE4NX0.WE4zIfAG7WRzEYGyRWI3_2v0DhTbOuCqOs8xCCbNdO0",
+          },
+        });
+
+        console.log("response ", response);
+
+        const mappedPlans: MembershipPlan[] = response.data.map(
+          (plan: MembershipPlan) => ({
+            name: plan.name,
+            description: plan.description,
+            priceByG: plan.priceByG,
+          }),
+        );
+        setPlans(mappedPlans);
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error("Status:", error.response?.status);
+          console.error("Server error:", error.response?.data);
+          console.error("Message:", error.message);
+        } else {
+          console.error("Unexpected error:", error);
+        }
+      }
+    }
+
+    console.log(plans);
+    fetch_plans();
+  }, [readContract, account]);
+
   const connect = async () => {
     if (typeof window === "undefined" || !window.ethereum) {
       toast.error("Please install MetaMask or a compatible Web3 wallet.");
@@ -357,7 +403,12 @@ export default function ClientPlatformPage() {
 
     setBuyingId(product.id);
     try {
-      await relayForwarderMethod(provider, signer, "buyProduct", [product.merchant, product.id, quantity, total]);
+      await relayForwarderMethod(provider, signer, "buyProduct", [
+        product.merchant,
+        product.id,
+        quantity,
+        total,
+      ]);
       toast.success(
         `Successfully purchased ${quantity.toString()}x ${product.name}!`,
       );
@@ -383,12 +434,15 @@ export default function ClientPlatformPage() {
       toast.error("Switch your wallet to Sepolia first.");
       return;
     }
-    
+
     // ckeck the _subamount and _subowner
-    
+
     setSubscribing(true);
     try {
-      await relayForwarderMethod(provider, signer, "paySubscription", [subOwner, subAmount]);
+      await relayForwarderMethod(provider, signer, "paySubscription", [
+        subOwner,
+        subAmount,
+      ]);
       toast.success(
         `Successfully subscription to ${subOwner.toString()} (${subAmount.toString()})`,
       );
@@ -630,7 +684,9 @@ export default function ClientPlatformPage() {
                       symbol={tokenSymbol}
                       busy={buyingId !== null}
                       gaslessEnabled={GASLESS_ENABLED}
-                      onBuy={(item, qty) => setConfirmBuyProduct({ product: item, quantity: qty })}
+                      onBuy={(item, qty) =>
+                        setConfirmBuyProduct({ product: item, quantity: qty })
+                      }
                     />
                   ))}
                 </div>
@@ -769,7 +825,7 @@ export default function ClientPlatformPage() {
                       </label>
                       <NativeSelect>
                         <NativeSelectOption value="">
-                          Select status
+                          subscriptions
                         </NativeSelectOption>
                       </NativeSelect>
                       <p className="text-[11px] text-muted-foreground">
@@ -803,7 +859,9 @@ export default function ClientPlatformPage() {
                       variant="default"
                       className="w-full mt-2"
                       disabled={subscribing || !account}
-                      onClick={() => {handlePaySubscription(subOwner, subAmount)}}
+                      onClick={() => {
+                        handlePaySubscription(subOwner, subAmount);
+                      }}
                     >
                       {subscribing ? (
                         <>
@@ -1030,7 +1088,9 @@ function ProductCard({
             variant="default"
             size="default"
             className="flex-1 text-xs font-semibold"
-            disabled={busy || !gaslessEnabled || product.stock === 0n || !isValidQty}
+            disabled={
+              busy || !gaslessEnabled || product.stock === 0n || !isValidQty
+            }
             onClick={() => onBuy(product, BigInt(quantity || "1"))}
           >
             {busy ? (
