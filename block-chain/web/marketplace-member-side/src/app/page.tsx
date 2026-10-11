@@ -169,7 +169,18 @@ export default function ClientPlatformPage() {
 
   const activePlans = plans.filter((plan) => plan.isActive);
 
+  const planItems = activePlans.map((plan, index) => ({
+    label: plan.planName,
+    value: String(index),
+  }));
   const selectedPlan = activePlans[Number(selectedPlanIndex)];
+
+  const durationItems = (selectedPlan?.durations ?? []).map(
+    (duration, index) => ({
+      value: String(index),
+      label: `${duration.durationDays} Days - ${duration.priceByG} G`,
+    }),
+  );
 
   const selectedDuration =
     selectedPlan?.durations[Number(selectedDurationIndex)];
@@ -852,11 +863,8 @@ export default function ClientPlatformPage() {
                     </div>
 
                     {/* Plans */}
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                      select Plan
-                    </label>
                     <Select
-                      value={selectedPlan ? selectedPlanIndex : ""}
+                      items={planItems}
                       onValueChange={(value: string | null) => {
                         setSelectedPlanIndex(value ?? "0");
                         setSelectedDurationIndex("0");
@@ -881,11 +889,13 @@ export default function ClientPlatformPage() {
 
                     {/* Durations */}
                     <Select
-                      value={selectedDuration ? selectedDurationIndex : ""}
+                    items={durationItems}
                       disabled={
                         !selectedPlan || selectedPlan.durations.length === 0
                       }
-                      onValueChange={(value: string | null) => setSelectedDurationIndex(value ?? "0")}
+                      onValueChange={(value: string | null) =>
+                        setSelectedDurationIndex(value ?? "0")
+                      }
                     >
                       <SelectTrigger className="w-full max-w-48">
                         <SelectValue placeholder="Select duration" />
