@@ -138,11 +138,33 @@ services:
     networks:
       - ft_transcendence-net
 
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SERVER_ROOT_URL=${GRAFANA_URL}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - prometheus
+
 volumes:
   postgres_data:
   ai_data:
   redisdata:
   prometheus_data:
+  grafana_data:
 
 networks:
   ft_transcendence-net:
