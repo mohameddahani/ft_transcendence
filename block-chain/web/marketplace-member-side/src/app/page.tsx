@@ -210,7 +210,7 @@ export default function ClientPlatformPage() {
       setTokenDecimals(Number(decimals));
       setTokenSymbol(symbol);
 
-      const merchant = marketAddress.trim() || account; // we will add the address of the gymowner that saved in the clinet info
+      const merchant = marketAddress.trim(); // we will add the address of the gymowner that saved in the clinet info
       if (merchant && merchant.startsWith("0x") && merchant.length === 42) {
         try {
           const rawProducts = await readContract.getMerchantProducts(merchant);
@@ -852,6 +852,7 @@ export default function ClientPlatformPage() {
                         Gym Owner Address
                       </label>
                       <Input
+                        value={subOwner}
                         placeholder="0x..." //add there the oym owner addres of the clinet
                         readOnly
                         className="font-mono text-xs"

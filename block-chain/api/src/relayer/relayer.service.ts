@@ -163,8 +163,6 @@ export class relayerService {
       stage = 'verify';
       if (!(await forward_contract.verify(forwardRequest)))
         throw new Error('Forwarder rejected signature');
-      stage = 'simulation';
-      await forward_contract.execute.staticCall(forwardRequest);
       stage = 'estimate';
       const estimatedGas =
         await forward_contract.execute.estimateGas(forwardRequest);
@@ -192,10 +190,6 @@ export class relayerService {
           400,
         ],
         verify: ['The forwarder rejected this request.', 400],
-        simulation: [
-          'The contract call would fail. Check its inputs, balance, permissions and stock.',
-          400,
-        ],
         estimate: [
           'The call could not be estimated or exceeds the sponsored gas limit.',
           400,
