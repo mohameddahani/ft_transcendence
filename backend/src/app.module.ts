@@ -84,7 +84,7 @@ import { ExternalApiModule } from './infrastructure/external-api/external-api.mo
     FeedbacksModule,
     HealthModule,
     RedisModule,
-    ExternalApiModule,
+    ExternalApiModule, // * imported for cron job sentiment.cron.ts because i don't wanna create a module for this Cron job
   ],
 
   providers: [
