@@ -158,7 +158,7 @@ services:
       - ft_transcendence-net
     depends_on:
       - prometheus
-  
+
   node-exporter:
     image: prom/node-exporter:v1.8.0
     container_name: node-exporter
@@ -176,7 +176,7 @@ services:
       - "9100"
     networks:
       - ft_transcendence-net
-  
+
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.5.1
     container_name: nginx-exporter
@@ -202,6 +202,21 @@ services:
       - ft_transcendence-net
     depends_on:
       postgres:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.80.0
+    container_name: redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    expose:
+      - "9121"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      redis:
         condition: service_healthy
 
 volumes:
