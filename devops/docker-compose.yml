@@ -123,10 +123,26 @@ services:
       - frontend
       - superadmin
 
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - ft_transcendence-net
+
 volumes:
   postgres_data:
   ai_data:
   redisdata:
+  prometheus_data:
 
 networks:
   ft_transcendence-net:
