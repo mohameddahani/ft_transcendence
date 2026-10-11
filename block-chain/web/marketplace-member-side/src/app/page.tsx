@@ -17,9 +17,15 @@ import {
 } from "lucide-react";
 
 import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -79,10 +85,24 @@ export type Purchase = {
   totalPrice: bigint;
 };
 
-export type MembershipPlan = {
+type ApiMembershipPlan = {
   planName: string;
   description: string;
-  priceByG: number;
+  isActive: boolean;
+  membershipPlanDurations: {
+    durationDays: number;
+    priceByG: number;
+  }[];
+};
+
+type MembershipPlan = {
+  planName: string;
+  description: string;
+  isActive: boolean;
+  durations: {
+    durationDays: number;
+    priceByG: number;
+  }[];
 };
 
 type RawProductItem = {
@@ -142,6 +162,17 @@ export default function ClientPlatformPage() {
   const [subAmount, setSubAmount] = useState("");
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [subscribing, setSubscribing] = useState(false);
+
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState<string>("0");
+  const [selectedDurationIndex, setSelectedDurationIndex] =
+    useState<string>("0");
+
+  const activePlans = plans.filter((plan) => plan.isActive);
+
+  const selectedPlan = activePlans[Number(selectedPlanIndex)];
+
+  const selectedDuration =
+    selectedPlan?.durations[Number(selectedDurationIndex)];
 
   // Quick buy confirmation dialog
   const [confirmBuyProduct, setConfirmBuyProduct] = useState<{
@@ -279,22 +310,25 @@ export default function ClientPlatformPage() {
 
       try {
         const API_URL = `${process.env.NEXT_PUBLIC_FETCH_PLANS_URL}?${query}`;
-        const response = await axios.get(API_URL, {
+        const response = await axios.get<ApiMembershipPlan[]>(API_URL, {
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg4MDBjZmM0LTVhNTAtNGYxYi1hNDQ0LTgxNjdjYWFlMzNkMCIsInJvbGUiOiJNRU1CRVIiLCJpYXQiOjE3OTE2NDkyODUsImV4cCI6MTc5MTY1MDE4NX0.WE4zIfAG7WRzEYGyRWI3_2v0DhTbOuCqOs8xCCbNdO0",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg4MDBjZmM0LTVhNTAtNGYxYi1hNDQ0LTgxNjdjYWFlMzNkMCIsInJvbGUiOiJNRU1CRVIiLCJpYXQiOjE3OTE2NjMyNTMsImV4cCI6MTc5NDI1NTI1M30.Egh8nKZmROfz3Y6q5PfRLjWY9rSoY2B9gTNQCFoLR1Y",
           },
         });
 
-        console.log("response ", response);
+        console.log(response);
 
-        const mappedPlans: MembershipPlan[] = response.data.map(
-          (plan: MembershipPlan) => ({
-            name: plan.name,
-            description: plan.description,
-            priceByG: plan.priceByG,
-          }),
-        );
+        const mappedPlans: MembershipPlan[] = response.data.map((plan) => ({
+          planName: plan.planName,
+          description: plan.description,
+          isActive: plan.isActive,
+          durations: plan.membershipPlanDurations.map((duration) => ({
+            durationDays: duration.durationDays,
+            priceByG: duration.priceByG,
+          })),
+        }));
+        console.log("2 ", mappedPlans);
         setPlans(mappedPlans);
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -306,8 +340,6 @@ export default function ClientPlatformPage() {
         }
       }
     }
-
-    console.log(plans);
     fetch_plans();
   }, [readContract, account]);
 
@@ -819,41 +851,65 @@ export default function ClientPlatformPage() {
                       </p>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Selecte Subscription
-                      </label>
-                      <NativeSelect>
-                        <NativeSelectOption value="">
-                          subscriptions
-                        </NativeSelectOption>
-                      </NativeSelect>
-                      <p className="text-[11px] text-muted-foreground">
-                        The registered Ethereum address of your gym or fitness
-                        club.
-                      </p>
-                    </div>
+                    {/* Plans */}
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
+                      select Plan
+                    </label>
+                    <Select
+                      value={selectedPlan ? selectedPlanIndex : ""}
+                      onValueChange={(value: string | null) => {
+                        setSelectedPlanIndex(value ?? "0");
+                        setSelectedDurationIndex("0");
+                      }}
+                    >
+                      <SelectTrigger className="w-full max-w-48">
+                        <SelectValue placeholder="Select a plan" />
+                      </SelectTrigger>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Payment Amount ({tokenSymbol})
-                      </label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="e.g. 50"
-                        readOnly
-                        value={subAmount}
-                        className="text-sm font-semibold"
-                      />
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
-                        <span>Your balance:</span>
-                        <span className="font-semibold text-primary">
-                          {balanceLabel} {tokenSymbol}
-                        </span>
-                      </div>
-                    </div>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Plans</SelectLabel>
+
+                          {activePlans.map((plan, index) => (
+                            <SelectItem key={index} value={String(index)}>
+                              {plan.planName}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Durations */}
+                    <Select
+                      value={selectedDuration ? selectedDurationIndex : ""}
+                      disabled={
+                        !selectedPlan || selectedPlan.durations.length === 0
+                      }
+                      onValueChange={(value: string | null) => setSelectedDurationIndex(value ?? "0")}
+                    >
+                      <SelectTrigger className="w-full max-w-48">
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Durations</SelectLabel>
+
+                          {selectedPlan?.durations.map((duration, index) => (
+                            <SelectItem key={index} value={String(index)}>
+                              {duration.durationDays} Days - {duration.priceByG}{" "}
+                              G
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+
+                    {selectedDuration && (
+                      <p className="text-xl font-bold">
+                        Total: {selectedDuration.priceByG.toString()} G
+                      </p>
+                    )}
 
                     <Button
                       variant="default"
