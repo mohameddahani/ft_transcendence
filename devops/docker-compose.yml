@@ -176,6 +176,19 @@ services:
       - "9100"
     networks:
       - ft_transcendence-net
+  
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+    expose:
+      - "9113"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - nginx
 
 volumes:
   postgres_data:
