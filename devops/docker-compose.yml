@@ -167,10 +167,19 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}     # signs cookies/tokens
+      - GF_SECURITY_COOKIE_SECURE=true                   # HTTPS-only cookies
+      - GF_SECURITY_COOKIE_SAMESITE=strict               # Prevents CSRF
+      - GF_SECURITY_DISABLE_GRAVATAR=true                # no external requests
+      - GF_SECURITY_LOGIN_REMEMBER_DAYS=1                # session expires in 1 day
       - GF_SERVER_ROOT_URL=${GRAFANA_URL}
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_AUTH_ANONYMOUS_ENABLED=false
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_SIGN_UP=false                     # disable sign-up/register feature
+      - GF_USERS_ALLOW_ORG_CREATE=false                  # only admin can create orgs
+      - GF_USERS_AUTO_ASSIGN_ORG=true
+      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer             # new users get Viewer, not Editor
+      - GF_AUTH_DISABLE_LOGIN_FORM=false                 # keep the login form (local auth)
+      - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
     networks:
       - ft_transcendence-net
     depends_on:
