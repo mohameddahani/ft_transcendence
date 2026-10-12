@@ -43,9 +43,6 @@ export class MembershipsService {
         updatedAt: true,
       },
     });
-    if (memberships.length === 0) {
-      throw new NotFoundException('Memberships Not Found!');
-    }
 
     return memberships;
   }
@@ -150,10 +147,6 @@ export class MembershipsService {
         expiresAt: true,
       },
     });
-
-    if (memberships.length === 0) {
-      throw new NotFoundException('There No Memberships To Show');
-    }
 
     return memberships;
   }

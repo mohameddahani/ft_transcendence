@@ -218,9 +218,6 @@ export class PlansService {
         // subscriptions: true,
       },
     });
-    if (plans.length === 0) {
-      throw new NotFoundException('No Plan To Show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, plans, 300_000); // * ttl: 5min

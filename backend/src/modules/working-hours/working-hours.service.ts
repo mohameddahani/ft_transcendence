@@ -172,9 +172,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (workingHours.length === 0) {
-      throw new NotFoundException('There is No Working Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
@@ -257,9 +254,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (workingHours.length === 0) {
-      throw new NotFoundException('There is No Working Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
@@ -604,9 +598,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (specialHours.length === 0) {
-      throw new NotFoundException('There is No Special Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
@@ -689,9 +680,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (specialHours.length === 0) {
-      throw new NotFoundException('There is No Special Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, specialHours, 300_000); // * ttl: 5min

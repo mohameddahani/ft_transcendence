@@ -90,6 +90,7 @@ import { ExternalApiModule } from './infrastructure/external-api/external-api.mo
   providers: [
     // * Provider of Rate Limiting
     // * Applied globally
+    // * APP_GUARD is the token, and useClass: ThrottlerGuard tells Nest to instantiate and use ThrottlerGuard for that token.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
 
     // * Cron

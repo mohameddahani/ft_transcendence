@@ -529,9 +529,6 @@ export class MembersService {
         updatedAt: true,
       },
     });
-    if (members.length === 0) {
-      throw new NotFoundException('Members Not Found!');
-    }
 
     return members;
   }

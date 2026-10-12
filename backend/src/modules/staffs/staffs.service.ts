@@ -206,9 +206,6 @@ export class StaffsService {
         updatedAt: true,
       },
     });
-    if (staffs.length === 0) {
-      throw new NotFoundException('Staffs Not Found!');
-    }
 
     return staffs;
   }

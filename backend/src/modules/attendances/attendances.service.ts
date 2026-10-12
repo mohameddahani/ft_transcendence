@@ -137,10 +137,6 @@ export class AttendancesService {
       },
     });
 
-    if (attendances.length === 0) {
-      throw new NotFoundException('There is No Attendances To Show');
-    }
-
     return attendances;
   }
 

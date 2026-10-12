@@ -256,9 +256,6 @@ export class MembershipPlansService {
         membershipPlanDurations: true,
       },
     });
-    if (membershipPlan.length === 0) {
-      throw new NotFoundException('No Membersship Plan To Show');
-    }
 
     return membershipPlan;
   }
@@ -315,9 +312,6 @@ export class MembershipPlansService {
         membershipPlanDurations: true,
       },
     });
-    if (membershipPlan.length === 0) {
-      throw new NotFoundException('No Membersship Plan To Show');
-    }
 
     return membershipPlan;
   }

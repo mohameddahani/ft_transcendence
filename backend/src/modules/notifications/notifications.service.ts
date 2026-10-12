@@ -34,10 +34,6 @@ export class NotificationsService {
       take: limit,
     });
 
-    if (notifications.length === 0) {
-      throw new NotFoundException('Notifications Not Found');
-    }
-
     return notifications;
   }
 
@@ -65,10 +61,6 @@ export class NotificationsService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    if (notifications.length === 0) {
-      throw new NotFoundException('Notifications Not Found');
-    }
 
     return notifications;
   }

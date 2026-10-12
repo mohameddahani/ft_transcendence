@@ -111,10 +111,6 @@ export class FeedbacksService {
       },
     });
 
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
-
     return feedbacks;
   }
 
@@ -301,10 +297,6 @@ export class FeedbacksService {
         createdAt: 'desc',
       },
     });
-
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
 
     return feedbacks;
   }
