@@ -12,7 +12,6 @@ import {
   parseUnits,
 } from "ethers";
 import {
-  Activity,
   AlertTriangle,
   Dumbbell,
   Globe,
@@ -191,6 +190,7 @@ export default function GymOwnerConnectionToGymToken() {
           status: s.status,
         })),
       );
+      update_addressAdmin_forMember(account);
     } catch (error) {
       toast.error(parseError(error));
     }
@@ -272,6 +272,7 @@ export default function GymOwnerConnectionToGymToken() {
 
       const network = await p.getNetwork();
       setChainId(Number(network.chainId));
+      update_addressAdmin_forMember(account);
       toast.success("Wallet connected successfully!");
     } catch (error) {
       toast.error(parseError(error));
@@ -312,26 +313,50 @@ export default function GymOwnerConnectionToGymToken() {
     }
   };
 
-const gaslessCall = async (
-  fn: () => Promise<string>,
-  successText: string
-) => {
-  setBusy(true)
+  const update_addressAdmin_forMember = async (address: string) => {
+    try {
+      const API_URL = "test";
+      await axios.patch(
+        API_URL,
+        { walletAddress: address },
+        {
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZiYWI3MDMwLTNmMzAtNGYzOC05OTViLWEyNDQ3YWJmMTA5ZiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5MTczMjk0MCwiZXhwIjoxNzk0MzI0OTQwfQ.O84o_boy4ChGTS7lR5Km8ftiPeMHLMZdnMvDAy_7nYI",
+          },
+        },
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Status:", error.response?.status);
+        console.error("Server error:", error.response?.data);
+        console.error("Message:", error.message);
+      } else {
+        console.error("Unexpected error:", error);
+      }
+    }
+  };
 
-  try {
-    const hash = await fn()
+  const gaslessCall = async (
+    fn: () => Promise<string>,
+    successText: string,
+  ) => {
+    setBusy(true);
 
-    console.log("Relayed transaction:", hash)
+    try {
+      const hash = await fn();
 
-    toast.success(successText)
+      console.log("Relayed transaction:", hash);
 
-    await refresh()
-  } catch (error) {
-    toast.error(parseError(error))
-  } finally {
-    setBusy(false)
-  }
-}
+      toast.success(successText);
+
+      await refresh();
+    } catch (error) {
+      toast.error(parseError(error));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleSaveProduct = async (data: ProductFormData) => {
     if (!provider || !signer || !account) {
