@@ -138,6 +138,23 @@ services:
     networks:
       - ft_transcendence-net
 
+  alertmanager:
+    image: prom/alertmanager:v0.30.0
+    container_name: alert-manager
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+    expose:
+      - "9093"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - prometheus
+
   grafana:
     image: grafana/grafana:10.4.0
     container_name: grafana
