@@ -328,8 +328,6 @@ export default function ClientPlatformPage() {
           },
         });
 
-        console.log(response);
-
         const mappedPlans: MembershipPlan[] = response.data.map((plan) => ({
           planName: plan.planName,
           description: plan.description,
@@ -339,7 +337,6 @@ export default function ClientPlatformPage() {
             priceByG: duration.priceByG,
           })),
         }));
-        console.log("2 ", mappedPlans);
         setPlans(mappedPlans);
       } catch (error) {
         if (axios.isAxiosError(error)) {
