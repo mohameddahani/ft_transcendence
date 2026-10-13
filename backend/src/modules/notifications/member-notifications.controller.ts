@@ -22,7 +22,7 @@ import { NotificationsService } from './notifications.service';
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])
 export class MemberNotificationsController {
-  constructor(private readonly notificationService: NotificationsService) { }
+  constructor(private readonly notificationService: NotificationsService) {}
 
   // * Get One Notification
   @Get(':id')

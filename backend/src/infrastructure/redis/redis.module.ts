@@ -20,6 +20,7 @@ import { createKeyv } from '@keyv/redis';
         const logger = new Logger('Redis-Cache');
 
         // * Read the Redis address and create a Redis-backed Keyv store.
+        // * "the thing that talks to Redis"
         const store = createKeyv(config.getOrThrow<string>('REDIS_URL'));
 
         // * Register a callback for store error events.

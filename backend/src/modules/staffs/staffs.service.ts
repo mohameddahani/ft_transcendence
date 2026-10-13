@@ -19,12 +19,12 @@ import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
-import { AccessesService } from '@/core/services/access.service';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class StaffsService {
@@ -60,8 +60,13 @@ export class StaffsService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.staff.findUnique({
@@ -201,9 +206,6 @@ export class StaffsService {
         updatedAt: true,
       },
     });
-    if (staffs.length === 0) {
-      throw new NotFoundException('Staffs Not Found!');
-    }
 
     return staffs;
   }

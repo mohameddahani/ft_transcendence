@@ -23,12 +23,12 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
 import { addDays } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class MembersService {
@@ -94,8 +94,13 @@ export class MembersService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.member.findUnique({
@@ -524,9 +529,6 @@ export class MembersService {
         updatedAt: true,
       },
     });
-    if (members.length === 0) {
-      throw new NotFoundException('Members Not Found!');
-    }
 
     return members;
   }

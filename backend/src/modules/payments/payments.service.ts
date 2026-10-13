@@ -1,7 +1,7 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class PaymentsService {
@@ -61,9 +61,6 @@ export class PaymentsService {
         updatedAt: true,
       },
     });
-    if (payments.length === 0) {
-      throw new NotFoundException('There Is No Payments To Show');
-    }
 
     return payments;
   }
