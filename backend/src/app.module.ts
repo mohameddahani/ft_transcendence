@@ -27,6 +27,8 @@ import { VisitCron } from './jobs/visit.cron';
 import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
 import { HealthModule } from './modules/health/health.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { SentimentCron } from './jobs/sentiment.cron';
+import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 
 @Module({
   imports: [
@@ -82,11 +84,13 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     FeedbacksModule,
     HealthModule,
     RedisModule,
+    ExternalApiModule, // * imported for cron job sentiment.cron.ts because i don't wanna create a module for this Cron job
   ],
 
   providers: [
     // * Provider of Rate Limiting
     // * Applied globally
+    // * APP_GUARD is the token, and useClass: ThrottlerGuard tells Nest to instantiate and use ThrottlerGuard for that token.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
 
     // * Cron
@@ -96,6 +100,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
     MembershipNotificationCron,
     SubscriptionNotificationCron,
     VisitCron,
+    SentimentCron,
   ],
 })
 export class AppModule {}

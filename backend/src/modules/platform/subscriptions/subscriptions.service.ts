@@ -13,7 +13,7 @@ import {
 } from '@/generated/prisma/enums';
 import { addDays } from 'date-fns';
 import { safeUserSelect } from '@/core/types/safe-selects.type';
-import { AccessesService } from '@/core/services/access.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -194,9 +194,6 @@ export class SubscriptionsService {
         planDuration: true,
       },
     });
-    if (subscriptions.length === 0) {
-      throw new NotFoundException('No subscriptions To Show');
-    }
 
     return subscriptions;
   }
@@ -271,10 +268,6 @@ export class SubscriptionsService {
         amount: true,
       },
     });
-
-    if (subscriptions.length === 0) {
-      throw new NotFoundException('No Subscriptions Found');
-    }
 
     return subscriptions;
   }

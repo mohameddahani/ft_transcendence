@@ -1,4 +1,3 @@
-import { AccessesService } from '@/core/services/access.service';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   BadRequestException,
@@ -16,6 +15,7 @@ import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
 import { format, parse } from 'date-fns';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class WorkingHoursService {
@@ -172,9 +172,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (workingHours.length === 0) {
-      throw new NotFoundException('There is No Working Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
@@ -257,9 +254,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (workingHours.length === 0) {
-      throw new NotFoundException('There is No Working Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
@@ -604,9 +598,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (specialHours.length === 0) {
-      throw new NotFoundException('There is No Special Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
@@ -689,9 +680,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-    if (specialHours.length === 0) {
-      throw new NotFoundException('There is No Special Hours To show');
-    }
 
     // * Set Data in Redis
     await this.cache.set(key, specialHours, 300_000); // * ttl: 5min

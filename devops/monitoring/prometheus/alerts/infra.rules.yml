@@ -1,0 +1,53 @@
+groups:
+  - name: infrastructure
+    rules:
+
+      # If any exporter service is down for one minute, notify!
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 1 minute."
+      
+      # nginx exporter can't reach nginx
+      - alert: NginxDown
+        expr: nginx_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "nginx is down"
+          description: "nginx-prometheus-exporter cannot reach nginx."
+      
+      # postgres exporter can't reach postgres
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "postgres-exporter cannot reach PostgreSQL."
+        
+      # Redis is unreachable (exporter is up but can't connect to Redis)
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "redis-exporter cannot reach Redis. The Redis container may be stopped or crashed."
+      
+      # If host's memory gets busy
+      - alert: HighMemory
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on host"
+          description: "Memory usage is above 90% for 5 minutes."

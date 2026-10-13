@@ -22,7 +22,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
 export class AdminNotificationsController {
-  constructor(private readonly notificationService: NotificationsService) { }
+  constructor(private readonly notificationService: NotificationsService) {}
 
   // * Get One Notification
   @Get(':id')

@@ -44,10 +44,6 @@ export class OwnersService {
       },
     });
 
-    if (users.length === 0) {
-      throw new NotFoundException('No Users To Show');
-    }
-
     return users;
   }
 

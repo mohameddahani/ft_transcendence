@@ -80,10 +80,10 @@
 
 // * When a staff or admin update the membership of member with same data the server create multiple memberships
 
-// ! test all Notifications
+// * test all Notifications
 
-// ! test anything is expired
-// ! change generate username
+// * test anything is expired
+// * change generate username
 // * check email by lowercase
 // * if user set wrong password 5 times stop him
 // * Make email send only once
@@ -171,3 +171,4 @@
 // * TESTS
 // * Delete user (admin)
 // * Update user (user)
+// ? Q-60
