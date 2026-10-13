@@ -20,7 +20,7 @@ admin_user AS (
     )
     VALUES (
         gen_random_uuid()::text, 'Nadia', 'Berrada', 'Oasis Gym Marrakech',
-        'nadia@oasisgym.ma', 'nadia_admin', 'hashed_password_456',
+        'nadia@oasisgym.ma', 'nadia_admin', '$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELViG',
         '+212600000002', 'FEMALE'::"Gender", '1985-09-30'::timestamp,
         'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus", true, true,
         'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png', 'avatars-default-admin',
@@ -36,8 +36,8 @@ gym_plan AS (
     RETURNING id, admin_id
 ),
 gym_plan_duration AS (
-    INSERT INTO membership_plan_durations (id, membership_plan_id, duration_days, price, created_at, updated_at)
-    SELECT gen_random_uuid()::text, id, 365, 4500.00, NOW(), NOW()
+    INSERT INTO membership_plan_durations (id, membership_plan_id, duration_days, price, price_by_g, created_at, updated_at)
+    SELECT gen_random_uuid()::text, id, 365, 4500.00, 1125, NOW(), NOW()
     FROM gym_plan
     RETURNING id, membership_plan_id, duration_days, price
 ),
