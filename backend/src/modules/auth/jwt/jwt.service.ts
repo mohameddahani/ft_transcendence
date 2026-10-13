@@ -23,7 +23,7 @@ export class CustomJwtService {
     );
 
     // * Generate The Token
-    return this.jwtService.sign(accessTokenPayload, {
+    return this.jwtService.signAsync(accessTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });
@@ -38,7 +38,7 @@ export class CustomJwtService {
     );
 
     // * Generate The Token
-    return this.jwtService.sign(refreshTokenPayload, {
+    return this.jwtService.signAsync(refreshTokenPayload, {
       secret,
       expiresIn: expiresIn as JwtSignOptions['expiresIn'],
     });

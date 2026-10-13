@@ -260,7 +260,7 @@ export class AuthProvider {
       role: user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // *  Generate UUID for jti
@@ -272,7 +272,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -583,7 +583,7 @@ export class AuthProvider {
       role: staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -595,7 +595,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -969,7 +969,7 @@ export class AuthProvider {
       role: member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -981,7 +981,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -1132,7 +1132,7 @@ export class AuthProvider {
       role: storedToken.user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     return { accessToken: accessToken };
   }
@@ -1185,7 +1185,7 @@ export class AuthProvider {
       role: storedToken.staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     return { accessToken: accessToken };
   }
@@ -1238,7 +1238,7 @@ export class AuthProvider {
       role: storedToken.member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     return { accessToken: accessToken };
   }
