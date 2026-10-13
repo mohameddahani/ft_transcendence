@@ -26,7 +26,7 @@ admin_user AS (
     )
     VALUES (
         gen_random_uuid()::text, 'Karim', 'Bennani', 'Atlas Fitness Agadir',
-        'karim@atlasfitness.ma', 'karim_admin', 'hashed_password_123',
+        'karim@atlasfitness.ma', 'karim_admin', '$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELViG',
         '+212600000001', 'MALE'::"Gender", '1988-04-15'::timestamp,
         'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus", true, true,
         'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png', 'avatars-default-admin',
@@ -52,8 +52,8 @@ gym_plan AS (
     RETURNING id, admin_id
 ),
 gym_plan_duration AS (
-    INSERT INTO membership_plan_durations (id, membership_plan_id, duration_days, price, created_at, updated_at)
-    SELECT gen_random_uuid()::text, id, 30, 300.00, NOW(), NOW()
+    INSERT INTO membership_plan_durations (id, membership_plan_id, duration_days, price, price_by_g, created_at, updated_at)
+    SELECT gen_random_uuid()::text, id, 30, 300.00, 75, NOW(), NOW()
     FROM gym_plan
     RETURNING id, membership_plan_id, duration_days, price
 ),

@@ -72,12 +72,26 @@ Fitness Casablanca), `medina` (Medina Wellness Fes).
 
 **Members with a known state** (dates are relative to the day the data was loaded):
 
-| Email | Gym | State |
+| Email | Username | Gym | State |
+|---|---|---|---|
+| `omar@gmail.com` | `omar_t` | Atlas | membership expired 30 days ago, payment unpaid |
+| `siham@gmail.com` | `siham_i` | Atlas | expires in 5 days |
+| `youssef@gmail.com` | `youssef_a` | Atlas | expires in 20 days |
+| `rachid@gmail.com`, `latifa@gmail.com` | `rachid_o`, `latifa_s` | Oasis | active |
+
+**Demo logins** (for the app's login pages; demo data only). The password for all of them is
+**`Demo1234!`**: owners log in with their email, staff and members with their username.
+Every demo member has the same password, so the members above are good ones to try.
+
+| Gym | Owner (email) | Staff (username) |
 |---|---|---|
-| `omar@gmail.com` | Atlas | membership expired 30 days ago, payment unpaid |
-| `siham@gmail.com` | Atlas | expires in 5 days |
-| `youssef@gmail.com` | Atlas | expires in 20 days |
-| `rachid@gmail.com`, `latifa@gmail.com` | Oasis | active |
+| Atlas | `karim@atlasfitness.ma` | `reception.atl` (`ex.reception.atl` is banned) |
+| Oasis | `nadia@oasisgym.ma` | `reception.oas` (`ex.reception.oas` is banned) |
+| Titan | `mehdi@titanfitness.ma` | `reception.tit` (`ex.reception.tit` is banned) |
+| Medina | `salma@medinawellness.ma` | `reception.med` (`ex.reception.med` is banned) |
+
+Demo data created before these logins existed has no working password: run
+`.venv/bin/python -m seeder.seed` again (no reset needed).
 
 ## 4. Get a login token
 

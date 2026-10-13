@@ -10,7 +10,7 @@ services:
     networks:
       - ft_transcendence-net
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,18 +37,54 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-  
+
   frontend:
     build:
-      context: ../owner-platform
+      context: ../admin-staff-platform
       dockerfile: Dockerfile
     image: frontend:latest
     container_name: frontend_container
     restart: unless-stopped
+    env_file:
+      - ../admin-staff-platform/.env
     networks:
       - ft_transcendence-net
     depends_on:
       backend:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+
+  superadmin:
+    build:
+      context: ../owner-platform
+      dockerfile: Dockerfile
+    image: superadmin:latest
+    container_name: superadmin_container
+    restart: unless-stopped
+    env_file:
+      - ../owner-platform/.env
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  ai:
+    build:
+      context: ../AI
+      dockerfile: Dockerfile
+    image: ai:latest
+    container_name: ai_container
+    restart: unless-stopped
+    env_file:
+      - ../AI/.env
+    networks:
+      - ft_transcendence-net
+    volumes:
+      - ai_data:/data
+    depends_on:
+      postgres:
         condition: service_healthy
 
   redis:
@@ -56,7 +92,7 @@ services:
     container_name: redis_container
     restart: unless-stopped
     env_file:
-    - .env
+      - .env
     command: >
         redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -85,10 +121,136 @@ services:
       - ft_transcendence-net
     depends_on:
       - frontend
+      - superadmin
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - ft_transcendence-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.30.0
+    container_name: alert-manager
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+    expose:
+      - "9093"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}     # signs cookies/tokens
+      - GF_SECURITY_COOKIE_SECURE=true                   # HTTPS-only cookies
+      - GF_SECURITY_COOKIE_SAMESITE=strict               # Prevents CSRF
+      - GF_SECURITY_DISABLE_GRAVATAR=true                # no external requests
+      - GF_SECURITY_LOGIN_REMEMBER_DAYS=1                # session expires in 1 day
+      - GF_SERVER_ROOT_URL=${GRAFANA_URL}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_USERS_ALLOW_SIGN_UP=false                     # disable sign-up/register feature
+      - GF_USERS_ALLOW_ORG_CREATE=false                  # only admin can create orgs
+      - GF_USERS_AUTO_ASSIGN_ORG=true
+      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer             # new users get Viewer, not Editor
+      - GF_AUTH_DISABLE_LOGIN_FORM=false                 # keep the login form (local auth)
+      - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - "9100"
+    networks:
+      - ft_transcendence-net
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+    expose:
+      - "9113"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      - nginx
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.18.0
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    expose:
+      - "9187"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.80.0
+    container_name: redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    expose:
+      - "9121"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  ai_data:
   redisdata:
+  prometheus_data:
+  grafana_data:
 
 networks:
   ft_transcendence-net:
