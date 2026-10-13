@@ -96,6 +96,7 @@ export class RegisterUserDto {
   @ApiProperty({ example: 'City Club', description: 'User Company Name' }) // * Swagger Document
   companyName!: string;
 
+  // ! BLOCK_CHAINE
   // * Optional blockchain wallet address.
   @IsOptional()
   @IsEthereumAddress()

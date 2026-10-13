@@ -63,6 +63,10 @@ export const safeUserSelect = {
   phoneNumber: true,
   companyName: true,
   role: true,
+
+  // ! BLOCK_CHAINE
+  walletAddress: true,
+
   profileImageUrl: true,
   isAccountVerified: true,
   accountStatus: true,

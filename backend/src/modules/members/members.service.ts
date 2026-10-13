@@ -135,6 +135,9 @@ export class MembersService {
           profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,
           emergencyContact: data.emergencyContact,
+
+          // ! BLOCK_CHAINE
+          adminWalletAddress: subscription.user.walletAddress,
         },
       });
       // * Add Membership of member
