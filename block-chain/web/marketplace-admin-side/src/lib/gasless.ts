@@ -1,12 +1,20 @@
-import {
-  BrowserProvider,
-  Contract,
-  JsonRpcSigner,
-  getAddress,
-} from "ethers";
+import { BrowserProvider, Contract, JsonRpcSigner, getAddress } from "ethers";
 import { Interface } from "ethers";
-import { CHAIN_ID, GASLESS_ENABLED, GYMTOKEN_ABI, FORWARDER_ADDRESS, FORWARDER_ABI, CONTRACT_ADDRESS } from "@/app/contract";
+import {
+  CHAIN_ID,
+  GASLESS_ENABLED,
+  GYMTOKEN_ABI,
+  FORWARDER_ADDRESS,
+  FORWARDER_ABI,
+  CONTRACT_ADDRESS,
+} from "@/app/contract";
 import { toast } from "react-toastify";
+import axios from "axios";
+
+type RelayerResponse = {
+  hash?: string;
+  error?: string;
+};
 
 export const FORWARD_TYPES = {
   ForwardRequest: [
@@ -38,15 +46,16 @@ export type SignedForwardRequest = {
   signature: string;
 };
 
-
 export async function relayForwarderCall(
   provider: BrowserProvider,
   signer: JsonRpcSigner,
-  data: string
-): Promise<string>{
-  if (!GASLESS_ENABLED) throw new Error("Gasless transactions are not configured.");
+  data: string,
+): Promise<string> {
+  if (!GASLESS_ENABLED)
+    throw new Error("Gasless transactions are not configured.");
   const network = await provider.getNetwork();
-  if (Number(network.chainId) !== CHAIN_ID) throw new Error("Switch your wallet to Sepolia first.");
+  if (Number(network.chainId) !== CHAIN_ID)
+    throw new Error("Switch your wallet to Sepolia first.");
 
   const from = getAddress(await signer.getAddress());
   const forwarder = new Contract(FORWARDER_ADDRESS, FORWARDER_ABI, provider);
@@ -62,7 +71,11 @@ export async function relayForwarderCall(
     data,
   };
 
-  const signature = await signer.signTypedData(forwardDomain(FORWARDER_ADDRESS), FORWARD_TYPES, request);
+  const signature = await signer.signTypedData(
+    forwardDomain(FORWARDER_ADDRESS),
+    FORWARD_TYPES,
+    request,
+  );
 
   const payload: SignedForwardRequest = {
     from: request.from,
@@ -75,33 +88,41 @@ export async function relayForwarderCall(
     signature,
   };
 
-  toast.info("Submitting gasless transaction…")
+  toast.info("Submitting gasless transaction…");
 
-  const response = await fetch("http://localhost:3333/blockchain/relayer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const API_URL_RELAYER = process.env.NEXT_PUBLIC_API_URL_RELAYER;
+
+  if (!API_URL_RELAYER) {
+    throw new Error("Relayer API URL is missing");
+  }
+
+  const response = await axios.post<RelayerResponse>(API_URL_RELAYER, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
-  const result = await response.json() as { hash?: string; error?: string };
-  if (!response.ok || !result.hash)
-    throw new Error(result.error || "elayer did not accept the transaction.")
+  const { hash, error } = response.data;
 
-  const receipt = await provider.waitForTransaction(result.hash);
+  if (!hash) {
+    throw new Error(error || "Relayer did not accept the transaction.");
+  }
 
-  if (!receipt || receipt.status !== 1)
+  const receipt = await provider.waitForTransaction(hash);
+
+  if (!receipt || receipt.status !== 1) {
     throw new Error("Relayed transaction failed or was not confirmed.");
+  }
 
-  return result.hash;
+  return hash;
 }
-
 
 export async function relayForwarderMethod(
   provider: BrowserProvider,
   signer: JsonRpcSigner,
   Method: string,
-  args: readonly unknown[]
-): Promise<string>{
+  args: readonly unknown[],
+): Promise<string> {
   const data = new Interface(GYMTOKEN_ABI).encodeFunctionData(Method, args);
   return relayForwarderCall(provider, signer, data);
 }

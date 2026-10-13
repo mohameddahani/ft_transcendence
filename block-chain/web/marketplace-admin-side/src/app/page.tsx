@@ -160,7 +160,6 @@ export default function GymOwnerConnectionToGymToken() {
       setTokenSymbol(symbol);
 
       const merchant = account;
-
       if (merchant) {
         const rawProducts = await readContract.getMerchantProducts(merchant);
 
@@ -315,14 +314,14 @@ export default function GymOwnerConnectionToGymToken() {
 
   const update_addressAdmin_forMember = async (address: string) => {
     try {
-      const API_URL = "test";
+      const API_URL = `${process.env.NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN}`;
       await axios.patch(
         API_URL,
         { walletAddress: address },
         {
           headers: {
             Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZiYWI3MDMwLTNmMzAtNGYzOC05OTViLWEyNDQ3YWJmMTA5ZiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5MTczMjk0MCwiZXhwIjoxNzk0MzI0OTQwfQ.O84o_boy4ChGTS7lR5Km8ftiPeMHLMZdnMvDAy_7nYI",
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZiYWI3MDMwLTNmMzAtNGYzOC05OTViLWEyNDQ3YWJmMTA5ZiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5MTg4OTY0NSwiZXhwIjoxNzk0NDgxNjQ1fQ.ezAf4G4iFoOWOmTuKDzyOcvo5S6RtEctBW39f-L3SV0",
           },
         },
       );
