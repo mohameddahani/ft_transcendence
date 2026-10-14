@@ -878,6 +878,13 @@ export class AuthProvider {
       select: {
         ...safeMemberSelect,
         password: true,
+
+        // ! BLOCK_CHAINE
+        admin: {
+          select: {
+            walletAddress: true,
+          },
+        },
       },
     });
     if (!member) {
@@ -1009,10 +1016,16 @@ export class AuthProvider {
     });
 
     // * Exculde Some Fields
-    const { password, ...safeMember } = member;
+
+    // ! BLOCK_CHAINE
+    const { password, admin, ...safeMember } = member;
 
     return {
-      member: safeMember,
+      member: {
+        ...safeMember,
+        // ! BLOCK_CHAINE
+        adminWalletAddress: admin.walletAddress,
+      },
       accessToken,
       refreshToken,
       refreshExpiresIn,
