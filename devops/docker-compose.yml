@@ -245,6 +245,21 @@ services:
       redis:
         condition: service_healthy
 
+
+  gatus:
+    image: twinproduction/gatus:v5.30.0
+    container_name: gatus
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    expose:
+      - "8080"
+    volumes:
+      - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
+    networks:
+      - ft_transcendence-net
+    depends_on: [nginx, prometheus]
+
 volumes:
   postgres_data:
   ai_data:
