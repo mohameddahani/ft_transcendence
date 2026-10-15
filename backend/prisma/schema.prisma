@@ -271,20 +271,24 @@ model Member {
   staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
-  firstName            String              @map("first_name")
-  lastName             String              @map("last_name")
+  firstName            String   @map("first_name")
+  lastName             String   @map("last_name")
   gender               Gender
-  birthDate            DateTime            @map("birth_date")
-  userName             String              @unique @map("user_name")
+  birthDate            DateTime @map("birth_date")
+  userName             String   @unique @map("user_name")
   email                String
   password             String?
-  phoneNumber          String              @map("phone_number")
-  profileImageUrl      String              @map("profile_image_url")
-  profileImagePublicId String              @map("profile_image_public_id")
+  phoneNumber          String   @map("phone_number")
+  profileImageUrl      String   @map("profile_image_url")
+  profileImagePublicId String   @map("profile_image_public_id")
   address              String
-  emergencyContact     String              @map("emergency_contact")
-  role                 Role                @default(MEMBER)
-  accountStatus        MemberAccountStatus @default(ACTIVE) @map("account_status")
+  emergencyContact     String   @map("emergency_contact")
+  role                 Role     @default(MEMBER)
+
+  // ! BLOCK_CHAINE
+  walletAddress String? @map("wallet_address")
+
+  accountStatus MemberAccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
