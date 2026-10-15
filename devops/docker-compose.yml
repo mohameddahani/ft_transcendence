@@ -245,7 +245,6 @@ services:
       redis:
         condition: service_healthy
 
-
   gatus:
     image: twinproduction/gatus:v5.30.0
     container_name: gatus
@@ -259,6 +258,24 @@ services:
     networks:
       - ft_transcendence-net
     depends_on: [nginx, prometheus]
+
+  backup:
+    build: ./backup-service
+    image: backup:latest
+    container_name: backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - BACKUP_SCHEDULE
+    volumes:
+      - ./backups:/backups
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
