@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JsonRpcProvider } from 'ethers';
 import { Wallet } from 'ethers';
 import type { Response, Request } from 'express';
@@ -8,17 +12,35 @@ import {
   ContractTransactionResponse,
   ContractTransactionReceipt,
 } from 'ethers';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class rewardTokenSubService {
-  async rewardClient(res: Response, req: Request) {
+  constructor(private readonly jwt: JwtService) {}
+
+  async rewardClient(res: Response, req: Request, clientWallet: string) {
+    // * Check the Acces - Token is valid
+    const [tokenType, token] = req.headers.authorization?.split(' ') ?? [];
+
+    if (tokenType !== 'Bearer' || !token) {
+      throw new UnauthorizedException('Missing or invalid access token');
+    }
+
+    try {
+      await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_ADMIN_ACCESS_SECRET,
+      });
+    } catch {
+      throw new ForbiddenException();
+    }
+
     const privateKey = process.env.RELAYER_PRIVATE_KEY;
     const Urpc = process.env.SEPOLIA_RPC_URL;
     const GymTokenAddress = process.env.GYMTOKEN_ADDRESS;
-    const clientRecipient = '';
+    const clientRecipient = clientWallet;
     const amountReward = process.env.AMOUNTREWARD;
 
-    if (!Urpc || !privateKey || !GymTokenAddress)
+    if (!Urpc || !privateKey || !GymTokenAddress || !clientRecipient)
       return res
         .status(503)
         .json({ error: 'reward transactions are not configured.' });
