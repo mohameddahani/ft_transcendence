@@ -118,6 +118,9 @@ export class AuthProvider {
         profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         companyName: data.companyName,
         termsAccepted: data.termsAccepted,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
     });
 

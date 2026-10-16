@@ -136,6 +136,9 @@ export class MembersService {
           profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,
           emergencyContact: data.emergencyContact,
+
+          // ! BLOCK_CHAINE
+          walletAddress: data.walletAddress,
         },
       });
       // * Add Membership of member
@@ -257,6 +260,9 @@ export class MembersService {
         phoneNumber: data.phoneNumber,
         address: data.address,
         emergencyContact: data.emergencyContact,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
     });
 
