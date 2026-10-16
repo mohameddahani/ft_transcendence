@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
+import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -50,7 +50,7 @@ export class AdminProfilesController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: UpdateProfileDto,
+    @Body() body: UpdateProfileUserDto,
   ) {
     return this.profilesService.update(accessTokenPayload.id, body);
   }

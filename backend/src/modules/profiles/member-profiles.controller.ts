@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
   Post,
+  Patch,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,6 +20,7 @@ import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { fileTypeFromBuffer } from 'file-type';
+import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
 
 @Controller('/api/users/members')
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
@@ -40,6 +43,19 @@ export class MemberProfilesController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.profilesService.findMeMember(accessTokenPayload.id);
+  }
+
+  // * Update data of member
+  @Patch('edit-profile')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  updateProfileMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: UpdateProfileMemberDto,
+  ) {
+    return this.profilesService.updateProfileMember(
+      accessTokenPayload.id,
+      body,
+    );
   }
 
   // * Upload profile image

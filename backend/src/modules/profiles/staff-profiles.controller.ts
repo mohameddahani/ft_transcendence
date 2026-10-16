@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
+  Patch,
   Post,
   UploadedFile,
   UseGuards,
@@ -18,6 +20,7 @@ import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { fileTypeFromBuffer } from 'file-type';
+import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
 
 @Controller('/api/users/staffs')
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
@@ -38,6 +41,16 @@ export class StaffProfilesController {
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMeStaff(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.profilesService.findMeStaff(accessTokenPayload.id);
+  }
+
+  // * Update data of staff
+  @Patch('edit-profile')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  updateProfileStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: UpdateProfileStaffDto,
+  ) {
+    return this.profilesService.updateProfileStaff(accessTokenPayload.id, body);
   }
 
   // * Upload profile image
