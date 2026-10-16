@@ -10,7 +10,11 @@ import * as bcrypt from 'bcryptjs';
 import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  safeMemberSelect,
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
@@ -33,22 +37,7 @@ export class ProfilesService {
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        subscription: true,
-      },
+      select: safeUserSelect,
     });
 
     if (!user) {
@@ -213,20 +202,7 @@ export class ProfilesService {
   async findMeMember(id: string) {
     const member = await this.prisma.member.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-      },
+      select: safeMemberSelect,
     });
 
     if (!member) {
@@ -362,20 +338,10 @@ export class ProfilesService {
     const staff = await this.prisma.staff.findUnique({
       where: { id },
       select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        profileImageUrl: true,
-        role: true,
-        accountStatus: true,
       },
     });
 
@@ -510,24 +476,9 @@ export class ProfilesService {
         role: { notIn: [Role.MEMBER] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
+        profileImagePublicId: true,
         subscription: {
           include: {
             plan: true,
@@ -550,24 +501,7 @@ export class ProfilesService {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: { ...safeMemberSelect, profileImagePublicId: true },
     });
 
     if (!member) {
@@ -585,24 +519,11 @@ export class ProfilesService {
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
+        ...safeStaffSelect,
         profileImagePublicId: true,
         admin: {
           select: safeUserSelect,
         },
-        companyName: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 

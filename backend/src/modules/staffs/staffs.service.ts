@@ -19,7 +19,10 @@ import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
@@ -187,23 +190,10 @@ export class StaffsService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        role: true,
-        profileImageUrl: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 
@@ -221,23 +211,10 @@ export class StaffsService {
         id: staffId,
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        role: true,
-        profileImageUrl: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
     if (!staff) {

@@ -107,6 +107,10 @@ export const safeMemberSelect = {
   profileImageUrl: true,
   address: true,
   emergencyContact: true,
+
+  // ! BLOCK_CHAINE
+  walletAddress: true,
+
   role: true,
   accountStatus: true,
   createdAt: true,

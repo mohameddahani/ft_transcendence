@@ -1,8 +1,6 @@
-import {
-  AccessTokenPayload,
-  MembershipWithPlan,
-} from '@/core/types/jwt-payload.type';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { MembershipWithPlan } from '@/core/types/membership-with-plan.type';
 import {
   ForbiddenException,
   Injectable,

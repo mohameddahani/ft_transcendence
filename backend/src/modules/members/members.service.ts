@@ -29,6 +29,7 @@ import {
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
 import { AccessesService } from '@/core/access/access.service';
+import { safeMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class MembersService {
@@ -507,27 +508,7 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: safeMemberSelect,
     });
 
     return members;
@@ -546,27 +527,7 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: safeMemberSelect,
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');
