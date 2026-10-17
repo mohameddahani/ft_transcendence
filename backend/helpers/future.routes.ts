@@ -69,8 +69,8 @@
 // * ban or freeze or ... a staff
 // * edit profile of staff (like profile image ...)
 // ! Check emails of staffs is correct(reset password and confirmation ...)
-// ! Tell the front make all users (admin / owner / staff / member) they can update password from platfrom
-// ! Check when staff and member set a password the validation of password is correct like min 8 chars ... like admin
+// ! Tell the front make all users (admin / owner / staff / member) they can update password from platfrom and (staff / member can also update data)
+// * Check when staff and member set a password the validation of password is correct like min 8 chars ... like admin
 // * Get all staffs
 // * Get one staff
 // * edit one staff
@@ -173,4 +173,4 @@
 // * TESTS
 // * Delete user (admin)
 // * Update user (user)
-// ? Q-121
+// ? Q-186
