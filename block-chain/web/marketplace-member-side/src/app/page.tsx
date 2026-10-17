@@ -199,7 +199,7 @@ export default function ClientPlatformPage() {
 
   const refresh = useCallback(async () => {
     if (!readContract || !account) return;
-    setIsRefreshing(true);
+      setIsRefreshing(true);
     try {
       const [balance, decimals, symbol] = await Promise.all([
         readContract.balanceOf(account),
@@ -247,6 +247,7 @@ export default function ClientPlatformPage() {
       } catch (err) {
         console.error("Failed to load purchases", err);
       }
+      update_walletAddress_member(account);
     } catch (error) {
       toast.error(parseError(error));
     } finally {
@@ -365,6 +366,7 @@ export default function ClientPlatformPage() {
       setAccount(accounts[0]);
       const network = await p.getNetwork();
       setChainId(Number(network.chainId));
+      update_walletAddress_member(account);
       toast.success("Wallet connected successfully!");
     } catch (error) {
       toast.error(parseError(error));
@@ -405,6 +407,30 @@ export default function ClientPlatformPage() {
         }
       } else {
         toast.error(parseError(error));
+      }
+    }
+  };
+
+  const update_walletAddress_member = async (address: string) => {
+    try {
+      const API_URL = `${process.env.NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER}`;
+      await axios.patch(
+        API_URL,
+        { walletAddress: address },
+        {
+          headers: {
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg4MDBjZmM0LTVhNTAtNGYxYi1hNDQ0LTgxNjdjYWFlMzNkMCIsInJvbGUiOiJNRU1CRVIiLCJpYXQiOjE3OTIyMzQ4NDQsImV4cCI6MTc5NDgyNjg0NH0.xfxfaqVXGowe7degzWDTVhBi36UIpZzggpNo4Bfjo9E",
+          },
+        },
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Status:", error.response?.status);
+        console.error("Server error:", error.response?.data);
+        console.error("Message:", error.message);
+      } else {
+        console.error("Unexpected error:", error);
       }
     }
   };
@@ -887,7 +913,7 @@ export default function ClientPlatformPage() {
 
                     {/* Durations */}
                     <Select
-                    items={durationItems}
+                      items={durationItems}
                       disabled={
                         !selectedPlan || selectedPlan.durations.length === 0
                       }
