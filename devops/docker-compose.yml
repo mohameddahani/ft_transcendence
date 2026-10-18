@@ -49,6 +49,12 @@ services:
       - ../admin-staff-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -66,6 +72,12 @@ services:
       - ../owner-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -121,9 +133,9 @@ services:
       - ft_transcendence-net
     depends_on:
       frontend:
-        condition: service_started
+        condition: service_healthy
       superadmin:
-        condition: service_started
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:v2.51.0
