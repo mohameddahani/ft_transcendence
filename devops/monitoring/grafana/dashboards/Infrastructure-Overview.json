@@ -564,7 +564,9 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": [],
+  "tags": [
+    "infrastructure"
+  ],
   "templating": {
     "list": []
   },

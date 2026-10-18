@@ -2935,6 +2935,9 @@
   "preload": false,
   "refresh": "10s",
   "schemaVersion": 41,
+  "tags": [
+    "postgres"
+  ],
   "templating": {
     "list": [
       {

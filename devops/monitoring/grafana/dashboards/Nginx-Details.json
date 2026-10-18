@@ -392,7 +392,9 @@
   ],
   "refresh": "",
   "schemaVersion": 39,
-  "tags": [],
+  "tags": [
+    "nginx"
+  ],
   "templating": {
     "list": []
   },
