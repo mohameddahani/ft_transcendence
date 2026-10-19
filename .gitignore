@@ -12,6 +12,7 @@ Thumbs.db
 .env.*
 !.env.example
 
+# certificates
 devops/nginx/certs
 
 # backups
