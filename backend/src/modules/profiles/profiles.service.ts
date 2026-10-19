@@ -7,14 +7,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
+import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  safeMemberSelect,
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
+import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
 
 @Injectable()
 export class ProfilesService {
@@ -33,22 +39,7 @@ export class ProfilesService {
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        subscription: true,
-      },
+      select: safeUserSelect,
     });
 
     if (!user) {
@@ -59,7 +50,7 @@ export class ProfilesService {
   }
 
   // * Update data of user
-  async update(id: string, data: UpdateProfileDto) {
+  async update(id: string, data: UpdateProfileUserDto) {
     // * Check if user update the username: (we need to check if username is unique)
     const existingData = await this.prisma.user.findFirst({
       where: {
@@ -213,20 +204,7 @@ export class ProfilesService {
   async findMeMember(id: string) {
     const member = await this.prisma.member.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-      },
+      select: safeMemberSelect,
     });
 
     if (!member) {
@@ -234,6 +212,37 @@ export class ProfilesService {
     }
 
     return member;
+  }
+
+  // * Update data of member
+  async updateProfileMember(memberId: string, data: UpdateProfileMemberDto) {
+    // * Check if member update the email or phone number
+    const existingData = await this.prisma.staff.findFirst({
+      where: {
+        id: { not: memberId }, // exclude current member
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if member update the password: (we need to hash it)
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+
+    // * Save new data to member
+    return await this.prisma.member.update({ where: { id: memberId }, data });
   }
 
   // * Upload profile image (Member)
@@ -362,20 +371,10 @@ export class ProfilesService {
     const staff = await this.prisma.staff.findUnique({
       where: { id },
       select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        profileImageUrl: true,
-        role: true,
-        accountStatus: true,
       },
     });
 
@@ -384,6 +383,37 @@ export class ProfilesService {
     }
 
     return staff;
+  }
+
+  // * Update data of staff
+  async updateProfileStaff(staffId: string, data: UpdateProfileStaffDto) {
+    // * Check if staff update the email or phone number
+    const existingData = await this.prisma.staff.findFirst({
+      where: {
+        id: { not: staffId }, // exclude current staff
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if staff update the password: (we need to hash it)
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+
+    // * Save new data to staff
+    return await this.prisma.staff.update({ where: { id: staffId }, data });
   }
 
   // * Upload profile image (Staff)
@@ -510,24 +540,9 @@ export class ProfilesService {
         role: { notIn: [Role.MEMBER] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
+        profileImagePublicId: true,
         subscription: {
           include: {
             plan: true,
@@ -550,24 +565,7 @@ export class ProfilesService {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: { ...safeMemberSelect, profileImagePublicId: true },
     });
 
     if (!member) {
@@ -585,24 +583,11 @@ export class ProfilesService {
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
+        ...safeStaffSelect,
         profileImagePublicId: true,
         admin: {
           select: safeUserSelect,
         },
-        companyName: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 

@@ -1,0 +1,110 @@
+web:
+  port: 8080
+
+storage:
+  type: memory
+
+# Reusable defaults
+defaults: &http-defaults
+  interval: 30s
+  client:
+    insecure: true          # self-signed cert
+  alerts:
+    - type: discord
+      failure-threshold: 2
+      success-threshold: 1
+      send-on-resolved: true
+
+alerting:
+  discord:
+    webhook-url: "${DISCORD_WEBHOOK_URL}"
+    default-alert:
+      description: "healthcheck failed"
+
+endpoints:
+
+  #################################
+  # Public-facing
+  ################################# 
+  - name: Frontend
+    group: Application
+    url: https://nginx/
+    <<: *http-defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 2000"
+
+  - name: Backend API
+    group: Application
+    url: https://nginx/api/health
+    <<: *http-defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 2000"
+
+  - name: Superadmin
+    group: Application
+    url: https://nginx/superadmin/
+    <<: *http-defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 2000"
+
+  - name: AI Service
+    group: Application
+    url: http://ai:8000/health 
+    alerts:
+      - type: discord
+        failure-threshold: 2
+        success-threshold: 1
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 5000"
+
+  #################################
+  # Infrastructure
+  ################################# 
+  - name: Grafana
+    group: Infrastructure
+    url: https://nginx/grafana/
+    <<: *http-defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+
+  - name: Prometheus
+    group: Infrastructure
+    url: http://prometheus:9090/-/healthy
+    interval: 30s
+    alerts:
+      - type: discord
+        failure-threshold: 2
+        success-threshold: 1
+        send-on-resolved: true
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: Postgres
+    group: Infrastructure
+    url: tcp://postgres:5432
+    interval: 30s
+    alerts:
+      - type: discord
+        failure-threshold: 2
+        success-threshold: 1
+        send-on-resolved: true
+    conditions:
+      - "[CONNECTED] == true"
+
+  - name: Redis
+    group: Infrastructure
+    url: tcp://redis:6379
+    interval: 30s
+    alerts:
+      - type: discord
+        failure-threshold: 2
+        success-threshold: 1
+        send-on-resolved: true
+    conditions:
+      - "[CONNECTED] == true"

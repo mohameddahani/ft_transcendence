@@ -118,6 +118,9 @@ export class AuthProvider {
         profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         companyName: data.companyName,
         termsAccepted: data.termsAccepted,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
     });
 
@@ -260,7 +263,7 @@ export class AuthProvider {
       role: user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // *  Generate UUID for jti
@@ -272,7 +275,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -583,7 +586,7 @@ export class AuthProvider {
       role: staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -595,7 +598,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -878,6 +881,13 @@ export class AuthProvider {
       select: {
         ...safeMemberSelect,
         password: true,
+
+        // ! BLOCK_CHAINE
+        admin: {
+          select: {
+            walletAddress: true,
+          },
+        },
       },
     });
     if (!member) {
@@ -969,7 +979,7 @@ export class AuthProvider {
       role: member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -981,7 +991,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -1009,10 +1019,16 @@ export class AuthProvider {
     });
 
     // * Exculde Some Fields
-    const { password, ...safeMember } = member;
+
+    // ! BLOCK_CHAINE
+    const { password, admin, ...safeMember } = member;
 
     return {
-      member: safeMember,
+      member: {
+        ...safeMember,
+        // ! BLOCK_CHAINE
+        adminWalletAddress: admin.walletAddress,
+      },
       accessToken,
       refreshToken,
       refreshExpiresIn,
@@ -1083,6 +1099,7 @@ export class AuthProvider {
 
   // * Refresh
   async refresh(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1126,19 +1143,70 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.user.id,
+      role: storedToken.user.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn =
+      storedToken.user.role === Role.ADMIN
+        ? this.config.getOrThrow<StringValue>('JWT_ADMIN_REFRESH_EXPIRES_IN')
+        : this.config.getOrThrow<StringValue>('JWT_OWNER_REFRESH_EXPIRES_IN');
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.userRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.userRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          user: { connect: { id: storedToken.user.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.user.id,
       role: storedToken.user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Refresh Staff
   async refreshStaff(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1179,19 +1247,69 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.staff.id,
+      role: storedToken.staff.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_STAFF_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.staffRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.staffRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          staff: { connect: { id: storedToken.staff.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.staff.id,
       role: storedToken.staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Refresh Member
   async refreshMember(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1232,15 +1350,64 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.member.id,
+      role: storedToken.member.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_MEMBER_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.memberRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.memberRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          member: { connect: { id: storedToken.member.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.member.id,
       role: storedToken.member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Activate user account
