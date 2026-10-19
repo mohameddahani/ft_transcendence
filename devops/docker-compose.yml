@@ -99,6 +99,21 @@ services:
       postgres:
         condition: service_healthy
 
+  block-chain:
+    build:
+      context: ../block-chain/api
+      dockerfile: Dockerfile
+    image: block-chain:latest
+    container_name: block-chain
+    restart: unless-stopped
+    env_file:
+      - ../block-chain/api/.env
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     container_name: redis_container
