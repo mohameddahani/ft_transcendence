@@ -49,6 +49,12 @@ services:
       - ../admin-staff-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -66,6 +72,12 @@ services:
       - ../owner-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -120,8 +132,10 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      - frontend
-      - superadmin
+      frontend:
+        condition: service_healthy
+      superadmin:
+        condition: service_healthy
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -152,8 +166,6 @@ services:
       - "9093"
     networks:
       - ft_transcendence-net
-    depends_on:
-      - prometheus
 
   grafana:
     image: grafana/grafana:10.4.0
@@ -161,6 +173,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     expose:
       - "3000"
@@ -182,8 +195,7 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
     networks:
       - ft_transcendence-net
-    depends_on:
-      - prometheus
+    depends_on: [prometheus]
 
   node-exporter:
     image: prom/node-exporter:v1.8.0
@@ -208,13 +220,12 @@ services:
     container_name: nginx-exporter
     restart: unless-stopped
     command:
-      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+      - '--nginx.scrape-uri=http://nginx:80/nginx_status'
     expose:
       - "9113"
     networks:
       - ft_transcendence-net
-    depends_on:
-      - nginx
+    depends_on: [nginx]
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.18.0
@@ -243,6 +254,37 @@ services:
       - ft_transcendence-net
     depends_on:
       redis:
+        condition: service_healthy
+
+  gatus:
+    image: twinproduction/gatus:v5.30.0
+    container_name: gatus
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    expose:
+      - "8080"
+    volumes:
+      - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
+    networks:
+      - ft_transcendence-net
+
+  backup:
+    build: ./backup-service
+    image: backup:latest
+    container_name: backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - BACKUP_SCHEDULE
+    volumes:
+      - ./backups:/backups
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
