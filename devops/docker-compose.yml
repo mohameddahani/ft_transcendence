@@ -99,12 +99,12 @@ services:
       postgres:
         condition: service_healthy
 
-  block-chain:
+  blockchain:
     build:
       context: ../block-chain/api
       dockerfile: Dockerfile
     image: block-chain:latest
-    container_name: block-chain
+    container_name: blockchain
     restart: unless-stopped
     env_file:
       - ../block-chain/api/.env
