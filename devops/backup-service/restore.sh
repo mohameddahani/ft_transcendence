@@ -23,7 +23,7 @@ echo "[$(date)] Restoring from: $BACKUP_FILE"
 
 # Terminate active connections
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
-  -h postgres \
+  -h db \
   -U "$POSTGRES_USER" \
   -d postgres \
   --no-password \
@@ -31,14 +31,14 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 
 # Drop and recreate the database
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
-  -h postgres \
+  -h db \
   -U "$POSTGRES_USER" \
   -d postgres \
   --no-password \
   -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\";"
 
 PGPASSWORD="$POSTGRES_PASSWORD" psql \
-  -h postgres \
+  -h db \
   -U "$POSTGRES_USER" \
   -d postgres \
   --no-password \
@@ -46,7 +46,7 @@ PGPASSWORD="$POSTGRES_PASSWORD" psql \
 
 # Restore using pg_restore (matches pg_dump -Fc custom format)
 PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
-  -h postgres \
+  -h db \
   -U "$POSTGRES_USER" \
   -d "$POSTGRES_DB" \
   --no-password \
