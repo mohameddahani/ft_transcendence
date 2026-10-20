@@ -9,12 +9,10 @@ import {
   CONTRACT_ADDRESS,
 } from "@/app/contract";
 import { toast } from "react-toastify";
-import axios from "axios";
+import { submitGaslessTransaction } from "@/lib/api/marketplace";
+import type { SignedForwardRequest } from "@/types/marketplace";
 
-type RelayerResponse = {
-  hash?: string;
-  error?: string;
-};
+export type { SignedForwardRequest } from "@/types/marketplace";
 
 export const FORWARD_TYPES = {
   ForwardRequest: [
@@ -34,17 +32,6 @@ export const forwardDomain = (address: string) => ({
   chainId: CHAIN_ID,
   verifyingContract: address,
 });
-
-export type SignedForwardRequest = {
-  from: string;
-  to: string;
-  value: string;
-  gas: string;
-  nonce: string;
-  deadline: string;
-  data: string;
-  signature: string;
-};
 
 export async function relayForwarderCall(
   provider: BrowserProvider,
@@ -90,23 +77,7 @@ export async function relayForwarderCall(
 
   toast.info("Submitting gasless transaction…");
 
-  const API_URL_RELAYER = process.env.NEXT_PUBLIC_API_URL_RELAYER;
-
-  if (!API_URL_RELAYER) {
-    throw new Error("Relayer API URL is missing");
-  }
-
-  const response = await axios.post<RelayerResponse>(API_URL_RELAYER, payload, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  const { hash, error } = response.data;
-
-  if (!hash) {
-    throw new Error(error || "Relayer did not accept the transaction.");
-  }
+  const hash = await submitGaslessTransaction(payload);
 
   const receipt = await provider.waitForTransaction(hash);
 
