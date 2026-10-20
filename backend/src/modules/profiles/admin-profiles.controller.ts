@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
+import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -22,6 +22,7 @@ import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 // * Side-effect import
 import 'multer'; // * Load/execute the Multer module, but don't give me any exported value to use.
+import { fileTypeFromBuffer } from 'file-type';
 
 @Controller('/api/users/admins')
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
@@ -49,7 +50,7 @@ export class AdminProfilesController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
   update(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-    @Body() body: UpdateProfileDto,
+    @Body() body: UpdateProfileUserDto,
   ) {
     return this.profilesService.update(accessTokenPayload.id, body);
   }
@@ -97,11 +98,19 @@ export class AdminProfilesController {
         // * startsWith('image'): checks if mimetype begins with "image"
         //   meaning only image files are allowed
 
-        if (file.mimetype.startsWith('image')) {
-          cb(null, true); // accept file
-        } else {
-          cb(new BadRequestException('Unsupported File Format'), false); // reject file
+        // * Check from request (Content-Type:)
+        const allowedDeclaredTypes = [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'application/octet-stream',
+        ];
+
+        if (!allowedDeclaredTypes.includes(file.mimetype)) {
+          return cb(new BadRequestException('Unsupported File Format'), false);
         }
+
+        cb(null, true);
       },
 
       // * limits: restricts file upload size to prevent large or malicious uploads
@@ -112,7 +121,7 @@ export class AdminProfilesController {
 
   // * UseGuards: applies authentication/authorization guards to protect the route
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  uploadProfileImage(
+  async uploadProfileImage(
     // * @UploadedFile: extracts the uploaded file from the request
     @UploadedFile() file: Express.Multer.File,
 
@@ -122,6 +131,16 @@ export class AdminProfilesController {
     // * validation: ensures file exists before continuing
     if (!file) {
       throw new BadRequestException('No Image Provided');
+    }
+
+    // * Get binary data of file
+    const detected = await fileTypeFromBuffer(file.buffer);
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+    // * Check from binary data
+    if (!detected || !allowedTypes.includes(detected.mime)) {
+      throw new BadRequestException('Unsupported or invalid image file');
     }
 
     return this.profilesService.uploadProfileImage(accessTokenPayload.id, file);

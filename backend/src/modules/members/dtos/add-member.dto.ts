@@ -8,10 +8,12 @@ import {
   IsDate,
   IsUUID,
   IsAlpha,
+  IsOptional,
+  IsEthereumAddress,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AddMemberDto {
   // * First Name
@@ -95,6 +97,19 @@ export class AddMemberDto {
   )
   @ApiProperty({ example: '+212607080905', description: 'Member Phone Number' }) // * Swagger Document
   emergencyContact!: string;
+
+  // ! BLOCK_CHAINE
+  // * Optional blockchain wallet address.
+  @IsOptional()
+  @IsEthereumAddress()
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @ApiPropertyOptional({
+    example: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    description: 'Ethereum / EVM wallet address',
+  })
+  walletAddress?: string;
 
   // * Membership PlanId
   @IsUUID()

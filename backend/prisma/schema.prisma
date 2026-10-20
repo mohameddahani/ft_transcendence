@@ -286,7 +286,7 @@ model Member {
   role                 Role     @default(MEMBER)
 
   // ! BLOCK_CHAINE
-  adminWalletAddress String? @map("admin_wallet_address")
+  walletAddress String? @map("wallet_address")
 
   accountStatus MemberAccountStatus @default(ACTIVE) @map("account_status")
 

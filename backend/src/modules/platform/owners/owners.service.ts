@@ -1,3 +1,4 @@
+import { safeUserSelect } from '@/core/types/safe-selects.type';
 import { UserAccountStatus, Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
@@ -19,22 +20,7 @@ export class OwnersService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
         subscription: {
           include: {
@@ -55,22 +41,7 @@ export class OwnersService {
         role: { notIn: [Role.OWNER, Role.MEMBER] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
         subscription: {
           include: {
