@@ -87,7 +87,7 @@
           "refId": "A"
         }
       ],
-      "title": "Postgres Active Connections",
+      "title": "Database Active Connections",
       "type": "stat"
     },
     {

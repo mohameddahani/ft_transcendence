@@ -85,9 +85,9 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 
-  - name: Postgres
+  - name: Database
     group: Infrastructure
-    url: tcp://postgres:5432
+    url: tcp://db:5432
     interval: 30s
     alerts:
       - type: discord
