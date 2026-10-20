@@ -1,12 +1,12 @@
 services:
-  postgres:
+  db:
     image: postgres:16-alpine
-    container_name: postgres_container
+    container_name: db
     restart: unless-stopped
     env_file:
       - .env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -33,7 +33,7 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -96,7 +96,7 @@ services:
     volumes:
       - ai_data:/data
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
   blockchain:
@@ -247,13 +247,13 @@ services:
     container_name: postgres-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable" # security purposes
     expose:
       - "9187"
     networks:
       - ft_transcendence-net
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
   redis-exporter:
@@ -299,11 +299,11 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  db_data:
   ai_data:
   redisdata:
   prometheus_data:
