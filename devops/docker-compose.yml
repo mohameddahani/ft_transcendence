@@ -1,12 +1,21 @@
+# ==============================================================================
+#                         ft_transcendence — Docker Compose
+# ==============================================================================
+
 services:
-  postgres:
+
+  # ============================================================================
+  #                              Infrastructure
+  # ============================================================================
+
+  db:
     image: postgres:16-alpine
-    container_name: postgres_container
+    container_name: db
     restart: unless-stopped
     env_file:
       - .env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -20,7 +29,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     image: backend:latest
-    container_name: backend_container
+    container_name: backend
     restart: unless-stopped
     env_file:
       - ../backend/.env
@@ -33,7 +42,7 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -43,7 +52,7 @@ services:
       context: ../admin-staff-platform
       dockerfile: Dockerfile
     image: frontend:latest
-    container_name: frontend_container
+    container_name: frontend
     restart: unless-stopped
     env_file:
       - ../admin-staff-platform/.env
@@ -66,7 +75,7 @@ services:
       context: ../owner-platform
       dockerfile: Dockerfile
     image: superadmin:latest
-    container_name: superadmin_container
+    container_name: superadmin
     restart: unless-stopped
     env_file:
       - ../owner-platform/.env
@@ -87,7 +96,7 @@ services:
       context: ../AI
       dockerfile: Dockerfile
     image: ai:latest
-    container_name: ai_container
+    container_name: ai
     restart: unless-stopped
     env_file:
       - ../AI/.env
@@ -96,12 +105,27 @@ services:
     volumes:
       - ai_data:/data
     depends_on:
-      postgres:
+      db:
+        condition: service_healthy
+
+  blockchain:
+    build:
+      context: ../block-chain/api
+      dockerfile: Dockerfile
+    image: block-chain:latest
+    container_name: blockchain
+    restart: unless-stopped
+    env_file:
+      - ../block-chain/api/.env
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
         condition: service_healthy
 
   redis:
     image: redis:7-alpine
-    container_name: redis_container
+    container_name: redis
     restart: unless-stopped
     env_file:
       - .env
@@ -120,7 +144,7 @@ services:
 
   nginx:
     image: nginx:1.30-alpine
-    container_name: nginx_container
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -136,6 +160,10 @@ services:
         condition: service_healthy
       superadmin:
         condition: service_healthy
+
+  # ============================================================================
+  #                                Monitoring
+  # ============================================================================
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -154,7 +182,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.30.0
-    container_name: alert-manager
+    container_name: alertmanager
     restart: unless-stopped
     environment:
       - DISCORD_WEBHOOK_URL
@@ -197,6 +225,10 @@ services:
       - ft_transcendence-net
     depends_on: [prometheus]
 
+  # ============================================================================
+  #                             Metrics Exporters
+  # ============================================================================
+
   node-exporter:
     image: prom/node-exporter:v1.8.0
     container_name: node-exporter
@@ -232,13 +264,13 @@ services:
     container_name: postgres-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
     expose:
       - "9187"
     networks:
       - ft_transcendence-net
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
   redis-exporter:
@@ -256,6 +288,10 @@ services:
       redis:
         condition: service_healthy
 
+  # ============================================================================
+  #                                Status Page
+  # ============================================================================
+
   gatus:
     image: twinproduction/gatus:v5.30.0
     container_name: gatus
@@ -268,6 +304,10 @@ services:
       - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
     networks:
       - ft_transcendence-net
+
+  # ============================================================================
+  #                             Backup & Recovery
+  # ============================================================================
 
   backup:
     build: ./backup-service
@@ -284,15 +324,23 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
+# ==============================================================================
+#                                   Volumes
+# ==============================================================================
+
 volumes:
-  postgres_data:
+  db_data:
   ai_data:
   redisdata:
   prometheus_data:
   grafana_data:
+
+# ==============================================================================
+#                                  Networks
+# ==============================================================================
 
 networks:
   ft_transcendence-net:

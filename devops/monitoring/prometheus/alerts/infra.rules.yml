@@ -22,15 +22,15 @@ groups:
           summary: "nginx is down"
           description: "nginx-prometheus-exporter cannot reach nginx."
       
-      # postgres exporter can't reach postgres
-      - alert: PostgresDown
+      # postgres exporter can't reach database
+      - alert: DatabaseDown
         expr: pg_up == 0
         for: 30s
         labels:
           severity: critical
         annotations:
-          summary: "PostgreSQL is down"
-          description: "postgres-exporter cannot reach PostgreSQL."
+          summary: "Database is down"
+          description: "postgres-exporter cannot reach Database."
         
       # Redis is unreachable (exporter is up but can't connect to Redis)
       - alert: RedisDown

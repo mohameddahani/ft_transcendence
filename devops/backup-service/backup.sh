@@ -10,7 +10,7 @@ echo "[$(date)] Starting backup..."
 
 # Dump and compress
 PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
-  -h postgres \
+  -h db \
   -U "$POSTGRES_USER" \
   -d "$POSTGRES_DB" \
   -F c \

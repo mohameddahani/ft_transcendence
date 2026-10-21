@@ -26,7 +26,7 @@ scrape_configs:
       - targets: ['nginx-exporter:9113']
 
   # PostgreSQL metrics
-  - job_name: 'postgres'
+  - job_name: 'db'
     static_configs:
       - targets: ['postgres-exporter:9187']
 
