@@ -1,4 +1,13 @@
+# ==============================================================================
+#                         ft_transcendence — Docker Compose
+# ==============================================================================
+
 services:
+
+  # ============================================================================
+  #                              Infrastructure
+  # ============================================================================
+
   db:
     image: postgres:16-alpine
     container_name: db
@@ -152,6 +161,10 @@ services:
       superadmin:
         condition: service_healthy
 
+  # ============================================================================
+  #                                Monitoring
+  # ============================================================================
+
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: prometheus
@@ -212,6 +225,10 @@ services:
       - ft_transcendence-net
     depends_on: [prometheus]
 
+  # ============================================================================
+  #                             Metrics Exporters
+  # ============================================================================
+
   node-exporter:
     image: prom/node-exporter:v1.8.0
     container_name: node-exporter
@@ -271,6 +288,10 @@ services:
       redis:
         condition: service_healthy
 
+  # ============================================================================
+  #                                Status Page
+  # ============================================================================
+
   gatus:
     image: twinproduction/gatus:v5.30.0
     container_name: gatus
@@ -283,6 +304,10 @@ services:
       - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
     networks:
       - ft_transcendence-net
+
+  # ============================================================================
+  #                             Backup & Recovery
+  # ============================================================================
 
   backup:
     build: ./backup-service
@@ -302,12 +327,20 @@ services:
       db:
         condition: service_healthy
 
+# ==============================================================================
+#                                   Volumes
+# ==============================================================================
+
 volumes:
   db_data:
   ai_data:
   redisdata:
   prometheus_data:
   grafana_data:
+
+# ==============================================================================
+#                                  Networks
+# ==============================================================================
 
 networks:
   ft_transcendence-net:
