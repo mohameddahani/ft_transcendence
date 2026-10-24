@@ -173,4 +173,63 @@
 // * TESTS
 // * Delete user (admin)
 // * Update user (user)
-// ? Q-186
+// ? Q-281
+
+// 1. Metrics
+//    ↓
+// POST /memberships/renew
+// normally: 200 ms
+// now: 3 seconds
+
+// 2. Trace
+//    ↓
+// NestJS       20 ms
+// PostgreSQL  150 ms
+// Email API  2700 ms  ← problem area
+
+// 3. Logs
+//    ↓
+// "Email provider timeout"
+// requestId=req-123
+
+// 4. Diagnosis
+//    ↓
+// external email service is slow
+
+// 5. Fix
+//    ↓
+// move email sending to a queue / add timeout / retry policy
+
+// 6. Metrics
+//    ↓
+// renewal endpoint back to ~200 ms ✅
+
+// S
+// Single Responsibility
+// → "One job"
+
+// O
+// Open/Closed
+// → "Easy to add"
+
+// L
+// Liskov
+// → "Safe replacement"
+
+// I
+// Interface Segregation
+// → "Don't force unused methods"
+
+// D
+// Dependency Inversion
+// → "Depend on contracts"
+
+// S → One job
+
+// O → Extend
+
+// L → Replace safely
+
+// I → Small interfaces
+
+// D → Depend on abstraction
