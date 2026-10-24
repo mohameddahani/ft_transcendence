@@ -1,12 +1,21 @@
+# ==============================================================================
+#                         ft_transcendence — Docker Compose
+# ==============================================================================
+
 services:
-  postgres:
+
+  # ============================================================================
+  #                              Infrastructure
+  # ============================================================================
+
+  db:
     image: postgres:16-alpine
-    container_name: postgres_container
+    container_name: db
     restart: unless-stopped
     env_file:
       - .env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -20,7 +29,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     image: backend:latest
-    container_name: backend_container
+    container_name: backend
     restart: unless-stopped
     env_file:
       - ../backend/.env
@@ -33,7 +42,7 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -43,12 +52,18 @@ services:
       context: ../admin-staff-platform
       dockerfile: Dockerfile
     image: frontend:latest
-    container_name: frontend_container
+    container_name: frontend
     restart: unless-stopped
     env_file:
       - ../admin-staff-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -60,12 +75,18 @@ services:
       context: ../owner-platform
       dockerfile: Dockerfile
     image: superadmin:latest
-    container_name: superadmin_container
+    container_name: superadmin
     restart: unless-stopped
     env_file:
       - ../owner-platform/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
       backend:
         condition: service_healthy
@@ -75,7 +96,7 @@ services:
       context: ../AI
       dockerfile: Dockerfile
     image: ai:latest
-    container_name: ai_container
+    container_name: ai
     restart: unless-stopped
     env_file:
       - ../AI/.env
@@ -84,12 +105,27 @@ services:
     volumes:
       - ai_data:/data
     depends_on:
-      postgres:
+      db:
+        condition: service_healthy
+
+  blockchain:
+    build:
+      context: ../block-chain/api
+      dockerfile: Dockerfile
+    image: block-chain:latest
+    container_name: blockchain
+    restart: unless-stopped
+    env_file:
+      - ../block-chain/api/.env
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
         condition: service_healthy
 
   redis:
     image: redis:7-alpine
-    container_name: redis_container
+    container_name: redis
     restart: unless-stopped
     env_file:
       - .env
@@ -108,7 +144,7 @@ services:
 
   nginx:
     image: nginx:1.30-alpine
-    container_name: nginx_container
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -120,8 +156,14 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      - frontend
-      - superadmin
+      frontend:
+        condition: service_healthy
+      superadmin:
+        condition: service_healthy
+
+  # ============================================================================
+  #                                Monitoring
+  # ============================================================================
 
   prometheus:
     image: prom/prometheus:v2.51.0
@@ -140,7 +182,7 @@ services:
 
   alertmanager:
     image: prom/alertmanager:v0.30.0
-    container_name: alert-manager
+    container_name: alertmanager
     restart: unless-stopped
     environment:
       - DISCORD_WEBHOOK_URL
@@ -152,8 +194,6 @@ services:
       - "9093"
     networks:
       - ft_transcendence-net
-    depends_on:
-      - prometheus
 
   grafana:
     image: grafana/grafana:10.4.0
@@ -161,6 +201,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     expose:
       - "3000"
@@ -182,8 +223,11 @@ services:
       - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
     networks:
       - ft_transcendence-net
-    depends_on:
-      - prometheus
+    depends_on: [prometheus]
+
+  # ============================================================================
+  #                             Metrics Exporters
+  # ============================================================================
 
   node-exporter:
     image: prom/node-exporter:v1.8.0
@@ -208,26 +252,25 @@ services:
     container_name: nginx-exporter
     restart: unless-stopped
     command:
-      - '-nginx.scrape-uri=http://nginx:80/nginx_status'
+      - '--nginx.scrape-uri=http://nginx:80/nginx_status'
     expose:
       - "9113"
     networks:
       - ft_transcendence-net
-    depends_on:
-      - nginx
+    depends_on: [nginx]
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.18.0
     container_name: postgres-exporter
     restart: unless-stopped
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
     expose:
       - "9187"
     networks:
       - ft_transcendence-net
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
   redis-exporter:
@@ -245,12 +288,59 @@ services:
       redis:
         condition: service_healthy
 
+  # ============================================================================
+  #                                Status Page
+  # ============================================================================
+
+  gatus:
+    image: twinproduction/gatus:v5.30.0
+    container_name: gatus
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    expose:
+      - "8080"
+    volumes:
+      - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
+    networks:
+      - ft_transcendence-net
+
+  # ============================================================================
+  #                             Backup & Recovery
+  # ============================================================================
+
+  backup:
+    build: ./backup-service
+    image: backup:latest
+    container_name: backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - BACKUP_SCHEDULE
+    volumes:
+      - ./backups:/backups
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      db:
+        condition: service_healthy
+
+# ==============================================================================
+#                                   Volumes
+# ==============================================================================
+
 volumes:
-  postgres_data:
+  db_data:
   ai_data:
   redisdata:
   prometheus_data:
   grafana_data:
+
+# ==============================================================================
+#                                  Networks
+# ==============================================================================
 
 networks:
   ft_transcendence-net:

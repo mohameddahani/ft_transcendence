@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Req, Res } from "@nestjs/common";
+import { Controller, Post, Req, Res } from "@nestjs/common";
 import { relayerService } from "./relayer.service.js";
 import type { Response, Request } from 'express';
 

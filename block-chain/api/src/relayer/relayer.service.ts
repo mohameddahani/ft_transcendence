@@ -8,7 +8,7 @@ import {
   CHAIN_ID,
   FORWARDER_ADDRESS,
   GYMTOKEN_ABI,
-} from './contract.js';
+} from '../lib/contract.js';
 import { JsonRpcProvider } from 'ethers';
 import { Contract } from 'ethers';
 import { Wallet } from 'ethers';
