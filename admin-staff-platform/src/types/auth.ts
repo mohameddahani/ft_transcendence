@@ -36,6 +36,16 @@ export interface LoginUserPayload {
   password: string;
 }
 
+export interface StaffLoginPayload {
+  userName: string;
+  password: string;
+}
+
+export interface MemberLoginPayload {
+  userName: string;
+  password: string;
+}
+
 export interface AuthUser {
   id?: string;
   firstName?: string;

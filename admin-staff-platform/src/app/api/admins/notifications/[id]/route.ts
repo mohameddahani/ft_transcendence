@@ -10,9 +10,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { headers, newAccessToken } = await getAuthenticatedSession(req);
+    const { headers, newAccessToken, isMember } = await getAuthenticatedSession(req);
 
-    const backendRes = await axios.get(`${API_URL}/api/admins/notifications/${id}`, {
+    const backendPath = isMember
+      ? `/api/members/notifications/${id}`
+      : `/api/admins/notifications/${id}`;
+
+    const backendRes = await axios.get(`${API_URL}${backendPath}`, {
       headers,
       validateStatus: () => true,
     });

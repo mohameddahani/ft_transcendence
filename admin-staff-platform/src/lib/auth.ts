@@ -40,6 +40,22 @@ export function isAdminOrStaffUser(
   return role === "ADMIN" || role === "STAFF";
 }
 
+export function isMemberUser(
+  userOrPayload?: { role?: string; userType?: string } | null
+): boolean {
+  if (!userOrPayload) return false;
+  const role = (userOrPayload.role || userOrPayload.userType || "").toUpperCase();
+  return role === "MEMBER";
+}
+
+export function isAuthorizedUser(
+  userOrPayload?: { role?: string; userType?: string } | null
+): boolean {
+  if (!userOrPayload) return false;
+  const role = (userOrPayload.role || userOrPayload.userType || "").toUpperCase();
+  return role === "ADMIN" || role === "STAFF" || role === "MEMBER";
+}
+
 export function isTokenExpired(
   tokenOrPayload?: string | TokenPayload | null
 ): boolean {

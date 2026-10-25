@@ -10,9 +10,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
+    const { headers, newAccessToken, isStaff, isMember } = await getAuthenticatedSession(req);
 
-    const backendPath = isStaff
+    const backendPath = isMember
+      ? `/api/members/special-hours/${id}`
+      : isStaff
       ? `/api/staffs/special-hours/${id}`
       : `/api/admins/special-hours/${id}`;
 

@@ -25,6 +25,28 @@ export interface AdminProfile {
   }>;
 }
 
+export interface StaffProfile {
+  firstName: string;
+  lastName: string;
+  gender: Gender;
+  birthDate: string;
+  userName: string;
+  email: string;
+  phoneNumber: string;
+  companyName: string;
+  admin?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    companyName?: string;
+    profileImageUrl?: string;
+  } | null;
+  profileImageUrl: string;
+  profileImagePublicId?: string | null;
+  role: string;
+  accountStatus: string;
+}
+
 export interface UpdateProfileInput {
   firstName?: string;
   lastName?: string;

@@ -8,32 +8,77 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    let backendRes = await axios.post(`${API_URL}/api/auth/login`, body, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      validateStatus: () => true, // Forward all status codes
-    });
+    const identifier = (body.email || body.userName || "").trim();
+    const isEmail = identifier.includes("@");
 
-    let data = backendRes.data;
+    let backendRes;
+    let data;
 
-    // If admin login failed, attempt staff login via /api/auth/staffs/login
-    if (backendRes.status >= 400) {
-      const staffBody = {
-        userName: body.email || body.userName,
-        password: body.password,
-      };
+    if (isEmail) {
+      // 1. Attempt Admin login first if input is an email
+      backendRes = await axios.post(
+        `${API_URL}/api/auth/login`,
+        { email: identifier, password: body.password },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          validateStatus: () => true,
+        }
+      );
+      data = backendRes.data;
 
-      const staffRes = await axios.post(`${API_URL}/api/auth/staffs/login`, staffBody, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        validateStatus: () => true,
-      });
+      // If admin login failed, attempt staff login via /api/auth/staffs/login
+      if (backendRes.status >= 400) {
+        const staffRes = await axios.post(
+          `${API_URL}/api/auth/staffs/login`,
+          { userName: identifier, password: body.password },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            validateStatus: () => true,
+          }
+        );
+
+        if (staffRes.status < 400) {
+          backendRes = staffRes;
+          data = staffRes.data;
+        }
+      }
+    } else {
+      // 2. Attempt Staff login directly if input is a username
+      const staffRes = await axios.post(
+        `${API_URL}/api/auth/staffs/login`,
+        { userName: identifier, password: body.password },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          validateStatus: () => true,
+        }
+      );
 
       if (staffRes.status < 400) {
         backendRes = staffRes;
         data = staffRes.data;
+      } else {
+        // Fallback to admin login just in case
+        backendRes = await axios.post(
+          `${API_URL}/api/auth/login`,
+          { email: identifier, password: body.password },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+            validateStatus: () => true,
+          }
+        );
+        data = backendRes.data;
+        if (backendRes.status >= 400) {
+          backendRes = staffRes;
+          data = staffRes.data;
+        }
       }
     }
 
@@ -51,6 +96,24 @@ export async function POST(req: NextRequest) {
 
     // Check user role from backend user object and JWT accessToken payload
     const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
+    const userRole = (
+      data?.user?.role ||
+      data?.staff?.role ||
+      jwtPayload?.role ||
+      ""
+    ).toUpperCase();
+
+    // Explicitly reject Owner accounts with a clear message
+    if (userRole === "OWNER") {
+      return NextResponse.json(
+        {
+          message:
+            "Access denied. Only Admin accounts are authorized.",
+        },
+        { status: 403 }
+      );
+    }
+
     const isAuthorizedRole =
       isAdminOrStaffUser(data?.user) ||
       isAdminOrStaffUser(data?.staff) ||

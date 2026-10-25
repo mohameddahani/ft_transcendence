@@ -14,6 +14,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
 import { fetchAdminNotification } from "@/lib/api/notifications";
+import { fetchMemberNotificationById } from "@/lib/api/member-portal";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 interface NotificationDetailModalProps {
   notificationId: string | null;
@@ -25,6 +27,9 @@ export default function NotificationDetailModal({
   onClose,
 }: NotificationDetailModalProps) {
   const { t } = useTranslation();
+  const { role } = useCurrentUser();
+  const isMember = role === "Member";
+
   const [notification, setNotification] = useState<AdminNotification | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +44,11 @@ export default function NotificationDetailModal({
     setIsLoading(true);
     setError(null);
 
-    fetchAdminNotification(notificationId)
+    const fetchPromise = isMember
+      ? fetchMemberNotificationById(notificationId)
+      : fetchAdminNotification(notificationId);
+
+    fetchPromise
       .then((data) => {
         if (isMounted) setNotification(data);
       })

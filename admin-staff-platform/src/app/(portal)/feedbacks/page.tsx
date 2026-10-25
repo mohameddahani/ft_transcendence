@@ -20,6 +20,7 @@ import {
   Sparkles,
   TrendingUp,
   Check,
+  Loader2,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -27,8 +28,10 @@ import { useTranslation } from "react-i18next";
 import { FeedbackItem, FeedbackStatus } from "@/types/feedback";
 import { fetchAllFeedbacks, updateFeedbackStatus } from "@/lib/api/feedbacks";
 import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
 
-export default function FeedbacksPage() {
+function AdminStaffFeedbackView() {
   const { t } = useTranslation();
 
   // Data state
@@ -611,4 +614,22 @@ export default function FeedbacksPage() {
       />
     </div>
   );
+}
+
+export default function FeedbacksPage() {
+  const { role, isLoading } = useCurrentUser();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (role === "Member") {
+    return <MemberFeedbackView />;
+  }
+
+  return <AdminStaffFeedbackView />;
 }

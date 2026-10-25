@@ -27,7 +27,19 @@ export async function POST(req: NextRequest) {
 
     // 2. Determine if token belongs to Staff or Admin and forward to correct backend endpoint
     const tokenPayload = parseJwtPayload(refreshToken);
-    const isStaff = tokenPayload?.role === "STAFF";
+    const roleUpper = (tokenPayload?.role || "").toUpperCase();
+
+    if (roleUpper === "OWNER") {
+      const response = NextResponse.json(
+        { message: "Owner accounts are not permitted on this platform." },
+        { status: 403 }
+      );
+      response.cookies.delete("auth_token");
+      response.cookies.delete("refresh_token");
+      return response;
+    }
+
+    const isStaff = roleUpper === "STAFF";
     const refreshPath = isStaff ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
 
     const backendRes = await axios

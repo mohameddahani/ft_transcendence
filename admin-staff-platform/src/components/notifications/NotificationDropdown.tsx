@@ -15,12 +15,16 @@ import {
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
 import { fetchAdminNotifications } from "@/lib/api/notifications";
+import { fetchMemberNotifications } from "@/lib/api/member-portal";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import NotificationDetailModal from "./NotificationDetailModal";
-
-const SEEN_STORAGE_KEY = "admin_seen_notifications";
 
 export default function NotificationDropdown() {
   const { t } = useTranslation();
+  const { role, isLoading: isRoleLoading } = useCurrentUser();
+  const isMember = role === "Member";
+  const seenStorageKey = isMember ? "member_seen_notifications" : "admin_seen_notifications";
+
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
@@ -32,7 +36,7 @@ export default function NotificationDropdown() {
   // Initialize seen IDs from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(SEEN_STORAGE_KEY);
+      const stored = localStorage.getItem(seenStorageKey);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
@@ -42,13 +46,15 @@ export default function NotificationDropdown() {
     } catch {
       // Ignore localStorage errors
     }
-  }, []);
+  }, [seenStorageKey]);
 
   // Fetch notifications
-  const loadNotifications = async (showLoading = true) => {
+  const loadNotifications = async (showLoading = true, forMember = isMember) => {
     if (showLoading) setIsLoading(true);
     try {
-      const data = await fetchAdminNotifications(1, 30);
+      const data = forMember
+        ? await fetchMemberNotifications(1, 30)
+        : await fetchAdminNotifications(1, 30);
       setNotifications(data);
     } catch {
       // Fail silently if unauthorized or offline
@@ -57,16 +63,19 @@ export default function NotificationDropdown() {
     }
   };
 
-  // Initial fetch and periodic polling every 45s
+  // Initial fetch and periodic polling every 45s (only after role is known)
   useEffect(() => {
-    loadNotifications(true);
+    if (!isRoleLoading && role) {
+      const memberMode = role === "Member";
+      loadNotifications(true, memberMode);
 
-    const interval = setInterval(() => {
-      loadNotifications(false);
-    }, 45000);
+      const interval = setInterval(() => {
+        loadNotifications(false, memberMode);
+      }, 45000);
 
-    return () => clearInterval(interval);
-  }, []);
+      return () => clearInterval(interval);
+    }
+  }, [role, isRoleLoading]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -99,7 +108,7 @@ export default function NotificationDropdown() {
         notifications.forEach((n) => updated.add(n.id));
         try {
           localStorage.setItem(
-            SEEN_STORAGE_KEY,
+            seenStorageKey,
             JSON.stringify(Array.from(updated))
           );
         } catch {
@@ -116,7 +125,7 @@ export default function NotificationDropdown() {
       notifications.forEach((n) => updated.add(n.id));
       try {
         localStorage.setItem(
-          SEEN_STORAGE_KEY,
+          seenStorageKey,
           JSON.stringify(Array.from(updated))
         );
       } catch {

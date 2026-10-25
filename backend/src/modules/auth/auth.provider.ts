@@ -804,6 +804,11 @@ export class AuthProvider {
       select: {
         ...safeMemberSelect,
         password: true,
+        admin: {
+          select: {
+            companyName: true,
+          },
+        },
       },
     });
     if (!member) {

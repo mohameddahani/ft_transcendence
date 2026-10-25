@@ -6,7 +6,7 @@ const API_URL = process.env.API_URL || "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
   try {
-    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
+    const { headers, newAccessToken, isStaff, isMember } = await getAuthenticatedSession(req);
 
     // Backend only has admin notifications; return [] for staff to prevent 401/403 cascade
     if (isStaff) {
@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
     const limit = searchParams.get("limit") || "20";
 
     const queryString = `?page=${page}&limit=${limit}`;
-    const backendPath = `/api/admins/notifications${queryString}`;
+    const backendPath = isMember
+      ? `/api/members/notifications${queryString}`
+      : `/api/admins/notifications${queryString}`;
 
     const backendRes = await axios.get(`${API_URL}${backendPath}`, {
       headers,

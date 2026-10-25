@@ -37,6 +37,7 @@ export default function TopBar({
     role,
     photo,
     initials,
+    isLoading,
     logout,
   } = useCurrentUser();
 
@@ -89,9 +90,15 @@ export default function TopBar({
         title: t("navMembershipPlans") || "Membership plans",
       };
     }
+    if (pathname.startsWith("/visits")) {
+      return {
+        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("frontDesk") || "Front desk"),
+        title: t("navVisits") || "Visits & Attendances",
+      };
+    }
     if (pathname.startsWith("/operating-hours")) {
       return {
-        section: t("gymSetup") || "Gym setup",
+        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("gymSetup") || "Gym setup"),
         title: t("navOpeningHours") || "Opening hours",
       };
     }
@@ -103,7 +110,7 @@ export default function TopBar({
     }
     if (pathname.startsWith("/feedbacks")) {
       return {
-        section: t("insight") || "Insight",
+        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("insight") || "Insight"),
         title: t("navFeedback") || "Feedback",
       };
     }
@@ -115,7 +122,7 @@ export default function TopBar({
     }
     if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
       return {
-        section: t("account") || "Account",
+        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("account") || "Account"),
         title: t("navProfile") || "Profile",
       };
     }
@@ -124,7 +131,7 @@ export default function TopBar({
     const formatted =
       raw.charAt(0).toUpperCase() + raw.slice(1).replace(/-/g, " ");
     return { section: null, title: formatted };
-  }, [pathname, t]);
+  }, [pathname, t, role]);
 
   return (
     <header className="flex justify-between items-center w-full px-4 sm:px-6 h-16 sticky top-0 z-30 bg-surface-container-lowest/80 dark:bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/50 transition-colors">
@@ -206,15 +213,26 @@ export default function TopBar({
             aria-haspopup="menu"
           >
             <div className="text-right hidden sm:block">
-              <p className="font-headline text-xs font-bold leading-tight text-on-surface">
-                {fullName}
-              </p>
-              <p className="text-[11px] text-on-surface-variant font-medium leading-tight">
-                {role}
-              </p>
+              {isLoading ? (
+                <div className="flex flex-col items-end gap-1">
+                  <div className="h-3 w-16 bg-surface-container-high rounded animate-pulse" />
+                  <div className="h-2.5 w-10 bg-surface-container rounded animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <p className="font-headline text-xs font-bold leading-tight text-on-surface">
+                    {fullName}
+                  </p>
+                  <p className="text-[11px] text-on-surface-variant font-medium leading-tight">
+                    {role}{companyName ? ` • ${companyName}` : ""}
+                  </p>
+                </>
+              )}
             </div>
 
-            {photo ? (
+            {isLoading ? (
+              <div className="w-9 h-9 rounded-full bg-surface-container-high animate-pulse shadow-2xs" />
+            ) : photo ? (
               <img
                 className="w-9 h-9 rounded-full ring-2 ring-primary/20 object-cover shadow-2xs"
                 alt={fullName}

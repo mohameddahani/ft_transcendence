@@ -132,7 +132,7 @@ export default function LoginForm() {
               id="email"
               type="email"
               autoComplete="username"
-              placeholder="admin@kinetic.internal"
+              placeholder="owner@gymflow.internal"
               disabled={isSubmitting}
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}

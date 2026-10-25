@@ -32,6 +32,11 @@ import {
   fetchSpecialHours,
   deleteSpecialHour,
 } from "@/lib/api/working-hours";
+import {
+  fetchMemberWorkingHours,
+  fetchMemberSpecialHours,
+} from "@/lib/api/member-portal";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import WorkingHourModal from "@/components/operating-hours/WorkingHourModal";
 import SpecialHourModal from "@/components/operating-hours/SpecialHourModal";
 import DeleteConfirmModal from "@/components/operating-hours/DeleteConfirmModal";
@@ -39,6 +44,8 @@ import DeleteConfirmModal from "@/components/operating-hours/DeleteConfirmModal"
 export default function OperatingHoursPage() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === "ar";
+  const { role, isLoading: isUserRoleLoading } = useCurrentUser();
+  const isMember = role === "Member";
 
   // Data State
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>([]);
@@ -73,12 +80,12 @@ export default function OperatingHoursPage() {
   });
 
   // Load all operating hours and special hours
-  const loadData = async () => {
+  const loadData = async (forMember = (role === "Member")) => {
     setIsLoading(true);
     try {
       const [whData, shData] = await Promise.all([
-        fetchWorkingHours(1, 50).catch(() => []),
-        fetchSpecialHours(1, 50).catch(() => []),
+        (forMember ? fetchMemberWorkingHours(1, 50) : fetchWorkingHours(1, 50)).catch(() => []),
+        (forMember ? fetchMemberSpecialHours(1, 50) : fetchSpecialHours(1, 50)).catch(() => []),
       ]);
       setWorkingHours(whData);
       setSpecialHours(shData);
@@ -94,8 +101,10 @@ export default function OperatingHoursPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!isUserRoleLoading && role) {
+      loadData(role === "Member");
+    }
+  }, [role, isUserRoleLoading]);
 
   // Days list (1: Monday to 7: Sunday)
   const daysMap = useMemo(() => {
@@ -327,7 +336,7 @@ export default function OperatingHoursPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => loadData()}
             disabled={isLoading}
             className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer disabled:opacity-50"
           >
@@ -337,26 +346,29 @@ export default function OperatingHoursPage() {
             <span>{t("refresh")}</span>
           </button>
 
-          {/* Add Special Closure Button */}
-          <button
-            type="button"
-            onClick={handleOpenAddSpecialHour}
-            className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-amber-600 to-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <CalendarDays className="w-4 h-4" />
-            <span>{t("addSpecialHour")}</span>
-          </button>
+          {/* Add Special Closure & Regular Day Buttons (Admin Only) */}
+          {!isMember && (
+            <>
+              <button
+                type="button"
+                onClick={handleOpenAddSpecialHour}
+                className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-amber-600 to-rose-600 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-600/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <CalendarDays className="w-4 h-4" />
+                <span>{t("addSpecialHour")}</span>
+              </button>
 
-          {/* Add Regular Day Button */}
-          <button
-            type="button"
-            onClick={() => handleOpenAddWorkingHour()}
-            disabled={configuredDayNumbers.length >= 7}
-            className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t("addWorkingHour")}</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => handleOpenAddWorkingHour()}
+                disabled={configuredDayNumbers.length >= 7}
+                className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t("addWorkingHour")}</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -548,14 +560,20 @@ export default function OperatingHoursPage() {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAddWorkingHour(dayItem.day)}
-                      className="w-full mt-4 py-2 px-3 bg-surface-container hover:bg-primary hover:text-on-primary text-primary rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{t("configureDay")}</span>
-                    </button>
+                    {!isMember ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddWorkingHour(dayItem.day)}
+                        className="w-full mt-4 py-2 px-3 bg-surface-container hover:bg-primary hover:text-on-primary text-primary rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>{t("configureDay")}</span>
+                      </button>
+                    ) : (
+                      <div className="mt-4 py-2 px-3 bg-surface-container/60 rounded-xl text-xs text-on-surface-variant font-medium text-center">
+                        {t("noHoursConfigured") || "Not scheduled"}
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -614,36 +632,38 @@ export default function OperatingHoursPage() {
                     )}
                   </div>
 
-                  {/* Actions for this day */}
-                  <div className="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditWorkingHour(wh)}
-                      className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                      title={t("edit")}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDeleteModal({
-                          isOpen: true,
-                          type: "workingHour",
-                          id: wh.id,
-                          name: `${dayItem.name} (${
-                            wh.isClosed
-                              ? "Closed"
-                              : `${wh.startTime} - ${wh.endTime}`
-                          })`,
-                        })
-                      }
-                      className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                      title={t("delete")}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Actions for this day (Admin Only) */}
+                  {!isMember && (
+                    <div className="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditWorkingHour(wh)}
+                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                        title={t("edit")}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeleteModal({
+                            isOpen: true,
+                            type: "workingHour",
+                            id: wh.id,
+                            name: `${dayItem.name} (${
+                              wh.isClosed
+                                ? "Closed"
+                                : `${wh.startTime} - ${wh.endTime}`
+                            })`,
+                          })
+                        }
+                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                        title={t("delete")}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -797,34 +817,36 @@ export default function OperatingHoursPage() {
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditSpecialHour(sh)}
-                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                        title={t("edit")}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDeleteModal({
-                            isOpen: true,
-                            type: "specialHour",
-                            id: sh.id,
-                            name: `Closure (${startDate} ${
-                              isMultiDay ? `to ${endDate}` : ""
-                            })`,
-                          })
-                        }
-                        className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
-                        title={t("delete")}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {/* Actions (Admin Only) */}
+                    {!isMember && (
+                      <div className="mt-5 pt-3 border-t border-outline-variant/40 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditSpecialHour(sh)}
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                          title={t("edit")}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDeleteModal({
+                              isOpen: true,
+                              type: "specialHour",
+                              id: sh.id,
+                              name: `Closure (${startDate} ${
+                                isMultiDay ? `to ${endDate}` : ""
+                              })`,
+                            })
+                          }
+                          className="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                          title={t("delete")}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -833,42 +855,47 @@ export default function OperatingHoursPage() {
         </div>
       )}
 
-      {/* Working Hour Modal (Add/Edit) */}
-      <WorkingHourModal
-        isOpen={isWorkingHourModalOpen}
-        onClose={() => setIsWorkingHourModalOpen(false)}
-        onSuccess={loadData}
-        initialData={editingWorkingHour}
-        configuredDays={configuredDayNumbers}
-      />
+      {/* Admin Modals (Hidden for Members) */}
+      {!isMember && (
+        <>
+          {/* Working Hour Modal (Add/Edit) */}
+          <WorkingHourModal
+            isOpen={isWorkingHourModalOpen}
+            onClose={() => setIsWorkingHourModalOpen(false)}
+            onSuccess={loadData}
+            initialData={editingWorkingHour}
+            configuredDays={configuredDayNumbers}
+          />
 
-      {/* Special Hour Modal (Add/Edit) */}
-      <SpecialHourModal
-        isOpen={isSpecialHourModalOpen}
-        onClose={() => setIsSpecialHourModalOpen(false)}
-        onSuccess={loadData}
-        initialData={editingSpecialHour}
-      />
+          {/* Special Hour Modal (Add/Edit) */}
+          <SpecialHourModal
+            isOpen={isSpecialHourModalOpen}
+            onClose={() => setIsSpecialHourModalOpen(false)}
+            onSuccess={loadData}
+            initialData={editingSpecialHour}
+          />
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={deleteModal.isOpen}
-        onClose={() =>
-          setDeleteModal((prev) => ({ ...prev, isOpen: false }))
-        }
-        onConfirm={handleConfirmDelete}
-        title={
-          deleteModal.type === "workingHour"
-            ? t("confirmDeleteHourTitle")
-            : t("confirmDeleteSpecialTitle")
-        }
-        description={
-          deleteModal.type === "workingHour"
-            ? t("confirmDeleteHourDesc")
-            : t("confirmDeleteSpecialDesc")
-        }
-        itemName={deleteModal.name}
-      />
+          {/* Delete Confirmation Modal */}
+          <DeleteConfirmModal
+            isOpen={deleteModal.isOpen}
+            onClose={() =>
+              setDeleteModal((prev) => ({ ...prev, isOpen: false }))
+            }
+            onConfirm={handleConfirmDelete}
+            title={
+              deleteModal.type === "workingHour"
+                ? t("confirmDeleteHourTitle")
+                : t("confirmDeleteSpecialTitle")
+            }
+            description={
+              deleteModal.type === "workingHour"
+                ? t("confirmDeleteHourDesc")
+                : t("confirmDeleteSpecialDesc")
+            }
+            itemName={deleteModal.name}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import {
   Dumbbell,
   Mail,
+  ShieldCheck,
   Lock,
   ArrowRight,
   Loader2,
@@ -18,7 +19,7 @@ import {
   EyeOff,
 } from "lucide-react";
 
-import { loginSchema, LoginFormValues } from "@/schemas/auth";
+import { adminLoginSchema, AdminLoginFormValues } from "@/schemas/auth";
 import { loginUser } from "@/lib/api/auth";
 
 export default function LoginForm() {
@@ -31,15 +32,15 @@ export default function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<AdminLoginFormValues>({
+    resolver: zodResolver(adminLoginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: AdminLoginFormValues) => {
     setIsSubmitting(true);
     try {
       const response = await loginUser({
@@ -49,7 +50,8 @@ export default function LoginForm() {
 
       if (response.user) {
         try {
-          localStorage.setItem("kinetic_user", JSON.stringify(response.user));
+          localStorage.setItem("gym_user", JSON.stringify(response.user));
+          localStorage.removeItem("kinetic_user");
         } catch {
           // ignore localStorage error if in private mode
         }
@@ -57,7 +59,7 @@ export default function LoginForm() {
 
       const userGreeting = response.user?.firstName
         ? `${response.user.firstName}!`
-        : "Admin!";
+        : "Administrator!";
 
       toast.success(`Welcome back, ${userGreeting}`);
 
@@ -106,19 +108,19 @@ export default function LoginForm() {
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg">
               <Dumbbell className="w-6 h-6" />
             </div>
-            <span className="font-headline text-2xl font-bold tracking-tight text-white">
+            <span className="font-headline text-2xl font-bold tracking-tight text-white" suppressHydrationWarning>
               {t("brandName", "GymFlow")}
             </span>
           </div>
 
           <div className="max-w-xl">
-            <h1 className="font-headline text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+            <h1 className="font-headline text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight" suppressHydrationWarning>
               {t("heroTitle", "Elevate Your Performance.")}
             </h1>
-            <p className="text-base lg:text-lg text-white/80 leading-relaxed">
+            <p className="text-base lg:text-lg text-white/80 leading-relaxed" suppressHydrationWarning>
               {t(
                 "heroSubtitle",
-                "The ultimate ecosystem for high-performance fitness management. Synchronize your progress, payments, and potential in one kinetic interface."
+                "The ultimate ecosystem for high-performance fitness management. Synchronize your progress, payments, and potential in one unified interface."
               )}
             </p>
           </div>
@@ -134,7 +136,7 @@ export default function LoginForm() {
       </section>
 
       {/* Right Side: Login Form */}
-      <section className="w-full lg:w-5/12 h-full flex flex-col justify-center items-center px-6 sm:px-10 lg:px-12 kinetic-mesh relative overflow-y-auto">
+      <section className="w-full lg:w-5/12 h-full flex flex-col justify-center items-center px-6 sm:px-10 lg:px-12 brand-mesh relative overflow-y-auto">
         <div className="w-full max-w-[440px] flex flex-col my-auto">
           {/* Mobile Branding */}
           <div className="lg:hidden flex items-center gap-3 mb-8 self-start">
@@ -147,12 +149,16 @@ export default function LoginForm() {
           </div>
 
           {/* Form Header */}
-          <div className="mb-8">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 mb-3">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>{t("adminPortal", "Administrator Portal")}</span>
+            </div>
             <h2 className="font-headline text-3xl font-bold text-on-surface mb-2">
-              {t("welcomeBack", "Welcome back")}
+              {t("adminSignIn", "Admin Sign In")}
             </h2>
             <p className="text-sm text-on-surface-variant">
-              {t("signInSubtitle", "Sign in to access your dashboard")}
+              {t("adminLoginSubtitle", "Sign in to access your administrative workspace and gym management tools.")}
             </p>
           </div>
 
@@ -177,7 +183,8 @@ export default function LoginForm() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="name@gymflow.com"
+                  autoComplete="email"
+                  placeholder="admin@gymflow.com"
                   {...register("email")}
                   className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-3 bg-surface-container-lowest border ${
                     errors.email
@@ -217,6 +224,7 @@ export default function LoginForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   {...register("password")}
                   className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-3 bg-surface-container-lowest border ${
                     errors.password
@@ -257,7 +265,7 @@ export default function LoginForm() {
                 </>
               ) : (
                 <>
-                  <span>{t("logIn", "Log In")}</span>
+                  <span>{t("signInAdminPortal", "Sign In as Administrator")}</span>
                   <ArrowRight className="w-4 h-4 rtl:rotate-180" />
                 </>
               )}
@@ -265,7 +273,7 @@ export default function LoginForm() {
           </form>
 
           {/* Footnote / Secondary Link */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <p className="text-sm text-on-surface-variant">
               {t("gymOwner", "Gym owner?")}{" "}
               <Link
@@ -275,6 +283,35 @@ export default function LoginForm() {
                 {t("createAccount", "Create an account")}
               </Link>
             </p>
+          </div>
+
+          {/* Switcher to Staff and Member Portals */}
+          <div className="mt-6 pt-5 border-t border-outline-variant/40 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-on-surface-variant font-medium">
+                {t("areYouMember", "Are you a gym member?")}
+              </span>
+              <Link
+                href="/member/login"
+                className="font-bold text-primary hover:underline flex items-center gap-1 transition-all"
+              >
+                <span>{t("switchToMemberPortal", "Member Portal Sign In")}</span>
+                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+              </Link>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-on-surface-variant font-medium">
+                {t("areYouStaff", "Are you a staff member?")}
+              </span>
+              <Link
+                href="/staff/login"
+                className="font-bold text-primary hover:underline flex items-center gap-1 transition-all"
+              >
+                <span>{t("switchToStaffPortal", "Staff Portal Sign In")}</span>
+                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+              </Link>
+            </div>
           </div>
         </div>
 

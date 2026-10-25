@@ -54,7 +54,7 @@ export const registerSchema = z.object({
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export const loginSchema = z.object({
+export const adminLoginSchema = z.object({
   email: z
     .string()
     .trim()
@@ -66,4 +66,36 @@ export const loginSchema = z.object({
     .min(1, "Password is required"),
 });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
+export type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
+
+// Backward compatibility alias
+export const loginSchema = adminLoginSchema;
+export type LoginFormValues = AdminLoginFormValues;
+
+export const staffLoginSchema = z.object({
+  userName: z
+    .string()
+    .trim()
+    .min(1, "Username is required")
+    .min(2, "Username must be at least 2 characters"),
+  password: z
+    .string()
+    .trim()
+    .min(1, "Password is required"),
+});
+
+export type StaffLoginFormValues = z.infer<typeof staffLoginSchema>;
+
+export const memberLoginSchema = z.object({
+  userName: z
+    .string()
+    .trim()
+    .min(1, "Username is required")
+    .min(2, "Username must be at least 2 characters"),
+  password: z
+    .string()
+    .trim()
+    .min(1, "Password is required"),
+});
+
+export type MemberLoginFormValues = z.infer<typeof memberLoginSchema>;

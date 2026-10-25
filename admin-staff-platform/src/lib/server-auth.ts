@@ -10,6 +10,7 @@ export interface AuthenticatedSession {
   newAccessToken?: string;
   isStaff: boolean;
   isAdmin: boolean;
+  isMember: boolean;
 }
 
 /**
@@ -30,8 +31,13 @@ export async function getAuthenticatedSession(
   if ((!token || isTokenExpired(token)) && refreshToken) {
     try {
       const tokenPayload = parseJwtPayload(refreshToken);
-      const isStaffToken = tokenPayload?.role === "STAFF";
-      const refreshPath = isStaffToken ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
+      const roleUpper = (tokenPayload?.role || "").toUpperCase();
+      const refreshPath =
+        roleUpper === "MEMBER"
+          ? "/api/auth/members/refresh"
+          : roleUpper === "STAFF"
+          ? "/api/auth/staffs/refresh"
+          : "/api/auth/admins/refresh";
 
       const refreshRes = await axios.post(
         `${API_URL}${refreshPath}`,
@@ -69,8 +75,10 @@ export async function getAuthenticatedSession(
   }
 
   const payload = token ? parseJwtPayload(token) : null;
-  const isStaff = payload?.role === "STAFF";
-  const isAdmin = payload?.role === "ADMIN";
+  const rawRole = (payload?.role || "").toUpperCase();
+  const isStaff = rawRole === "STAFF";
+  const isAdmin = rawRole === "ADMIN";
+  const isMember = rawRole === "MEMBER";
 
   return {
     token,
@@ -78,6 +86,7 @@ export async function getAuthenticatedSession(
     newAccessToken,
     isStaff,
     isAdmin,
+    isMember,
   };
 }
 

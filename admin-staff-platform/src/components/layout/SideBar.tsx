@@ -18,6 +18,7 @@ import {
   Sparkles,
   Crown,
   User,
+  CalendarCheck,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
@@ -35,10 +36,11 @@ export default function SideBar({
   onQuickAction,
 }: SideBarProps) {
   const pathname = usePathname();
-  const { logout, role, companyName } = useCurrentUser();
+  const { logout, role, companyName, isLoading } = useCurrentUser();
   const { t } = useTranslation();
 
-  const isAdmin = role === "Admin" || role === "Owner";
+  const isAdmin = role === "Admin";
+  const isMember = role === "Member";
 
   const isRouteActive = (route: string) => {
     if (route === "/dashboard") {
@@ -81,7 +83,7 @@ export default function SideBar({
           onClick={onCloseMobile}
           className="flex items-center gap-3 hover:opacity-95 transition-opacity min-w-0"
         >
-          {/* Bespoke GymFlow Kinetic Icon */}
+          {/* Bespoke Gym Brand Icon */}
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-xs shrink-0 ring-1 ring-white/10">
             <svg
               width="20"
@@ -102,18 +104,22 @@ export default function SideBar({
             </svg>
           </div>
 
-          {/* Brand & Gym Title */}
+          {/* Brand & Gym Title - Dynamically uses companyName from database */}
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-headline font-bold text-base text-on-surface tracking-tight leading-tight">
-                GymFlow
+              <span className="font-headline font-bold text-base text-on-surface tracking-tight leading-tight truncate">
+                {companyName || "GymFlow"}
               </span>
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase tracking-wider border border-primary/20 leading-none">
-                PRO
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary uppercase tracking-wider border border-primary/20 leading-none shrink-0">
+                {role === "Member" ? "MEMBER" : "PRO"}
               </span>
             </div>
             <span className="text-[11px] font-medium text-on-surface-variant truncate leading-none mt-1">
-              {companyName || "Kinetic Enterprise"}
+              {role === "Member"
+                ? (t("memberPortal") || "Member Portal")
+                : role === "Staff"
+                ? (t("staffWorkspace") || "Staff Workspace")
+                : (t("adminWorkspace") || "Admin Workspace")}
             </span>
           </div>
         </Link>
@@ -152,201 +158,289 @@ export default function SideBar({
           </Link>
         </div>
 
-        {/* Group 1: Front desk */}
-        <div className="flex flex-col gap-1">
-          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
-            {t("frontDesk") || "Front desk"}
-          </span>
-
-          {/* Check-in */}
-          <Link
-            href="/check-in"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/check-in") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/check-in"))}
-          >
-            {isRouteActive("/check-in") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <ScanLine className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navCheckIn") || "Check-in"}
+        {isLoading ? (
+          <div className="flex flex-col gap-2 px-1 py-2 animate-pulse">
+            <div className="h-3 w-20 bg-surface-container-high rounded mb-2" />
+            <div className="h-9 w-full bg-surface-container-low rounded-xl" />
+            <div className="h-9 w-full bg-surface-container-low rounded-xl" />
+            <div className="h-9 w-full bg-surface-container-low rounded-xl" />
+            <div className="h-9 w-full bg-surface-container-low rounded-xl" />
+          </div>
+        ) : isMember ? (
+          /* Member Navigation Groups */
+          <div className="flex flex-col gap-1">
+            <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
+              {t("memberPortal") || "Member portal"}
             </span>
-          </Link>
 
-          {/* Members */}
-          <Link
-            href="/members"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/members") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/members"))}
-          >
-            {isRouteActive("/members") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <Users className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navMembers") || "Members"}
-            </span>
-          </Link>
-
-          {/* Payments */}
-          <Link
-            href="/payments"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/payments") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/payments"))}
-          >
-            {isRouteActive("/payments") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <CreditCard className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navPayments") || "Payments"}
-            </span>
-          </Link>
-        </div>
-
-        {/* Group 2: Gym setup */}
-        <div className="flex flex-col gap-1">
-          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
-            {t("gymSetup") || "Gym setup"}
-          </span>
-
-          {/* Membership plans */}
-          <Link
-            href="/membership-plans"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/membership-plans") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/membership-plans"))}
-          >
-            {isRouteActive("/membership-plans") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <Layers className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navMembershipPlans") || "Membership plans"}
-            </span>
-          </Link>
-
-          {/* Opening hours */}
-          <Link
-            href="/operating-hours"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/operating-hours") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/operating-hours"))}
-          >
-            {isRouteActive("/operating-hours") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <Clock className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navOpeningHours") || "Opening hours"}
-            </span>
-          </Link>
-
-          {/* Staff */}
-          <Link
-            href="/staffs"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/staffs") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/staffs"))}
-          >
-            {isRouteActive("/staffs") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <UserCheck className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navStaff") || "Staff"}
-            </span>
-          </Link>
-        </div>
-
-        {/* Group 3: Insight */}
-        <div className="flex flex-col gap-1">
-          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
-            {t("insight") || "Insight"}
-          </span>
-
-          {/* Feedback */}
-          <Link
-            href="/feedbacks"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/feedbacks") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/feedbacks"))}
-          >
-            {isRouteActive("/feedbacks") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <MessageSquareQuote className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navFeedback") || "Feedback"}
-            </span>
-          </Link>
-
-          {/* AI assistant (Preview trigger) */}
-          <button
-            type="button"
-            onClick={() =>
-              handleComingSoon(t("navAiAssistant") || "AI assistant")
-            }
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all text-xs font-medium text-left rtl:text-right cursor-pointer"
-          >
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
-              <span className="tracking-tight">
-                {t("navAiAssistant") || "AI assistant"}
+            {/* Visits & Attendances */}
+            <Link
+              href="/visits"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/visits") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/visits"))}
+            >
+              {isRouteActive("/visits") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <CalendarCheck className="w-[18px] h-[18px] shrink-0" />
+              <span className="font-medium tracking-tight">
+                {t("navVisits") || "Visits & Attendances"}
               </span>
+            </Link>
+
+            {/* Opening hours */}
+            <Link
+              href="/operating-hours"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/operating-hours") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/operating-hours"))}
+            >
+              {isRouteActive("/operating-hours") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <Clock className="w-[18px] h-[18px] shrink-0" />
+              <span className="font-medium tracking-tight">
+                {t("navOpeningHours") || "Gym hours"}
+              </span>
+            </Link>
+
+            {/* Feedback */}
+            <Link
+              href="/feedbacks"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/feedbacks") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/feedbacks"))}
+            >
+              {isRouteActive("/feedbacks") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <MessageSquareQuote className="w-[18px] h-[18px] shrink-0" />
+              <span className="font-medium tracking-tight">
+                {t("navFeedback") || "Feedback"}
+              </span>
+            </Link>
+
+            {/* Profile */}
+            <Link
+              href="/profile"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/profile") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/profile"))}
+            >
+              {isRouteActive("/profile") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <User className="w-[18px] h-[18px] shrink-0" />
+              <span className="font-medium tracking-tight">
+                {t("navProfile") || "Profile & Memberships"}
+              </span>
+            </Link>
+          </div>
+        ) : (
+          /* Admin & Staff Navigation Groups */
+          <>
+            {/* Group 1: Front desk */}
+            <div className="flex flex-col gap-1">
+              <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
+                {t("frontDesk") || "Front desk"}
+              </span>
+
+              {/* Check-in */}
+              <Link
+                href="/check-in"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/check-in") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/check-in"))}
+              >
+                {isRouteActive("/check-in") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <ScanLine className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navCheckIn") || "Check-in"}
+                </span>
+              </Link>
+
+              {/* Members */}
+              <Link
+                href="/members"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/members") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/members"))}
+              >
+                {isRouteActive("/members") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <Users className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navMembers") || "Members"}
+                </span>
+              </Link>
+
+              {/* Payments */}
+              <Link
+                href="/payments"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/payments") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/payments"))}
+              >
+                {isRouteActive("/payments") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <CreditCard className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navPayments") || "Payments"}
+                </span>
+              </Link>
             </div>
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant/40 tracking-wider">
-              AI
-            </span>
-          </button>
-        </div>
 
-        {/* Group 4: Account */}
-        <div className="flex flex-col gap-1">
-          <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
-            {t("account") || "Account"}
-          </span>
+            {/* Group 2: Gym setup (Admin Only) */}
+            {isAdmin && (
+              <div className="flex flex-col gap-1">
+                <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
+                  {t("gymSetup") || "Gym setup"}
+                </span>
 
-          {/* GymFlow subscription */}
-          <Link
-            href="/gymflow-subscription"
-            onClick={onCloseMobile}
-            aria-current={
-              isRouteActive("/gymflow-subscription") ? "page" : undefined
-            }
-            className={getItemClasses(isRouteActive("/gymflow-subscription"))}
-          >
-            {isRouteActive("/gymflow-subscription") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                {/* Membership plans */}
+                <Link
+                  href="/membership-plans"
+                  onClick={onCloseMobile}
+                  aria-current={isRouteActive("/membership-plans") ? "page" : undefined}
+                  className={getItemClasses(isRouteActive("/membership-plans"))}
+                >
+                  {isRouteActive("/membership-plans") && (
+                    <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                  )}
+                  <Layers className="w-[18px] h-[18px] shrink-0" />
+                  <span className="font-medium tracking-tight">
+                    {t("navMembershipPlans") || "Membership plans"}
+                  </span>
+                </Link>
+
+                {/* Opening hours */}
+                <Link
+                  href="/operating-hours"
+                  onClick={onCloseMobile}
+                  aria-current={isRouteActive("/operating-hours") ? "page" : undefined}
+                  className={getItemClasses(isRouteActive("/operating-hours"))}
+                >
+                  {isRouteActive("/operating-hours") && (
+                    <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                  )}
+                  <Clock className="w-[18px] h-[18px] shrink-0" />
+                  <span className="font-medium tracking-tight">
+                    {t("navOpeningHours") || "Opening hours"}
+                  </span>
+                </Link>
+
+                {/* Staff */}
+                <Link
+                  href="/staffs"
+                  onClick={onCloseMobile}
+                  aria-current={isRouteActive("/staffs") ? "page" : undefined}
+                  className={getItemClasses(isRouteActive("/staffs"))}
+                >
+                  {isRouteActive("/staffs") && (
+                    <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                  )}
+                  <UserCheck className="w-[18px] h-[18px] shrink-0" />
+                  <span className="font-medium tracking-tight">
+                    {t("navStaff") || "Staff"}
+                  </span>
+                </Link>
+              </div>
             )}
-            <Crown className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navGymflowSubscription") || "GymFlow subscription"}
-            </span>
-          </Link>
 
-          {/* Profile */}
-          <Link
-            href="/profile"
-            onClick={onCloseMobile}
-            aria-current={isRouteActive("/profile") ? "page" : undefined}
-            className={getItemClasses(isRouteActive("/profile"))}
-          >
-            {isRouteActive("/profile") && (
-              <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
-            )}
-            <User className="w-[18px] h-[18px] shrink-0" />
-            <span className="font-medium tracking-tight">
-              {t("navProfile") || "Profile"}
-            </span>
-          </Link>
-        </div>
+            {/* Group 3: Insight */}
+            <div className="flex flex-col gap-1">
+              <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
+                {t("insight") || "Insight"}
+              </span>
 
-        {/* Optional Quick Add Member Action */}
-        {onQuickAction && (
+              {/* Feedback */}
+              <Link
+                href="/feedbacks"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/feedbacks") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/feedbacks"))}
+              >
+                {isRouteActive("/feedbacks") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <MessageSquareQuote className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navFeedback") || "Feedback"}
+                </span>
+              </Link>
+
+              {/* AI assistant (Preview trigger) */}
+              <button
+                type="button"
+                onClick={() =>
+                  handleComingSoon(t("navAiAssistant") || "AI assistant")
+                }
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all text-xs font-medium text-left rtl:text-right cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
+                  <span className="tracking-tight">
+                    {t("navAiAssistant") || "AI assistant"}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant/40 tracking-wider">
+                  AI
+                </span>
+              </button>
+            </div>
+
+            {/* Group 4: Account */}
+            <div className="flex flex-col gap-1">
+              <span className="px-3 pt-2 pb-0.5 text-[11px] font-bold tracking-wider uppercase font-headline text-on-surface-variant/70 select-none">
+                {t("account") || "Account"}
+              </span>
+
+              {/* GymFlow subscription (Admin Only) */}
+              {isAdmin && (
+                <Link
+                  href="/gymflow-subscription"
+                  onClick={onCloseMobile}
+                  aria-current={
+                    isRouteActive("/gymflow-subscription") ? "page" : undefined
+                  }
+                  className={getItemClasses(isRouteActive("/gymflow-subscription"))}
+                >
+                  {isRouteActive("/gymflow-subscription") && (
+                    <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                  )}
+                  <Crown className="w-[18px] h-[18px] shrink-0" />
+                  <span className="font-medium tracking-tight">
+                    {t("navGymflowSubscription") || "GymFlow subscription"}
+                  </span>
+                </Link>
+              )}
+
+              {/* Profile */}
+              <Link
+                href="/profile"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/profile") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/profile"))}
+              >
+                {isRouteActive("/profile") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <User className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navProfile") || "Profile"}
+                </span>
+              </Link>
+            </div>
+          </>
+        )}
+
+        {/* Optional Quick Add Member Action (Admin/Staff Only) */}
+        {!isLoading && !isMember && onQuickAction && (
           <div className="pt-2">
             <button
               type="button"
@@ -371,7 +465,11 @@ export default function SideBar({
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="truncate max-w-[130px]">
-            {isAdmin
+            {isLoading
+              ? "..."
+              : isMember
+              ? t("roleGymMember") || "Gym member"
+              : isAdmin
               ? t("roleGymAdministrator") || "Gym administrator"
               : t("roleGymStaff") || "Gym staff"}
           </span>

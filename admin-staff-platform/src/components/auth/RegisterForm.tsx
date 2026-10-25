@@ -124,7 +124,7 @@ export default function RegisterForm() {
   return (
     <main className="flex min-h-screen w-full">
       {/* Left Side: Brand Visual & Testimonial */}
-      <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden kinetic-gradient select-none">
+      <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden brand-gradient select-none">
         <div
           className="absolute inset-0 opacity-40 bg-cover bg-center"
           style={{
@@ -186,7 +186,7 @@ export default function RegisterForm() {
         <div className="w-full max-w-xl my-auto">
           <header className="mb-8 pt-8 lg:pt-0">
             <div className="flex items-center gap-2 mb-2 lg:hidden">
-              <div className="w-9 h-9 rounded-lg kinetic-gradient flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center">
                 <Zap className="w-5 h-5 fill-white text-white" />
               </div>
               <span className="font-bold text-xl text-on-surface font-headline">
@@ -539,7 +539,7 @@ export default function RegisterForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full kinetic-gradient text-white font-semibold py-3.5 px-6 rounded-xl shadow-md hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-sm"
+              className="w-full brand-gradient text-white font-semibold py-3.5 px-6 rounded-xl shadow-md hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-sm"
             >
               {isSubmitting ? (
                 <>

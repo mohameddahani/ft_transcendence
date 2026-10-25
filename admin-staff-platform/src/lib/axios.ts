@@ -60,7 +60,11 @@ api.interceptors.response.use(
       status === 401 &&
       !originalRequest._retry &&
       !url.includes("/api/auth/login") &&
-      !url.includes("/api/auth/admins/refresh")
+      !url.includes("/api/auth/staffs/login") &&
+      !url.includes("/api/auth/members/login") &&
+      !url.includes("/api/auth/admins/refresh") &&
+      !url.includes("/api/auth/staffs/refresh") &&
+      !url.includes("/api/auth/members/refresh")
     ) {
       if (isRefreshing) {
         // Another request is already refreshing the token, wait for it
@@ -74,10 +78,31 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
+      // Determine whether to call member, staff or admin refresh endpoint
+      let userRole = "ADMIN";
       try {
-        // Attempt to refresh the access token via Next.js proxy route for admin and staff
+        const stored = typeof window !== "undefined" ? (localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user")) : null;
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const rawRole = (parsed?.role || parsed?.userType || "").toUpperCase();
+          if (rawRole === "STAFF") userRole = "STAFF";
+          else if (rawRole === "MEMBER") userRole = "MEMBER";
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        const refreshEndpoint =
+          userRole === "MEMBER"
+            ? "/api/auth/members/refresh"
+            : userRole === "STAFF"
+            ? "/api/auth/staffs/refresh"
+            : "/api/auth/admins/refresh";
+
+        // Attempt to refresh the access token via Next.js proxy route
         await axios.post(
-          "/api/auth/admins/refresh",
+          refreshEndpoint,
           {},
           { withCredentials: true }
         );
@@ -89,11 +114,28 @@ api.interceptors.response.use(
         // Refresh failed (e.g. refresh token expired or revoked)
         processQueue(refreshError);
 
+        // Do not redirect to logout if this was simply a role-endpoint mismatch
+        // (e.g. member calling an admin endpoint or vice versa)
+        const isRoleEndpointMismatch =
+          (userRole === "MEMBER" && url.includes("/api/admins/")) ||
+          (userRole !== "MEMBER" && url.includes("/api/members/"));
+
         if (
+          !isRoleEndpointMismatch &&
           typeof window !== "undefined" &&
-          !window.location.pathname.startsWith("/login")
+          !window.location.pathname.startsWith("/login") &&
+          !window.location.pathname.startsWith("/staff/login") &&
+          !window.location.pathname.startsWith("/admin/login") &&
+          !window.location.pathname.startsWith("/member/login") &&
+          !window.location.pathname.startsWith("/members/login")
         ) {
-          window.location.href = `/login?from=${encodeURIComponent(
+          const redirectPath =
+            userRole === "MEMBER" || window.location.pathname.startsWith("/member")
+              ? "/member/login"
+              : userRole === "STAFF" || window.location.pathname.startsWith("/staff")
+              ? "/staff/login"
+              : "/login";
+          window.location.href = `${redirectPath}?from=${encodeURIComponent(
             window.location.pathname
           )}&error=session_expired`;
         }

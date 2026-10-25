@@ -226,6 +226,11 @@ export class ProfilesService {
         emergencyContact: true,
         role: true,
         accountStatus: true,
+        admin: {
+          select: {
+            companyName: true,
+          },
+        },
       },
     });
 

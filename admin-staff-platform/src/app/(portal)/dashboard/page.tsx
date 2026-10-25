@@ -19,8 +19,9 @@ import { BackendMember } from "@/types/member";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
+import MemberDashboardView from "@/components/dashboard/MemberDashboardView";
 
-export default function DashboardPage() {
+function AdminStaffDashboardView() {
   const { t } = useTranslation();
   const { fullName, companyName, role, user } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
@@ -315,4 +316,22 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { role, isLoading } = useCurrentUser();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (role === "Member") {
+    return <MemberDashboardView />;
+  }
+
+  return <AdminStaffDashboardView />;
 }

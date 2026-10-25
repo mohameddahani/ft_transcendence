@@ -5,6 +5,7 @@ import TopBar from "@/components/layout/TopBar";
 import SideBar from "@/components/layout/SideBar";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import { Plus } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function PortalLayout({
   children,
@@ -13,6 +14,7 @@ export default function PortalLayout({
 }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const { role, isLoading } = useCurrentUser();
 
   return (
     <div className="min-h-screen bg-surface flex text-on-surface">
@@ -39,24 +41,28 @@ export default function PortalLayout({
         </main>
       </div>
 
-      {/* Floating Quick Action Button on Mobile */}
-      <div className="fixed bottom-4 right-4 rtl:right-auto rtl:left-4 lg:hidden z-40">
-        <button
-          type="button"
-          onClick={() => setIsAddMemberOpen(true)}
-          title="Add New Member"
-          aria-label="Add New Member"
-          className="w-14 h-14 rounded-full primary-gradient text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
-        >
-          <Plus className="w-6 h-6" />
-        </button>
-      </div>
+      {/* Floating Quick Action Button on Mobile (Admin/Staff only) */}
+      {!isLoading && role !== "Member" && (
+        <div className="fixed bottom-4 right-4 rtl:right-auto rtl:left-4 lg:hidden z-40">
+          <button
+            type="button"
+            onClick={() => setIsAddMemberOpen(true)}
+            title="Add New Member"
+            aria-label="Add New Member"
+            className="w-14 h-14 rounded-full primary-gradient text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        </div>
+      )}
 
-      {/* Quick Add Member Modal */}
-      <AddMemberModal
-        isOpen={isAddMemberOpen}
-        onClose={() => setIsAddMemberOpen(false)}
-      />
+      {/* Quick Add Member Modal (Admin/Staff only) */}
+      {!isLoading && role !== "Member" && (
+        <AddMemberModal
+          isOpen={isAddMemberOpen}
+          onClose={() => setIsAddMemberOpen(false)}
+        />
+      )}
     </div>
   );
 }

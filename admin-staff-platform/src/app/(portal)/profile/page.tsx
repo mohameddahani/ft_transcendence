@@ -24,6 +24,12 @@ import {
   Sparkles,
   Check,
   X,
+  UserCheck,
+  Info,
+  QrCode,
+  Users,
+  MessageSquareQuote,
+  ShieldAlert,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -32,16 +38,29 @@ import {
   updateAdminProfile,
   uploadAdminProfileImage,
   deleteAdminProfileImage,
+  fetchStaffProfile,
+  uploadStaffProfileImage,
+  deleteStaffProfileImage,
 } from "@/lib/api/profile";
-import { AdminProfile, Gender, UpdateProfileInput } from "@/types/profile";
+import { AdminProfile, StaffProfile, Gender, UpdateProfileInput } from "@/types/profile";
 import {
   updateProfileSchema,
   UpdateProfileFormValues,
 } from "@/schemas/profile";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import MemberProfileView from "@/components/profile/MemberProfileView";
 
-export default function ProfilePage() {
+function AdminStaffProfileView() {
   const { t } = useTranslation();
+  const { role: currentRole, isLoading: isUserRoleLoading, companyName } = useCurrentUser();
+  const isStaff = currentRole === "Staff";
+
+  // Admin Profile State
   const [profile, setProfile] = useState<AdminProfile | null>(null);
+
+  // Staff Profile State
+  const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -55,7 +74,7 @@ export default function ProfilePage() {
     handleSubmit,
     reset,
     watch,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<UpdateProfileFormValues>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -81,52 +100,9 @@ export default function ProfilePage() {
     special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(watchPassword),
   };
 
-  // Load Admin Profile from backend
-  const loadProfile = async () => {
-    setIsLoading(true);
+  const syncAdminLocalStorage = (data: AdminProfile) => {
     try {
-      const data = await fetchAdminProfile();
-      setProfile(data);
-
-      let formattedDate = "";
-      if (data.birthDate) {
-        const d = new Date(data.birthDate);
-        if (!isNaN(d.getTime())) {
-          formattedDate = d.toISOString().split("T")[0];
-        }
-      }
-
-      // Reset form with loaded server data
-      reset({
-        firstName: data.firstName || "",
-        lastName: data.lastName || "",
-        gender: (data.gender as Gender) || "MALE",
-        birthDate: formattedDate,
-        companyName: data.companyName || "",
-        email: data.email || "",
-        phoneNumber: data.phoneNumber || "",
-        password: "",
-      });
-
-      syncLocalStorage(data);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      } else {
-        toast.error("Failed to load admin profile from backend");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const syncLocalStorage = (data: AdminProfile) => {
-    try {
-      const stored = localStorage.getItem("kinetic_user");
+      const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
       const current = stored ? JSON.parse(stored) : {};
       const updated = {
         ...current,
@@ -143,13 +119,96 @@ export default function ProfilePage() {
             ? data.profileImageUrl
             : null,
       };
-      localStorage.setItem("kinetic_user", JSON.stringify(updated));
+      localStorage.setItem("gym_user", JSON.stringify(updated));
+      localStorage.removeItem("kinetic_user");
+      window.dispatchEvent(new Event("storage"));
     } catch {
       // ignore localStorage sync error
     }
   };
 
-  // Revert form to current saved backend profile
+  const syncStaffLocalStorage = (data: StaffProfile) => {
+    try {
+      const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+      const current = stored ? JSON.parse(stored) : {};
+      const updated = {
+        ...current,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        userName: data.userName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        companyName: data.companyName,
+        role: "Staff",
+        photo:
+          data.profileImageUrl &&
+          data.profileImageUrl !== "default-image.jpg" &&
+          data.profileImageUrl !== "default-member-image.jpg"
+            ? data.profileImageUrl
+            : null,
+      };
+      localStorage.setItem("gym_user", JSON.stringify(updated));
+      localStorage.removeItem("kinetic_user");
+      window.dispatchEvent(new Event("storage"));
+    } catch {
+      // ignore localStorage sync error
+    }
+  };
+
+  // Load Profile from backend based on role
+  const loadProfile = async () => {
+    setIsLoading(true);
+    try {
+      if (isStaff) {
+        // Staff Profile Endpoint: GET /api/users/staffs/me
+        const data = await fetchStaffProfile();
+        setStaffProfile(data);
+        syncStaffLocalStorage(data);
+      } else {
+        // Admin Profile Endpoint: GET /api/users/admins/me
+        const data = await fetchAdminProfile();
+        setProfile(data);
+
+        let formattedDate = "";
+        if (data.birthDate) {
+          const d = new Date(data.birthDate);
+          if (!isNaN(d.getTime())) {
+            formattedDate = d.toISOString().split("T")[0];
+          }
+        }
+
+        // Reset form with loaded server data
+        reset({
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          gender: (data.gender as Gender) || "MALE",
+          birthDate: formattedDate,
+          companyName: data.companyName || "",
+          email: data.email || "",
+          phoneNumber: data.phoneNumber || "",
+          password: "",
+        });
+
+        syncAdminLocalStorage(data);
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to load profile from backend");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isUserRoleLoading) {
+      loadProfile();
+    }
+  }, [isStaff, isUserRoleLoading]);
+
+  // Revert form to current saved backend admin profile
   const handleReset = () => {
     if (!profile) return;
     let formattedDate = "";
@@ -171,7 +230,7 @@ export default function ProfilePage() {
     });
   };
 
-  // Submit profile edits validated by Zod
+  // Submit admin profile edits validated by Zod
   const onSubmit = async (values: UpdateProfileFormValues) => {
     setIsSaving(true);
     try {
@@ -191,7 +250,6 @@ export default function ProfilePage() {
 
       await updateAdminProfile(payload);
       toast.success(t("profileUpdatedSuccess", "Profile updated successfully!"));
-      // Reload profile so the top banner and local cache update cleanly
       await loadProfile();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -209,7 +267,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Photo File Upload
+  // Handle Photo File Upload (Supports both Staff and Admin endpoints)
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -217,7 +275,7 @@ export default function ProfilePage() {
     e.target.value = "";
 
     if (file.size > 1024 * 1024) {
-      toast.error("Image file size must be less than 1MB");
+      toast.error(t("maxPhotoSize", "Image file size must be less than 1MB"));
       return;
     }
 
@@ -228,8 +286,14 @@ export default function ProfilePage() {
 
     setIsUploadingPhoto(true);
     try {
-      await uploadAdminProfileImage(file);
-      toast.success("Profile picture updated successfully!");
+      if (isStaff) {
+        // Staff Photo Upload: POST /api/users/staffs/profile-image
+        await uploadStaffProfileImage(file);
+      } else {
+        // Admin Photo Upload: POST /api/users/admins/profile-image
+        await uploadAdminProfileImage(file);
+      }
+      toast.success(t("photoUpdatedSuccess", "Profile picture updated successfully!"));
       await loadProfile();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -242,12 +306,18 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Photo Deletion
+  // Handle Photo Deletion (Supports both Staff and Admin endpoints)
   const handleDeletePhoto = async () => {
     setIsDeletingPhoto(true);
     try {
-      await deleteAdminProfileImage();
-      toast.success("Profile picture removed successfully!");
+      if (isStaff) {
+        // Staff Photo Delete: DELETE /api/users/staffs/profile-image
+        await deleteStaffProfileImage();
+      } else {
+        // Admin Photo Delete: DELETE /api/users/admins/profile-image
+        await deleteAdminProfileImage();
+      }
+      toast.success(t("photoRemovedSuccess", "Profile picture removed successfully!"));
       await loadProfile();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -260,7 +330,400 @@ export default function ProfilePage() {
     }
   };
 
-  // Check if current photo is custom (can be removed)
+  const formatBirthDate = (dateStr?: string) => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  if ((isLoading && !profile && !staffProfile) || isUserRoleLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <p className="text-body-md text-on-surface-variant font-medium">
+          {isStaff
+            ? t("loadingStaffProfile", "Loading staff profile...")
+            : t("loadingProfile", "Loading administrator profile...")}
+        </p>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER: STAFF PROFILE VIEW
+  // ==========================================
+  if (isStaff && staffProfile) {
+    const hasCustomPhoto =
+      Boolean(staffProfile.profileImagePublicId) ||
+      Boolean(
+        staffProfile.profileImageUrl &&
+          !staffProfile.profileImageUrl.includes("default-image.jpg") &&
+          !staffProfile.profileImageUrl.includes("default-member-image.jpg")
+      );
+
+    const fullName =
+      `${staffProfile.firstName || ""} ${staffProfile.lastName || ""}`.trim() ||
+      staffProfile.userName;
+
+    const initials =
+      (staffProfile.firstName?.[0] || "") + (staffProfile.lastName?.[0] || "") ||
+      (staffProfile.userName?.[0] || "S").toUpperCase();
+
+    const isAccountActive =
+      (staffProfile.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE";
+
+    return (
+      <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in-50 duration-200">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
+              {t("staffProfileTitle", "Staff Profile & Credentials")}
+            </h1>
+            <p className="text-body-md text-on-surface-variant">
+              {t(
+                "staffProfileSubtitle",
+                "View your personal credentials, front desk permissions, and facility assignment."
+              )}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadProfile}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant text-on-surface text-sm font-semibold transition-colors cursor-pointer w-fit"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : ""}`}
+            />
+            <span>{t("refresh", "Refresh")}</span>
+          </button>
+        </div>
+
+        {/* Staff Identity & Avatar Card */}
+        <div className="p-6 sm:p-8 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+            {/* Avatar Preview */}
+            <div className="relative group">
+              {hasCustomPhoto ? (
+                <img
+                  src={staffProfile.profileImageUrl}
+                  alt={fullName}
+                  className="w-28 h-28 rounded-2xl object-cover border-4 border-surface-container-low shadow-md"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-2xl bg-primary/10 border-4 border-surface-container-low text-primary flex items-center justify-center font-black text-3xl shadow-md select-none">
+                  {initials}
+                </div>
+              )}
+
+              {isUploadingPhoto && (
+                <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Identity Details & Photo Actions */}
+            <div className="flex-1 text-center sm:text-left rtl:sm:text-right space-y-2">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h2 className="font-headline font-bold text-xl text-on-surface">
+                  {fullName}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                  {staffProfile.role || "STAFF"}
+                </span>
+                {isAccountActive ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {t("activeStaff", "Active Staff")}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <ShieldAlert className="w-3 h-3" />
+                    {staffProfile.accountStatus}
+                  </span>
+                )}
+              </div>
+
+              <p className="text-sm text-on-surface-variant font-mono">
+                @{staffProfile.userName}
+              </p>
+
+              {staffProfile.companyName && (
+                <p className="text-xs text-primary font-bold flex items-center justify-center sm:justify-start gap-1">
+                  <Building className="w-3.5 h-3.5" />
+                  {staffProfile.companyName}
+                </p>
+              )}
+
+              {/* Photo Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingPhoto || isDeletingPhoto}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl primary-gradient text-white text-xs font-bold shadow-sm hover:opacity-95 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isUploadingPhoto ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="w-3.5 h-3.5" />
+                  )}
+                  <span>{t("changePhoto", "Change Photo")}</span>
+                </button>
+
+                {hasCustomPhoto && (
+                  <button
+                    type="button"
+                    onClick={handleDeletePhoto}
+                    disabled={isUploadingPhoto || isDeletingPhoto}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-error hover:bg-error/10 border border-error/20 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isDeletingPhoto ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>{t("removePhoto", "Remove")}</span>
+                  </button>
+                )}
+
+                <span className="text-[11px] text-on-surface-variant/80">
+                  {t("maxPhotoSize", "Max 1MB (PNG, JPG, WebP)")}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Read-Only Notice Badge */}
+        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-3 text-xs text-on-surface-variant">
+          <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            {t(
+              "staffInfoNotice",
+              "Account details and operational assignments are managed by your Gym Administrator. Contact your facility manager to request profile updates."
+            )}
+          </p>
+        </div>
+
+        {/* Grid of Staff Information Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Personal Information */}
+          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
+              <User className="w-5 h-5 text-primary" />
+              <h3 className="font-headline font-bold text-base text-on-surface">
+                {t("personalInformation", "Personal Information")}
+              </h3>
+            </div>
+
+            <div className="space-y-3.5 text-sm">
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("firstName", "First Name")}
+                </span>
+                <span className="font-semibold text-on-surface">
+                  {staffProfile.firstName || "—"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("lastName", "Last Name")}
+                </span>
+                <span className="font-semibold text-on-surface">
+                  {staffProfile.lastName || "—"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("username", "Username")}
+                </span>
+                <span className="font-mono text-xs font-semibold text-primary">
+                  @{staffProfile.userName}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("gender", "Gender")}
+                </span>
+                <span className="font-semibold text-on-surface capitalize">
+                  {staffProfile.gender?.toLowerCase() || "—"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("birthDate", "Birth Date")}
+                </span>
+                <span className="font-semibold text-on-surface flex items-center gap-1.5 text-xs">
+                  <Calendar className="w-3.5 h-3.5 text-on-surface-variant" />
+                  {formatBirthDate(staffProfile.birthDate)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Contact Information */}
+          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
+              <Mail className="w-5 h-5 text-secondary" />
+              <h3 className="font-headline font-bold text-base text-on-surface">
+                {t("contactInformation", "Contact Information")}
+              </h3>
+            </div>
+
+            <div className="space-y-3.5 text-sm">
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("emailAddress", "Email Address")}
+                </span>
+                <span className="font-semibold text-on-surface text-xs truncate max-w-[200px]">
+                  {staffProfile.email || "—"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("phoneNumber", "Phone Number")}
+                </span>
+                <span className="font-semibold text-on-surface flex items-center gap-1 text-xs font-mono">
+                  <Phone className="w-3.5 h-3.5 text-on-surface-variant" />
+                  {staffProfile.phoneNumber || "—"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("accountStatus", "Account Status")}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  {staffProfile.accountStatus || "ACTIVE"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Facility & Management Assignment */}
+          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
+              <Building className="w-5 h-5 text-tertiary" />
+              <h3 className="font-headline font-bold text-base text-on-surface">
+                {t("facilityDetails", "Facility & Team Assignment")}
+              </h3>
+            </div>
+
+            <div className="space-y-3.5 text-sm">
+              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                <span className="text-on-surface-variant text-xs font-medium">
+                  {t("facility", "Facility")}
+                </span>
+                <span className="font-bold text-on-surface text-xs">
+                  {staffProfile.companyName || staffProfile.admin?.companyName || companyName || "—"}
+                </span>
+              </div>
+
+              {staffProfile.admin && (
+                <>
+                  <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
+                    <span className="text-on-surface-variant text-xs font-medium">
+                      {t("assignedAdministrator", "Assigned Administrator")}
+                    </span>
+                    <span className="font-semibold text-on-surface text-xs">
+                      {[staffProfile.admin.firstName, staffProfile.admin.lastName]
+                        .filter(Boolean)
+                        .join(" ") || "Administrator"}
+                    </span>
+                  </div>
+
+                  {staffProfile.admin.email && (
+                    <div className="flex justify-between items-center py-1">
+                      <span className="text-on-surface-variant text-xs font-medium">
+                        {t("adminEmail", "Admin Email")}
+                      </span>
+                      <span className="font-mono text-xs text-on-surface-variant">
+                        {staffProfile.admin.email}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Card 4: Role & Operational Access */}
+          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
+            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+              <h3 className="font-headline font-bold text-base text-on-surface">
+                {t("accountPermissions", "Role & Operational Permissions")}
+              </h3>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
+                <div className="flex items-center gap-2 font-medium text-on-surface">
+                  <QrCode className="w-4 h-4 text-primary" />
+                  <span>{t("qrCheckinAccess", "QR Code & Manual Check-In")}</span>
+                </div>
+                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
+                  {t("enabled", "Enabled")}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
+                <div className="flex items-center gap-2 font-medium text-on-surface">
+                  <Users className="w-4 h-4 text-secondary" />
+                  <span>{t("memberDirectoryAccess", "Member Directory & Attendance")}</span>
+                </div>
+                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
+                  {t("enabled", "Enabled")}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
+                <div className="flex items-center gap-2 font-medium text-on-surface">
+                  <MessageSquareQuote className="w-4 h-4 text-tertiary" />
+                  <span>{t("feedbackAccess", "Member Feedback & Reviews")}</span>
+                </div>
+                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
+                  {t("enabled", "Enabled")}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // RENDER: ADMINISTRATOR PROFILE VIEW & FORM
+  // ==========================================
   const hasCustomPhoto =
     Boolean(profile?.profileImagePublicId) ||
     Boolean(
@@ -269,7 +732,6 @@ export default function ProfilePage() {
         !profile.profileImageUrl.includes("default-member-image.jpg")
     );
 
-  // Stable display values derived SOLELY from saved profile (never changes while typing in inputs)
   const savedFullName = profile
     ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.userName
     : "Administrator";
@@ -281,19 +743,8 @@ export default function ProfilePage() {
       (profile.userName?.[0] || "A").toUpperCase()
     : "A";
 
-  if (isLoading && !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-body-md text-on-surface-variant font-medium">
-          {t("loadingProfile", "Loading administrator profile...")}
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8 max-w-4xl mx-auto pb-12">
+    <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in-50 duration-200">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -326,11 +777,9 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
           {/* Avatar Preview */}
           <div className="relative group">
-            {profile?.profileImageUrl &&
-            profile.profileImageUrl !== "default-image.jpg" &&
-            profile.profileImageUrl !== "default-member-image.jpg" ? (
+            {hasCustomPhoto ? (
               <img
-                src={profile.profileImageUrl}
+                src={profile?.profileImageUrl}
                 alt={savedFullName}
                 className="w-28 h-28 rounded-2xl object-cover border-4 border-surface-container-low shadow-md"
               />
@@ -347,7 +796,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Details & Actions (Solely reflects saved backend profile) */}
+          {/* Details & Actions */}
           <div className="flex-1 text-center sm:text-left rtl:sm:text-right space-y-2">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h2 className="font-headline font-bold text-xl text-on-surface">
@@ -626,7 +1075,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Section: Security & Password Update (Well-potted CSS and Clean Layout) */}
+        {/* Section: Security & Password Update */}
         <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-outline-variant">
             <div className="flex items-center gap-2.5">
@@ -646,7 +1095,6 @@ export default function ProfilePage() {
                 {t("newPassword", "New Password")}
               </label>
 
-              {/* Password Input with balanced padding and centered toggle */}
               <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 pl-3.5 rtl:pl-0 rtl:pr-3.5 flex items-center pointer-events-none text-on-surface-variant">
                   <Lock className="w-4 h-4" />
@@ -686,7 +1134,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Interactive requirement tracker when user types in password */}
+            {/* Requirement Tracker */}
             {watchPassword.length > 0 && (
               <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/60 space-y-2 animate-in fade-in-0 duration-200">
                 <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
@@ -769,3 +1217,20 @@ export default function ProfilePage() {
   );
 }
 
+export default function ProfilePage() {
+  const { role, isLoading } = useCurrentUser();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (role === "Member") {
+    return <MemberProfileView />;
+  }
+
+  return <AdminStaffProfileView />;
+}

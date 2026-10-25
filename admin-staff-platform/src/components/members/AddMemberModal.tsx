@@ -172,18 +172,18 @@ export default function AddMemberModal({
               Empower New Potential
             </h2>
             <p className="text-white/80 mt-3 text-sm leading-relaxed">
-              Every new member is a story of growth. Add their details to the Kinetic
-              Ecosystem to begin their fitness journey.
+              Every new member is a story of growth. Add their details to the gym
+              database to begin their fitness journey.
             </p>
           </div>
 
           <div className="relative z-10 space-y-4 pt-6 border-t border-white/20">
             <div className="flex items-center gap-2 text-white/80 text-xs">
               <ShieldCheck className="w-4 h-4 text-white" />
-              <span>Secure Enterprise Data Entry</span>
+              <span>Secure Member Data Entry</span>
             </div>
             <p className="text-[11px] text-white/60">
-              Kinetic ID, memberships, and billing are auto-provisioned upon registration.
+              Member ID, memberships, and billing are auto-provisioned upon registration.
             </p>
           </div>
 

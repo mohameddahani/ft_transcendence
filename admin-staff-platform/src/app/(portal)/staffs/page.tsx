@@ -277,7 +277,7 @@ export default function StaffsPage() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `kinetic_staffs_${new Date().toISOString().split("T")[0]}.csv`
+      `staffs_${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();

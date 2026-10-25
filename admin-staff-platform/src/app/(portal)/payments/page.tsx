@@ -25,12 +25,14 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useTranslation } from "react-i18next";
 import { fetchPayments } from "@/lib/api/payments";
 import { BackendPayment } from "@/types/payment";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useTranslation } from "react-i18next";
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
+  const { companyName } = useCurrentUser();
   const [payments, setPayments] = useState<BackendPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -171,7 +173,7 @@ export default function PaymentsPage() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `kinetic_payments_${new Date().toISOString().split("T")[0]}.csv`
+      `payments_${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -183,9 +185,10 @@ export default function PaymentsPage() {
   // Download single invoice text receipt
   const handleDownloadInvoice = (payment: BackendPayment) => {
     const member = payment.member;
+    const gymTitle = (companyName || "GymFlow").toUpperCase();
     const invoiceText = `
 ========================================
-       KINETIC ENTERPRISE INVOICE
+       ${gymTitle} INVOICE
 ========================================
 Invoice Number : #INV-${payment.id.slice(0, 8)}
 Date Issued    : ${new Date(payment.createdAt).toLocaleDateString()}
@@ -203,7 +206,7 @@ Phone          : ${member?.phoneNumber || "—"}
 Address        : ${member?.address || "—"}
 
 ----------------------------------------
-Thank you for training with Kinetic Enterprise!
+Thank you for training with ${companyName || "us"}!
 ========================================
     `;
 

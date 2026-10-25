@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* SHADCN & KINETIC TOKENS */
+/* SHADCN & BRAND DESIGN TOKENS */
 @theme inline {
   --font-heading: var(--font-sora), sans-serif;
   --font-sans: var(--font-plus-jakarta), sans-serif;
@@ -310,11 +310,11 @@
   }
 }
 
-.kinetic-gradient {
+.brand-gradient {
   background: linear-gradient(135deg, #3525cd 0%, #5c01c9 100%);
 }
 
-.dark .kinetic-gradient {
+.dark .brand-gradient {
   background: linear-gradient(135deg, #494bd6 0%, #8083ff 100%);
 }
 
@@ -356,14 +356,14 @@
   transform: translateY(-1px);
 }
 
-.kinetic-mesh {
+.brand-mesh {
   background-image: 
     radial-gradient(at 0% 0%, rgba(53, 37, 205, 0.1) 0, transparent 50%), 
     radial-gradient(at 50% 0%, rgba(172, 248, 71, 0.05) 0, transparent 50%), 
     radial-gradient(at 100% 0%, rgba(117, 52, 225, 0.1) 0, transparent 50%);
 }
 
-.dark .kinetic-mesh {
+.dark .brand-mesh {
   background-image: 
     radial-gradient(at 0% 0%, rgba(192, 193, 255, 0.08) 0, transparent 50%), 
     radial-gradient(at 50% 0%, rgba(255, 183, 131, 0.05) 0, transparent 50%), 

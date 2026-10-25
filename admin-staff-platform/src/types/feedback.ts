@@ -47,3 +47,9 @@ export interface UpdateFeedbackStatusInput {
   feedbackStatus: FeedbackStatus;
   resolutionNote?: string;
 }
+
+export interface CreateMemberFeedbackInput {
+  content: string;
+  rating: number;
+}
+

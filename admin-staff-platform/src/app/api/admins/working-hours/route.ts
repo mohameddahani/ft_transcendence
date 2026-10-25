@@ -6,14 +6,18 @@ const API_URL = process.env.API_URL || "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
   try {
-    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
+    const { headers, newAccessToken, isStaff, isMember } = await getAuthenticatedSession(req);
     const { searchParams } = new URL(req.url);
 
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "50";
 
     const queryString = `?page=${page}&limit=${limit}`;
-    const basePath = isStaff ? "/api/staffs/working-hours" : "/api/admins/working-hours";
+    const basePath = isMember
+      ? "/api/members/working-hours"
+      : isStaff
+      ? "/api/staffs/working-hours"
+      : "/api/admins/working-hours";
     const backendPath = `${basePath}${queryString}`;
 
     const backendRes = await axios.get(`${API_URL}${backendPath}`, {

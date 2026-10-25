@@ -1,6 +1,6 @@
 import api from "@/lib/axios";
 import { getApiEndpoint } from "@/lib/api/config";
-import { AdminProfile, UpdateProfileInput } from "@/types/profile";
+import { AdminProfile, StaffProfile, UpdateProfileInput } from "@/types/profile";
 
 export async function fetchAdminProfile(): Promise<AdminProfile> {
   const url = getApiEndpoint("/api/users/admins/me");
@@ -31,3 +31,27 @@ export async function deleteAdminProfileImage(): Promise<void> {
   const url = getApiEndpoint("/api/users/admins/profile-image");
   await api.delete(url);
 }
+
+export async function fetchStaffProfile(): Promise<StaffProfile> {
+  const url = getApiEndpoint("/api/users/staffs/me");
+  const response = await api.get<StaffProfile>(url);
+  return response.data;
+}
+
+export async function uploadStaffProfileImage(file: File): Promise<void> {
+  const url = getApiEndpoint("/api/users/staffs/profile-image");
+  const formData = new FormData();
+  formData.append("image", file);
+
+  await api.post(url, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+}
+
+export async function deleteStaffProfileImage(): Promise<void> {
+  const url = getApiEndpoint("/api/users/staffs/profile-image");
+  await api.delete(url);
+}
+

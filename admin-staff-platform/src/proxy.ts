@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import axios from "axios";
-import { parseJwtPayload, isTokenExpired, isAdminOrStaffUser } from "@/lib/auth";
+import { parseJwtPayload, isTokenExpired, isAdminOrStaffUser, isMemberUser } from "@/lib/auth";
 
-// Protected routes that strictly require admin or staff authentication
+// Protected routes that require authentication
 const protectedRoutes = [
   "/dashboard",
   "/members",
   "/membership-plans",
   "/subscriptions",
   "/payments",
-  "/staff",
+  "/staffs",
   "/classes",
   "/reports",
   "/settings",
@@ -18,17 +18,49 @@ const protectedRoutes = [
   "/gymflow-subscription",
   "/check-in",
   "/feedbacks",
+  "/operating-hours",
+  "/visits",
+];
+
+// Routes strictly forbidden to members (Admin & Staff management surfaces)
+const memberForbiddenRoutes = [
+  "/members",
+  "/membership-plans",
+  "/subscriptions",
+  "/payments",
+  "/staffs",
+  "/classes",
+  "/reports",
+  "/gymflow-subscription",
+  "/check-in",
+  "/settings",
+];
+
+// Admin-only routes that staff members are not permitted to access
+const adminOnlyRoutes = [
+  "/membership-plans",
+  "/subscriptions",
+  "/operating-hours",
+  "/staffs",
+  "/gymflow-subscription",
 ];
 
 // Authentication routes that authenticated users shouldn't revisit
-const authRoutes = ["/login"];
+const authRoutes = [
+  "/login",
+  "/admin/login",
+  "/staff/login",
+  "/staffs/login",
+  "/member/login",
+  "/members/login",
+];
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
 function hasAdminOrStaffAccess(token?: string): boolean {
   if (!token) return false;
   const payload = parseJwtPayload(token);
-  return isAdminOrStaffUser(payload) && !isTokenExpired(payload);
+  return (isAdminOrStaffUser(payload) || isMemberUser(payload)) && !isTokenExpired(payload);
 }
 
 export async function proxy(request: NextRequest) {
@@ -36,12 +68,14 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
 
-  const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
-  );
   const isAuthRoute = authRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
+  const isProtectedRoute =
+    !isAuthRoute &&
+    protectedRoutes.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
 
   let newAccessToken: string | undefined = undefined;
 
@@ -49,8 +83,13 @@ export async function proxy(request: NextRequest) {
   if (isProtectedRoute && (!token || isTokenExpired(token)) && refreshToken) {
     try {
       const tokenPayload = parseJwtPayload(refreshToken);
-      const isStaffToken = tokenPayload?.role === "STAFF";
-      const refreshPath = isStaffToken ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
+      const role = (tokenPayload?.role || "").toUpperCase();
+      const refreshPath =
+        role === "MEMBER"
+          ? "/api/auth/members/refresh"
+          : role === "STAFF"
+          ? "/api/auth/staffs/refresh"
+          : "/api/auth/admins/refresh";
 
       const refreshRes = await axios.post(
         `${API_URL}${refreshPath}`,
@@ -76,10 +115,17 @@ export async function proxy(request: NextRequest) {
 
   const authorized = hasAdminOrStaffAccess(token);
 
-  // If user tries to access a protected route without valid admin/staff role
+  // If user tries to access a protected route without valid admin/staff/member role
   if (isProtectedRoute) {
     if (!authorized) {
-      const loginUrl = new URL("/login", request.url);
+      const isMemberPath = pathname.startsWith("/member");
+      const isStaffPath = pathname.startsWith("/staff");
+      const targetLogin = isMemberPath
+        ? "/member/login"
+        : isStaffPath
+        ? "/staff/login"
+        : "/login";
+      const loginUrl = new URL(targetLogin, request.url);
       loginUrl.searchParams.set("from", pathname);
 
       const response = NextResponse.redirect(loginUrl);
@@ -89,6 +135,31 @@ export async function proxy(request: NextRequest) {
         loginUrl.searchParams.set("error", "session_expired");
       }
       return response;
+    }
+
+    // Enforce role-based access restrictions
+    const tokenPayload = token ? parseJwtPayload(token) : null;
+    const roleUpper = (tokenPayload?.role || "").toUpperCase();
+    const isStaff = roleUpper === "STAFF";
+    const isMember = roleUpper === "MEMBER";
+
+    // Members cannot access Admin & Staff management portals
+    if (isMember) {
+      const isForbidden = memberForbiddenRoutes.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+      );
+      if (isForbidden) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
+
+    // Staff cannot access Admin-only setup routes
+    const isAdminOnlyRoute = adminOnlyRoutes.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+
+    if (isStaff && isAdminOnlyRoute) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 

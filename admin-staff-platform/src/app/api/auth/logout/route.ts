@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { parseJwtPayload } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -28,8 +29,17 @@ export async function POST(req: NextRequest) {
       headers["Cookie"] = cookieParts.join("; ");
     }
 
-    // Call backend admin logout API
-    await axios.post(`${API_URL}/api/auth/admins/logout`, {}, {
+    // Determine whether user is Member, Staff, or Admin to call the correct backend logout endpoint
+    const tokenPayload = (authToken ? parseJwtPayload(authToken) : null) || (refreshToken ? parseJwtPayload(refreshToken) : null);
+    const role = (tokenPayload?.role || "").toUpperCase();
+    const logoutPath =
+      role === "MEMBER"
+        ? "/api/auth/members/logout"
+        : role === "STAFF"
+        ? "/api/auth/staffs/logout"
+        : "/api/auth/admins/logout";
+
+    await axios.post(`${API_URL}${logoutPath}`, {}, {
       headers,
       validateStatus: () => true,
     });
