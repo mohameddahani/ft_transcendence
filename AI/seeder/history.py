@@ -22,7 +22,6 @@ EXPIRING_WEEK_RATE, EXPIRING_MONTH_RATE = 0.08, 0.20
 
 CANCELLED_RATE = 0.02
 PAID_RATE = 0.92
-OVERDUE_AFTER_DAYS = 20
 PLAN_LOYALTY = 0.8
 
 
@@ -138,14 +137,13 @@ def build_payments(
     payments: list[PaymentRow] = []
     for membership in memberships:
         due = membership.start_date
-        overdue_days = (now - due).days
 
         if rng.random() < PAID_RATE:
             paid_at = min(due + timedelta(days=rng.randint(0, 5)), now)
             status = "PAID"
         else:
             paid_at = due
-            status = "OVERDUE" if overdue_days > OVERDUE_AFTER_DAYS else "UNPAID"
+            status = "UNPAID"
 
         payments.append(PaymentRow(
             member_id=membership.member_id, amount=membership.price,

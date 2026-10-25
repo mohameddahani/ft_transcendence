@@ -63,9 +63,14 @@ export const safeUserSelect = {
   phoneNumber: true,
   companyName: true,
   role: true,
+
+  // ! BLOCK_CHAINE
+  walletAddress: true,
+
   profileImageUrl: true,
   isAccountVerified: true,
   accountStatus: true,
+  termsAccepted: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.UserSelect;
@@ -102,6 +107,10 @@ export const safeMemberSelect = {
   profileImageUrl: true,
   address: true,
   emergencyContact: true,
+
+  // ! BLOCK_CHAINE
+  walletAddress: true,
+
   role: true,
   accountStatus: true,
   createdAt: true,

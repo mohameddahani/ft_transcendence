@@ -13,6 +13,7 @@ export class MembershipNotificationCron {
     const payments = await this.prisma.payment.findMany({
       where: {
         paymentStatus: PaymentStatus.DUE_SOON,
+        expirationNotifiedAt: null,
       },
     });
 
@@ -21,15 +22,32 @@ export class MembershipNotificationCron {
     }
 
     // * Create Notification to all this payments
-    for (let i = 0; i < payments.length; i++) {
-      await this.prisma.memberNotification.create({
-        data: {
-          member: { connect: { id: payments[i].memberId } },
-          notificationType: NotificationType.MEMBERSHIP_EXPIRATION,
-          title: 'Membership Payment Overdue',
-          message:
-            'Your membership payment is overdue. Please complete your payment to keep your membership active.',
-        },
+    for (const payment of payments) {
+      await this.prisma.$transaction(async (tx) => {
+        const { count } = await tx.payment.updateMany({
+          where: {
+            id: payment.id,
+            paymentStatus: PaymentStatus.DUE_SOON,
+            expirationNotifiedAt: null,
+          },
+          data: {
+            expirationNotifiedAt: new Date(),
+          },
+        });
+
+        if (count === 0) {
+          return;
+        }
+
+        await tx.memberNotification.create({
+          data: {
+            member: { connect: { id: payment.memberId } },
+            notificationType: NotificationType.PAYMENT_REMINDER,
+            title: 'Membership Payment Due Soon',
+            message:
+              'Your membership payment is due soon. Please complete your payment before the due date.',
+          },
+        });
       });
     }
   }

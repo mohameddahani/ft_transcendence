@@ -1,8 +1,6 @@
 import io
-import re
 
 import chromadb
-from chromadb.config import Settings
 from google import genai
 from google.genai import types
 from pypdf import PdfReader
@@ -16,7 +14,7 @@ MAX_DISTANCE = 0.35    # a chunk further than this from the question is not rele
 VISIBILITIES = ("member", "staff")
 
 gemini = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
-store = chromadb.PersistentClient(path=config.VECTORS_DIR, settings=Settings(anonymized_telemetry=False))
+store = chromadb.PersistentClient(path=config.VECTORS_DIR)
 collection = store.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"})
 
 
@@ -31,23 +29,31 @@ def extract_text(data: bytes) -> str:
 
 
 def chunk(text: str) -> list[str]:
+    # first cut the document into sections: each Markdown heading (#) starts a new one
+    sections = [""]
+    for line in text.split("\n"):
+        if line.startswith("#"):
+            sections.append("")
+        sections[-1] += line + "\n"
+
     chunks = []
-    # a new section starts at every Markdown heading line
-    for section in re.split(r"\n(?=#)", text):
+    for section in sections:
         section = section.strip()
-        if not section:
-            continue
-        heading = section.splitlines()[0] if section.startswith("#") else ""
-        for start in range(0, max(len(section) - CHUNK_OVERLAP, 1), CHUNK_SIZE - CHUNK_OVERLAP):
-            piece = section[start:start + CHUNK_SIZE]
-            # a piece cut from the middle of a section still says which section it came from
-            chunks.append(piece if start == 0 or not heading else heading + "\n" + piece)
+        start = 0
+        end = 0
+        while end < len(section):
+            end = start + CHUNK_SIZE
+            piece = section[start:end]
+            if start > 0 and section.startswith("#"):
+                piece = section.splitlines()[0] + "\n" + piece
+            chunks.append(piece)
+            start = end - CHUNK_OVERLAP
     return chunks
 
 
 def embed(texts: list[str], task: str) -> list[list[float]]:
     vectors = []
-    for i in range(0, len(texts), 100):  # the API takes at most 100 texts per call
+    for i in range(0, len(texts), 100):
         result = gemini.models.embed_content(
             model=config.EMBED_MODEL, contents=texts[i:i + 100],
             config=types.EmbedContentConfig(task_type=task, output_dimensionality=768))
@@ -61,8 +67,8 @@ def add_document(admin_id: str, filename: str, visibility: str, text: str) -> in
     pieces = chunk(text)
     if not pieces:
         raise ValueError("The document has no text")
-    vectors = embed(pieces, "RETRIEVAL_DOCUMENT")  # first: if Gemini fails, the old version stays
-    remove_document(admin_id, filename)            # uploading the same file again replaces it
+    vectors = embed(pieces, "RETRIEVAL_DOCUMENT")
+    remove_document(admin_id, filename)
     collection.add(
         ids=[f"{admin_id}:{filename}:{i}" for i in range(len(pieces))],
         documents=pieces,
@@ -85,11 +91,19 @@ def list_documents(admin_id: str) -> list[dict]:
 
 
 def search(user: User, query: str, k: int = 5) -> list[dict]:
-    # the filter comes from the token: always this gym, and only member documents for a member
-    where = {"admin_id": user.admin_id}
     if user.role == "MEMBER":
-        where = {"$and": [where, {"visibility": "member"}]}
-    result = collection.query(query_embeddings=embed([query], "RETRIEVAL_QUERY"), n_results=k, where=where)
-    hits = zip(result["documents"][0], result["metadatas"][0], result["distances"][0])
-    return [{"source": meta["filename"], "text": text, "distance": round(distance, 3)}
-            for text, meta, distance in hits if distance <= MAX_DISTANCE]
+        where = {"$and": [{"admin_id": user.admin_id}, {"visibility": "member"}]}
+    else:
+        where = {"admin_id": user.admin_id}
+
+    vector = embed([query], "RETRIEVAL_QUERY")
+    result = collection.query(query_embeddings=vector, n_results=k, where=where)
+    texts = result["documents"][0]
+    files = result["metadatas"][0]
+    distances = result["distances"][0]
+
+    matches = []
+    for text, file, distance in zip(texts, files, distances):
+        if distance <= MAX_DISTANCE:
+            matches.append({"source": file["filename"], "text": text, "distance": round(distance, 3)})
+    return matches

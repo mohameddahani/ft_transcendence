@@ -9,6 +9,7 @@ from app.auth import User
 
 MAX_ROUNDS = 5
 
+# creates one Gemini client object that the rest of this file uses to make API calls.
 # 30 s without an answer from Gemini becomes an error instead of an endless wait
 client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
 
@@ -18,6 +19,7 @@ WHO = {
     "MEMBER": "a member of the gym (members can only see their own data)",
 }
 
+# this is the system prompt. it gives Gemini instructions and context before Gemini handles the user's question
 PROMPT = """You are the assistant of {gym}, a gym in Morocco. Today is {today}.
 You are talking to {who}.
 
@@ -47,40 +49,50 @@ Safety:
 
 
 def run(user: User, gym_name: str, question: str, history: list[dict]):
-    """Yields {"type": "tool", "name"} and {"type": "token", "text"} events."""
-    contents = [types.Content(role=m["role"], parts=[types.Part(text=m["text"])]) for m in history]
-    contents.append(types.Content(role="user", parts=[types.Part(text=question)]))
+    # convert every message in history into a content
+    contents = []
+    for m in history:
+        contents.append(
+            types.Content(
+                role=m["role"],
+                parts=[types.Part(text=m["text"])]
+            )
+        )
+    contents.append(
+        types.Content(
+            role="user",
+            parts=[types.Part(text=question)]
+        )
+    )
     settings = types.GenerateContentConfig(
         system_instruction=PROMPT.format(gym=gym_name, who=WHO[user.role],
                                          today=date.today().strftime("%A %d %B %Y")),
         tools=[types.Tool(function_declarations=tools.tools_for(user.role))],
-        # thinking made tool calling worse and slower in our tests
         thinking_config=types.ThinkingConfig(thinking_budget=0),
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
 
     for _ in range(MAX_ROUNDS):
-        parts, calls = [], []
+        calls = []
         for chunk in client.models.generate_content_stream(
                 model=config.CHAT_MODEL, contents=contents, config=settings):
-            content = chunk.candidates[0].content if chunk.candidates else None
-            for part in (content.parts or []) if content else []:
-                parts.append(part)
-                if part.function_call:
-                    calls.append(part.function_call)
-                elif part.text:
-                    yield {"type": "token", "text": part.text}
+            if chunk.function_calls:  # the model asks for tools
+                calls += chunk.function_calls
+            elif chunk.text:          # the model writes its answer send each piece right away
+                yield {"type": "token", "text": chunk.text}
 
         if not calls:
-            return  # the model wrote its answer: done
+            return  # the model wrote its answer done
 
-        # the model asked for tools: run them and send the results back
-        contents.append(types.Content(role="model", parts=parts))
-        results = []
+        # the model asked for tools: run each one
+        asked, answers = [], []
         for call in calls:
             yield {"type": "tool", "name": call.name}
             result = tools.run_tool(call.name, dict(call.args or {}), user)
-            results.append(types.Part.from_function_response(
+            asked.append(types.Part(function_call=call))
+            answers.append(types.Part.from_function_response(
                 name=call.name, response={"result": json.dumps(result, default=str)}))
-        contents.append(types.Content(role="user", parts=results))
+        contents.append(types.Content(role="model", parts=asked))   # what the model asked
+        contents.append(types.Content(role="user", parts=answers))  # what the tools answered
 
     yield {"type": "token", "text": "Sorry, that needed too many steps. Please ask a simpler question."}

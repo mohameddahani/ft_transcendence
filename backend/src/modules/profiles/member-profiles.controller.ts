@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
   Post,
+  Patch,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -17,6 +19,8 @@ import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-a
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
+import { fileTypeFromBuffer } from 'file-type';
+import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
 
 @Controller('/api/users/members')
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
@@ -39,6 +43,19 @@ export class MemberProfilesController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
     return this.profilesService.findMeMember(accessTokenPayload.id);
+  }
+
+  // * Update data of member
+  @Patch('edit-profile')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  updateProfileMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: UpdateProfileMemberDto,
+  ) {
+    return this.profilesService.updateProfileMember(
+      accessTokenPayload.id,
+      body,
+    );
   }
 
   // * Upload profile image
@@ -84,11 +101,19 @@ export class MemberProfilesController {
         // * startsWith('image'): checks if mimetype begins with "image"
         //   meaning only image files are allowed
 
-        if (file.mimetype.startsWith('image')) {
-          cb(null, true); // accept file
-        } else {
-          cb(new BadRequestException('Unsupported File Format'), false); // reject file
+        // * Check from request (Content-Type:)
+        const allowedDeclaredTypes = [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'application/octet-stream',
+        ];
+
+        if (!allowedDeclaredTypes.includes(file.mimetype)) {
+          return cb(new BadRequestException('Unsupported File Format'), false);
         }
+
+        cb(null, true);
       },
 
       // * limits: restricts file upload size to prevent large or malicious uploads
@@ -99,7 +124,7 @@ export class MemberProfilesController {
 
   // * UseGuards: applies authentication/authorization guards to protect the route
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  uploadProfileImageMember(
+  async uploadProfileImageMember(
     // * @UploadedFile: extracts the uploaded file from the request
     @UploadedFile() file: Express.Multer.File,
 
@@ -109,6 +134,16 @@ export class MemberProfilesController {
     // * validation: ensures file exists before continuing
     if (!file) {
       throw new BadRequestException('No Image Provided');
+    }
+
+    // * Get binary data of file
+    const detected = await fileTypeFromBuffer(file.buffer);
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+    // * Check from binary data
+    if (!detected || !allowedTypes.includes(detected.mime)) {
+      throw new BadRequestException('Unsupported or invalid image file');
     }
 
     return this.profilesService.uploadProfileImageMember(

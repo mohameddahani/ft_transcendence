@@ -7,7 +7,7 @@ export class LoginUserDto {
   @IsEmail()
   // trim spaces from start and end
   @Transform(({ value }): string =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
   @ApiProperty({ example: 'mohamed@gmail.com', description: 'User Email' }) // * Swagger Document
   email!: string;

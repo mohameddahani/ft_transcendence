@@ -19,12 +19,15 @@ import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
-import { AccessesService } from '@/core/services/access.service';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  safeStaffSelect,
+  safeUserSelect,
+} from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class StaffsService {
@@ -60,8 +63,13 @@ export class StaffsService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.staff.findUnique({
@@ -120,7 +128,7 @@ export class StaffsService {
       );
     } catch {
       throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+        'Failed to send set password of staff email',
       );
     }
   }
@@ -154,7 +162,7 @@ export class StaffsService {
     }
 
     // * Save new Data to Staff
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -182,28 +190,12 @@ export class StaffsService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        role: true,
-        profileImageUrl: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
-    if (staffs.length === 0) {
-      throw new NotFoundException('Staffs Not Found!');
-    }
 
     return staffs;
   }
@@ -219,23 +211,10 @@ export class StaffsService {
         id: staffId,
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...safeStaffSelect,
         admin: {
           select: safeUserSelect,
         },
-        role: true,
-        profileImageUrl: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
     if (!staff) {
@@ -259,7 +238,7 @@ export class StaffsService {
       throw new BadRequestException('This account is already active.');
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -294,7 +273,7 @@ export class StaffsService {
       }
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -325,7 +304,7 @@ export class StaffsService {
       }
     }
 
-    await this.prisma.staff.update({
+    return await this.prisma.staff.update({
       where: {
         id: staffId,
         adminId: adminId,
@@ -335,5 +314,63 @@ export class StaffsService {
         accountStatus: UserAccountStatus.BANNED,
       },
     });
+  }
+
+  // * Resend Set Password for staff
+  async resendSetPasswordStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check staff exists
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.staffActionToken.findFirst({
+      where: {
+        StaffId: staff.id,
+        type: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of staff.',
+      );
+    }
+
+    // * Send Email of Set password to staff
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.staffActionToken.create({
+        data: {
+          staff: { connect: { id: staff.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email of Password Set to staff
+      await this.emailService.sendSetPasswordStaffEmail(
+        staff.userName,
+        staff.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException(
+        'Failed to send set password of staff email',
+      );
+    }
   }
 }

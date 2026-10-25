@@ -99,4 +99,14 @@ export class AdminMembersController {
   ) {
     return this.membersService.findOne(accessTokenPayload, id);
   }
+
+  // * Resend Set Password for member
+  @Post('resend-set-password/:id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  resendSetPasswordMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.resendSetPasswordMember(accessTokenPayload, id);
+  }
 }

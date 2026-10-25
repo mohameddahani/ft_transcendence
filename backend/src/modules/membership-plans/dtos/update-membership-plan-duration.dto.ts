@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsPositive, IsUUID } from 'class-validator';
+import {
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdateMembershipPlanDurationDto {
   // * MembershipId
@@ -23,4 +29,14 @@ export class UpdateMembershipPlanDurationDto {
   @IsOptional()
   @ApiProperty({ example: 300, description: 'Price' }) // * Swagger Document
   price?: number;
+
+  // * priceByG
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  @ApiProperty({
+    example: 50,
+    description: 'Price in G',
+  })
+  priceByG?: number;
 }

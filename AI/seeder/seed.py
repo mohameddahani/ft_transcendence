@@ -34,6 +34,9 @@ from seeder.names import (
 
 MIN_MEMBERS, MAX_MEMBERS = 150, 400
 
+# bcrypt of "Demo1234!": every demo owner, staff member and member can log in with it (demo data only)
+DEMO_PASSWORD_HASH = "$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELViG"
+
 # families share one phone number, which is why phone_number is not unique
 SHARED_PHONE_RATE = 0.06
 
@@ -157,15 +160,17 @@ def generate_members(gym: GymSpec, count: int, rng: random.Random) -> list[Gener
     return members
 
 
+# the avatars are the backend's defaults, so seeded people look like real ones
 _MEMBER_UPSERT = """
 INSERT INTO members (
     id, admin_id, first_name, last_name, email, user_name, phone_number,
     address, emergency_contact, gender, birth_date, account_status, role,
-    profile_image_url, created_at, updated_at
+    profile_image_url, profile_image_public_id, created_at, updated_at
 ) VALUES (
     gen_random_uuid()::text, $1, $2, $3, $4, $5, $6,
     $7, $8, $9::"Gender", $10, $11::"MemberAccountStatus", 'MEMBER'::"Role",
-    'default-member-image.jpg', $12, NOW()
+    'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521882/avatars-default-member.png',
+    'avatars-default-member', $12, NOW()
 )
 ON CONFLICT (user_name) DO UPDATE SET
     admin_id = EXCLUDED.admin_id,
@@ -186,23 +191,28 @@ ON CONFLICT (user_name) DO UPDATE SET
 async def ensure_gym(conn: asyncpg.Connection, gym: GymSpec) -> str:
     existing = await conn.fetchval("SELECT id FROM users WHERE email = $1", gym.email)
     if existing:
+        await conn.execute("UPDATE users SET password = $2 WHERE id = $1", existing, DEMO_PASSWORD_HASH)
         return existing
     return await conn.fetchval(
         """
         INSERT INTO users (
             id, first_name, last_name, company_name, email, user_name, password,
             phone_number, gender, birth_date, role, account_status,
-            is_account_verified, terms_accepted, profile_image_url, created_at, updated_at
+            is_account_verified, terms_accepted, profile_image_url, profile_image_public_id,
+            created_at, updated_at
         ) VALUES (
-            gen_random_uuid()::text, $1, $2, $3, $4, $5, 'seeded_not_a_real_hash',
+            gen_random_uuid()::text, $1, $2, $3, $4, $5, $9,
             $6, $7::"Gender", $8, 'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus",
-            true, true, 'default-image.jpg', NOW(), NOW()
+            true, true,
+            'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png',
+            'avatars-default-admin', NOW(), NOW()
         ) RETURNING id
         """,
         gym.owner_first, gym.owner_last, gym.company_name, gym.email, gym.user_name,
         gym.phone_number,
         "FEMALE" if gym.owner_first in FEMALE_FIRST_NAMES else "MALE",
         datetime(1985, 1, 1) + timedelta(days=len(gym.key) * 37),
+        DEMO_PASSWORD_HASH,
     )
 
 
@@ -256,11 +266,12 @@ async def ensure_plans(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
                 """SELECT id FROM membership_plan_durations
                    WHERE membership_plan_id = $1 AND duration_days = $2""", plan_id, days)
             if existing is None:
+                # price_by_g is the price in G, at the rate of the backend's example (200 MAD = 50 G)
                 await conn.execute(
                     """INSERT INTO membership_plan_durations (id, membership_plan_id,
-                           duration_days, price, created_at, updated_at)
-                       VALUES (gen_random_uuid()::text, $1, $2, $3, NOW(), NOW())""",
-                    plan_id, days, price)
+                           duration_days, price, price_by_g, created_at, updated_at)
+                       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, NOW(), NOW())""",
+                    plan_id, days, price, round(price / 4))
             else:
                 await conn.execute(
                     "UPDATE membership_plan_durations SET price = $1, updated_at = NOW()"
@@ -285,21 +296,24 @@ async def ensure_staff(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
             await conn.execute(
                 """INSERT INTO staffs (id, admin_id, first_name, last_name, gender,
                                        birth_date, user_name, email, phone_number,
-                                       company_name, role, account_status,
+                                       company_name, role, account_status, password,
+                                       profile_image_url, profile_image_public_id,
                                        created_at, updated_at)
                    VALUES (gen_random_uuid()::text, $1, $2, $3, 'FEMALE'::"Gender",
                            $4, $5, $6, $7, $8, 'STAFF'::"Role",
-                           $9::"UserAccountStatus", NOW(), NOW())""",
+                           $9::"UserAccountStatus", $10,
+                           'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521794/avatars-default-staff.png',
+                           'avatars-default-staff', NOW(), NOW())""",
                 admin_id, "Hafsa" if status == "ACTIVE" else "Yassine",
                 "Ouazzani" if status == "ACTIVE" else "Berrada",
                 today_utc() - timedelta(days=31 * 365),
                 user_name, f"{user_name}@{gym.email.split('@')[1]}",
                 f"+2126{gym.key_digit}9{'1' if status == 'ACTIVE' else '2'}00000",
-                gym.company_name, status)
+                gym.company_name, status, DEMO_PASSWORD_HASH)
         else:
             await conn.execute(
-                'UPDATE staffs SET account_status = $2::"UserAccountStatus" WHERE id = $1',
-                existing, status)
+                'UPDATE staffs SET account_status = $2::"UserAccountStatus", password = $3 WHERE id = $1',
+                existing, status, DEMO_PASSWORD_HASH)
         written += 1
     return written
 
@@ -326,6 +340,7 @@ async def sync_members(
             await conn.execute(f"DELETE FROM {table} WHERE member_id = ANY($1::text[])", ids)
         await conn.execute("DELETE FROM members WHERE id = ANY($1::text[])", ids)
 
+    await conn.execute("UPDATE members SET password = $2 WHERE admin_id = $1", admin_id, DEMO_PASSWORD_HASH)
     return len(members), len(stale)
 
 

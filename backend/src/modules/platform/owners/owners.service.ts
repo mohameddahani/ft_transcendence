@@ -1,3 +1,4 @@
+import { safeUserSelect } from '@/core/types/safe-selects.type';
 import { UserAccountStatus, Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
@@ -19,22 +20,7 @@ export class OwnersService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
         subscription: {
           include: {
@@ -43,10 +29,6 @@ export class OwnersService {
         },
       },
     });
-
-    if (users.length === 0) {
-      throw new NotFoundException('No Users To Show');
-    }
 
     return users;
   }
@@ -59,22 +41,7 @@ export class OwnersService {
         role: { notIn: [Role.OWNER, Role.MEMBER] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...safeUserSelect,
 
         subscription: {
           include: {
@@ -102,7 +69,7 @@ export class OwnersService {
       throw new BadRequestException('This account is already active.');
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.ACTIVE,
@@ -130,7 +97,7 @@ export class OwnersService {
       }
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.PENDING,
@@ -154,7 +121,7 @@ export class OwnersService {
       }
     }
 
-    await this.prisma.user.update({
+    return await this.prisma.user.update({
       where: { id: id, role: { notIn: [Role.OWNER, Role.MEMBER] } },
       data: {
         accountStatus: UserAccountStatus.BANNED,

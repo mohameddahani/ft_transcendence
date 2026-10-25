@@ -8,6 +8,7 @@ import {
   Injectable,
   NotFoundException,
   RequestTimeoutException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ActionTokenType,
@@ -22,12 +23,13 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
 import { addDays } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
+import { safeMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class MembersService {
@@ -93,8 +95,13 @@ export class MembersService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.member.findUnique({
@@ -129,6 +136,9 @@ export class MembersService {
           profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,
           emergencyContact: data.emergencyContact,
+
+          // ! BLOCK_CHAINE
+          walletAddress: data.walletAddress,
         },
       });
       // * Add Membership of member
@@ -250,6 +260,9 @@ export class MembersService {
         phoneNumber: data.phoneNumber,
         address: data.address,
         emergencyContact: data.emergencyContact,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
     });
 
@@ -275,10 +288,22 @@ export class MembersService {
         where: {
           adminId: adminId,
           memberId: memberId,
+          membershipStatus: MemberAccountStatus.ACTIVE,
         },
       });
       if (!membership) {
         throw new NotFoundException('Membership Not Found!');
+      }
+
+      // * Check if the new membership is duplicate or already active
+      if (
+        data.membershipPlanId === membership.membershipPlanId &&
+        data.membershipPlanDurationId === membership.membershipPlanDurationId &&
+        membership.membershipStatus === MembershipStatus.ACTIVE
+      ) {
+        throw new ConflictException(
+          'This member already has an active membership with the same plan and duration.',
+        );
       }
 
       // * Interactive transaction (function)
@@ -341,7 +366,7 @@ export class MembersService {
       throw new ConflictException('The Member is already Active!');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -373,7 +398,7 @@ export class MembersService {
       );
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -399,7 +424,7 @@ export class MembersService {
       throw new ConflictException('The member is already banned.');
     }
 
-    await this.prisma.member.update({
+    return await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -408,6 +433,67 @@ export class MembersService {
         accountStatus: MemberAccountStatus.BANNED,
       },
     });
+  }
+
+  // * Resend Set Password for member
+  async resendSetPasswordMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    await this.accessesService.authorizeAdminOrStaffAccess(accessTokenPayload);
+
+    // * Check member exists
+    const member = await this.findOne(accessTokenPayload, memberId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.memberActionToken.findFirst({
+      where: {
+        memberId: member.id,
+        type: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of member.',
+      );
+    }
+
+    // * Send Email of Set password to member
+    try {
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+      // * Store the hash Token in DB
+      await this.prisma.memberActionToken.create({
+        data: {
+          member: { connect: { id: member.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
+      // * Send email of Password Set to member
+      await this.emailService.sendSetPasswordMemberEmail(
+        member.userName,
+        member.email,
+        rawToken,
+      );
+    } catch {
+      throw new RequestTimeoutException(
+        'Failed to send set password of member email',
+      );
+    }
   }
 
   // * Get all Members
@@ -428,31 +514,8 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: safeMemberSelect,
     });
-    if (members.length === 0) {
-      throw new NotFoundException('Members Not Found!');
-    }
 
     return members;
   }
@@ -470,27 +533,7 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: safeMemberSelect,
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');

@@ -1,16 +1,25 @@
+# ==============================================================================
+#                         ft_transcendence — Docker Compose
+# ==============================================================================
+
 services:
-  postgres:
+
+  # ============================================================================
+  #                              Infrastructure
+  # ============================================================================
+
+  db:
     image: postgres:16-alpine
-    container_name: postgres_container
+    container_name: db
     restart: unless-stopped
     env_file:
       - .env
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     networks:
       - ft_transcendence-net
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -20,38 +29,106 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     image: backend:latest
-    container_name: backend_container
+    container_name: backend
     restart: unless-stopped
     env_file:
       - ../backend/.env
     networks:
       - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
-  
+
   frontend:
+    build:
+      context: ../admin-staff-platform
+      dockerfile: Dockerfile
+    image: frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    env_file:
+      - ../admin-staff-platform/.env
+    networks:
+      - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      backend:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+
+  superadmin:
     build:
       context: ../owner-platform
       dockerfile: Dockerfile
-    image: frontend:latest
-    container_name: frontend_container
+    image: superadmin:latest
+    container_name: superadmin
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    env_file:
+      - ../owner-platform/.env
+    networks:
+      - ft_transcendence-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  ai:
+    build:
+      context: ../AI
+      dockerfile: Dockerfile
+    image: ai:latest
+    container_name: ai
+    restart: unless-stopped
+    env_file:
+      - ../AI/.env
+    networks:
+      - ft_transcendence-net
+    volumes:
+      - ai_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  blockchain:
+    build:
+      context: ../block-chain/api
+      dockerfile: Dockerfile
+    image: block-chain:latest
+    container_name: blockchain
+    restart: unless-stopped
+    env_file:
+      - ../block-chain/api/.env
     networks:
       - ft_transcendence-net
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
-    container_name: redis_container
+    container_name: redis
     restart: unless-stopped
     env_file:
-    - .env
+      - .env
     command: >
         redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -65,10 +142,9 @@ services:
       timeout: 5s
       retries: 5
 
-
   nginx:
     image: nginx:1.30-alpine
-    container_name: nginx_container
+    container_name: nginx
     ports:
       - "80:80"
       - "443:443"
@@ -80,11 +156,191 @@ services:
     networks:
       - ft_transcendence-net
     depends_on:
-      - backend
+      frontend:
+        condition: service_healthy
+      superadmin:
+        condition: service_healthy
+
+  # ============================================================================
+  #                                Monitoring
+  # ============================================================================
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    networks:
+      - ft_transcendence-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.30.0
+    container_name: alertmanager
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+    expose:
+      - "9093"
+    networks:
+      - ft_transcendence-net
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}     # signs cookies/tokens
+      - GF_SECURITY_COOKIE_SECURE=true                   # HTTPS-only cookies
+      - GF_SECURITY_COOKIE_SAMESITE=strict               # Prevents CSRF
+      - GF_SECURITY_DISABLE_GRAVATAR=true                # no external requests
+      - GF_SECURITY_LOGIN_REMEMBER_DAYS=1                # session expires in 1 day
+      - GF_SERVER_ROOT_URL=${GRAFANA_URL}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_USERS_ALLOW_SIGN_UP=false                     # disable sign-up/register feature
+      - GF_USERS_ALLOW_ORG_CREATE=false                  # only admin can create orgs
+      - GF_USERS_AUTO_ASSIGN_ORG=true
+      - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer             # new users get Viewer, not Editor
+      - GF_AUTH_DISABLE_LOGIN_FORM=false                 # keep the login form (local auth)
+      - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
+    networks:
+      - ft_transcendence-net
+    depends_on: [prometheus]
+
+  # ============================================================================
+  #                             Metrics Exporters
+  # ============================================================================
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - "9100"
+    networks:
+      - ft_transcendence-net
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - '--nginx.scrape-uri=http://nginx:80/nginx_status'
+    expose:
+      - "9113"
+    networks:
+      - ft_transcendence-net
+    depends_on: [nginx]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.18.0
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
+    expose:
+      - "9187"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.80.0
+    container_name: redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    expose:
+      - "9121"
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ============================================================================
+  #                                Status Page
+  # ============================================================================
+
+  gatus:
+    image: twinproduction/gatus:v5.30.0
+    container_name: gatus
+    restart: unless-stopped
+    environment:
+      - DISCORD_WEBHOOK_URL
+    expose:
+      - "8080"
+    volumes:
+      - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
+    networks:
+      - ft_transcendence-net
+
+  # ============================================================================
+  #                             Backup & Recovery
+  # ============================================================================
+
+  backup:
+    build: ./backup-service
+    image: backup:latest
+    container_name: backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - BACKUP_SCHEDULE
+    volumes:
+      - ./backups:/backups
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      db:
+        condition: service_healthy
+
+# ==============================================================================
+#                                   Volumes
+# ==============================================================================
 
 volumes:
-  postgres_data:
+  db_data:
+  ai_data:
   redisdata:
+  prometheus_data:
+  grafana_data:
+
+# ==============================================================================
+#                                  Networks
+# ==============================================================================
 
 networks:
   ft_transcendence-net:

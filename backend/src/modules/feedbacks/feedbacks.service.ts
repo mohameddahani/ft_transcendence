@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { AccessesService } from '@/core/services/access.service';
 import { CreateFeedbackLikeDto } from './dto/create-feedback-like.dto';
 import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
@@ -17,12 +16,15 @@ import {
   safeStaffSelect,
   safeUserSelect,
 } from '@/core/types/safe-selects.type';
+import { ExternalApiService } from '@/infrastructure/external-api/external-api.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class FeedbacksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessesService: AccessesService,
+    private readonly externalApiService: ExternalApiService,
   ) {}
 
   // * Create Feedback
@@ -43,13 +45,18 @@ export class FeedbacksService {
     }
 
     // * Create feedback
-    await this.prisma.feedback.create({
+    // * Get Sentiment From Ai
+    const response = await this.externalApiService.getSentiment(data.content);
+
+    return await this.prisma.feedback.create({
       data: {
         admin: { connect: { id: adminId } },
         member: { connect: { id: memberId } },
         staff: member.staffId ? { connect: { id: member.staffId } } : undefined,
         content: data.content,
         rating: data.rating,
+        sentiment: response?.sentiment ?? null,
+        sentimentScore: response?.sentimentScore ?? null,
       },
     });
   }
@@ -103,10 +110,6 @@ export class FeedbacksService {
         createdAt: 'desc',
       },
     });
-
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
 
     return feedbacks;
   }
@@ -182,7 +185,7 @@ export class FeedbacksService {
     }
 
     // * Like this feedback
-    await this.prisma.feedbackLike.create({
+    return await this.prisma.feedbackLike.create({
       data: {
         feedback: { connect: { id: data.feedbackId } },
         member: { connect: { id: memberId } },
@@ -295,10 +298,6 @@ export class FeedbacksService {
       },
     });
 
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
-
     return feedbacks;
   }
 
@@ -369,7 +368,7 @@ export class FeedbacksService {
     await this.findOneFeedback(accessTokenPayload, feedbackId);
 
     // * update status of feedback
-    await this.prisma.feedback.update({
+    return await this.prisma.feedback.update({
       where: {
         id: feedbackId,
       },

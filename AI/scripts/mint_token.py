@@ -1,3 +1,4 @@
+# create a valid JWT manually so you can test the AI service without logging in through the backend
 # dev only: signs a token like the backend's, to test the AI service without the login page
 # run from AI/:  docker compose exec -T ai python - <role> <who> [status] < scripts/mint_token.py
 #   admin atlas | staff atlas | staff atlas BANNED | member omar@gmail.com

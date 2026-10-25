@@ -80,8 +80,13 @@ export class AuthProvider {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.user.findUnique({
@@ -113,6 +118,9 @@ export class AuthProvider {
         profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
         companyName: data.companyName,
         termsAccepted: data.termsAccepted,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
     });
 
@@ -165,6 +173,20 @@ export class AuthProvider {
       throw new UnauthorizedException('Invalid Email or Password');
     }
 
+    // * Check if the user's account is verified.
+    if (!user.isAccountVerified) {
+      throw new UnauthorizedException(
+        'Please verify your email address to continue.',
+      );
+    }
+
+    // * Check if the user has accepted the terms.
+    if (!user.termsAccepted) {
+      throw new UnauthorizedException(
+        'Please accept the terms and conditions to continue.',
+      );
+    }
+
     // * Check status of account
     if (user.accountStatus === UserAccountStatus.PENDING) {
       throw new UnauthorizedException(
@@ -173,6 +195,22 @@ export class AuthProvider {
     }
 
     if (user.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.userActionToken.findFirst({
+        where: {
+          userId: user.id,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A verification email has already been requested. Please check your inbox.',
+        );
+      }
+
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
@@ -225,7 +263,7 @@ export class AuthProvider {
       role: user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // *  Generate UUID for jti
@@ -237,7 +275,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -472,6 +510,22 @@ export class AuthProvider {
     }
 
     if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.staffActionToken.findFirst({
+        where: {
+          StaffId: staff.id,
+          type: ActionTokenType.SET_PASSWORD,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A set password email has already been requested. Please check your inbox.',
+        );
+      }
+
       // * Send Email verification to new user if he try to login without activating his account
       try {
         // * Generate Action Token
@@ -488,18 +542,22 @@ export class AuthProvider {
           data: {
             staff: { connect: { id: staff.id } },
             tokenHash: tokenHash,
-            type: ActionTokenType.EMAIL_VERIFICATION,
+            type: ActionTokenType.SET_PASSWORD,
             expiresAt: expiresAt,
           },
         });
 
         // * Send email of verification to user
-        await this.emailService.sendVerificationEmail(staff.email, rawToken);
+        await this.emailService.sendSetPasswordStaffEmail(
+          staff.userName,
+          staff.email,
+          rawToken,
+        );
       } catch {
         throw new RequestTimeoutException('Failed to send verification email');
       }
       throw new UnauthorizedException(
-        'Your account is inactive. Please activate your account through the email we sent.',
+        'Your account has not been activated yet. Please check your email and set your password to continue.',
       );
     }
 
@@ -528,7 +586,7 @@ export class AuthProvider {
       role: staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -540,7 +598,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -708,6 +766,22 @@ export class AuthProvider {
       throw new NotFoundException('Staff Not Found');
     }
 
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.staffActionToken.findFirst({
+      where: {
+        StaffId: staff.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
+    }
+
     // * Send Email of reset password to Staff
     try {
       // * Generate Action Token
@@ -730,13 +804,16 @@ export class AuthProvider {
       });
 
       // * Send email
-      await this.emailService.sendResetPasswordMemberEmail(
+      await this.emailService.sendResetPasswordStaffEmail(
         staff.email,
         rawToken,
       );
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+    return {
+      message: 'Please check your email and set your password',
+    };
   }
 
   // * Password reset (Staff)
@@ -804,9 +881,17 @@ export class AuthProvider {
       select: {
         ...safeMemberSelect,
         password: true,
+<<<<<<< HEAD
         admin: {
           select: {
             companyName: true,
+=======
+
+        // ! BLOCK_CHAINE
+        admin: {
+          select: {
+            walletAddress: true,
+>>>>>>> 707049b4710f4fea1ef1fb553deb9f17996faaee
           },
         },
       },
@@ -830,6 +915,56 @@ export class AuthProvider {
 
     // * Check the member if he set a password
     if (!member.password) {
+      // * Check whether a valid verification token already exists.
+      const existingToken = await this.prisma.memberActionToken.findFirst({
+        where: {
+          memberId: member.id,
+          type: ActionTokenType.SET_PASSWORD,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingToken) {
+        throw new UnauthorizedException(
+          'A set password email has already been requested. Please check your inbox.',
+        );
+      }
+
+      // * Send Email verification to new user if he try to login without activating his account
+      try {
+        // * Generate Action Token
+        const { rawToken, tokenHash } = generateActionToken();
+
+        // * Calc the expir
+        const emailVerificationTokenExpiresIn =
+          this.config.getOrThrow<StringValue>(
+            'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
+          );
+        const expiresAt = new Date(
+          Date.now() + ms(emailVerificationTokenExpiresIn),
+        );
+
+        // * Store the hash Token in DB
+        await this.prisma.memberActionToken.create({
+          data: {
+            member: { connect: { id: member.id } },
+            tokenHash: tokenHash,
+            type: ActionTokenType.SET_PASSWORD,
+            expiresAt: expiresAt,
+          },
+        });
+
+        // * Send email of verification to user
+        await this.emailService.sendSetPasswordMemberEmail(
+          member.userName,
+          member.email,
+          rawToken,
+        );
+      } catch {
+        throw new RequestTimeoutException('Failed to send verification email');
+      }
+
       throw new UnauthorizedException(
         'Your account has not been activated yet. Please check your email and set your password to continue.',
       );
@@ -850,7 +985,7 @@ export class AuthProvider {
       role: member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
     // * Generate Refresh Token
     // * Generate UUID for jti
@@ -862,7 +997,7 @@ export class AuthProvider {
       jti: jti,
     };
     const refreshToken =
-      this.customJwtService.generateRefreshToken(refreshTokenPayload);
+      await this.customJwtService.generateRefreshToken(refreshTokenPayload);
 
     // * Hash Refresh Token
     const salt = await bcrypt.genSalt(10);
@@ -890,10 +1025,16 @@ export class AuthProvider {
     });
 
     // * Exculde Some Fields
-    const { password, ...safeMember } = member;
+
+    // ! BLOCK_CHAINE
+    const { password, admin, ...safeMember } = member;
 
     return {
-      member: safeMember,
+      member: {
+        ...safeMember,
+        // ! BLOCK_CHAINE
+        adminWalletAddress: admin.walletAddress,
+      },
       accessToken,
       refreshToken,
       refreshExpiresIn,
@@ -964,6 +1105,7 @@ export class AuthProvider {
 
   // * Refresh
   async refresh(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1007,19 +1149,70 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.user.id,
+      role: storedToken.user.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn =
+      storedToken.user.role === Role.ADMIN
+        ? this.config.getOrThrow<StringValue>('JWT_ADMIN_REFRESH_EXPIRES_IN')
+        : this.config.getOrThrow<StringValue>('JWT_OWNER_REFRESH_EXPIRES_IN');
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.userRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.userRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          user: { connect: { id: storedToken.user.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.user.id,
       role: storedToken.user.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Refresh Staff
   async refreshStaff(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1060,19 +1253,69 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.staff.id,
+      role: storedToken.staff.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_STAFF_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.staffRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.staffRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          staff: { connect: { id: storedToken.staff.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.staff.id,
       role: storedToken.staff.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Refresh Member
   async refreshMember(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
@@ -1113,15 +1356,64 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    // * revok the old refresh token and Generate new one
+    // *  Generate UUID for jti
+    const jti = randomUUID();
+
+    const newRefreshTokenPayload: RefreshTokenPayload = {
+      id: storedToken.member.id,
+      role: storedToken.member.role,
+      jti: jti,
+    };
+
+    const newRefreshToken = await this.customJwtService.generateRefreshToken(
+      newRefreshTokenPayload,
+    );
+
+    // * Hash Refresh Token
+    const salt = await bcrypt.genSalt(10);
+    const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, salt);
+
+    // * Save Hash Refresh Token in database
+    // * Get refresh token expiration time from .env
+    const refreshExpiresIn = this.config.getOrThrow<StringValue>(
+      'JWT_MEMBER_REFRESH_EXPIRES_IN',
+    );
+
+    // * Calculate expiration date
+    const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
+
+    await this.prisma.$transaction([
+      this.prisma.memberRefreshToken.update({
+        where: {
+          id: storedToken.id,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      }),
+      this.prisma.memberRefreshToken.create({
+        data: {
+          jti: jti,
+          hash: newRefreshTokenHash,
+          member: { connect: { id: storedToken.member.id } },
+          expiresAt: expiresAt,
+          ip: request.ip,
+          userAgent: request.headers['user-agent'],
+          device: this.getDevice(request.headers['user-agent']),
+        },
+      }),
+    ]);
+
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
       id: storedToken.member.id,
       role: storedToken.member.role,
     };
     const accessToken =
-      this.customJwtService.generateAccessToken(accessTokenPayload);
+      await this.customJwtService.generateAccessToken(accessTokenPayload);
 
-    return { accessToken: accessToken };
+    return { accessToken, newRefreshToken, refreshExpiresIn };
   }
 
   // * Activate user account
@@ -1190,6 +1482,22 @@ export class AuthProvider {
       throw new UnauthorizedException('Invalid Email');
     }
 
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.userActionToken.findFirst({
+      where: {
+        userId: user.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
+    }
+
     // * Send Email of reset password to user
     try {
       // * Generate Token
@@ -1216,6 +1524,9 @@ export class AuthProvider {
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+    return {
+      message: 'Please check your email and set your password.',
+    };
   }
 
   // * Password reset
@@ -1277,6 +1588,22 @@ export class AuthProvider {
       throw new NotFoundException('Member Not Found');
     }
 
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.memberActionToken.findFirst({
+      where: {
+        memberId: member.id,
+        type: ActionTokenType.RESET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A reset password email has already been requested. Please check your inbox.',
+      );
+    }
+
     // * Send Email of reset password to member
     try {
       // * Generate Action Token
@@ -1306,6 +1633,10 @@ export class AuthProvider {
     } catch {
       throw new RequestTimeoutException('Failed to send reset password email');
     }
+
+    return {
+      message: 'Please check your email and set your password.',
+    };
   }
 
   // * Password reset (Member)

@@ -12,9 +12,11 @@ Thumbs.db
 .env.*
 !.env.example
 
+# certificates
 devops/nginx/certs
 
-docker-compose.dev.yml
+# backups
+devops/backups/*.dump
 
 node_modules/
 
