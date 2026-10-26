@@ -42,6 +42,14 @@ endpoints:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 2000"
 
+  - name: Blockchain API
+    group: Application
+    url: http://blockchain:3000/health
+    <<: *http-defaults
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 3000"
+
   - name: Superadmin
     group: Application
     url: https://nginx/superadmin/
