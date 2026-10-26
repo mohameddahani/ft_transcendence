@@ -133,7 +133,7 @@ services:
         redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
       - ./redis/redis.conf:/etc/redis/redis.conf:ro
-      - redisdata:/data
+      - redis_data:/data
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -347,11 +347,17 @@ services:
 
 volumes:
   db_data:
+    name: "gymFlow_db_data"
   ai_data:
-  redisdata:
+    name: "gymFlow_ai_data"
+  redis_data:
+    name: "gymFlow_redis_data"
   certs:
+    name: "gymFlow_certs"
   prometheus_data:
+    name: "gymFlow_prometheus_data"
   grafana_data:
+    name: "gymFlow_grafana_data"
 
 # ==============================================================================
 #                                  Networks
