@@ -132,6 +132,7 @@ export class MembersService {
           userName: userName,
           email: data.email,
           phoneNumber: data.phoneNumber,
+          companyName: subscription.user.companyName,
           profileImageUrl: DEFAULT_AVATARS.MEMBER,
           profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,

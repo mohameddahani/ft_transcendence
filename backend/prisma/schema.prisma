@@ -279,6 +279,7 @@ model Member {
   email                String
   password             String?
   phoneNumber          String   @map("phone_number")
+  companyName          String   @map("company_name")
   profileImageUrl      String   @map("profile_image_url")
   profileImagePublicId String   @map("profile_image_public_id")
   address              String

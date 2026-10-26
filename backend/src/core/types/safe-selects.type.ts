@@ -104,6 +104,7 @@ export const safeMemberSelect = {
   userName: true,
   email: true,
   phoneNumber: true,
+  companyName: true,
   profileImageUrl: true,
   address: true,
   emergencyContact: true,
