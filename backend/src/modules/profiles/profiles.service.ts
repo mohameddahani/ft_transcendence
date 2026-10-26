@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -51,7 +53,7 @@ export class ProfilesService {
 
   // * Update data of user
   async update(id: string, data: UpdateProfileUserDto) {
-    // * Check if user update the username: (we need to check if username is unique)
+    // * Check if user updates email or phone number: they must be unique
     const existingData = await this.prisma.user.findFirst({
       where: {
         id: { not: id }, // exclude current user
@@ -72,12 +74,42 @@ export class ProfilesService {
     }
 
     // * Check if user update the password: (we need to hash it)
-    if (data.password) {
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User Not Found.');
+      }
+
+      const passwordIsMatch = await bcrypt.compare(
+        data.currentPassword,
+        user.password,
+      );
+
+      if (!passwordIsMatch) {
+        throw new UnauthorizedException('Invalid Current Password');
+      }
+
       data.password = await bcrypt.hash(data.password, 10);
     }
 
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
     // * Save new data to user
-    return await this.prisma.user.update({ where: { id }, data });
+    return await this.prisma.user.update({ where: { id }, data: profileData });
   }
 
   // * Upload profile image
@@ -217,7 +249,7 @@ export class ProfilesService {
   // * Update data of member
   async updateProfileMember(memberId: string, data: UpdateProfileMemberDto) {
     // * Check if member update the email or phone number
-    const existingData = await this.prisma.staff.findFirst({
+    const existingData = await this.prisma.member.findFirst({
       where: {
         id: { not: memberId }, // exclude current member
         OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
@@ -237,12 +269,52 @@ export class ProfilesService {
     }
 
     // * Check if member update the password: (we need to hash it)
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const member = await this.prisma.member.findUnique({
+        where: {
+          id: memberId,
+        },
+      });
+
+      if (!member) {
+        throw new NotFoundException('Member Not Found.');
+      }
+
+      // * Check if Member has already password
+      if (!member.password) {
+        throw new BadRequestException(
+          'You must set your password using the link sent to your email.',
+        );
+      } else {
+        const passwordIsMatch = await bcrypt.compare(
+          data.currentPassword,
+          member.password,
+        );
+
+        if (!passwordIsMatch) {
+          throw new UnauthorizedException('Invalid Current Password');
+        }
+
+        data.password = await bcrypt.hash(data.password, 10);
+      }
     }
 
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
     // * Save new data to member
-    return await this.prisma.member.update({ where: { id: memberId }, data });
+    return await this.prisma.member.update({
+      where: { id: memberId },
+      data: profileData,
+    });
   }
 
   // * Upload profile image (Member)
@@ -408,12 +480,52 @@ export class ProfilesService {
     }
 
     // * Check if staff update the password: (we need to hash it)
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const staff = await this.prisma.staff.findUnique({
+        where: {
+          id: staffId,
+        },
+      });
+
+      if (!staff) {
+        throw new NotFoundException('Staff Not Found.');
+      }
+
+      // * Check if Staff has already password
+      if (!staff.password) {
+        throw new BadRequestException(
+          'You must set your password using the link sent to your email.',
+        );
+      } else {
+        const passwordIsMatch = await bcrypt.compare(
+          data.currentPassword,
+          staff.password,
+        );
+
+        if (!passwordIsMatch) {
+          throw new UnauthorizedException('Invalid Current Password');
+        }
+
+        data.password = await bcrypt.hash(data.password, 10);
+      }
     }
 
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
     // * Save new data to staff
-    return await this.prisma.staff.update({ where: { id: staffId }, data });
+    return await this.prisma.staff.update({
+      where: { id: staffId },
+      data: profileData,
+    });
   }
 
   // * Upload profile image (Staff)
