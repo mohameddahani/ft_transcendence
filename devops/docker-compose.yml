@@ -49,13 +49,13 @@ services:
 
   frontend:
     build:
-      context: ../admin-staff-platform
+      context: ../frontend
       dockerfile: Dockerfile
     image: frontend:latest
     container_name: frontend
     restart: unless-stopped
     env_file:
-      - ../admin-staff-platform/.env
+      - ../frontend/.env
     networks:
       - ft_transcendence-net
     healthcheck:
