@@ -49,13 +49,13 @@ services:
 
   frontend:
     build:
-      context: ../admin-staff-platform
+      context: ../frontend
       dockerfile: Dockerfile
     image: frontend:latest
     container_name: frontend
     restart: unless-stopped
     env_file:
-      - ../admin-staff-platform/.env
+      - ../frontend/.env
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -133,7 +133,7 @@ services:
         redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     volumes:
       - ./redis/redis.conf:/etc/redis/redis.conf:ro
-      - redisdata:/data
+      - redis_data:/data
     networks:
       - ft_transcendence-net
     healthcheck:
@@ -141,6 +141,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  cert-generator:
+    image: alpine/openssl:3.5.6
+    container_name: cert-generator
+    command: >
+      req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout /certs/self-signed.key
+      -out /certs/self-signed.crt
+      -subj "/C=FR/ST=Paris/L=Paris/O=GymFlow/CN=localhost"
+      -addext "subjectAltName=DNS:localhost,DNS:status.localhost"
+    volumes:
+      - certs:/certs
 
   nginx:
     image: nginx:1.30-alpine
@@ -150,9 +162,9 @@ services:
       - "443:443"
     restart: unless-stopped
     volumes:
+      - certs:/etc/nginx/ssl:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certs:/etc/nginx/ssl:ro
     networks:
       - ft_transcendence-net
     depends_on:
@@ -160,6 +172,8 @@ services:
         condition: service_healthy
       superadmin:
         condition: service_healthy
+      cert-generator:
+        condition: service_completed_successfully
 
   # ============================================================================
   #                                Monitoring
@@ -333,10 +347,17 @@ services:
 
 volumes:
   db_data:
+    name: "gymFlow_db_data"
   ai_data:
-  redisdata:
+    name: "gymFlow_ai_data"
+  redis_data:
+    name: "gymFlow_redis_data"
+  certs:
+    name: "gymFlow_certs"
   prometheus_data:
+    name: "gymFlow_prometheus_data"
   grafana_data:
+    name: "gymFlow_grafana_data"
 
 # ==============================================================================
 #                                  Networks

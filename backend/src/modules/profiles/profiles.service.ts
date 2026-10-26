@@ -204,29 +204,7 @@ export class ProfilesService {
   async findMeMember(id: string) {
     const member = await this.prisma.member.findUnique({
       where: { id },
-<<<<<<< HEAD
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        admin: {
-          select: {
-            companyName: true,
-          },
-        },
-      },
-=======
       select: safeMemberSelect,
->>>>>>> 707049b4710f4fea1ef1fb553deb9f17996faaee
     });
 
     if (!member) {

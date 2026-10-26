@@ -881,17 +881,11 @@ export class AuthProvider {
       select: {
         ...safeMemberSelect,
         password: true,
-<<<<<<< HEAD
-        admin: {
-          select: {
-            companyName: true,
-=======
 
         // ! BLOCK_CHAINE
         admin: {
           select: {
             walletAddress: true,
->>>>>>> 707049b4710f4fea1ef1fb553deb9f17996faaee
           },
         },
       },
