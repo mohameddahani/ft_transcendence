@@ -247,7 +247,7 @@ export class MembersService {
     }
 
     // * Save new data to member
-    await this.prisma.member.update({
+    const member = await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -265,6 +265,7 @@ export class MembersService {
         // ! BLOCK_CHAINE
         walletAddress: data.walletAddress,
       },
+      select: safeMemberSelect,
     });
 
     // * check if the admin update the membership plan
@@ -351,6 +352,8 @@ export class MembersService {
         'membership plan and duration must be provided together.',
       );
     }
+
+    return member;
   }
 
   // * Active a Member
@@ -375,6 +378,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
+      select: safeMemberSelect,
     });
   }
 
@@ -410,6 +414,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
+      select: safeMemberSelect,
     });
   }
 
@@ -436,6 +441,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
+      select: safeMemberSelect,
     });
   }
 

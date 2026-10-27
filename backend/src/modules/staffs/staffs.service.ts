@@ -171,6 +171,7 @@ export class StaffsService {
         email: data.email,
         phoneNumber: data.phoneNumber,
       },
+      select: safeStaffSelect,
     });
   }
 
@@ -243,6 +244,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
+      select: safeStaffSelect,
     });
   }
 
@@ -274,6 +276,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
+      select: safeStaffSelect,
     });
   }
 
@@ -299,6 +302,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
+      select: safeStaffSelect,
     });
   }
 

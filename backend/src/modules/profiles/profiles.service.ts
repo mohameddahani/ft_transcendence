@@ -109,7 +109,11 @@ export class ProfilesService {
     const { currentPassword, ...profileData } = data;
 
     // * Save new data to user
-    return await this.prisma.user.update({ where: { id }, data: profileData });
+    return await this.prisma.user.update({
+      where: { id },
+      data: profileData,
+      select: safeUserSelect,
+    });
   }
 
   // * Upload profile image
@@ -314,6 +318,7 @@ export class ProfilesService {
     return await this.prisma.member.update({
       where: { id: memberId },
       data: profileData,
+      select: safeMemberSelect,
     });
   }
 
@@ -525,6 +530,7 @@ export class ProfilesService {
     return await this.prisma.staff.update({
       where: { id: staffId },
       data: profileData,
+      select: safeStaffSelect,
     });
   }
 

@@ -74,6 +74,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
+      select: safeUserSelect,
     });
   }
 
@@ -98,6 +99,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
+      select: safeUserSelect,
     });
   }
 
@@ -116,6 +118,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
+      select: safeUserSelect,
     });
   }
 }
