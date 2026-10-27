@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   RequestTimeoutException,
   UnauthorizedException,
@@ -63,7 +65,7 @@ export class AuthProvider {
 
     if (existingUser) {
       if (existingUser.email === data.email) {
-        throw new UnauthorizedException('Email already exists');
+        throw new ConflictException('Email already exists');
       }
 
       if (existingUser.phoneNumber === data.phoneNumber) {
@@ -125,33 +127,40 @@ export class AuthProvider {
     });
 
     // * Generate Email Verification Token
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const emailVerificationTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(
+      Date.now() + ms(emailVerificationTokenExpiresIn),
+    );
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.userActionToken.create({
+      data: {
+        user: { connect: { id: newUser.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.EMAIL_VERIFICATION,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const emailVerificationTokenExpiresIn =
-        this.config.getOrThrow<StringValue>(
-          'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
-        );
-      const expiresAt = new Date(
-        Date.now() + ms(emailVerificationTokenExpiresIn),
-      );
-
-      // * Store the hash Token in DB
-      await this.prisma.userActionToken.create({
-        data: {
-          user: { connect: { id: newUser.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.EMAIL_VERIFICATION,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send Email
       await this.emailService.sendVerificationEmail(newUser.email, rawToken);
     } catch {
-      throw new RequestTimeoutException('Failed to send verification email');
+      // * Remove action token if email faild to send
+      await this.prisma.userActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
+      return {
+        message:
+          'Account created, but the verification email could not be sent. Please request a new verification email.',
+      };
     }
 
     return {
@@ -170,6 +179,12 @@ export class AuthProvider {
       },
     });
     if (!user) {
+      throw new UnauthorizedException('Invalid Email or Password');
+    }
+
+    // * Check the password is match
+    const passwordIsMatch = await bcrypt.compare(data.password, user.password);
+    if (!passwordIsMatch) {
       throw new UnauthorizedException('Invalid Email or Password');
     }
 
@@ -194,6 +209,12 @@ export class AuthProvider {
       );
     }
 
+    if (user.accountStatus === UserAccountStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact support for assistance.',
+      );
+    }
+
     if (user.accountStatus === UserAccountStatus.INACTIVE) {
       // * Check whether a valid verification token already exists.
       const existingToken = await this.prisma.userActionToken.findFirst({
@@ -212,49 +233,44 @@ export class AuthProvider {
       }
 
       // * Send Email verification to new user if he try to login without activating his account
-      try {
-        // * Generate Action Token
-        const { rawToken, tokenHash } = generateActionToken();
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
 
-        // * Calc the expir
-        const emailVerificationTokenExpiresIn =
-          this.config.getOrThrow<StringValue>(
-            'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
-          );
-        const expiresAt = new Date(
-          Date.now() + ms(emailVerificationTokenExpiresIn),
+      // * Calc the expir
+      const emailVerificationTokenExpiresIn =
+        this.config.getOrThrow<StringValue>(
+          'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
         );
+      const expiresAt = new Date(
+        Date.now() + ms(emailVerificationTokenExpiresIn),
+      );
 
-        // * Store the hash Token in DB
-        await this.prisma.userActionToken.create({
-          data: {
-            user: { connect: { id: user.id } },
-            tokenHash: tokenHash,
-            type: ActionTokenType.EMAIL_VERIFICATION,
-            expiresAt: expiresAt,
-          },
-        });
+      // * Store the hash Token in DB
+      const actionToken = await this.prisma.userActionToken.create({
+        data: {
+          user: { connect: { id: user.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          expiresAt: expiresAt,
+        },
+      });
 
+      try {
         // * Send email of verification to user
         await this.emailService.sendVerificationEmail(user.email, rawToken);
       } catch {
-        throw new RequestTimeoutException('Failed to send verification email');
+        // * Remove action token if email faild to send
+        await this.prisma.userActionToken.delete({
+          where: { id: actionToken.id },
+        });
+
+        throw new InternalServerErrorException(
+          'Account created, but the verification email could not be sent. Please request a new verification email.',
+        );
       }
       throw new UnauthorizedException(
         'Your account is inactive. Please activate your account through the email we sent.',
       );
-    }
-
-    if (user.accountStatus === UserAccountStatus.BANNED) {
-      throw new UnauthorizedException(
-        'Your account has been suspended. Please contact support for assistance.',
-      );
-    }
-
-    // * Check the password is match
-    const passwordIsMatch = await bcrypt.compare(data.password, user.password);
-    if (!passwordIsMatch) {
-      throw new UnauthorizedException('Invalid Email or Password');
     }
 
     // * Generate Access Token
@@ -498,18 +514,13 @@ export class AuthProvider {
         password: true,
       },
     });
+
     if (!staff) {
       throw new UnauthorizedException('Invalid User Name or Password');
     }
 
-    // * Check status of account
-    if (staff.accountStatus === UserAccountStatus.PENDING) {
-      throw new UnauthorizedException(
-        'Your account is pending verification. Please contact admin for assistance.',
-      );
-    }
-
-    if (staff.accountStatus === UserAccountStatus.INACTIVE) {
+    // * Check the member if he set a password
+    if (!staff.password) {
       // * Check whether a valid verification token already exists.
       const existingToken = await this.prisma.staffActionToken.findFirst({
         where: {
@@ -527,26 +538,26 @@ export class AuthProvider {
       }
 
       // * Send Email verification to new user if he try to login without activating his account
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      const actionToken = await this.prisma.staffActionToken.create({
+        data: {
+          staff: { connect: { id: staff.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
       try {
-        // * Generate Action Token
-        const { rawToken, tokenHash } = generateActionToken();
-
-        // * Calc the expir
-        const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
-          'RESET_PASSWORD_TOKEN_EXPIRES_IN',
-        );
-        const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
-
-        // * Store the hash Token in DB
-        await this.prisma.staffActionToken.create({
-          data: {
-            staff: { connect: { id: staff.id } },
-            tokenHash: tokenHash,
-            type: ActionTokenType.SET_PASSWORD,
-            expiresAt: expiresAt,
-          },
-        });
-
         // * Send email of verification to user
         await this.emailService.sendSetPasswordStaffEmail(
           staff.userName,
@@ -554,21 +565,16 @@ export class AuthProvider {
           rawToken,
         );
       } catch {
-        throw new RequestTimeoutException('Failed to send verification email');
+        // * Remove action token if email faild to send
+        await this.prisma.staffActionToken.delete({
+          where: { id: actionToken.id },
+        });
+
+        throw new InternalServerErrorException(
+          'We could not send the password setup email. Please contact your administrator for assistance.',
+        );
       }
-      throw new UnauthorizedException(
-        'Your account has not been activated yet. Please check your email and set your password to continue.',
-      );
-    }
 
-    if (staff.accountStatus === UserAccountStatus.BANNED) {
-      throw new UnauthorizedException(
-        'Your account has been suspended. Please contact admin for assistance.',
-      );
-    }
-
-    // * Check the member if he set a password
-    if (!staff.password) {
       throw new UnauthorizedException(
         'Your account has not been activated yet. Please check your email and set your password to continue.',
       );
@@ -578,6 +584,19 @@ export class AuthProvider {
     const passwordIsMatch = await bcrypt.compare(data.password, staff.password);
     if (!passwordIsMatch) {
       throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Check status of account
+    if (staff.accountStatus === UserAccountStatus.PENDING) {
+      throw new UnauthorizedException(
+        'Your account is pending verification. Please contact admin for assistance.',
+      );
+    }
+
+    if (staff.accountStatus === UserAccountStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact admin for assistance.',
+      );
     }
 
     // * Generate Access Token
@@ -700,7 +719,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.staffActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
       include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
@@ -783,32 +802,37 @@ export class AuthProvider {
     }
 
     // * Send Email of reset password to Staff
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+      'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.staffActionToken.create({
+      data: {
+        staff: { connect: { id: staff.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.RESET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
-        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.staffActionToken.create({
-        data: {
-          staff: { connect: { id: staff.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.RESET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email
       await this.emailService.sendResetPasswordStaffEmail(
         staff.email,
         rawToken,
       );
     } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.staffActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
       throw new RequestTimeoutException('Failed to send reset password email');
     }
     return {
@@ -822,7 +846,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.staffActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
       include: { staff: { select: safeStaffSelect } },
     });
     if (!token) {
@@ -870,6 +894,12 @@ export class AuthProvider {
           usedAt: new Date(),
         },
       }),
+
+      // * Logout all Sessions
+      this.prisma.staffRefreshToken.updateMany({
+        where: { staffId: token.staff.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
     ]);
   }
 
@@ -890,21 +920,9 @@ export class AuthProvider {
         },
       },
     });
+
     if (!member) {
       throw new UnauthorizedException('Invalid User Name or Password');
-    }
-
-    // * Check status of account
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
-      throw new UnauthorizedException(
-        'Your account has been suspended. Please contact your gym administrator for assistance.',
-      );
-    }
-
-    if (member.accountStatus === MemberAccountStatus.FROZEN) {
-      throw new UnauthorizedException(
-        'Your account is temporarily inactive. Please contact your gym administrator to reactivate your membership.',
-      );
     }
 
     // * Check the member if he set a password
@@ -926,29 +944,26 @@ export class AuthProvider {
       }
 
       // * Send Email verification to new user if he try to login without activating his account
+      // * Generate Action Token
+      const { rawToken, tokenHash } = generateActionToken();
+
+      // * Calc the expir
+      const setPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+        'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      );
+      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpireIn));
+
+      // * Store the hash Token in DB
+      const actionToken = await this.prisma.memberActionToken.create({
+        data: {
+          member: { connect: { id: member.id } },
+          tokenHash: tokenHash,
+          type: ActionTokenType.SET_PASSWORD,
+          expiresAt: expiresAt,
+        },
+      });
+
       try {
-        // * Generate Action Token
-        const { rawToken, tokenHash } = generateActionToken();
-
-        // * Calc the expir
-        const emailVerificationTokenExpiresIn =
-          this.config.getOrThrow<StringValue>(
-            'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
-          );
-        const expiresAt = new Date(
-          Date.now() + ms(emailVerificationTokenExpiresIn),
-        );
-
-        // * Store the hash Token in DB
-        await this.prisma.memberActionToken.create({
-          data: {
-            member: { connect: { id: member.id } },
-            tokenHash: tokenHash,
-            type: ActionTokenType.SET_PASSWORD,
-            expiresAt: expiresAt,
-          },
-        });
-
         // * Send email of verification to user
         await this.emailService.sendSetPasswordMemberEmail(
           member.userName,
@@ -956,7 +971,14 @@ export class AuthProvider {
           rawToken,
         );
       } catch {
-        throw new RequestTimeoutException('Failed to send verification email');
+        // * Remove action token if email faild to send
+        await this.prisma.memberActionToken.delete({
+          where: { id: actionToken.id },
+        });
+
+        throw new InternalServerErrorException(
+          'We could not send the password setup email. Please contact your administrator for assistance.',
+        );
       }
 
       throw new UnauthorizedException(
@@ -971,6 +993,19 @@ export class AuthProvider {
     );
     if (!passwordIsMatch) {
       throw new UnauthorizedException('Invalid User Name or Password');
+    }
+
+    // * Check status of account
+    if (member.accountStatus === MemberAccountStatus.BANNED) {
+      throw new UnauthorizedException(
+        'Your account has been suspended. Please contact your gym administrator for assistance.',
+      );
+    }
+
+    if (member.accountStatus === MemberAccountStatus.FROZEN) {
+      throw new UnauthorizedException(
+        'Your account is temporarily inactive. Please contact your gym administrator to reactivate your membership.',
+      );
     }
 
     // * Generate Access Token
@@ -1041,7 +1076,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.memberActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
       include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
@@ -1110,6 +1145,10 @@ export class AuthProvider {
     });
 
     if (!storedToken) {
+      throw new UnauthorizedException();
+    }
+
+    if (storedToken.userId !== refreshTokenPayload.id) {
       throw new UnauthorizedException();
     }
 
@@ -1220,6 +1259,10 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    if (storedToken.staffId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
     // * Check is Refresh Token valid from BD
     const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
 
@@ -1323,6 +1366,10 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
+    if (storedToken.memberId !== refreshTokenPayload.id) {
+      throw new UnauthorizedException();
+    }
+
     // * Check is Refresh Token valid from BD
     const isValid = await bcrypt.compare(refreshToken, storedToken.hash);
 
@@ -1416,7 +1463,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.userActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.EMAIL_VERIFICATION },
       include: { user: { select: safeUserSelect } },
     });
     if (!token) {
@@ -1433,12 +1480,8 @@ export class AuthProvider {
       throw new BadRequestException('Token expired');
     }
 
-    // * Get Domain
-    // const domain = this.config.getOrThrow<string>('FRONTEND_URL');
-
     // * Check if user already active his account
     if (token.user.accountStatus === UserAccountStatus.ACTIVE) {
-      // return accountAlreadyActivatedTemplate(domain);
       throw new BadRequestException('Account Already Activated');
     }
 
@@ -1450,7 +1493,7 @@ export class AuthProvider {
       this.prisma.user.update({
         where: { id: token.user.id },
         data: {
-          accountStatus: UserAccountStatus.ACTIVE,
+          isAccountVerified: true,
         },
       }),
 
@@ -1462,8 +1505,6 @@ export class AuthProvider {
         },
       }),
     ]);
-
-    // return accountActivatedTemplate(domain);
   }
 
   // * Forgot password
@@ -1493,29 +1534,34 @@ export class AuthProvider {
     }
 
     // * Send Email of reset password to user
+    // * Generate Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+      'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.userActionToken.create({
+      data: {
+        user: { connect: { id: user.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.RESET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
-        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.userActionToken.create({
-        data: {
-          user: { connect: { id: user.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.RESET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email
       await this.emailService.sendResetPasswordEmail(email, rawToken);
     } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.userActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
       throw new RequestTimeoutException('Failed to send reset password email');
     }
     return {
@@ -1529,7 +1575,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.userActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
       include: { user: { select: safeUserSelect } },
     });
     if (!token) {
@@ -1569,6 +1615,12 @@ export class AuthProvider {
           usedAt: new Date(),
         },
       }),
+
+      // * Logout all Sessions
+      this.prisma.userRefreshToken.updateMany({
+        where: { userId: token.user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
     ]);
   }
 
@@ -1599,32 +1651,37 @@ export class AuthProvider {
     }
 
     // * Send Email of reset password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
+      'RESET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: member.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.RESET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const resetPasswordTokenExpireIn = this.config.getOrThrow<StringValue>(
-        'RESET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(resetPasswordTokenExpireIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.memberActionToken.create({
-        data: {
-          member: { connect: { id: member.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.RESET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email
       await this.emailService.sendResetPasswordMemberEmail(
         member.email,
         rawToken,
       );
     } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.memberActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
       throw new RequestTimeoutException('Failed to send reset password email');
     }
 
@@ -1639,7 +1696,7 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.memberActionToken.findUnique({
-      where: { tokenHash: tokenHash },
+      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
       include: { member: { select: safeMemberSelect } },
     });
     if (!token) {
@@ -1686,6 +1743,12 @@ export class AuthProvider {
         data: {
           usedAt: new Date(),
         },
+      }),
+
+      // * Logout all Sessions
+      this.prisma.memberRefreshToken.updateMany({
+        where: { memberId: token.member.id, revokedAt: null },
+        data: { revokedAt: new Date() },
       }),
     ]);
   }

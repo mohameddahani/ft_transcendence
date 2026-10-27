@@ -28,9 +28,8 @@ enum Role {
 }
 
 // * this enum had Account Status
-enum UserAccountStatus {
+enum AccountStatus {
   ACTIVE
-  INACTIVE
   PENDING
   BANNED
 }
@@ -40,13 +39,6 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
-}
-
-// * this enum had Member Status
-enum MemberAccountStatus {
-  ACTIVE
-  FROZEN
-  BANNED
 }
 
 // * this enum had Member Status
@@ -124,11 +116,11 @@ model User {
   // ! BLOCK_CHAINE
   walletAddress String? @map("wallet_address")
 
-  profileImageUrl      String            @map("profile_image_url")
-  profileImagePublicId String            @map("profile_image_public_id")
-  isAccountVerified    Boolean           @default(false) @map("is_account_verified")
-  accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
-  termsAccepted        Boolean           @map("terms_accepted")
+  profileImageUrl      String        @map("profile_image_url")
+  profileImagePublicId String        @map("profile_image_public_id")
+  isAccountVerified    Boolean       @default(false) @map("is_account_verified")
+  accountStatus        AccountStatus @default(ACTIVE) @map("account_status")
+  termsAccepted        Boolean       @map("terms_accepted")
 
   subscription      Subscription[]
   members           Member[]
@@ -238,10 +230,10 @@ model Staff {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  role                 Role              @default(STAFF)
-  profileImageUrl      String            @map("profile_image_url")
-  profileImagePublicId String            @map("profile_image_public_id")
-  accountStatus        UserAccountStatus @default(ACTIVE) @map("account_status")
+  role                 Role          @default(STAFF)
+  profileImageUrl      String        @map("profile_image_url")
+  profileImagePublicId String        @map("profile_image_public_id")
+  accountStatus        AccountStatus @default(ACTIVE) @map("account_status")
 
   members            Member[]
   memberships        Membership[]
@@ -289,7 +281,7 @@ model Member {
   // ! BLOCK_CHAINE
   walletAddress String? @map("wallet_address")
 
-  accountStatus MemberAccountStatus @default(ACTIVE) @map("account_status")
+  accountStatus AccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
