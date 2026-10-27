@@ -6,11 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  MemberAccountStatus,
+  AccountStatus,
   MembershipStatus,
   Role,
   SubscriptionStatus,
-  UserAccountStatus,
 } from '@/generated/prisma/enums';
 import { AccessTokenPayload } from '../types/jwt-payload.type';
 import { safeMemberSelect, safeUserSelect } from '../types/safe-selects.type';
@@ -158,18 +157,14 @@ export class AccessesService {
 
   // * Validate an already-loaded admin or staff status without querying the DB.
   private assertUserAccountActive(
-    status: UserAccountStatus,
+    status: AccountStatus,
     accountLabel: string,
   ): void {
-    if (status === UserAccountStatus.ACTIVE) {
+    if (status === AccountStatus.ACTIVE) {
       return;
-    } else if (status === UserAccountStatus.INACTIVE) {
-      throw new ForbiddenException(
-        `${accountLabel} is inactive. Please contact support for assistance.`,
-      );
-    } else if (status === UserAccountStatus.PENDING) {
+    } else if (status === AccountStatus.PENDING) {
       throw new ForbiddenException(`${accountLabel} is pending approval.`);
-    } else if (status === UserAccountStatus.BANNED) {
+    } else if (status === AccountStatus.BANNED) {
       throw new ForbiddenException(
         `${accountLabel} has been suspended. Please contact support for assistance.`,
       );
@@ -179,12 +174,12 @@ export class AccessesService {
   }
 
   // * Validate an already-loaded member status without querying the DB.
-  private assertMemberAccountActive(status: MemberAccountStatus) {
-    if (status === MemberAccountStatus.ACTIVE) {
+  private assertMemberAccountActive(status: AccountStatus) {
+    if (status === AccountStatus.ACTIVE) {
       return;
-    } else if (status === MemberAccountStatus.FROZEN) {
-      throw new ForbiddenException('The member account is frozen.');
-    } else if (status === MemberAccountStatus.BANNED) {
+    } else if (status === AccountStatus.PENDING) {
+      throw new ForbiddenException('The member account is pending.');
+    } else if (status === AccountStatus.BANNED) {
       throw new ForbiddenException('The member account has been suspended.');
     } else {
       throw new ForbiddenException('The member account is not active.');

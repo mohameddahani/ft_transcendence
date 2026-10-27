@@ -13,7 +13,7 @@ import {
 import {
   ActionTokenType,
   MembershipStatus,
-  MemberAccountStatus,
+  AccountStatus,
   PaymentStatus,
   Role,
 } from '@/generated/prisma/enums';
@@ -289,7 +289,7 @@ export class MembersService {
         where: {
           adminId: adminId,
           memberId: memberId,
-          membershipStatus: MemberAccountStatus.ACTIVE,
+          membershipStatus: MembershipStatus.ACTIVE,
         },
       });
       if (!membership) {
@@ -363,7 +363,7 @@ export class MembersService {
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
-    if (member.accountStatus === MemberAccountStatus.ACTIVE) {
+    if (member.accountStatus === AccountStatus.ACTIVE) {
       throw new ConflictException('The Member is already Active!');
     }
 
@@ -373,13 +373,16 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.ACTIVE,
+        accountStatus: AccountStatus.ACTIVE,
       },
     });
   }
 
-  // * Freeze a Member
-  async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+  // * pending a Member
+  async pendingMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
       await this.accessesService.authorizeAdminOrStaffAccess(
@@ -389,11 +392,11 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
 
-    if (member.accountStatus === MemberAccountStatus.FROZEN) {
-      throw new ConflictException('The member is already frozen.');
+    if (member.accountStatus === AccountStatus.PENDING) {
+      throw new ConflictException('The member is already pending.');
     }
 
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
+    if (member.accountStatus === AccountStatus.BANNED) {
       throw new ConflictException(
         'A banned member cannot be frozen. Active the member first.',
       );
@@ -405,7 +408,7 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.FROZEN,
+        accountStatus: AccountStatus.PENDING,
       },
     });
   }
@@ -421,7 +424,7 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
 
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
+    if (member.accountStatus === AccountStatus.BANNED) {
       throw new ConflictException('The member is already banned.');
     }
 
@@ -431,7 +434,7 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.BANNED,
+        accountStatus: AccountStatus.BANNED,
       },
     });
   }

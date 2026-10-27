@@ -16,12 +16,7 @@ import {
   RefreshTokenPayload,
 } from '@/core/types/jwt-payload.type';
 import { LoginUserDto } from './dtos/login-user.dto';
-import {
-  UserAccountStatus,
-  ActionTokenType,
-  MemberAccountStatus,
-  Role,
-} from '@/generated/prisma/enums';
+import { AccountStatus, ActionTokenType, Role } from '@/generated/prisma/enums';
 import { EmailService } from '@/infrastructure/email/email.service';
 import { generateUsername } from '@/core/utils/generate-username';
 import { CustomJwtService } from './jwt/jwt.service';
@@ -203,19 +198,19 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (user.accountStatus === UserAccountStatus.PENDING) {
+    if (user.accountStatus === AccountStatus.PENDING) {
       throw new UnauthorizedException(
         'Your account is pending verification. Please contact support for assistance.',
       );
     }
 
-    if (user.accountStatus === UserAccountStatus.BANNED) {
+    if (user.accountStatus === AccountStatus.BANNED) {
       throw new UnauthorizedException(
         'Your account has been suspended. Please contact support for assistance.',
       );
     }
 
-    if (user.accountStatus === UserAccountStatus.INACTIVE) {
+    if (!user.isAccountVerified) {
       // * Check whether a valid verification token already exists.
       const existingToken = await this.prisma.userActionToken.findFirst({
         where: {
@@ -367,11 +362,6 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
-    // * Verify the account is still allowed to logout
-    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      throw new UnauthorizedException();
-    }
-
     // * Verify the user type
     if (storedToken.user.role !== Role.ADMIN) {
       throw new UnauthorizedException();
@@ -425,11 +415,6 @@ export class AuthProvider {
       throw new UnauthorizedException();
     }
 
-    // * Verify the account is still allowed to logout
-    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
-      throw new UnauthorizedException();
-    }
-
     // * Verify the user type
     if (storedToken.user.role !== Role.OWNER) {
       throw new UnauthorizedException();
@@ -480,11 +465,6 @@ export class AuthProvider {
 
     // * Check if token is revoked
     if (storedToken.revokedAt) {
-      throw new UnauthorizedException();
-    }
-
-    // * Verify the account is still allowed to logout
-    if (storedToken.member.accountStatus !== MemberAccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -587,13 +567,13 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (staff.accountStatus === UserAccountStatus.PENDING) {
+    if (staff.accountStatus === AccountStatus.PENDING) {
       throw new UnauthorizedException(
         'Your account is pending verification. Please contact admin for assistance.',
       );
     }
 
-    if (staff.accountStatus === UserAccountStatus.BANNED) {
+    if (staff.accountStatus === AccountStatus.BANNED) {
       throw new UnauthorizedException(
         'Your account has been suspended. Please contact admin for assistance.',
       );
@@ -689,11 +669,6 @@ export class AuthProvider {
 
     // * Check if token is revoked
     if (storedToken.revokedAt) {
-      throw new UnauthorizedException();
-    }
-
-    // * Verify the account is still allowed to logout
-    if (storedToken.staff.accountStatus !== MemberAccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -996,15 +971,15 @@ export class AuthProvider {
     }
 
     // * Check status of account
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
+    if (member.accountStatus === AccountStatus.PENDING) {
       throw new UnauthorizedException(
-        'Your account has been suspended. Please contact your gym administrator for assistance.',
+        'Your account is temporarily pending. Please contact your gym administrator to reactivate your membership.',
       );
     }
 
-    if (member.accountStatus === MemberAccountStatus.FROZEN) {
+    if (member.accountStatus === AccountStatus.BANNED) {
       throw new UnauthorizedException(
-        'Your account is temporarily inactive. Please contact your gym administrator to reactivate your membership.',
+        'Your account has been suspended. Please contact your gym administrator for assistance.',
       );
     }
 
@@ -1170,7 +1145,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to log in
-    if (storedToken.user.accountStatus !== UserAccountStatus.ACTIVE) {
+    if (storedToken.user.accountStatus !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -1281,7 +1256,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to log in
-    if (storedToken.staff.accountStatus !== MemberAccountStatus.ACTIVE) {
+    if (storedToken.staff.accountStatus !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -1388,7 +1363,7 @@ export class AuthProvider {
     }
 
     // * Verify the account is still allowed to log in
-    if (storedToken.member.accountStatus !== MemberAccountStatus.ACTIVE) {
+    if (storedToken.member.accountStatus !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException();
     }
 
@@ -1480,8 +1455,8 @@ export class AuthProvider {
       throw new BadRequestException('Token expired');
     }
 
-    // * Check if user already active his account
-    if (token.user.accountStatus === UserAccountStatus.ACTIVE) {
+    // * Check if user already veryfied his account
+    if (token.user.isAccountVerified) {
       throw new BadRequestException('Account Already Activated');
     }
 
