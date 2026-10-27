@@ -6,8 +6,8 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
-  RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -175,26 +175,26 @@ export class MembersService {
     });
 
     // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: result.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.memberActionToken.create({
-        data: {
-          member: { connect: { id: result.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordMemberEmail(
         result.userName,
@@ -202,8 +202,12 @@ export class MembersService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+      // * Remove action token if email faild to send
+      await this.prisma.userActionToken.delete({
+        where: { id: actionToken.id },
+      });
+      throw new InternalServerErrorException(
+        'The member account was created, but we could not send the password setup email. Please tell to member logging in again later or contact the administrator if the problem continues.',
       );
     }
   }
@@ -473,26 +477,26 @@ export class MembersService {
     }
 
     // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: member.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.memberActionToken.create({
-        data: {
-          member: { connect: { id: member.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordMemberEmail(
         member.userName,
@@ -500,8 +504,13 @@ export class MembersService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+      // * Remove action token if email faild to send
+      await this.prisma.memberActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
       );
     }
   }

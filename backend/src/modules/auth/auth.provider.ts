@@ -152,10 +152,9 @@ export class AuthProvider {
         where: { id: actionToken.id },
       });
 
-      return {
-        message:
-          'Account created, but the verification email could not be sent. Please request a new verification email.',
-      };
+      throw new InternalServerErrorException(
+        'Your account was created, but we could not send the verification email. Please try logging in again to request a new verification email.',
+      );
     }
 
     return {
@@ -260,7 +259,7 @@ export class AuthProvider {
         });
 
         throw new InternalServerErrorException(
-          'Account created, but the verification email could not be sent. Please request a new verification email.',
+          'We could not send a new verification email. Please try logging in again to request a new verification email or contact support if the problem continues.',
         );
       }
       throw new UnauthorizedException(
@@ -551,7 +550,7 @@ export class AuthProvider {
         });
 
         throw new InternalServerErrorException(
-          'We could not send the password setup email. Please contact your administrator for assistance.',
+          'We could not send a new password setup email. Please try logging in again later or contact your administrator if the problem continues.',
         );
       }
 
@@ -808,7 +807,9 @@ export class AuthProvider {
         where: { id: actionToken.id },
       });
 
-      throw new RequestTimeoutException('Failed to send reset password email');
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
+      );
     }
     return {
       message: 'Please check your email and set your password',
@@ -952,7 +953,7 @@ export class AuthProvider {
         });
 
         throw new InternalServerErrorException(
-          'We could not send the password setup email. Please contact your administrator for assistance.',
+          'We could not send a new password setup email. Please try logging in again later or contact your administrator if the problem continues.',
         );
       }
 
@@ -1537,7 +1538,9 @@ export class AuthProvider {
         where: { id: actionToken.id },
       });
 
-      throw new RequestTimeoutException('Failed to send reset password email');
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact support if the problem continues.',
+      );
     }
     return {
       message: 'Please check your email and set your password.',
@@ -1657,7 +1660,9 @@ export class AuthProvider {
         where: { id: actionToken.id },
       });
 
-      throw new RequestTimeoutException('Failed to send reset password email');
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
+      );
     }
 
     return {
