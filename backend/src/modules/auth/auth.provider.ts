@@ -730,23 +730,53 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
+    await this.prisma.$transaction(async (tx) => {
       // * Set The Password
-      this.prisma.staff.update({
-        where: { id: staff.id },
+      const { count: countStaff } = await tx.staff.updateMany({
+        where: { id: staff.id, password: null },
         data: {
           password: data.password,
         },
-      }),
+      });
+
+      // * Another request already consumed it
+      if (countStaff !== 1) {
+        throw new BadRequestException('Staff already has a password');
+      }
 
       // * Make this token used
-      this.prisma.staffActionToken.update({
-        where: { id: token.id },
+      const { count: countToken } = await tx.staffActionToken.updateMany({
+        where: {
+          id: token.id,
+          usedAt: null,
+          expiresAt: { gt: new Date() },
+          type: ActionTokenType.SET_PASSWORD,
+        },
         data: {
           usedAt: new Date(),
         },
-      }),
-    ]);
+      });
+
+      // * Another request already consumed it
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Invalidate any other active SET_PASSWORD links
+      await tx.staffActionToken.updateMany({
+        where: {
+          StaffId: staff.id,
+          type: ActionTokenType.SET_PASSWORD,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+    });
   }
 
   // * Forgot password (Staff)
@@ -1089,23 +1119,58 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
+    await this.prisma.$transaction(async (tx) => {
       // * Set The Password
-      this.prisma.member.update({
-        where: { id: member.id },
+      const { count: countMember } = await tx.member.updateMany({
+        where: {
+          id: member.id,
+          password: null,
+        },
         data: {
           password: data.password,
         },
-      }),
+      });
+
+      // * Another request already set the password
+      if (countMember !== 1) {
+        throw new BadRequestException('Member already has a password');
+      }
 
       // * Make this token used
-      this.prisma.memberActionToken.update({
-        where: { id: token.id },
+      const { count: countToken } = await tx.memberActionToken.updateMany({
+        where: {
+          id: token.id,
+          usedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
+          type: ActionTokenType.SET_PASSWORD,
+        },
         data: {
           usedAt: new Date(),
         },
-      }),
-    ]);
+      });
+
+      // * Another request already consumed it
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Invalidate any other active SET_PASSWORD links
+      await tx.memberActionToken.updateMany({
+        where: {
+          memberId: member.id,
+          type: ActionTokenType.SET_PASSWORD,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+    });
   }
 
   // * Refresh
