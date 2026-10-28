@@ -16,7 +16,7 @@ user, uses Gemini for answers and embeddings, and streams answers to the page as
 ## What you need
 
 - **Docker** with Docker Compose (on macOS with colima: `colima start` first)
-- **Node.js 20+**, for the chat page in `frontend/` and for the backend migrations
+- **Node.js 20+**, for the backend migrations
 - **Python 3.11 or newer**, only to create the demo data
 - a **Gemini API key** (https://aistudio.google.com/apikey)
 
@@ -106,75 +106,135 @@ docker compose exec -T ai python - staff atlas BANNED < scripts/mint_token.py   
 docker compose exec -T ai python - member omar@gmail.com < scripts/mint_token.py  # a member
 ```
 
-## 5. Open the chat
+## 5. Test the AI service (curl)
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-1. Open **http://localhost:3000/assistant**.
-2. Paste a token in the box (it only appears in development) and press "Use token".
-3. Owners also see a **Documents** link, to upload `.md` / `.txt` / `.pdf` files (members and staff,
-   or staff only) and delete them.
-
-## 6. Things to try
-
-**As the owner of Atlas:**
-- "How is the gym doing today?" → members, active memberships, expiring this week, check-ins today
-- "Who expires this week?", then "And in the next 30 days?" (the second question uses the first)
-- "How much did we make last month?"
-- "Who hasn't come to the gym for 3 weeks?"
-- "How do members feel about the gym lately?" → the number of comments per sentiment
-- "How many days notice do members need to cancel?" → **30 days**, from `membership-terms.md`
-  (Oasis: 45, Titan: 30, Medina: 15)
-- Documents: upload a small `.md` (for example "Towels can be rented at reception for 10 MAD"),
-  ask about it in the chat, delete it, ask again → "not in the gym's documents"
-
-**As staff:**
-- "How much money did we make?" → refused: staff have no access to revenue
-- "What discount can I give at reception?" → **15%** at Atlas (Oasis 10%, Titan 20%, Medina 5%)
-
-**As a member** (`omar@gmail.com`):
-- "When does my membership end?" / "Did I pay?"
-- "What are the opening hours on Sunday?" → 08:00 to 20:00 at Atlas
-- "What discount can reception give me?" → not found: that document is for staff only
-- "What is Siham's phone number?" → refused: a member only sees their own data
-
-**In other languages:** "Combien de jours de préavis pour résilier ?",
-"wach nqder njib m3aya chi sa7bi?". The answer comes back in the same language.
-
-**Limits you can see:** more than 20 questions in a minute → "Too many questions. Try again in N
-seconds."
-
-## 7. Test without the page (curl)
+The chat page is built by the frontend teammate. Until then, test everything with curl.
+Tokens last **15 minutes** — make a new one when they expire.
 
 ```bash
 cd AI
-TOKEN=$(docker compose exec -T ai python - admin atlas < scripts/mint_token.py)
-
-# the chat: a live stream of events (start, tool, token..., done)
-curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" -d '{"question": "Who expires this week?"}'
-
-# continue the same conversation: copy the thread_id from the "start" event
-curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" -d '{"question": "And in 30 days?", "thread_id": "<id>"}'
-
-# who am I, and the gym's documents (owner only)
-curl localhost:8000/ai/me -H "Authorization: Bearer $TOKEN"
-curl localhost:8000/ai/documents -H "Authorization: Bearer $TOKEN"
-curl -X POST localhost:8000/ai/documents -H "Authorization: Bearer $TOKEN" -F "file=@towels.md" -F "visibility=member"
-curl -X DELETE localhost:8000/ai/documents/towels.md -H "Authorization: Bearer $TOKEN"
-
-# sentiment, as the backend calls it (needs the API key, not a user token)
-set -a; source .env; set +a
-curl -X POST localhost:8000/internal/sentiment -H "X-API-Key: $INTERNAL_API_KEY" \
-     -H "Content-Type: application/json" -d '{"text": "Great coaches, but far too crowded after work."}'
 ```
 
-## 8. Check an answer against the database
+**As the Atlas owner:**
+
+```bash
+TOKEN=$(docker compose exec -T ai python - admin atlas < scripts/mint_token.py)
+
+# who am I?
+curl localhost:8000/ai/me -H "Authorization: Bearer $TOKEN"
+
+# ask a question (streamed: events appear as they arrive)
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "How is the gym doing today?"}'
+# → events: start {thread_id}, tool gym_overview, token ..., done
+
+# follow-up in the same conversation (copy the thread_id from the start event above)
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "And who expires in the next 30 days?", "thread_id": "<paste thread_id>"}'
+
+# revenue (owner only)
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "How much did we make last month?"}'
+
+# document question (RAG) → answer cites the source file
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "How many days notice do members need to cancel?"}'
+# → 30 days, from membership-terms.md (Oasis: 45, Titan: 30, Medina: 15)
+
+# documents: list, upload, ask about it, delete
+curl localhost:8000/ai/documents -H "Authorization: Bearer $TOKEN"
+echo "Towels can be rented at reception for 10 MAD per session." > /tmp/towels.md
+curl -X POST localhost:8000/ai/documents -H "Authorization: Bearer $TOKEN" \
+     -F "file=@/tmp/towels.md" -F "visibility=member"
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "Can I rent a towel?"}'
+# → 10 MAD, from towels.md
+curl -X DELETE localhost:8000/ai/documents/towels.md -H "Authorization: Bearer $TOKEN"
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "Can I rent a towel?"}'
+# → "not in the gym's documents"
+```
+
+**As Atlas staff:**
+
+```bash
+TOKEN=$(docker compose exec -T ai python - staff atlas < scripts/mint_token.py)
+
+# staff cannot see revenue
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "How much money did we make?"}'
+# → refused: no access to revenue
+
+# staff can see staff documents
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "What discount can I give at reception?"}'
+# → 15% at Atlas (Oasis 10%, Titan 20%, Medina 5%)
+```
+
+**As a member:**
+
+```bash
+TOKEN=$(docker compose exec -T ai python - member omar@gmail.com < scripts/mint_token.py)
+
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "When does my membership end?"}'
+
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" -d '{"question": "Do I have any unpaid payments?"}'
+
+# member can see member documents
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "What are the opening hours on Sunday?"}'
+# → 08:00 to 20:00 at Atlas
+
+# member CANNOT see staff documents
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "What discount can reception give me?"}'
+# → "not in the gym's documents"
+
+# member CANNOT see other members
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "What is Siham phone number?"}'
+# → refused: can only see your own data
+```
+
+**In other languages:**
+
+```bash
+TOKEN=$(docker compose exec -T ai python - admin atlas < scripts/mint_token.py)
+
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "Combien de jours de préavis pour résilier ?"}'
+
+curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "wach nqder njib m3aya chi sa7bi?"}'
+```
+
+**Sentiment (called by the backend, not by users):**
+
+```bash
+set -a; source .env; set +a
+curl -X POST localhost:8000/internal/sentiment -H "X-API-Key: $INTERNAL_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"text": "Great coaches, but far too crowded after work."}'
+# → {"sentiment": "NEGATIVE", "score": 0.65}
+
+# without the key → 401
+curl -X POST localhost:8000/internal/sentiment \
+     -H "Content-Type: application/json" -d '{"text": "hello"}'
+```
+
+**Rate limit:** send more than 20 questions in a minute → `429` with a `Retry-After` header.
+
+## 6. Check an answer against the database
 
 The demo data is generated relative to today, so the numbers change from day to day. To check one:
 
@@ -196,7 +256,7 @@ JOIN users u ON u.id = ms.admin_id
 WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('month', now());
 ```
 
-## 9. When something doesn't work
+## 7. When something doesn't work
 
 | Symptom | Fix |
 |---|---|
