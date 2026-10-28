@@ -29,7 +29,7 @@ import {
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
 import { AccessesService } from '@/core/access/access.service';
-import { safeMemberSelect } from '@/core/types/safe-selects.type';
+import { PrivateMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class MembersService {
@@ -269,7 +269,7 @@ export class MembersService {
         // ! BLOCK_CHAINE
         walletAddress: data.walletAddress,
       },
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
 
     // * check if the admin update the membership plan
@@ -382,7 +382,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
   }
 
@@ -418,7 +418,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
   }
 
@@ -445,7 +445,7 @@ export class MembersService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
   }
 
@@ -533,7 +533,7 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
 
     return members;
@@ -552,7 +552,7 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: safeMemberSelect,
+      select: PrivateMemberSelect,
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');

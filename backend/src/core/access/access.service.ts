@@ -12,7 +12,10 @@ import {
   SubscriptionStatus,
 } from '@/generated/prisma/enums';
 import { AccessTokenPayload } from '../types/jwt-payload.type';
-import { safeMemberSelect, safeUserSelect } from '../types/safe-selects.type';
+import {
+  PrivateMemberSelect,
+  PrivateserSelect,
+} from '../types/safe-selects.type';
 
 @Injectable()
 export class AccessesService {
@@ -51,7 +54,7 @@ export class AccessesService {
       },
       include: {
         plan: true,
-        user: { select: safeUserSelect },
+        user: { select: PrivateserSelect },
       },
     });
 
@@ -90,7 +93,7 @@ export class AccessesService {
       },
       include: {
         membershipPlan: true,
-        member: { select: safeMemberSelect },
+        member: { select: PrivateMemberSelect },
       },
     });
 

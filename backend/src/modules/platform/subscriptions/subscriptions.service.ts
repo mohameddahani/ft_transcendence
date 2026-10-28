@@ -12,7 +12,7 @@ import {
   Role,
 } from '@/generated/prisma/enums';
 import { addDays } from 'date-fns';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import { PrivateserSelect } from '@/core/types/safe-selects.type';
 import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
@@ -188,7 +188,7 @@ export class SubscriptionsService {
       take: limit,
       include: {
         user: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         plan: true,
         planDuration: true,
@@ -206,7 +206,7 @@ export class SubscriptionsService {
       },
       include: {
         user: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         plan: true,
         planDuration: true,

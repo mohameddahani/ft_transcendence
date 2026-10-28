@@ -12,9 +12,9 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 import { FeedbackStatus } from '@/generated/prisma/enums';
 import {
-  safeMemberSelect,
-  safeStaffSelect,
-  safeUserSelect,
+  PrivateMemberSelect,
+  PrivateStaffSelect,
+  PrivateserSelect,
 } from '@/core/types/safe-selects.type';
 import { ExternalApiService } from '@/infrastructure/external-api/external-api.service';
 import { AccessesService } from '@/core/access/access.service';
@@ -81,13 +81,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: PrivateMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: PrivateStaffSelect,
         },
         content: true,
         rating: true,
@@ -128,13 +128,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: PrivateMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: PrivateStaffSelect,
         },
         content: true,
         rating: true,
@@ -268,13 +268,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: PrivateMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: PrivateStaffSelect,
         },
         content: true,
         rating: true,
@@ -321,13 +321,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: PrivateMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: PrivateStaffSelect,
         },
         content: true,
         rating: true,

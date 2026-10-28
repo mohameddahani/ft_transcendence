@@ -16,8 +16,8 @@ import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import {
-  safeStaffSelect,
-  safeUserSelect,
+  PrivateStaffSelect,
+  PrivateserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -176,7 +176,7 @@ export class StaffsService {
         email: data.email,
         phoneNumber: data.phoneNumber,
       },
-      select: safeStaffSelect,
+      select: PrivateStaffSelect,
     });
   }
 
@@ -192,9 +192,9 @@ export class StaffsService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        ...safeStaffSelect,
+        ...PrivateStaffSelect,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
       },
     });
@@ -213,9 +213,9 @@ export class StaffsService {
         id: staffId,
       },
       select: {
-        ...safeStaffSelect,
+        ...PrivateStaffSelect,
         admin: {
-          select: safeUserSelect,
+          select: PrivateserSelect,
         },
       },
     });
@@ -249,7 +249,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
-      select: safeStaffSelect,
+      select: PrivateStaffSelect,
     });
   }
 
@@ -281,7 +281,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
-      select: safeStaffSelect,
+      select: PrivateStaffSelect,
     });
   }
 
@@ -307,7 +307,7 @@ export class StaffsService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
-      select: safeStaffSelect,
+      select: PrivateStaffSelect,
     });
   }
 

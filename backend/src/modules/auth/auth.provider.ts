@@ -31,9 +31,9 @@ import { LoginStaffDto } from './dtos/login-staff.dto';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { SetPasswordStaffDto } from './dtos/set-password-staff.dto';
 import {
-  safeMemberSelect,
-  safeStaffSelect,
-  safeUserSelect,
+  PrivateMemberSelect,
+  PrivateStaffSelect,
+  PrivateserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -168,7 +168,7 @@ export class AuthProvider {
     const user = await this.prisma.user.findUnique({
       where: { email: data.email },
       select: {
-        ...safeUserSelect,
+        ...PrivateserSelect,
         password: true,
       },
     });
@@ -332,7 +332,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: { select: safeUserSelect } },
+      include: { user: { select: PrivateserSelect } },
     });
 
     if (!storedToken) {
@@ -385,7 +385,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: { select: safeUserSelect } },
+      include: { user: { select: PrivateserSelect } },
     });
 
     if (!storedToken) {
@@ -438,7 +438,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: { select: safeMemberSelect } },
+      include: { member: { select: PrivateMemberSelect } },
     });
 
     if (!storedToken) {
@@ -489,7 +489,7 @@ export class AuthProvider {
     const staff = await this.prisma.staff.findUnique({
       where: { userName: data.userName },
       select: {
-        ...safeStaffSelect,
+        ...PrivateStaffSelect,
         password: true,
       },
     });
@@ -642,7 +642,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: { select: safeStaffSelect } },
+      include: { staff: { select: PrivateStaffSelect } },
     });
 
     if (!storedToken) {
@@ -694,7 +694,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
-      include: { staff: { select: safeStaffSelect } },
+      include: { staff: { select: PrivateStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -823,7 +823,7 @@ export class AuthProvider {
 
     const token = await this.prisma.staffActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
-      include: { staff: { select: safeStaffSelect } },
+      include: { staff: { select: PrivateStaffSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -885,7 +885,7 @@ export class AuthProvider {
     const member = await this.prisma.member.findUnique({
       where: { userName: data.userName },
       select: {
-        ...safeMemberSelect,
+        ...PrivateMemberSelect,
         password: true,
 
         // ! BLOCK_CHAINE
@@ -1053,7 +1053,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
-      include: { member: { select: safeMemberSelect } },
+      include: { member: { select: PrivateMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1117,7 +1117,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.userRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { user: { select: safeUserSelect } },
+      include: { user: { select: PrivateserSelect } },
     });
 
     if (!storedToken) {
@@ -1228,7 +1228,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.staffRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { staff: { select: safeStaffSelect } },
+      include: { staff: { select: PrivateStaffSelect } },
     });
 
     if (!storedToken) {
@@ -1335,7 +1335,7 @@ export class AuthProvider {
     // * Check if Refresh Token is already exist in DB
     const storedToken = await this.prisma.memberRefreshToken.findUnique({
       where: { jti: refreshTokenPayload.jti },
-      include: { member: { select: safeMemberSelect } },
+      include: { member: { select: PrivateMemberSelect } },
     });
 
     if (!storedToken) {
@@ -1440,7 +1440,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.EMAIL_VERIFICATION },
-      include: { user: { select: safeUserSelect } },
+      include: { user: { select: PrivateserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1554,7 +1554,7 @@ export class AuthProvider {
 
     const token = await this.prisma.userActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
-      include: { user: { select: safeUserSelect } },
+      include: { user: { select: PrivateserSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
@@ -1677,7 +1677,7 @@ export class AuthProvider {
 
     const token = await this.prisma.memberActionToken.findUnique({
       where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
-      include: { member: { select: safeMemberSelect } },
+      include: { member: { select: PrivateMemberSelect } },
     });
     if (!token) {
       throw new BadRequestException('Invalid token');
