@@ -884,29 +884,64 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
-      // * Save new password
-      this.prisma.staff.update({
-        where: { id: staff.id },
-        data: {
-          password: newPassword,
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume RESET_PASSWORD token
+      const { count: countToken } = await tx.staffActionToken.updateMany({
+        where: {
+          id: token.id,
+          StaffId: token.staff.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      }),
-
-      // * Make this token used
-      this.prisma.staffActionToken.update({
-        where: { id: token.id },
         data: {
           usedAt: new Date(),
         },
-      }),
+      });
 
-      // * Logout all Sessions
-      this.prisma.staffRefreshToken.updateMany({
-        where: { staffId: token.staff.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
+      // * Another request already consumed it
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Change password
+      await tx.staff.update({
+        where: {
+          id: token.staff.id,
+        },
+        data: {
+          password: newPassword,
+        },
+      });
+
+      // * Invalidate all other RESET_PASSWORD links
+      await tx.staffActionToken.updateMany({
+        where: {
+          StaffId: token.staff.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+
+      // * Revoke all staff sessions
+      await tx.staffRefreshToken.updateMany({
+        where: {
+          staffId: token.staff.id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    });
   }
 
   // * Login Member
@@ -1553,23 +1588,58 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
-      // * Make the account active
-      this.prisma.user.update({
-        where: { id: token.user.id },
-        data: {
-          isAccountVerified: true,
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume EMAIL_VERIFICATION token
+      const { count: countToken } = await tx.userActionToken.updateMany({
+        where: {
+          id: token.id,
+          userId: token.user.id,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          usedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      }),
-
-      // * Make this token used
-      this.prisma.userActionToken.update({
-        where: { id: token.id },
         data: {
           usedAt: new Date(),
         },
-      }),
-    ]);
+      });
+
+      // * Another request already consumed or expired the token
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Verify account only if it is still unverified
+      const { count: countUser } = await tx.user.updateMany({
+        where: {
+          id: token.user.id,
+          isAccountVerified: false,
+        },
+        data: {
+          isAccountVerified: true,
+        },
+      });
+
+      if (countUser !== 1) {
+        throw new BadRequestException('Account already verified');
+      }
+
+      // * Invalidate all other active EMAIL_VERIFICATION links
+      await tx.userActionToken.updateMany({
+        where: {
+          userId: token.user.id,
+          type: ActionTokenType.EMAIL_VERIFICATION,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+    });
   }
 
   // * Forgot password
@@ -1666,29 +1736,64 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
-      // * Save new password
-      this.prisma.user.update({
-        where: { id: token.user.id },
-        data: {
-          password: newPassword,
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume RESET_PASSWORD token
+      const { count: countToken } = await tx.userActionToken.updateMany({
+        where: {
+          id: token.id,
+          userId: token.user.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      }),
-
-      // * Make this token used
-      this.prisma.userActionToken.update({
-        where: { id: token.id },
         data: {
           usedAt: new Date(),
         },
-      }),
+      });
 
-      // * Logout all Sessions
-      this.prisma.userRefreshToken.updateMany({
-        where: { userId: token.user.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
+      // * Another request already consumed or expired this token
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Save new password
+      await tx.user.update({
+        where: {
+          id: token.user.id,
+        },
+        data: {
+          password: newPassword,
+        },
+      });
+
+      // * Invalidate all other active RESET_PASSWORD tokens
+      await tx.userActionToken.updateMany({
+        where: {
+          userId: token.user.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+
+      // * Logout all existing sessions
+      await tx.userRefreshToken.updateMany({
+        where: {
+          userId: token.user.id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    });
   }
 
   // * Forgot password (Member)
@@ -1797,29 +1902,64 @@ export class AuthProvider {
     // * A Prisma transaction is a mechanism that executes multiple database operations as a single atomic unit,
     // * ensuring that either all operations succeed and are committed, or if any operation fails,
     // * all previous operations are rolled back, leaving the database unchanged.
-    await this.prisma.$transaction([
-      // * Save new password
-      this.prisma.member.update({
-        where: { id: member.id },
-        data: {
-          password: newPassword,
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume this RESET_PASSWORD token
+      const { count: countToken } = await tx.memberActionToken.updateMany({
+        where: {
+          id: token.id,
+          memberId: member.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          expiresAt: {
+            gt: new Date(),
+          },
         },
-      }),
-
-      // * Make this token used
-      this.prisma.memberActionToken.update({
-        where: { id: token.id },
         data: {
           usedAt: new Date(),
         },
-      }),
+      });
 
-      // * Logout all Sessions
-      this.prisma.memberRefreshToken.updateMany({
-        where: { memberId: token.member.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
+      // * Another request already consumed or expired this token
+      if (countToken !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Save new password
+      await tx.member.update({
+        where: {
+          id: member.id,
+        },
+        data: {
+          password: newPassword,
+        },
+      });
+
+      // * Invalidate all other active RESET_PASSWORD tokens
+      await tx.memberActionToken.updateMany({
+        where: {
+          memberId: member.id,
+          type: ActionTokenType.RESET_PASSWORD,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+
+      // * Logout all existing sessions
+      await tx.memberRefreshToken.updateMany({
+        where: {
+          memberId: member.id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: new Date(),
+        },
+      });
+    });
   }
 
   // ! Private
