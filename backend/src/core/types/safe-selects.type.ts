@@ -52,7 +52,9 @@ import { Prisma } from '@/generated/prisma/client';
  * - exact Prisma return types
  */
 
-export const safeUserSelect = {
+// ! PRIVATE
+
+export const privateUserSelect = {
   id: true,
   firstName: true,
   lastName: true,
@@ -75,7 +77,7 @@ export const safeUserSelect = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-export const safeStaffSelect = {
+export const privateStaffSelect = {
   id: true,
   firstName: true,
   lastName: true,
@@ -93,7 +95,7 @@ export const safeStaffSelect = {
   updatedAt: true,
 } satisfies Prisma.StaffSelect;
 
-export const safeMemberSelect = {
+export const privateMemberSelect = {
   id: true,
   adminId: true,
   staffId: true,
@@ -104,6 +106,7 @@ export const safeMemberSelect = {
   userName: true,
   email: true,
   phoneNumber: true,
+  companyName: true,
   profileImageUrl: true,
   address: true,
   emergencyContact: true,
@@ -115,4 +118,34 @@ export const safeMemberSelect = {
   accountStatus: true,
   createdAt: true,
   updatedAt: true,
+} satisfies Prisma.MemberSelect;
+
+// ! PUBLIC
+
+export const publicUserSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  userName: true,
+  companyName: true,
+  profileImageUrl: true,
+  role: true,
+} satisfies Prisma.UserSelect;
+
+export const publicStaffSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  userName: true,
+  profileImageUrl: true,
+  role: true,
+} satisfies Prisma.StaffSelect;
+
+export const publicMemberSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  userName: true,
+  profileImageUrl: true,
+  role: true,
 } satisfies Prisma.MemberSelect;

@@ -2,7 +2,7 @@ import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AccessesService } from '@/core/access/access.service';
-import { safeMemberSelect } from '@/core/types/safe-selects.type';
+import { publicMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class PaymentsService {
@@ -33,7 +33,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -64,7 +64,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -106,7 +106,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -147,7 +147,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,

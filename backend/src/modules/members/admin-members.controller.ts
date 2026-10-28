@@ -59,14 +59,14 @@ export class AdminMembersController {
     return this.membersService.activeMember(accessTokenPayload, id);
   }
 
-  // * Freeze a Member
-  @Patch('freeze/:id')
+  // * pending a Member
+  @Patch('pending/:id')
   @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
-  freezeMember(
+  pendingMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.membersService.freezeMember(accessTokenPayload, id);
+    return this.membersService.pendingMember(accessTokenPayload, id);
   }
 
   // * Ban a Member

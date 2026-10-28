@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+
+  # ----------------------------------------------------------------------------
+  #                         Frontend: lint & build validation
+  # ----------------------------------------------------------------------------
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # ----------------------------------------------------------------------------
+  #             Owner-Platform (superadmin): lint & build validation
+  # ----------------------------------------------------------------------------
+  owner-platform:
+    name: Owner Platform (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: owner-platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: owner-platform/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # ----------------------------------------------------------------------------
+  #                         Backend: lint & build validation
+  # ----------------------------------------------------------------------------
+  backend:
+    name: Backend (NestJS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npm run build
+
+  # ----------------------------------------------------------------------------
+  #                    Blockchain's API: lint & build validation
+  # ----------------------------------------------------------------------------
+  blockchain:
+    name: Blockchain API (NestJS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: block-chain/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: block-chain/api/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # ----------------------------------------------------------------------------
+  #                              AI: lint validation
+  # ----------------------------------------------------------------------------
+  ai:
+    name: AI Service (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: AI
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - run: pip install -r requirements.txt
+      - run: pip install ruff
+      - run: ruff check .
+
+  # ----------------------------------------------------------------------------
+  #                       Docker Compose: config validation
+  # ----------------------------------------------------------------------------
+  docker-compose:
+    name: Validate docker-compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f devops/docker-compose.yml config --quiet

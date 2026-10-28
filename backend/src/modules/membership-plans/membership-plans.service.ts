@@ -60,6 +60,7 @@ export class MembershipPlansService {
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         id: data.membershipPlanId,
+        adminId: adminId,
       },
     });
     if (!membershipPlan) {

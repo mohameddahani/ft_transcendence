@@ -4,24 +4,20 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
-  RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AddStaffDto } from './dtos/add-staff.dto';
-import {
-  ActionTokenType,
-  Role,
-  UserAccountStatus,
-} from '@/generated/prisma/enums';
+import { ActionTokenType, Role, AccountStatus } from '@/generated/prisma/enums';
 import { generateUsername } from '@/core/utils/generate-username';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import {
-  safeStaffSelect,
-  safeUserSelect,
+  privateStaffSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -100,26 +96,26 @@ export class StaffsService {
     });
 
     // * Send Email of Set password to Staff
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.staffActionToken.create({
+      data: {
+        staff: { connect: { id: result.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.staffActionToken.create({
-        data: {
-          staff: { connect: { id: result.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to staff
       await this.emailService.sendSetPasswordStaffEmail(
         result.userName,
@@ -127,8 +123,13 @@ export class StaffsService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of staff email',
+      // * Remove action token if email faild to send
+      await this.prisma.staffActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'The staff account was created, but we could not send the password setup email. Please tell to staff logging in again later or contact the administrator if the problem continues.',
       );
     }
   }
@@ -175,6 +176,7 @@ export class StaffsService {
         email: data.email,
         phoneNumber: data.phoneNumber,
       },
+      select: privateStaffSelect,
     });
   }
 
@@ -190,9 +192,9 @@ export class StaffsService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        ...safeStaffSelect,
+        ...privateStaffSelect,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
       },
     });
@@ -211,9 +213,9 @@ export class StaffsService {
         id: staffId,
       },
       select: {
-        ...safeStaffSelect,
+        ...privateStaffSelect,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
       },
     });
@@ -234,7 +236,7 @@ export class StaffsService {
     const staff = await this.findOne(adminId, staffId);
 
     // * Check if staff not Active
-    if (staff.accountStatus === UserAccountStatus.ACTIVE) {
+    if (staff.accountStatus === AccountStatus.ACTIVE) {
       throw new BadRequestException('This account is already active.');
     }
 
@@ -245,8 +247,9 @@ export class StaffsService {
         role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
       },
       data: {
-        accountStatus: UserAccountStatus.ACTIVE,
+        accountStatus: AccountStatus.ACTIVE,
       },
+      select: privateStaffSelect,
     });
   }
 
@@ -259,14 +262,10 @@ export class StaffsService {
     const staff = await this.findOne(adminId, staffId);
 
     // * Check if staff not Active
-    if (staff.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (staff.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new BadRequestException(
-          'Only active accounts can be moved to pending status.',
-        );
-      } else if (staff.accountStatus === UserAccountStatus.PENDING) {
+    if (staff.accountStatus !== AccountStatus.ACTIVE) {
+      if (staff.accountStatus === AccountStatus.PENDING) {
         throw new BadRequestException('This account is already pending.');
-      } else if (staff.accountStatus === UserAccountStatus.BANNED) {
+      } else if (staff.accountStatus === AccountStatus.BANNED) {
         throw new BadRequestException(
           'A banned account cannot be moved to pending. Please reactivate the account first if appropriate.',
         );
@@ -280,8 +279,9 @@ export class StaffsService {
         role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
       },
       data: {
-        accountStatus: UserAccountStatus.PENDING,
+        accountStatus: AccountStatus.PENDING,
       },
+      select: privateStaffSelect,
     });
   }
 
@@ -294,14 +294,8 @@ export class StaffsService {
     const staff = await this.findOne(adminId, staffId);
 
     // * Check if staff not Active
-    if (staff.accountStatus !== UserAccountStatus.ACTIVE) {
-      if (staff.accountStatus === UserAccountStatus.INACTIVE) {
-        throw new BadRequestException(
-          'Only active accounts can be moved to banned status.',
-        );
-      } else if (staff.accountStatus === UserAccountStatus.BANNED) {
-        throw new BadRequestException('This account is already banned.');
-      }
+    if (staff.accountStatus === AccountStatus.BANNED) {
+      throw new BadRequestException('This account is already banned.');
     }
 
     return await this.prisma.staff.update({
@@ -311,8 +305,9 @@ export class StaffsService {
         role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
       },
       data: {
-        accountStatus: UserAccountStatus.BANNED,
+        accountStatus: AccountStatus.BANNED,
       },
+      select: privateStaffSelect,
     });
   }
 
@@ -341,26 +336,26 @@ export class StaffsService {
     }
 
     // * Send Email of Set password to staff
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.staffActionToken.create({
+      data: {
+        staff: { connect: { id: staff.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.staffActionToken.create({
-        data: {
-          staff: { connect: { id: staff.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to staff
       await this.emailService.sendSetPasswordStaffEmail(
         staff.userName,
@@ -368,8 +363,13 @@ export class StaffsService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of staff email',
+      // * Remove action token if email faild to send
+      await this.prisma.staffActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
       );
     }
   }
