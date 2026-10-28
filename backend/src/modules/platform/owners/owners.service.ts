@@ -1,4 +1,4 @@
-import { PrivateserSelect } from '@/core/types/safe-selects.type';
+import { privateUserSelect } from '@/core/types/safe-selects.type';
 import { AccountStatus, Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
@@ -20,7 +20,7 @@ export class OwnersService {
       skip: (page - 1) * limit,
       take: limit,
       select: {
-        ...PrivateserSelect,
+        ...privateUserSelect,
 
         subscription: {
           include: {
@@ -41,7 +41,7 @@ export class OwnersService {
         role: { notIn: [Role.OWNER, Role.MEMBER] },
       },
       select: {
-        ...PrivateserSelect,
+        ...privateUserSelect,
 
         subscription: {
           include: {
@@ -74,7 +74,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.ACTIVE,
       },
-      select: PrivateserSelect,
+      select: privateUserSelect,
     });
   }
 
@@ -99,7 +99,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.PENDING,
       },
-      select: PrivateserSelect,
+      select: privateUserSelect,
     });
   }
 
@@ -118,7 +118,7 @@ export class OwnersService {
       data: {
         accountStatus: AccountStatus.BANNED,
       },
-      select: PrivateserSelect,
+      select: privateUserSelect,
     });
   }
 }

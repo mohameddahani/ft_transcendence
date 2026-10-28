@@ -19,8 +19,8 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
 import { VisitStatus } from '@/generated/prisma/enums';
 import {
-  PrivateMemberSelect,
-  PrivateserSelect,
+  privateMemberSelect,
+  privateUserSelect,
 } from '@/core/types/safe-selects.type';
 import { VISIT_EXPIRATION_MINUTES } from '@/core/constants/visit.constants';
 import { AccessesService } from '@/core/access/access.service';
@@ -297,10 +297,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
         member: {
-          select: PrivateMemberSelect,
+          select: privateMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -339,10 +339,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
         member: {
-          select: PrivateMemberSelect,
+          select: privateMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -392,10 +392,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
         member: {
-          select: PrivateMemberSelect,
+          select: privateMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -446,10 +446,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
         member: {
-          select: PrivateMemberSelect,
+          select: privateMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -494,10 +494,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
         member: {
-          select: PrivateMemberSelect,
+          select: privateMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,

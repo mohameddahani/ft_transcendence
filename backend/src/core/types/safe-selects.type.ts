@@ -54,7 +54,7 @@ import { Prisma } from '@/generated/prisma/client';
 
 // ! PRIVATE
 
-export const PrivateserSelect = {
+export const privateUserSelect = {
   id: true,
   firstName: true,
   lastName: true,
@@ -77,7 +77,7 @@ export const PrivateserSelect = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-export const PrivateStaffSelect = {
+export const privateStaffSelect = {
   id: true,
   firstName: true,
   lastName: true,
@@ -95,7 +95,7 @@ export const PrivateStaffSelect = {
   updatedAt: true,
 } satisfies Prisma.StaffSelect;
 
-export const PrivateMemberSelect = {
+export const privateMemberSelect = {
   id: true,
   adminId: true,
   staffId: true,

@@ -13,9 +13,9 @@ import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
 import {
-  PrivateMemberSelect,
-  PrivateStaffSelect,
-  PrivateserSelect,
+  privateMemberSelect,
+  privateStaffSelect,
+  privateUserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -41,7 +41,7 @@ export class ProfilesService {
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: PrivateserSelect,
+      select: privateUserSelect,
     });
 
     if (!user) {
@@ -112,7 +112,7 @@ export class ProfilesService {
     return await this.prisma.user.update({
       where: { id },
       data: profileData,
-      select: PrivateserSelect,
+      select: privateUserSelect,
     });
   }
 
@@ -240,7 +240,7 @@ export class ProfilesService {
   async findMeMember(id: string) {
     const member = await this.prisma.member.findUnique({
       where: { id },
-      select: PrivateMemberSelect,
+      select: privateMemberSelect,
     });
 
     if (!member) {
@@ -318,7 +318,7 @@ export class ProfilesService {
     return await this.prisma.member.update({
       where: { id: memberId },
       data: profileData,
-      select: PrivateMemberSelect,
+      select: privateMemberSelect,
     });
   }
 
@@ -448,9 +448,9 @@ export class ProfilesService {
     const staff = await this.prisma.staff.findUnique({
       where: { id },
       select: {
-        ...PrivateStaffSelect,
+        ...privateStaffSelect,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
       },
     });
@@ -530,7 +530,7 @@ export class ProfilesService {
     return await this.prisma.staff.update({
       where: { id: staffId },
       data: profileData,
-      select: PrivateStaffSelect,
+      select: privateStaffSelect,
     });
   }
 
@@ -658,7 +658,7 @@ export class ProfilesService {
         role: { notIn: [Role.MEMBER] },
       },
       select: {
-        ...PrivateserSelect,
+        ...privateUserSelect,
 
         profileImagePublicId: true,
         subscription: {
@@ -683,7 +683,7 @@ export class ProfilesService {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
-      select: { ...PrivateMemberSelect, profileImagePublicId: true },
+      select: { ...privateMemberSelect, profileImagePublicId: true },
     });
 
     if (!member) {
@@ -701,10 +701,10 @@ export class ProfilesService {
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
       select: {
-        ...PrivateStaffSelect,
+        ...privateStaffSelect,
         profileImagePublicId: true,
         admin: {
-          select: PrivateserSelect,
+          select: privateUserSelect,
         },
       },
     });

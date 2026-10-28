@@ -13,8 +13,8 @@ import {
 } from '@/generated/prisma/enums';
 import { AccessTokenPayload } from '../types/jwt-payload.type';
 import {
-  PrivateMemberSelect,
-  PrivateserSelect,
+  privateMemberSelect,
+  privateUserSelect,
 } from '../types/safe-selects.type';
 
 @Injectable()
@@ -54,7 +54,7 @@ export class AccessesService {
       },
       include: {
         plan: true,
-        user: { select: PrivateserSelect },
+        user: { select: privateUserSelect },
       },
     });
 
@@ -93,7 +93,7 @@ export class AccessesService {
       },
       include: {
         membershipPlan: true,
-        member: { select: PrivateMemberSelect },
+        member: { select: privateMemberSelect },
       },
     });
 
