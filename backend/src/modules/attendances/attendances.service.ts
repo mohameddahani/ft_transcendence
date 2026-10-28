@@ -18,8 +18,7 @@ import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dt
 import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
 import { createHash } from 'node:crypto';
 import {
-  privateStaffSelect,
-  privateUserSelect,
+  publicStaffSelect,
   publicUserSelect,
 } from '@/core/types/safe-selects.type';
 import { AccessesService } from '@/core/access/access.service';
@@ -133,7 +132,7 @@ export class AttendancesService {
         },
         membership: true,
         staff: {
-          select: privateStaffSelect,
+          select: publicStaffSelect,
         },
         visit: true,
         attendanceMethod: true,
@@ -170,11 +169,11 @@ export class AttendancesService {
       select: {
         id: true,
         admin: {
-          select: privateUserSelect,
+          select: publicUserSelect,
         },
         membership: true,
         staff: {
-          select: privateStaffSelect,
+          select: publicStaffSelect,
         },
         visit: true,
         attendanceMethod: true,

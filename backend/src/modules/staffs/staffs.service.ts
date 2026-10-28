@@ -17,7 +17,7 @@ import { generateActionToken } from '@/core/utils/generate-action-token';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import {
   privateStaffSelect,
-  privateUserSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -194,7 +194,7 @@ export class StaffsService {
       select: {
         ...privateStaffSelect,
         admin: {
-          select: privateUserSelect,
+          select: publicUserSelect,
         },
       },
     });
@@ -215,7 +215,7 @@ export class StaffsService {
       select: {
         ...privateStaffSelect,
         admin: {
-          select: privateUserSelect,
+          select: publicUserSelect,
         },
       },
     });

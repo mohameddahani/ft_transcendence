@@ -16,6 +16,7 @@ import {
   privateMemberSelect,
   privateStaffSelect,
   privateUserSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
@@ -450,7 +451,7 @@ export class ProfilesService {
       select: {
         ...privateStaffSelect,
         admin: {
-          select: privateUserSelect,
+          select: publicUserSelect,
         },
       },
     });
