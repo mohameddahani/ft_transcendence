@@ -17,13 +17,12 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMembers } from "@/lib/api/members";
 import { BackendMember } from "@/types/member";
 import axios from "axios";
-import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import MemberDashboardView from "@/components/dashboard/MemberDashboardView";
 
 function AdminStaffDashboardView() {
   const { t } = useTranslation();
-  const { fullName, companyName, role, user } = useCurrentUser();
+  const { fullName, companyName, role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

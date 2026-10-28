@@ -8,19 +8,16 @@ import {
   Clock,
   Plus,
   RefreshCw,
-  Loader2,
   CheckCircle2,
   Sparkles,
   ArrowRight,
   User,
   CreditCard,
   MessageSquareQuote,
-  ShieldCheck,
   Building,
   Award,
   Flame,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {

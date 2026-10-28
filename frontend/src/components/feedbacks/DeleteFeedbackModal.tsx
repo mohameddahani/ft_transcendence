@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { X, Trash2, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface DeleteFeedbackModalProps {

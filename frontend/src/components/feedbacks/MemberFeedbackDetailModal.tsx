@@ -5,14 +5,12 @@ import {
   X,
   Star,
   Heart,
-  MessageSquare,
   CheckCircle2,
   Clock,
   Trash2,
   Calendar,
   Loader2,
   ShieldCheck,
-  User,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { FeedbackItem } from "@/types/feedback";

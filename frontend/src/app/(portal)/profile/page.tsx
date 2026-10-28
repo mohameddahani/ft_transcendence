@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -24,7 +24,6 @@ import {
   Sparkles,
   Check,
   X,
-  UserCheck,
   Info,
   QrCode,
   Users,
@@ -49,6 +48,61 @@ import {
 } from "@/schemas/profile";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberProfileView from "@/components/profile/MemberProfileView";
+
+const syncAdminLocalStorage = (data: AdminProfile) => {
+  try {
+    const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+    const current = stored ? JSON.parse(stored) : {};
+    const updated = {
+      ...current,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      companyName: data.companyName,
+      role: data.role,
+      photo:
+        data.profileImageUrl &&
+        data.profileImageUrl !== "default-image.jpg" &&
+        data.profileImageUrl !== "default-member-image.jpg"
+          ? data.profileImageUrl
+          : null,
+    };
+    localStorage.setItem("gym_user", JSON.stringify(updated));
+    localStorage.removeItem("kinetic_user");
+    window.dispatchEvent(new Event("storage"));
+  } catch {
+    // ignore localStorage sync error
+  }
+};
+
+const syncStaffLocalStorage = (data: StaffProfile) => {
+  try {
+    const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+    const current = stored ? JSON.parse(stored) : {};
+    const updated = {
+      ...current,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      userName: data.userName,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      companyName: data.companyName,
+      role: "Staff",
+      photo:
+        data.profileImageUrl &&
+        data.profileImageUrl !== "default-image.jpg" &&
+        data.profileImageUrl !== "default-member-image.jpg"
+          ? data.profileImageUrl
+          : null,
+    };
+    localStorage.setItem("gym_user", JSON.stringify(updated));
+    localStorage.removeItem("kinetic_user");
+    window.dispatchEvent(new Event("storage"));
+  } catch {
+    // ignore localStorage sync error
+  }
+};
 
 function AdminStaffProfileView() {
   const { t } = useTranslation();
@@ -100,63 +154,8 @@ function AdminStaffProfileView() {
     special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(watchPassword),
   };
 
-  const syncAdminLocalStorage = (data: AdminProfile) => {
-    try {
-      const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
-      const current = stored ? JSON.parse(stored) : {};
-      const updated = {
-        ...current,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        companyName: data.companyName,
-        role: data.role,
-        photo:
-          data.profileImageUrl &&
-          data.profileImageUrl !== "default-image.jpg" &&
-          data.profileImageUrl !== "default-member-image.jpg"
-            ? data.profileImageUrl
-            : null,
-      };
-      localStorage.setItem("gym_user", JSON.stringify(updated));
-      localStorage.removeItem("kinetic_user");
-      window.dispatchEvent(new Event("storage"));
-    } catch {
-      // ignore localStorage sync error
-    }
-  };
-
-  const syncStaffLocalStorage = (data: StaffProfile) => {
-    try {
-      const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
-      const current = stored ? JSON.parse(stored) : {};
-      const updated = {
-        ...current,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        userName: data.userName,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        companyName: data.companyName,
-        role: "Staff",
-        photo:
-          data.profileImageUrl &&
-          data.profileImageUrl !== "default-image.jpg" &&
-          data.profileImageUrl !== "default-member-image.jpg"
-            ? data.profileImageUrl
-            : null,
-      };
-      localStorage.setItem("gym_user", JSON.stringify(updated));
-      localStorage.removeItem("kinetic_user");
-      window.dispatchEvent(new Event("storage"));
-    } catch {
-      // ignore localStorage sync error
-    }
-  };
-
   // Load Profile from backend based on role
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     setIsLoading(true);
     try {
       if (isStaff) {
@@ -200,13 +199,13 @@ function AdminStaffProfileView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isStaff, reset]);
 
   useEffect(() => {
     if (!isUserRoleLoading) {
       loadProfile();
     }
-  }, [isStaff, isUserRoleLoading]);
+  }, [isUserRoleLoading, loadProfile]);
 
   // Revert form to current saved backend admin profile
   const handleReset = () => {

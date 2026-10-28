@@ -29,21 +29,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Normalize user object so Member accounts provide user profile
-    if (data?.member) {
-      if (data.member.admin?.companyName && !data.member.companyName) {
-        data.member.companyName = data.member.admin.companyName;
-      }
-      if (!data?.user) {
-        data.user = data.member;
-      } else if (data.member.companyName && !data.user.companyName) {
-        data.user.companyName = data.member.companyName;
-      }
+    if (data?.member && !data?.user) {
+      data.user = data.member;
     }
 
     // Check user role from backend user object and JWT accessToken payload
     const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
-    const role = (data?.user?.role || data?.member?.role || jwtPayload?.role || "").toUpperCase();
-
+    const role = (data?.user?.role || jwtPayload?.role || "").toUpperCase();
     if (role !== "MEMBER") {
       return NextResponse.json(
         {

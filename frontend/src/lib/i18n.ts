@@ -502,7 +502,7 @@ export const resources = {
       performance: "Performance",
       copyright: "© 2026 GymFlow SaaS. All rights reserved.",
       quote:
-        "GymFlow didn't just organize my members; it revolutionized our entire financial and operational workflow. The data density is a game-changer for enterprise growth.",
+        "GymFlow didn't just organize my members, it revolutionized our entire financial and operational workflow. The data density is a game-changer for enterprise growth.",
       founderName: "Marcus Sterling",
       founderTitle: "Founder, Apex Athletic Clubs",
     },
@@ -1003,7 +1003,7 @@ export const resources = {
       performance: "Performance",
       copyright: "© 2026 GymFlow SaaS. Tous droits réservés.",
       quote:
-        "GymFlow n'a pas seulement organisé mes membres ; il a révolutionné l'ensemble de notre flux opérationnel et financier. La précision des données est un véritable levier de croissance.",
+        "GymFlow n'a pas seulement organisé mes membres, il a révolutionné l'ensemble de notre flux opérationnel et financier. La précision des données est un véritable levier de croissance.",
       founderName: "Marcus Sterling",
       founderTitle: "Fondateur, Apex Athletic Clubs",
     },

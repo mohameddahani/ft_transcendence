@@ -53,7 +53,6 @@ export default function StaffLoginForm() {
       if (userObject) {
         try {
           localStorage.setItem("gym_user", JSON.stringify(userObject));
-          localStorage.removeItem("kinetic_user");
         } catch {
           // ignore localStorage error if in private mode
         }
@@ -68,7 +67,7 @@ export default function StaffLoginForm() {
 
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1000);
+      }, 100);
     } catch (err: unknown) {
       if (err instanceof AxiosError && err.response?.data) {
         const errorData = err.response.data as {

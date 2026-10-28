@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -8,7 +8,6 @@ import {
   Clock,
   Loader2,
   Calendar,
-  AlertCircle,
   CheckCircle2,
   Moon,
   Sparkles,
