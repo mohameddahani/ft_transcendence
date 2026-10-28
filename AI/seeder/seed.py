@@ -133,9 +133,7 @@ def generate_members(gym: GymSpec, count: int, rng: random.Random) -> list[Gener
         birth = anchor - timedelta(days=age * 365 + rng.randint(0, 364))
 
         roll = rng.random()
-        status = ("BANNED" if roll < BANNED_RATE
-                  else "FROZEN" if roll < BANNED_RATE + FROZEN_RATE
-                  else "ACTIVE")
+        status = "BANNED" if roll < BANNED_RATE else "ACTIVE"
 
         joined = _signup_date(rng, anchor)
 
@@ -165,10 +163,12 @@ _MEMBER_UPSERT = """
 INSERT INTO members (
     id, admin_id, first_name, last_name, email, user_name, phone_number,
     address, emergency_contact, gender, birth_date, account_status, role,
+    company_name,
     profile_image_url, profile_image_public_id, created_at, updated_at
 ) VALUES (
     gen_random_uuid()::text, $1, $2, $3, $4, $5, $6,
-    $7, $8, $9::"Gender", $10, $11::"MemberAccountStatus", 'MEMBER'::"Role",
+    $7, $8, $9::"Gender", $10, $11::"AccountStatus", 'MEMBER'::"Role",
+    $13,
     'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521882/avatars-default-member.png',
     'avatars-default-member', $12, NOW()
 )
@@ -183,6 +183,7 @@ ON CONFLICT (user_name) DO UPDATE SET
     gender = EXCLUDED.gender,
     birth_date = EXCLUDED.birth_date,
     account_status = EXCLUDED.account_status,
+    company_name = EXCLUDED.company_name,
     created_at = EXCLUDED.created_at,
     updated_at = NOW()
 """
@@ -202,7 +203,7 @@ async def ensure_gym(conn: asyncpg.Connection, gym: GymSpec) -> str:
             created_at, updated_at
         ) VALUES (
             gen_random_uuid()::text, $1, $2, $3, $4, $5, $9,
-            $6, $7::"Gender", $8, 'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus",
+            $6, $7::"Gender", $8, 'ADMIN'::"Role", 'ACTIVE'::"AccountStatus",
             true, true,
             'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png',
             'avatars-default-admin', NOW(), NOW()
@@ -301,7 +302,7 @@ async def ensure_staff(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
                                        created_at, updated_at)
                    VALUES (gen_random_uuid()::text, $1, $2, $3, 'FEMALE'::"Gender",
                            $4, $5, $6, $7, $8, 'STAFF'::"Role",
-                           $9::"UserAccountStatus", $10,
+                           $9::"AccountStatus", $10,
                            'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521794/avatars-default-staff.png',
                            'avatars-default-staff', NOW(), NOW())""",
                 admin_id, "Hafsa" if status == "ACTIVE" else "Yassine",
@@ -312,19 +313,20 @@ async def ensure_staff(conn: asyncpg.Connection, admin_id: str, gym: GymSpec) ->
                 gym.company_name, status, DEMO_PASSWORD_HASH)
         else:
             await conn.execute(
-                'UPDATE staffs SET account_status = $2::"UserAccountStatus", password = $3 WHERE id = $1',
+                'UPDATE staffs SET account_status = $2::"AccountStatus", password = $3 WHERE id = $1',
                 existing, status, DEMO_PASSWORD_HASH)
         written += 1
     return written
 
 
 async def sync_members(
-    conn: asyncpg.Connection, admin_id: str, members: list[GeneratedMember]
+    conn: asyncpg.Connection, admin_id: str, company_name: str,
+    members: list[GeneratedMember],
 ) -> tuple[int, int]:
     await conn.executemany(_MEMBER_UPSERT, [
         (admin_id, m.first_name, m.last_name, m.email, m.user_name, m.phone_number,
          m.address, m.emergency_contact, m.gender, m.birth_date, m.account_status,
-         m.created_at)
+         m.created_at, company_name)
         for m in members
     ])
 
@@ -553,7 +555,8 @@ async def main() -> int:
                 durations = await ensure_plans(conn, admin_id, gym)
                 await ensure_staff(conn, admin_id, gym)
                 written, _removed = await sync_members(
-                    conn, admin_id, generate_members(gym, count, rng))
+                    conn, admin_id, gym.company_name,
+                    generate_members(gym, count, rng))
                 memberships, payments = await sync_history(conn, admin_id, rng, anchor)
                 check_ins = await sync_attendance(conn, admin_id, rng, now_hour())
                 comments, _unscored = await sync_feedback(conn, admin_id, rng, anchor)
