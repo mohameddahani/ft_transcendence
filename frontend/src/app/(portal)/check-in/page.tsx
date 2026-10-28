@@ -8,17 +8,9 @@ import {
   Filter,
   CheckCircle2,
   Clock,
-  User,
   Users,
-  AlertCircle,
   Eye,
-  Calendar,
-  Sparkles,
-  Phone,
-  Mail,
-  ShieldCheck,
-  CreditCard,
-  Building,
+  Calendar
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -388,7 +380,6 @@ export default function CheckInPage() {
 
                     const isReady = visit.visitStatus === "READY";
                     const isCheckedIn = visit.visitStatus === "CHECKED_IN";
-                    const isCancelled = visit.visitStatus === "CANCELLED";
 
                     const scheduledTime = visit.visitDateAndTime
                       ? new Date(visit.visitDateAndTime).toLocaleTimeString([], {
@@ -409,7 +400,7 @@ export default function CheckInPage() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/40">
                               {photo ? (
-                                // eslint-disable-next-line @next/next/no-img-element
+                                 
                                 <img
                                   src={photo}
                                   alt={fullName}

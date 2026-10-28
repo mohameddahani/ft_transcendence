@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { parseJwtPayload, isAdminOrStaffUser } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -8,123 +7,36 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const identifier = (body.email || body.userName || "").trim();
-    const isEmail = identifier.includes("@");
+    const adminBody = {
+      email: (body.email).trim(),
+      password: body.password,
+    };
 
-    let backendRes;
-    let data;
-
-    if (isEmail) {
-      // 1. Attempt Admin login first if input is an email
-      backendRes = await axios.post(
-        `${API_URL}/api/auth/login`,
-        { email: identifier, password: body.password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          validateStatus: () => true,
-        }
-      );
-      data = backendRes.data;
-
-      // If admin login failed, attempt staff login via /api/auth/staffs/login
-      if (backendRes.status >= 400) {
-        const staffRes = await axios.post(
-          `${API_URL}/api/auth/staffs/login`,
-          { userName: identifier, password: body.password },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-            validateStatus: () => true,
-          }
-        );
-
-        if (staffRes.status < 400) {
-          backendRes = staffRes;
-          data = staffRes.data;
-        }
+    // Forward login request to the backend authentication endpoint
+    const backendRes = await axios.post(
+      `${API_URL}/api/auth/login`,
+      adminBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        validateStatus: () => true,
       }
-    } else {
-      // 2. Attempt Staff login directly if input is a username
-      const staffRes = await axios.post(
-        `${API_URL}/api/auth/staffs/login`,
-        { userName: identifier, password: body.password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          validateStatus: () => true,
-        }
-      );
+    );
 
-      if (staffRes.status < 400) {
-        backendRes = staffRes;
-        data = staffRes.data;
-      } else {
-        // Fallback to admin login just in case
-        backendRes = await axios.post(
-          `${API_URL}/api/auth/login`,
-          { email: identifier, password: body.password },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-            validateStatus: () => true,
-          }
-        );
-        data = backendRes.data;
-        if (backendRes.status >= 400) {
-          backendRes = staffRes;
-          data = staffRes.data;
-        }
-      }
-    }
+    const data = backendRes.data;
 
-    // If both admin and staff login failed
     if (backendRes.status >= 400) {
       return NextResponse.json(data, {
         status: backendRes.status,
       });
     }
+    const userRole = data?.user?.role
 
-    // Normalize user object so both Admin and Staff accounts provide user profile
-    if (data?.staff && !data?.user) {
-      data.user = data.staff;
-    }
-
-    // Check user role from backend user object and JWT accessToken payload
-    const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
-    const userRole = (
-      data?.user?.role ||
-      data?.staff?.role ||
-      jwtPayload?.role ||
-      ""
-    ).toUpperCase();
-
-    // Explicitly reject Owner accounts with a clear message
-    if (userRole === "OWNER") {
+    if (userRole !== "ADMIN") {
       return NextResponse.json(
         {
-          message:
-            "Access denied. Only Admin accounts are authorized.",
-        },
-        { status: 403 }
-      );
-    }
-
-    const isAuthorizedRole =
-      isAdminOrStaffUser(data?.user) ||
-      isAdminOrStaffUser(data?.staff) ||
-      isAdminOrStaffUser(jwtPayload);
-
-    // Strictly deny non-admin and non-staff accounts
-    if (!isAuthorizedRole) {
-      return NextResponse.json(
-        {
-          message:
-            "Access denied. Only Admin and Staff accounts are authorized to log into this platform.",
+          message: "Access denied. Only Admin accounts are authorized.",
         },
         { status: 403 }
       );
@@ -179,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error: unknown) {
-    console.error("Login proxy error:", error);
+    console.error("Admin login proxy error:", error);
     const message = error instanceof Error ? error.message : "Failed to connect to backend server";
     return NextResponse.json(
       { message: `Proxy error: ${message}. Make sure backend is running on ${API_URL}` },

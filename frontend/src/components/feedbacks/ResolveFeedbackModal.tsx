@@ -6,14 +6,10 @@ import {
   Star,
   CheckCircle2,
   AlertCircle,
-  Clock,
   Lock,
   MessageSquare,
-  Sparkles,
   Phone,
   Mail,
-  ThumbsUp,
-  HelpCircle,
   Loader2,
 } from "lucide-react";
 import { FeedbackItem, FeedbackStatus } from "@/types/feedback";
@@ -127,7 +123,7 @@ export default function ResolveFeedbackModal({
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/50">
                 {photo && photo !== "default-image.jpg" ? (
-                  // eslint-disable-next-line @next/next/no-img-element
+                   
                   <img
                     src={photo}
                     alt={fullName}

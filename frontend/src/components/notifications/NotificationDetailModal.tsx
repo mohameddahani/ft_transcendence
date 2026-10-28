@@ -66,7 +66,7 @@ export default function NotificationDetailModal({
     return () => {
       isMounted = false;
     };
-  }, [notificationId]);
+  }, [notificationId, isMember]);
 
   if (!notificationId) return null;
 

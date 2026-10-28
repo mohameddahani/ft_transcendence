@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { parseJwtPayload, isAdminOrStaffUser } from "@/lib/auth";
+import { parseJwtPayload } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const staffBody = {
-      userName: (body.userName || body.email || "").trim(),
+      userName: (body.userName || "").trim(),
       password: body.password,
     };
 
@@ -29,42 +29,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Normalize user object so Staff accounts provide user profile
-    if (data?.staff) {
-      if (data.staff.admin?.companyName && !data.staff.companyName) {
-        data.staff.companyName = data.staff.admin.companyName;
-      }
-      if (!data?.user) {
-        data.user = data.staff;
-      } else if (data.staff.companyName && !data.user.companyName) {
-        data.user.companyName = data.staff.companyName;
-      }
+    if (data?.staff && !data?.user) {
+      data.user = data.staff;
     }
 
     // Check user role from backend user object and JWT accessToken payload
     const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
-    const userRole = (
-      data?.user?.role ||
-      data?.staff?.role ||
-      jwtPayload?.role ||
-      ""
-    ).toUpperCase();
-
-    if (userRole === "OWNER") {
-      return NextResponse.json(
-        {
-          message:
-            "Access denied. Only Admins accounts are authorized.",
-        },
-        { status: 403 }
-      );
-    }
-
-    const isAuthorizedRole =
-      isAdminOrStaffUser(data?.user) ||
-      isAdminOrStaffUser(data?.staff) ||
-      isAdminOrStaffUser(jwtPayload);
-
-    if (!isAuthorizedRole) {
+    const role = (data?.user?.role || jwtPayload?.role || "").toUpperCase();
+    if (role && role !== "STAFF") {
       return NextResponse.json(
         {
           message: "Access denied. Only Staff accounts are authorized on this endpoint.",

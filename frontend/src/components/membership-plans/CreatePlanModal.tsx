@@ -8,10 +8,7 @@ import {
   Plus,
   Loader2,
   CreditCard,
-  Calendar,
-  DollarSign,
   AlertCircle,
-  Sparkles,
   Info,
 } from "lucide-react";
 import axios from "axios";
@@ -19,7 +16,6 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import {
   createMembershipPlan,
-  addMembershipPlanDuration,
 } from "@/lib/api/membership-plans";
 import {
   addMembershipPlanSchema,

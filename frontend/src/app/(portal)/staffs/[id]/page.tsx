@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ChevronRight,
   Mail,
@@ -12,14 +12,10 @@ import {
   Clock,
   Ban,
   User,
-  Calendar,
-  Phone,
   ArrowLeft,
   Loader2,
   Building,
   UserCheck,
-  ShieldAlert,
-  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -36,7 +32,6 @@ import EditStaffModal from "@/components/staffs/EditStaffModal";
 export default function StaffDetailPage() {
   const { t } = useTranslation();
   const params = useParams();
-  const router = useRouter();
   const id = params?.id as string;
 
   const [staff, setStaff] = useState<BackendStaff | null>(null);
@@ -44,7 +39,7 @@ export default function StaffDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const loadStaffData = async () => {
+  const loadStaffData = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
@@ -59,11 +54,11 @@ export default function StaffDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadStaffData();
-  }, [id]);
+  }, [loadStaffData]);
 
   if (isLoading) {
     return (

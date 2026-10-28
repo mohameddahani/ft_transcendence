@@ -12,7 +12,7 @@ export function useCurrentUser() {
 
     const loadCached = () => {
       try {
-        const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+        const stored = localStorage.getItem("gym_user");
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && typeof parsed === "object") {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { CheckCircle2, Sparkles, User, X } from "lucide-react";
+import { CheckCircle2, Sparkles, X } from "lucide-react";
 import { TodayVisit } from "@/types/visit";
 import { useTranslation } from "react-i18next";
 
@@ -59,7 +59,7 @@ export default function SuccessCelebrationModal({
         {/* Member Photo */}
         <div className="w-16 h-16 rounded-full overflow-hidden mx-auto border-2 border-emerald-500 shadow-md bg-surface-container flex items-center justify-center">
           {photo && photo !== "default-image.jpg" ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               src={photo}
               alt={fullName}

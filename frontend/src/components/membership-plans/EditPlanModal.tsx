@@ -9,8 +9,6 @@ import {
   Loader2,
   CreditCard,
   AlertCircle,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

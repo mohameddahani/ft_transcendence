@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Globe, ChevronDown, Check } from "lucide-react";
 

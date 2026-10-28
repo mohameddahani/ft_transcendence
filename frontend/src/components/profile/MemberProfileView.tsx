@@ -10,7 +10,6 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
-  ShieldCheck,
   CheckCircle2,
   Sparkles,
   CreditCard,
