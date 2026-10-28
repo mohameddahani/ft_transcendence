@@ -1186,16 +1186,24 @@ export class AuthProvider {
     // * Calculate expiration date
     const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
 
-    await this.prisma.$transaction([
-      this.prisma.userRefreshToken.update({
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.userRefreshToken.updateMany({
         where: {
           id: storedToken.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
         },
         data: {
           revokedAt: new Date(),
         },
-      }),
-      this.prisma.userRefreshToken.create({
+      });
+
+      // * Someone else already used this refresh token
+      if (count !== 1) {
+        throw new UnauthorizedException();
+      }
+
+      await tx.userRefreshToken.create({
         data: {
           jti: jti,
           hash: newRefreshTokenHash,
@@ -1205,8 +1213,8 @@ export class AuthProvider {
           userAgent: request.headers['user-agent'],
           device: this.getDevice(request.headers['user-agent']),
         },
-      }),
-    ]);
+      });
+    });
 
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
@@ -1293,16 +1301,24 @@ export class AuthProvider {
     // * Calculate expiration date
     const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
 
-    await this.prisma.$transaction([
-      this.prisma.staffRefreshToken.update({
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.staffRefreshToken.updateMany({
         where: {
           id: storedToken.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
         },
         data: {
           revokedAt: new Date(),
         },
-      }),
-      this.prisma.staffRefreshToken.create({
+      });
+
+      // * Someone else already used this refresh token
+      if (count !== 1) {
+        throw new UnauthorizedException();
+      }
+
+      await tx.staffRefreshToken.create({
         data: {
           jti: jti,
           hash: newRefreshTokenHash,
@@ -1312,8 +1328,8 @@ export class AuthProvider {
           userAgent: request.headers['user-agent'],
           device: this.getDevice(request.headers['user-agent']),
         },
-      }),
-    ]);
+      });
+    });
 
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
@@ -1400,16 +1416,24 @@ export class AuthProvider {
     // * Calculate expiration date
     const expiresAt = new Date(Date.now() + ms(refreshExpiresIn));
 
-    await this.prisma.$transaction([
-      this.prisma.memberRefreshToken.update({
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.memberRefreshToken.updateMany({
         where: {
           id: storedToken.id,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
         },
         data: {
           revokedAt: new Date(),
         },
-      }),
-      this.prisma.memberRefreshToken.create({
+      });
+
+      // * Someone else already used this refresh token
+      if (count !== 1) {
+        throw new UnauthorizedException();
+      }
+
+      await tx.memberRefreshToken.create({
         data: {
           jti: jti,
           hash: newRefreshTokenHash,
@@ -1419,8 +1443,8 @@ export class AuthProvider {
           userAgent: request.headers['user-agent'],
           device: this.getDevice(request.headers['user-agent']),
         },
-      }),
-    ]);
+      });
+    });
 
     // * generate new access token
     const accessTokenPayload: AccessTokenPayload = {
