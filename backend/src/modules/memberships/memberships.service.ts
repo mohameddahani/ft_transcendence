@@ -1,8 +1,9 @@
 import { MembershipStatus } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { AccessesService } from '@/core/services/access.service';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/access/access.service';
+import { publicMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class MembershipsService {
@@ -32,7 +33,7 @@ export class MembershipsService {
       select: {
         id: true,
         member: {
-          omit: { password: true },
+          select: publicMemberSelect,
         },
         membershipPlan: true,
         membershipPlanDuration: true,
@@ -43,9 +44,6 @@ export class MembershipsService {
         updatedAt: true,
       },
     });
-    if (memberships.length === 0) {
-      throw new NotFoundException('Memberships Not Found!');
-    }
 
     return memberships;
   }
@@ -66,7 +64,7 @@ export class MembershipsService {
       select: {
         id: true,
         member: {
-          omit: { password: true },
+          select: publicMemberSelect,
         },
         membershipPlan: true,
         membershipPlanDuration: true,
@@ -150,10 +148,6 @@ export class MembershipsService {
         expiresAt: true,
       },
     });
-
-    if (memberships.length === 0) {
-      throw new NotFoundException('There No Memberships To Show');
-    }
 
     return memberships;
   }

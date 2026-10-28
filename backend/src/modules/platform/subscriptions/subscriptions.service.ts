@@ -7,13 +7,13 @@ import {
 import { ActiveSubscriptionDto } from './dtos/active-subscription.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
-  UserAccountStatus,
+  AccountStatus,
   SubscriptionStatus,
   Role,
 } from '@/generated/prisma/enums';
 import { addDays } from 'date-fns';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
-import { AccessesService } from '@/core/services/access.service';
+import { privateUserSelect } from '@/core/types/safe-selects.type';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -35,7 +35,7 @@ export class SubscriptionsService {
     }
 
     // * Check Status of user
-    if (user.accountStatus !== UserAccountStatus.ACTIVE) {
+    if (user.accountStatus !== AccountStatus.ACTIVE) {
       throw new ForbiddenException(
         'This account is not active. Please activate your account before subscribing.',
       );
@@ -188,15 +188,12 @@ export class SubscriptionsService {
       take: limit,
       include: {
         user: {
-          select: safeUserSelect,
+          select: privateUserSelect,
         },
         plan: true,
         planDuration: true,
       },
     });
-    if (subscriptions.length === 0) {
-      throw new NotFoundException('No subscriptions To Show');
-    }
 
     return subscriptions;
   }
@@ -209,7 +206,7 @@ export class SubscriptionsService {
       },
       include: {
         user: {
-          select: safeUserSelect,
+          select: privateUserSelect,
         },
         plan: true,
         planDuration: true,
@@ -271,10 +268,6 @@ export class SubscriptionsService {
         amount: true,
       },
     });
-
-    if (subscriptions.length === 0) {
-      throw new NotFoundException('No Subscriptions Found');
-    }
 
     return subscriptions;
   }

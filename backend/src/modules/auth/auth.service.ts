@@ -74,21 +74,42 @@ export class AuthService {
   }
 
   // * Refresh
-  refresh(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
-    return this.authProvider.refresh(refreshToken, refreshTokenPayload);
+  refresh(
+    request: Request,
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authProvider.refresh(
+      request,
+      refreshToken,
+      refreshTokenPayload,
+    );
   }
 
   // * Refresh Staff
-  refreshStaff(refreshToken: string, refreshTokenPayload: RefreshTokenPayload) {
-    return this.authProvider.refreshStaff(refreshToken, refreshTokenPayload);
+  refreshStaff(
+    request: Request,
+    refreshToken: string,
+    refreshTokenPayload: RefreshTokenPayload,
+  ) {
+    return this.authProvider.refreshStaff(
+      request,
+      refreshToken,
+      refreshTokenPayload,
+    );
   }
 
   // * Refresh Member
   refreshMember(
+    request: Request,
     refreshToken: string,
     refreshTokenPayload: RefreshTokenPayload,
   ) {
-    return this.authProvider.refreshMember(refreshToken, refreshTokenPayload);
+    return this.authProvider.refreshMember(
+      request,
+      refreshToken,
+      refreshTokenPayload,
+    );
   }
 
   // * Activate user account

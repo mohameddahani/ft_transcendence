@@ -68,7 +68,12 @@
 // * Add default image profile to staff
 // * ban or freeze or ... a staff
 // * edit profile of staff (like profile image ...)
-// ! Check emails of staffs is correct(reset password and confirmation ...)
+// * Check emails of staffs is correct(reset password and confirmation ...)
+// * Tell the front make all users (admin / owner / staff / member) they can update password from platfrom and (staff / member can also update data)
+// * Make user enter the current password
+// * check all return update that return safe data
+// * create endpoint that send email for verification account for all roles when service email is down (fix: make the user to try login later and when he try to login we will send him email if service work)
+// * Check when staff and member set a password the validation of password is correct like min 8 chars ... like admin
 // * Get all staffs
 // * Get one staff
 // * edit one staff
@@ -80,10 +85,10 @@
 
 // * When a staff or admin update the membership of member with same data the server create multiple memberships
 
-// ! test all Notifications
+// * test all Notifications
 
-// ! test anything is expired
-// ! change generate username
+// * test anything is expired
+// * change generate username
 // * check email by lowercase
 // * if user set wrong password 5 times stop him
 // * Make email send only once
@@ -171,3 +176,63 @@
 // * TESTS
 // * Delete user (admin)
 // * Update user (user)
+// ? Q-281
+
+// 1. Metrics
+//    ↓
+// POST /memberships/renew
+// normally: 200 ms
+// now: 3 seconds
+
+// 2. Trace
+//    ↓
+// NestJS       20 ms
+// PostgreSQL  150 ms
+// Email API  2700 ms  ← problem area
+
+// 3. Logs
+//    ↓
+// "Email provider timeout"
+// requestId=req-123
+
+// 4. Diagnosis
+//    ↓
+// external email service is slow
+
+// 5. Fix
+//    ↓
+// move email sending to a queue / add timeout / retry policy
+
+// 6. Metrics
+//    ↓
+// renewal endpoint back to ~200 ms ✅
+
+// S
+// Single Responsibility
+// → "One job"
+
+// O
+// Open/Closed
+// → "Easy to add"
+
+// L
+// Liskov
+// → "Safe replacement"
+
+// I
+// Interface Segregation
+// → "Don't force unused methods"
+
+// D
+// Dependency Inversion
+// → "Depend on contracts"
+
+// S → One job
+
+// O → Extend
+
+// L → Replace safely
+
+// I → Small interfaces
+
+// D → Depend on abstraction

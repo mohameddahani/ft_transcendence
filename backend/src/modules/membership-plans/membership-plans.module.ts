@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AdminMembershipPlansController } from './admin-membership-plans.controller';
 import { MembershipPlansService } from './membership-plans.service';
-import { AuthModule } from '../auth/auth.module';
-import { AccessesService } from '@/core/services/access.service';
 import { StaffMembershipPlansController } from './staff-membership-plans.controller';
 import { MemberMembershipPlansController } from './member-membership-plans.controller';
+import { AccessesModule } from '@/core/access/access.module';
 
 @Module({
   controllers: [
@@ -12,10 +11,8 @@ import { MemberMembershipPlansController } from './member-membership-plans.contr
     StaffMembershipPlansController,
     MemberMembershipPlansController,
   ],
-  providers: [MembershipPlansService, AccessesService],
-  imports: [
-    AuthModule, // * Imported to register the Passport strategies defined in the AuthModule, which are used by this module.
-  ],
+  providers: [MembershipPlansService],
+  imports: [AccessesModule],
   exports: [],
 })
 export class MembershipPlansModule {}

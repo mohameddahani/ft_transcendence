@@ -1,7 +1,8 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
+import { AccessesService } from '@/core/access/access.service';
+import { publicMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class PaymentsService {
@@ -32,26 +33,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            gender: true,
-            birthDate: true,
-            userName: true,
-            email: true,
-            phoneNumber: true,
-            profileImageUrl: true,
-            address: true,
-            emergencyContact: true,
-            role: true,
-            accountStatus: true,
-            memberships: true,
-            payments: true,
-            notifications: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -61,9 +43,6 @@ export class PaymentsService {
         updatedAt: true,
       },
     });
-    if (payments.length === 0) {
-      throw new NotFoundException('There Is No Payments To Show');
-    }
 
     return payments;
   }
@@ -85,26 +64,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            gender: true,
-            birthDate: true,
-            userName: true,
-            email: true,
-            phoneNumber: true,
-            profileImageUrl: true,
-            address: true,
-            emergencyContact: true,
-            role: true,
-            accountStatus: true,
-            memberships: true,
-            payments: true,
-            notifications: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -146,26 +106,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            gender: true,
-            birthDate: true,
-            userName: true,
-            email: true,
-            phoneNumber: true,
-            profileImageUrl: true,
-            address: true,
-            emergencyContact: true,
-            role: true,
-            accountStatus: true,
-            memberships: true,
-            payments: true,
-            notifications: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,
@@ -206,26 +147,7 @@ export class PaymentsService {
         id: true,
         adminId: true,
         member: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            gender: true,
-            birthDate: true,
-            userName: true,
-            email: true,
-            phoneNumber: true,
-            profileImageUrl: true,
-            address: true,
-            emergencyContact: true,
-            role: true,
-            accountStatus: true,
-            memberships: true,
-            payments: true,
-            notifications: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: publicMemberSelect,
         },
         amount: true,
         paidAt: true,

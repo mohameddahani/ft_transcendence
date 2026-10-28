@@ -6,23 +6,25 @@ import {
 } from '@nestjs/common';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { AccessesService } from '@/core/services/access.service';
 import { CreateFeedbackLikeDto } from './dto/create-feedback-like.dto';
 import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 import { FeedbackStatus } from '@/generated/prisma/enums';
 import {
-  safeMemberSelect,
-  safeStaffSelect,
-  safeUserSelect,
+  publicMemberSelect,
+  publicStaffSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
+import { ExternalApiService } from '@/infrastructure/external-api/external-api.service';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class FeedbacksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessesService: AccessesService,
+    private readonly externalApiService: ExternalApiService,
   ) {}
 
   // * Create Feedback
@@ -43,6 +45,9 @@ export class FeedbacksService {
     }
 
     // * Create feedback
+    // * Get Sentiment From Ai
+    const response = await this.externalApiService.getSentiment(data.content);
+
     return await this.prisma.feedback.create({
       data: {
         admin: { connect: { id: adminId } },
@@ -50,6 +55,8 @@ export class FeedbacksService {
         staff: member.staffId ? { connect: { id: member.staffId } } : undefined,
         content: data.content,
         rating: data.rating,
+        sentiment: response?.sentiment ?? null,
+        sentimentScore: response?.sentimentScore ?? null,
       },
     });
   }
@@ -74,13 +81,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         content: true,
         rating: true,
@@ -104,10 +111,6 @@ export class FeedbacksService {
       },
     });
 
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
-
     return feedbacks;
   }
 
@@ -125,13 +128,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         content: true,
         rating: true,
@@ -265,13 +268,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         content: true,
         rating: true,
@@ -294,10 +297,6 @@ export class FeedbacksService {
         createdAt: 'desc',
       },
     });
-
-    if (feedbacks.length === 0) {
-      throw new NotFoundException('There is No Feedbacks To Show');
-    }
 
     return feedbacks;
   }
@@ -322,13 +321,13 @@ export class FeedbacksService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         content: true,
         rating: true,

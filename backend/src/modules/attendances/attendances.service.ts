@@ -1,23 +1,28 @@
-import {
-  AccessTokenPayload,
-  MembershipWithPlan,
-} from '@/core/types/jwt-payload.type';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { MembershipWithPlan } from '@/core/types/membership-with-plan.type';
 import {
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AccessesService } from '@/core/services/access.service';
 import { AttendanceMethod, Role, VisitStatus } from '@/generated/prisma/enums';
-import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  subMinutes,
+} from 'date-fns';
 import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
 import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
 import { createHash } from 'node:crypto';
 import {
-  safeStaffSelect,
-  safeUserSelect,
+  publicStaffSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
+import { AccessesService } from '@/core/access/access.service';
+import { EARLIEST_VISIT_CHECK_IN_MINUTES } from '@/core/constants/visit.constants';
 
 @Injectable()
 export class AttendancesService {
@@ -123,11 +128,11 @@ export class AttendancesService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         membership: true,
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         visit: true,
         attendanceMethod: true,
@@ -136,10 +141,6 @@ export class AttendancesService {
         updatedAt: true,
       },
     });
-
-    if (attendances.length === 0) {
-      throw new NotFoundException('There is No Attendances To Show');
-    }
 
     return attendances;
   }
@@ -168,11 +169,11 @@ export class AttendancesService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         membership: true,
         staff: {
-          select: safeStaffSelect,
+          select: publicStaffSelect,
         },
         visit: true,
         attendanceMethod: true,
@@ -311,6 +312,30 @@ export class AttendancesService {
       if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
         throw new ForbiddenException(
           'Weekly attendance limit has been reached for this membership.',
+        );
+      }
+
+      // * Check if attendance time has arrived
+      // * Allow check-in 10 minutes before the scheduled visit.
+      const earliestCheckIn = subMinutes(
+        visit.visitDateAndTime,
+        EARLIEST_VISIT_CHECK_IN_MINUTES,
+      );
+
+      // * Use the existing visit expiration time.
+      const latestCheckIn = visit.visitDateAndTimeExpiresAt;
+
+      // * Prevent early check-in.
+      if (now < earliestCheckIn) {
+        throw new ForbiddenException(
+          'Check-in is only allowed 10 minutes before the scheduled visit.',
+        );
+      }
+
+      // * Prevent late check-in.
+      if (now > latestCheckIn) {
+        throw new ForbiddenException(
+          'The check-in window for this visit has expired.',
         );
       }
 

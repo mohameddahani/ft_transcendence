@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { AccessesService } from '@/core/services/access.service';
 import {
   addMinutes,
   endOfDay,
@@ -20,10 +19,11 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { CreateVisitDto } from './dtos/create-visit.dto';
 import { VisitStatus } from '@/generated/prisma/enums';
 import {
-  safeMemberSelect,
-  safeUserSelect,
+  publicMemberSelect,
+  publicUserSelect,
 } from '@/core/types/safe-selects.type';
 import { VISIT_EXPIRATION_MINUTES } from '@/core/constants/visit.constants';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class VisitsService {
@@ -297,10 +297,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -308,9 +308,6 @@ export class VisitsService {
         createdAt: true,
       },
     });
-    if (visitsToday.length === 0) {
-      throw new NotFoundException('There No Visits Today');
-    }
 
     return visitsToday;
   }
@@ -342,10 +339,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -395,10 +392,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -407,9 +404,6 @@ export class VisitsService {
       },
       orderBy: { visitDateAndTime: 'asc' },
     });
-    if (upcomingVisits.length === 0) {
-      throw new NotFoundException('There No Upcoming Visits');
-    }
 
     return upcomingVisits;
   }
@@ -452,10 +446,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,
@@ -463,9 +457,6 @@ export class VisitsService {
         createdAt: true,
       },
     });
-    if (visitsToday.length === 0) {
-      throw new NotFoundException('There No Visits Today');
-    }
 
     return visitsToday;
   }
@@ -503,10 +494,10 @@ export class VisitsService {
       select: {
         id: true,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
         member: {
-          select: safeMemberSelect,
+          select: publicMemberSelect,
         },
         membership: true,
         visitDateAndTime: true,

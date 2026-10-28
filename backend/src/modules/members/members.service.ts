@@ -6,14 +6,14 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
-  RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
   ActionTokenType,
   MembershipStatus,
-  MemberAccountStatus,
+  AccountStatus,
   PaymentStatus,
   Role,
 } from '@/generated/prisma/enums';
@@ -23,12 +23,13 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { AccessesService } from '@/core/services/access.service';
 import { addDays } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
+import { privateMemberSelect } from '@/core/types/safe-selects.type';
 
 @Injectable()
 export class MembersService {
@@ -94,8 +95,13 @@ export class MembersService {
 
     // * Genarate a userName
     let userName: string;
+    let firstNameCharCount = 1;
     while (true) {
-      userName = generateUsername(data.firstName, data.lastName);
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
 
       // * Check if username already exist before register
       const existingUserName = await this.prisma.member.findUnique({
@@ -126,10 +132,14 @@ export class MembersService {
           userName: userName,
           email: data.email,
           phoneNumber: data.phoneNumber,
+          companyName: subscription.user.companyName,
           profileImageUrl: DEFAULT_AVATARS.MEMBER,
           profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
           address: data.address,
           emergencyContact: data.emergencyContact,
+
+          // ! BLOCK_CHAINE
+          walletAddress: data.walletAddress,
         },
       });
       // * Add Membership of member
@@ -165,26 +175,26 @@ export class MembersService {
     });
 
     // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: result.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.memberActionToken.create({
-        data: {
-          member: { connect: { id: result.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordMemberEmail(
         result.userName,
@@ -192,8 +202,12 @@ export class MembersService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+      // * Remove action token if email faild to send
+      await this.prisma.userActionToken.delete({
+        where: { id: actionToken.id },
+      });
+      throw new InternalServerErrorException(
+        'The member account was created, but we could not send the password setup email. Please tell to member logging in again later or contact the administrator if the problem continues.',
       );
     }
   }
@@ -237,7 +251,7 @@ export class MembersService {
     }
 
     // * Save new data to member
-    await this.prisma.member.update({
+    const member = await this.prisma.member.update({
       where: {
         id: memberId,
         adminId: adminId,
@@ -251,7 +265,11 @@ export class MembersService {
         phoneNumber: data.phoneNumber,
         address: data.address,
         emergencyContact: data.emergencyContact,
+
+        // ! BLOCK_CHAINE
+        walletAddress: data.walletAddress,
       },
+      select: privateMemberSelect,
     });
 
     // * check if the admin update the membership plan
@@ -276,7 +294,7 @@ export class MembersService {
         where: {
           adminId: adminId,
           memberId: memberId,
-          membershipStatus: MemberAccountStatus.ACTIVE,
+          membershipStatus: MembershipStatus.ACTIVE,
         },
       });
       if (!membership) {
@@ -338,6 +356,8 @@ export class MembersService {
         'membership plan and duration must be provided together.',
       );
     }
+
+    return member;
   }
 
   // * Active a Member
@@ -350,7 +370,7 @@ export class MembersService {
 
     // * Check member is exist
     const member = await this.findOne(accessTokenPayload, memberId);
-    if (member.accountStatus === MemberAccountStatus.ACTIVE) {
+    if (member.accountStatus === AccountStatus.ACTIVE) {
       throw new ConflictException('The Member is already Active!');
     }
 
@@ -360,13 +380,17 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.ACTIVE,
+        accountStatus: AccountStatus.ACTIVE,
       },
+      select: privateMemberSelect,
     });
   }
 
-  // * Freeze a Member
-  async freezeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+  // * pending a Member
+  async pendingMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
       await this.accessesService.authorizeAdminOrStaffAccess(
@@ -376,11 +400,11 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
 
-    if (member.accountStatus === MemberAccountStatus.FROZEN) {
-      throw new ConflictException('The member is already frozen.');
+    if (member.accountStatus === AccountStatus.PENDING) {
+      throw new ConflictException('The member is already pending.');
     }
 
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
+    if (member.accountStatus === AccountStatus.BANNED) {
       throw new ConflictException(
         'A banned member cannot be frozen. Active the member first.',
       );
@@ -392,8 +416,9 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.FROZEN,
+        accountStatus: AccountStatus.PENDING,
       },
+      select: privateMemberSelect,
     });
   }
 
@@ -408,7 +433,7 @@ export class MembersService {
     // * Check member exists
     const member = await this.findOne(accessTokenPayload, memberId);
 
-    if (member.accountStatus === MemberAccountStatus.BANNED) {
+    if (member.accountStatus === AccountStatus.BANNED) {
       throw new ConflictException('The member is already banned.');
     }
 
@@ -418,8 +443,9 @@ export class MembersService {
         adminId: adminId,
       },
       data: {
-        accountStatus: MemberAccountStatus.BANNED,
+        accountStatus: AccountStatus.BANNED,
       },
+      select: privateMemberSelect,
     });
   }
 
@@ -451,26 +477,26 @@ export class MembersService {
     }
 
     // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: member.id } },
+        tokenHash: tokenHash,
+        type: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
     try {
-      // * Generate Action Token
-      const { rawToken, tokenHash } = generateActionToken();
-
-      // * Calc the expir
-      const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
-        'SET_PASSWORD_TOKEN_EXPIRES_IN',
-      );
-      const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
-
-      // * Store the hash Token in DB
-      await this.prisma.memberActionToken.create({
-        data: {
-          member: { connect: { id: member.id } },
-          tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
-          expiresAt: expiresAt,
-        },
-      });
-
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordMemberEmail(
         member.userName,
@@ -478,8 +504,13 @@ export class MembersService {
         rawToken,
       );
     } catch {
-      throw new RequestTimeoutException(
-        'Failed to send set password of member email',
+      // * Remove action token if email faild to send
+      await this.prisma.memberActionToken.delete({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
       );
     }
   }
@@ -502,31 +533,8 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: privateMemberSelect,
     });
-    if (members.length === 0) {
-      throw new NotFoundException('Members Not Found!');
-    }
 
     return members;
   }
@@ -544,27 +552,7 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: {
-        id: true,
-        adminId: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        memberships: true,
-        payments: true,
-        notifications: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: privateMemberSelect,
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');

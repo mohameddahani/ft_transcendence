@@ -1,20 +1,29 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
+import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
 import { Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
-import { safeUserSelect } from '@/core/types/safe-selects.type';
+import {
+  privateMemberSelect,
+  privateStaffSelect,
+  privateUserSelect,
+  publicUserSelect,
+} from '@/core/types/safe-selects.type';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
+import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
 
 @Injectable()
 export class ProfilesService {
@@ -33,22 +42,7 @@ export class ProfilesService {
   async findMe(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        subscription: true,
-      },
+      select: privateUserSelect,
     });
 
     if (!user) {
@@ -59,8 +53,8 @@ export class ProfilesService {
   }
 
   // * Update data of user
-  async update(id: string, data: UpdateProfileDto) {
-    // * Check if user update the username: (we need to check if username is unique)
+  async update(id: string, data: UpdateProfileUserDto) {
+    // * Check if user updates email or phone number: they must be unique
     const existingData = await this.prisma.user.findFirst({
       where: {
         id: { not: id }, // exclude current user
@@ -81,12 +75,46 @@ export class ProfilesService {
     }
 
     // * Check if user update the password: (we need to hash it)
-    if (data.password) {
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User Not Found.');
+      }
+
+      const passwordIsMatch = await bcrypt.compare(
+        data.currentPassword,
+        user.password,
+      );
+
+      if (!passwordIsMatch) {
+        throw new UnauthorizedException('Invalid Current Password');
+      }
+
       data.password = await bcrypt.hash(data.password, 10);
     }
 
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
     // * Save new data to user
-    return await this.prisma.user.update({ where: { id }, data });
+    return await this.prisma.user.update({
+      where: { id },
+      data: profileData,
+      select: privateUserSelect,
+    });
   }
 
   // * Upload profile image
@@ -213,20 +241,7 @@ export class ProfilesService {
   async findMeMember(id: string) {
     const member = await this.prisma.member.findUnique({
       where: { id },
-      select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-      },
+      select: privateMemberSelect,
     });
 
     if (!member) {
@@ -234,6 +249,78 @@ export class ProfilesService {
     }
 
     return member;
+  }
+
+  // * Update data of member
+  async updateProfileMember(memberId: string, data: UpdateProfileMemberDto) {
+    // * Check if member update the email or phone number
+    const existingData = await this.prisma.member.findFirst({
+      where: {
+        id: { not: memberId }, // exclude current member
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if member update the password: (we need to hash it)
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const member = await this.prisma.member.findUnique({
+        where: {
+          id: memberId,
+        },
+      });
+
+      if (!member) {
+        throw new NotFoundException('Member Not Found.');
+      }
+
+      // * Check if Member has already password
+      if (!member.password) {
+        throw new BadRequestException(
+          'You must set your password using the link sent to your email.',
+        );
+      } else {
+        const passwordIsMatch = await bcrypt.compare(
+          data.currentPassword,
+          member.password,
+        );
+
+        if (!passwordIsMatch) {
+          throw new UnauthorizedException('Invalid Current Password');
+        }
+
+        data.password = await bcrypt.hash(data.password, 10);
+      }
+    }
+
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
+    // * Save new data to member
+    return await this.prisma.member.update({
+      where: { id: memberId },
+      data: profileData,
+      select: privateMemberSelect,
+    });
   }
 
   // * Upload profile image (Member)
@@ -362,20 +449,10 @@ export class ProfilesService {
     const staff = await this.prisma.staff.findUnique({
       where: { id },
       select: {
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
+        ...privateStaffSelect,
         admin: {
-          select: safeUserSelect,
+          select: publicUserSelect,
         },
-        profileImageUrl: true,
-        role: true,
-        accountStatus: true,
       },
     });
 
@@ -384,6 +461,78 @@ export class ProfilesService {
     }
 
     return staff;
+  }
+
+  // * Update data of staff
+  async updateProfileStaff(staffId: string, data: UpdateProfileStaffDto) {
+    // * Check if staff update the email or phone number
+    const existingData = await this.prisma.staff.findFirst({
+      where: {
+        id: { not: staffId }, // exclude current staff
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if staff update the password: (we need to hash it)
+    if (
+      (!data.password && data.currentPassword) ||
+      (data.password && !data.currentPassword)
+    ) {
+      throw new BadRequestException(
+        'Both current password and password are required to change the password.',
+      );
+    } else if (data.password && data.currentPassword) {
+      // * Check Current Password
+      const staff = await this.prisma.staff.findUnique({
+        where: {
+          id: staffId,
+        },
+      });
+
+      if (!staff) {
+        throw new NotFoundException('Staff Not Found.');
+      }
+
+      // * Check if Staff has already password
+      if (!staff.password) {
+        throw new BadRequestException(
+          'You must set your password using the link sent to your email.',
+        );
+      } else {
+        const passwordIsMatch = await bcrypt.compare(
+          data.currentPassword,
+          staff.password,
+        );
+
+        if (!passwordIsMatch) {
+          throw new UnauthorizedException('Invalid Current Password');
+        }
+
+        data.password = await bcrypt.hash(data.password, 10);
+      }
+    }
+
+    // * Exclude the current password
+    const { currentPassword, ...profileData } = data;
+
+    // * Save new data to staff
+    return await this.prisma.staff.update({
+      where: { id: staffId },
+      data: profileData,
+      select: privateStaffSelect,
+    });
   }
 
   // * Upload profile image (Staff)
@@ -510,24 +659,9 @@ export class ProfilesService {
         role: { notIn: [Role.MEMBER] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        companyName: true,
-        role: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        isAccountVerified: true,
-        accountStatus: true,
-        termsAccepted: true,
-        createdAt: true,
-        updatedAt: true,
+        ...privateUserSelect,
 
+        profileImagePublicId: true,
         subscription: {
           include: {
             plan: true,
@@ -550,24 +684,7 @@ export class ProfilesService {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
-        profileImagePublicId: true,
-        address: true,
-        emergencyContact: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: { ...privateMemberSelect, profileImagePublicId: true },
     });
 
     if (!member) {
@@ -585,24 +702,11 @@ export class ProfilesService {
         role: { notIn: [Role.OWNER, Role.ADMIN] },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-        birthDate: true,
-        userName: true,
-        email: true,
-        phoneNumber: true,
-        profileImageUrl: true,
+        ...privateStaffSelect,
         profileImagePublicId: true,
         admin: {
-          select: safeUserSelect,
+          select: privateUserSelect,
         },
-        companyName: true,
-        role: true,
-        accountStatus: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 

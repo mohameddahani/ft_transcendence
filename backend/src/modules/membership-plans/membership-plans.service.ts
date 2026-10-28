@@ -11,8 +11,8 @@ import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duratio
 import { MembershipStatus } from '@/generated/prisma/enums';
 import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
 import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
-import { AccessesService } from '@/core/services/access.service';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/access/access.service';
 
 @Injectable()
 export class MembershipPlansService {
@@ -60,6 +60,7 @@ export class MembershipPlansService {
     const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         id: data.membershipPlanId,
+        adminId: adminId,
       },
     });
     if (!membershipPlan) {
@@ -256,9 +257,6 @@ export class MembershipPlansService {
         membershipPlanDurations: true,
       },
     });
-    if (membershipPlan.length === 0) {
-      throw new NotFoundException('No Membersship Plan To Show');
-    }
 
     return membershipPlan;
   }
@@ -315,9 +313,6 @@ export class MembershipPlansService {
         membershipPlanDurations: true,
       },
     });
-    if (membershipPlan.length === 0) {
-      throw new NotFoundException('No Membersship Plan To Show');
-    }
 
     return membershipPlan;
   }

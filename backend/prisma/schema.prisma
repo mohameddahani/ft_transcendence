@@ -28,9 +28,8 @@ enum Role {
 }
 
 // * this enum had Account Status
-enum UserAccountStatus {
+enum AccountStatus {
   ACTIVE
-  INACTIVE
   PENDING
   BANNED
 }
@@ -40,13 +39,6 @@ enum SubscriptionStatus {
   ACTIVE
   EXPIRED
   CANCELLED
-}
-
-// * this enum had Member Status
-enum MemberAccountStatus {
-  ACTIVE
-  FROZEN
-  BANNED
 }
 
 // * this enum had Member Status
@@ -124,11 +116,11 @@ model User {
   // ! BLOCK_CHAINE
   walletAddress String? @map("wallet_address")
 
-  profileImageUrl      String            @map("profile_image_url")
-  profileImagePublicId String            @map("profile_image_public_id")
-  isAccountVerified    Boolean           @default(false) @map("is_account_verified")
-  accountStatus        UserAccountStatus @default(INACTIVE) @map("account_status")
-  termsAccepted        Boolean           @map("terms_accepted")
+  profileImageUrl      String        @map("profile_image_url")
+  profileImagePublicId String        @map("profile_image_public_id")
+  isAccountVerified    Boolean       @default(false) @map("is_account_verified")
+  accountStatus        AccountStatus @default(ACTIVE) @map("account_status")
+  termsAccepted        Boolean       @map("terms_accepted")
 
   subscription      Subscription[]
   members           Member[]
@@ -204,13 +196,15 @@ model Subscription {
   planDurationId String       @map("plan_duration_id")
   planDuration   PlanDuration @relation(fields: [planDurationId], references: [id])
 
-  subscriptionStatus SubscriptionStatus @default(ACTIVE) @map("subscription_status")
-  startedAt          DateTime           @default(now()) @map("started_at")
-  expiresAt          DateTime           @map("expires_at")
+  subscriptionStatus   SubscriptionStatus @default(ACTIVE) @map("subscription_status")
+  startedAt            DateTime           @default(now()) @map("started_at")
+  expiresAt            DateTime           @map("expires_at")
   // autoRenew Boolean @default(false)
-  amount             Decimal            @db.Decimal(10, 2)
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  amount               Decimal            @db.Decimal(10, 2)
+  expirationNotifiedAt DateTime?          @map("expiration_notified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([subscriptionStatus])
@@ -236,10 +230,10 @@ model Staff {
   adminId String @map("admin_id")
   admin   User   @relation(fields: [adminId], references: [id])
 
-  role                 Role              @default(STAFF)
-  profileImageUrl      String            @map("profile_image_url")
-  profileImagePublicId String            @map("profile_image_public_id")
-  accountStatus        UserAccountStatus @default(ACTIVE) @map("account_status")
+  role                 Role          @default(STAFF)
+  profileImageUrl      String        @map("profile_image_url")
+  profileImagePublicId String        @map("profile_image_public_id")
+  accountStatus        AccountStatus @default(ACTIVE) @map("account_status")
 
   members            Member[]
   memberships        Membership[]
@@ -277,6 +271,7 @@ model Member {
   email                String
   password             String?
   phoneNumber          String   @map("phone_number")
+  companyName          String   @map("company_name")
   profileImageUrl      String   @map("profile_image_url")
   profileImagePublicId String   @map("profile_image_public_id")
   address              String
@@ -284,9 +279,9 @@ model Member {
   role                 Role     @default(MEMBER)
 
   // ! BLOCK_CHAINE
-  adminWalletAddress String? @map("admin_wallet_address")
+  walletAddress String? @map("wallet_address")
 
-  accountStatus MemberAccountStatus @default(ACTIVE) @map("account_status")
+  accountStatus AccountStatus @default(ACTIVE) @map("account_status")
 
   memberships         Membership[]
   payments            Payment[]
@@ -519,12 +514,13 @@ model Payment {
   staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
-  amount        Decimal       @db.Decimal(10, 2)
-  paidAt        DateTime?     @map("paid_at")
-  dueDate       DateTime?     @map("due_date")
-  paymentStatus PaymentStatus @default(UNPAID) @map("payment_status")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  amount               Decimal       @db.Decimal(10, 2)
+  paidAt               DateTime?     @map("paid_at")
+  dueDate              DateTime?     @map("due_date")
+  expirationNotifiedAt DateTime?     @map("expiration_notified_at")
+  paymentStatus        PaymentStatus @default(UNPAID) @map("payment_status")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
 
   @@index([adminId, memberId])
   @@index([memberId])
