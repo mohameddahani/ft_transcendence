@@ -39,7 +39,6 @@ import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
-import { not } from 'supertest/lib/cookies';
 
 @Injectable()
 export class AuthProvider {
