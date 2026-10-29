@@ -39,11 +39,11 @@ export const update_walletAddress_member = async (address: string) => {
     );
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
+      console.log("Status:", error.response?.status);
+      console.log("Server error:", error.response?.data);
+      console.log("Message:", error.message);
     } else {
-      console.error("Unexpected error:", error);
+      console.log("Unexpected error:", error);
     }
   }
 };
