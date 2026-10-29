@@ -297,7 +297,7 @@ export class AuthController {
   ! Staff Auth
   =========================
   */
-  // * Login Member
+  // * Login Staff
   @Post('staffs/login')
   @HttpCode(HttpStatus.OK) // * set default status code
   @Throttle({ default: { limit: 5, ttl: 60_000 } })

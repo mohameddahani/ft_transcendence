@@ -117,6 +117,10 @@
 // * Get all work hours or one (staff)
 // * Get all special hours or one (staff)
 
+// ! test send change email email
+// ! create endpoint that containe logic of change email not send
+// ! test also endpoint of change email and check if it change correct
+
 // so this solution will fix the problam ?
 
 // Common Types

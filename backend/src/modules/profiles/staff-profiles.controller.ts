@@ -21,6 +21,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { fileTypeFromBuffer } from 'file-type';
 import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
+import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
 
 @Controller('/api/users/staffs')
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
@@ -51,6 +52,19 @@ export class StaffProfilesController {
     @Body() body: UpdateProfileStaffDto,
   ) {
     return this.profilesService.updateProfileStaff(accessTokenPayload.id, body);
+  }
+
+  // * Request email change
+  @Post('email-change')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  requestEmailChangeStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: RequestEmailChangeStaffDto,
+  ) {
+    return this.profilesService.requestEmailChangeStaff(
+      accessTokenPayload.id,
+      body,
+    );
   }
 
   // * Upload profile image

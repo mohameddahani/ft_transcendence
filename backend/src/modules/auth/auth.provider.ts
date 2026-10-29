@@ -148,7 +148,7 @@ export class AuthProvider {
       await this.emailService.sendVerificationEmail(newUser.email, rawToken);
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.userActionToken.delete({
+      await this.prisma.userActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
@@ -254,7 +254,7 @@ export class AuthProvider {
         await this.emailService.sendVerificationEmail(user.email, rawToken);
       } catch {
         // * Remove action token if email faild to send
-        await this.prisma.userActionToken.delete({
+        await this.prisma.userActionToken.deleteMany({
           where: { id: actionToken.id },
         });
 
@@ -545,7 +545,7 @@ export class AuthProvider {
         );
       } catch {
         // * Remove action token if email faild to send
-        await this.prisma.staffActionToken.delete({
+        await this.prisma.staffActionToken.deleteMany({
           where: { id: actionToken.id },
         });
 
@@ -833,7 +833,7 @@ export class AuthProvider {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.staffActionToken.delete({
+      await this.prisma.staffActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
@@ -1013,7 +1013,7 @@ export class AuthProvider {
         );
       } catch {
         // * Remove action token if email faild to send
-        await this.prisma.memberActionToken.delete({
+        await this.prisma.memberActionToken.deleteMany({
           where: { id: actionToken.id },
         });
 
@@ -1693,7 +1693,7 @@ export class AuthProvider {
       await this.emailService.sendResetPasswordEmail(email, rawToken);
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.userActionToken.delete({
+      await this.prisma.userActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
@@ -1850,7 +1850,7 @@ export class AuthProvider {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.memberActionToken.delete({
+      await this.prisma.memberActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
