@@ -1,5 +1,7 @@
 import logging
 from collections import Counter
+
+log = logging.getLogger(__name__)
 from datetime import date, timedelta
 
 from app import db, rag
@@ -271,5 +273,5 @@ def run_tool(name: str, args: dict, user: User) -> dict:
     try:
         return tool["function"](user, **args)
     except Exception:
-        logging.exception("tool %s failed", name)
+        log.exception("tool %s failed", name)
         return {"error": "The tool failed. Tell the user you could not get this information."}
