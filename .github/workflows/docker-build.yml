@@ -1,0 +1,53 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  build:
+    name: Build ${{ matrix.service.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false       # all services build even if one fails
+      matrix:
+        service:
+          - name: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+
+          - name: owner-platform
+            context: owner-platform
+            dockerfile: owner-platform/Dockerfile
+
+          - name: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+
+          - name: blockchain-api
+            context: block-chain/api
+            dockerfile: block-chain/api/Dockerfile
+
+          - name: ai
+            context: AI
+            dockerfile: AI/Dockerfile
+
+          - name: backup
+            context: devops/backup-service
+            dockerfile: devops/backup-service/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: docker/setup-buildx-action@v3.10.0
+
+      - name: Build ${{ matrix.service.name }}
+        uses: docker/build-push-action@v6.16.0
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: false          # build only, no registry yet
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
