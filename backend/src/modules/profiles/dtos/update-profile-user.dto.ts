@@ -4,7 +4,7 @@ import { IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateProfileUserDto extends PartialType(
-  OmitType(RegisterUserDto, ['termsAccepted'] as const),
+  OmitType(RegisterUserDto, ['email', 'termsAccepted'] as const),
 ) {
   // * Current Password
   @IsOptional()

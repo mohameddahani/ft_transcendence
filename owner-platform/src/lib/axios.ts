@@ -76,6 +76,7 @@ api.interceptors.response.use(
         processQueue(refreshError);
 
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = `/login?from=${encodeURIComponent(
             window.location.pathname
           )}&error=session_expired`;

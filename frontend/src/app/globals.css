@@ -46,6 +46,7 @@
 
   /* Secondary */
   --color-secondary: var(--secondary);
+  --color-secondary-green: var(--secondary-green);
   --color-secondary-container: var(--secondary-container);
   --color-on-secondary: var(--on-secondary);
   --color-on-secondary-container: var(--on-secondary-container);
@@ -143,6 +144,7 @@
   --on-primary-fixed-variant: #3323cc;
 
   --secondary: #416900;
+  --secondary-green: #84cc16;
   --secondary-container: #acf847;
   --on-secondary: #ffffff;
   --on-secondary-container: #457000;
@@ -227,6 +229,7 @@
   --on-primary-fixed-variant: #2f2ebe;
 
   --secondary: #c8c6c5;
+  --secondary-green: #84cc16;
   --secondary-container: #474746;
   --on-secondary: #303030;
   --on-secondary-container: #b7b5b4;

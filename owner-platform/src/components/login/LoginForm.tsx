@@ -12,9 +12,9 @@ import { AtSign, Lock, LogIn, Loader2, AlertCircle } from "lucide-react";
 
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export const loginSchema = z.object({
   email: z
@@ -31,6 +31,7 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [serverError, setServerError] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -111,7 +112,7 @@ export default function LoginForm() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={theme === "light" ? "light" : "dark"}
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
@@ -137,7 +138,7 @@ export default function LoginForm() {
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
               className={cn(
-                "!h-row-height-md pl-10 pr-container-padding bg-[#2a2a2a] border border-outline-variant rounded font-mono-data text-mono-data text-on-surface placeholder:text-outline-variant input-focus-ring transition-all focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary",
+                "!h-row-height-md pl-10 pr-container-padding bg-surface-container dark:bg-surface-container-high border border-outline-variant rounded-lg font-mono-data text-mono-data text-on-surface placeholder:text-on-surface-variant/40 input-focus-ring transition-all focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary",
                 errors.email && "!border-error focus-visible:!border-error focus-visible:!ring-error"
               )}
               {...register("email")}
@@ -178,7 +179,7 @@ export default function LoginForm() {
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? "password-error" : undefined}
               className={cn(
-                "!h-row-height-md pl-10 pr-container-padding bg-[#2a2a2a] border border-outline-variant rounded font-mono-data text-mono-data text-on-surface placeholder:text-outline-variant input-focus-ring transition-all focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary",
+                "!h-row-height-md pl-10 pr-container-padding bg-surface-container dark:bg-surface-container-high border border-outline-variant rounded-lg font-mono-data text-mono-data text-on-surface placeholder:text-on-surface-variant/40 input-focus-ring transition-all focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary",
                 errors.password && "!border-error focus-visible:!border-error focus-visible:!ring-error"
               )}
               {...register("password")}
@@ -199,7 +200,7 @@ export default function LoginForm() {
         {serverError && (
           <div
             role="alert"
-            className="flex items-start gap-2 border border-error/40 bg-error-container/20 px-3 py-2 rounded"
+            className="flex items-start gap-2 border border-error/40 bg-error-container/20 px-3 py-2 rounded-lg"
           >
             <AlertCircle className="size-4 text-error shrink-0 mt-0.5" aria-hidden="true" />
             <p className="font-body-sm text-body-sm text-error">{serverError}</p>
@@ -208,23 +209,23 @@ export default function LoginForm() {
 
         {/* Submit Button */}
         <div className="pt-2">
-          <Button
+          <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full !h-row-height-md bg-inverse-primary text-on-primary font-headline-sm text-headline-sm rounded hover:bg-primary transition-colors active:opacity-90 disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full !h-row-height-md btn-login-gradient text-white font-headline-sm text-headline-sm rounded-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed select-none active:scale-[0.99] transition-all"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="size-[18px] animate-spin" aria-hidden="true" />
-                <span>Validating...</span>
+                <Loader2 className="size-[18px] animate-spin text-white" aria-hidden="true" />
+                <span className="text-white">Validating...</span>
               </>
             ) : (
               <>
-                <span>Log In</span>
-                <LogIn className="size-[18px]" aria-hidden="true" />
+                <span className="text-white">Log In</span>
+                <LogIn className="size-[18px] text-white" aria-hidden="true" />
               </>
             )}
-          </Button>
+          </button>
         </div>
       </form>
     </>

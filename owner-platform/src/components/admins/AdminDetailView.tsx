@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
@@ -26,14 +25,12 @@ import {
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
 import { AdminUser, UserAccountStatus } from "@/types/admin";
-import { cn } from "@/lib/utils";
 
 interface AdminDetailViewProps {
   admin: AdminUser;
 }
 
 export default function AdminDetailView({ admin }: AdminDetailViewProps) {
-  const router = useRouter();
   const [copiedId, setCopiedId] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<UserAccountStatus>(admin.accountStatus);
   const [updatingAction, setUpdatingAction] = useState<"active" | "pending" | "ban" | null>(null);

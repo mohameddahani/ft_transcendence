@@ -25,7 +25,7 @@ export default async function AdminDetailPage({ params }: PageProps) {
 
   let admin: AdminUser | null = null;
   try {
-    const res = await fetchFromBackend(`/api/owners/users/${id}`, token, {
+    const res = await fetchFromBackend<AdminUser>(`/api/owners/users/${id}`, token, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       cache: "no-store",

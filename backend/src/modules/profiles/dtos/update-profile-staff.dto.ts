@@ -5,7 +5,7 @@ import { Transform } from 'class-transformer';
 import { IsOptional, IsString, Validate } from 'class-validator';
 
 export class UpdateProfileStaffDto extends PartialType(
-  PickType(AddStaffDto, ['email', 'phoneNumber'] as const),
+  PickType(AddStaffDto, ['phoneNumber'] as const),
 ) {
   // * Password
   @IsOptional()

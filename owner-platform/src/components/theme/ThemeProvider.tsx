@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,40 +14,56 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function applyTheme(nextTheme: Theme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (nextTheme === "dark") {
+    root.classList.add("dark");
+    root.classList.remove("light");
+    root.style.colorScheme = "dark";
+  } else {
+    root.classList.add("light");
+    root.classList.remove("dark");
+    root.style.colorScheme = "light";
+  }
+}
+
+const emptySubscribe = () => () => {};
+
+function useIsMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedTheme = localStorage.getItem("theme") as Theme | null;
-      if (storedTheme === "light" || storedTheme === "dark") {
-        setThemeState(storedTheme);
-        applyTheme(storedTheme);
-      } else {
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const initialTheme: Theme = prefersDark ? "dark" : "light";
-        setThemeState(initialTheme);
-        applyTheme(initialTheme);
+    let ignore = false;
+    queueMicrotask(() => {
+      if (ignore) return;
+      try {
+        const storedTheme = localStorage.getItem("theme") as Theme | null;
+        if (storedTheme === "light" || storedTheme === "dark") {
+          setThemeState(storedTheme);
+          applyTheme(storedTheme);
+        } else {
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const initialTheme: Theme = prefersDark ? "dark" : "light";
+          setThemeState(initialTheme);
+          applyTheme(initialTheme);
+        }
+      } catch {
+        applyTheme("dark");
       }
-    } catch {
-      applyTheme("dark");
-    }
-    setMounted(true);
+    });
+    return () => {
+      ignore = true;
+    };
   }, []);
-
-  const applyTheme = (nextTheme: Theme) => {
-    const root = document.documentElement;
-    if (nextTheme === "dark") {
-      root.classList.add("dark");
-      root.classList.remove("light");
-      root.style.colorScheme = "dark";
-    } else {
-      root.classList.add("light");
-      root.classList.remove("dark");
-      root.style.colorScheme = "light";
-    }
-  };
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
@@ -87,11 +103,7 @@ export function ThemeToggle({
   showLabel?: boolean;
 }) {
   const { theme, toggleTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsMounted();
 
   const isDark = mounted ? theme === "dark" : true;
 

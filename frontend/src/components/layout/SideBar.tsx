@@ -19,6 +19,8 @@ import {
   Crown,
   User,
   CalendarCheck,
+  Store,
+  ShoppingBag,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
@@ -59,6 +61,9 @@ export default function SideBar({
         pathname.startsWith("/membership-plans/") ||
         pathname === "/subscriptions"
       );
+    }
+    if (route === "/marketplace") {
+      return pathname === "/marketplace" || pathname.startsWith("/marketplace/");
     }
     return pathname === route || pathname.startsWith(`${route}/`);
   };
@@ -221,6 +226,22 @@ export default function SideBar({
               </span>
             </Link>
 
+            {/* Marketplace */}
+            <Link
+              href="/marketplace"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/marketplace") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/marketplace"))}
+            >
+              {isRouteActive("/marketplace") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <ShoppingBag className="w-[18px] h-[18px] shrink-0" />
+              <span className="font-medium tracking-tight">
+                {t("navMarketplace") || "Marketplace"}
+              </span>
+            </Link>
+
             {/* Profile */}
             <Link
               href="/profile"
@@ -291,6 +312,22 @@ export default function SideBar({
                 <CreditCard className="w-[18px] h-[18px] shrink-0" />
                 <span className="font-medium tracking-tight">
                   {t("navPayments") || "Payments"}
+                </span>
+              </Link>
+
+              {/* Marketplace (Admin & Staff) */}
+              <Link
+                href="/marketplace"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/marketplace") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/marketplace"))}
+              >
+                {isRouteActive("/marketplace") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <Store className="w-[18px] h-[18px] shrink-0" />
+                <span className="font-medium tracking-tight">
+                  {t("navMarketplace") || "Marketplace"}
                 </span>
               </Link>
             </div>

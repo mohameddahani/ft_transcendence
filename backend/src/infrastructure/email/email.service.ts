@@ -12,6 +12,7 @@ import {
   verificationEmailTemplate,
   resetPasswordEmailTemplate,
   setPasswordEmailTemplate,
+  emailChangeTemplate,
 } from './templates';
 
 import { RESEND } from './email.provider';
@@ -49,6 +50,9 @@ export class EmailService {
 
       setPasswordExpiresIn: this.config.getOrThrow<string>(
         'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      ),
+      emailChangeExpiresIn: this.config.getOrThrow<string>(
+        'EMAIL_CHANGE_TOKEN_EXPIRES_IN',
       ),
     };
   }
@@ -99,6 +103,26 @@ export class EmailService {
     }
   }
 
+  async sendEmailChangeVerification(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    const { error } = await this.resend.emails.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
+    });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'Failed to send email change verification email.',
+      );
+    }
+  }
+
   /* 
   =========================
   ! Member
@@ -140,6 +164,26 @@ export class EmailService {
       subject: `Reset your password | ${this.templateConfig.appName}`,
 
       html: resetPasswordEmailTemplate(link, this.templateConfig),
+    });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'Failed to send email change verification email.',
+      );
+    }
+  }
+
+  async sendEmailChangeVerificationMember(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    const { error } = await this.resend.emails.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
     });
 
     if (error) {
@@ -195,6 +239,26 @@ export class EmailService {
     if (error) {
       throw new InternalServerErrorException(
         'Failed to send password reset email.',
+      );
+    }
+  }
+
+  async sendEmailChangeVerificationStaff(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    const { error } = await this.resend.emails.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
+    });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'Failed to send email change verification email.',
       );
     }
   }
