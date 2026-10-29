@@ -114,6 +114,12 @@ export default function TopBar({
         title: t("navFeedback") || "Feedback",
       };
     }
+    if (pathname.startsWith("/marketplace")) {
+      return {
+        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("frontDesk") || "Front desk"),
+        title: t("navMarketplace") || "Marketplace",
+      };
+    }
     if (pathname.startsWith("/gymflow-subscription")) {
       return {
         section: t("account") || "Account",
