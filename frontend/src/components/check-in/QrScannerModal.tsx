@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Loader2,
   ScanLine,
-  RefreshCw,
   Sparkles,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";

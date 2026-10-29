@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Clock,
   Calendar,
@@ -8,17 +8,12 @@ import {
   RefreshCw,
   Edit,
   Trash2,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
   CalendarDays,
-  Sparkles,
   Search,
   Filter,
   ArrowRight,
   Sun,
   Moon,
-  ChevronRight,
   Info,
 } from "lucide-react";
 import axios from "axios";
@@ -42,8 +37,7 @@ import SpecialHourModal from "@/components/operating-hours/SpecialHourModal";
 import DeleteConfirmModal from "@/components/operating-hours/DeleteConfirmModal";
 
 export default function OperatingHoursPage() {
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.language === "ar";
+  const { t } = useTranslation();
   const { role, isLoading: isUserRoleLoading } = useCurrentUser();
   const isMember = role === "Member";
 
@@ -80,7 +74,7 @@ export default function OperatingHoursPage() {
   });
 
   // Load all operating hours and special hours
-  const loadData = async (forMember = (role === "Member")) => {
+  const loadData = useCallback(async (forMember = (role === "Member")) => {
     setIsLoading(true);
     try {
       const [whData, shData] = await Promise.all([
@@ -98,13 +92,13 @@ export default function OperatingHoursPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role]);
 
   useEffect(() => {
     if (!isUserRoleLoading && role) {
       loadData(role === "Member");
     }
-  }, [role, isUserRoleLoading]);
+  }, [role, isUserRoleLoading, loadData]);
 
   // Days list (1: Monday to 7: Sunday)
   const daysMap = useMemo(() => {
@@ -258,7 +252,7 @@ export default function OperatingHoursPage() {
   }, [specialHours, closureFilter, searchDate]);
 
   // Handle open add working hour
-  const handleOpenAddWorkingHour = (defaultDay?: number) => {
+  const handleOpenAddWorkingHour = (_defaultDay?: number) => {
     setEditingWorkingHour(null);
     setIsWorkingHourModalOpen(true);
   };

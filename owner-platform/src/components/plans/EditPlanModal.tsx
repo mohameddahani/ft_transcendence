@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Loader2, Edit3, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
@@ -27,7 +27,7 @@ export default function EditPlanModal({
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<UpdatePlanFormValues>({
@@ -40,7 +40,7 @@ export default function EditPlanModal({
     },
   });
 
-  const isActive = watch("isActive");
+  const isActive = useWatch({ control, name: "isActive" });
 
   useEffect(() => {
     if (plan && isOpen) {

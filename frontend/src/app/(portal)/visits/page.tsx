@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   CalendarCheck,
   Calendar,
@@ -10,14 +10,11 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   QrCode,
   UserCheck,
   Ban,
-  ArrowRight,
   Eye,
   X,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -47,9 +44,9 @@ export default function MemberVisitsPage() {
   // Single Item View Detail Modals
   const [selectedVisit, setSelectedVisit] = useState<MemberVisit | null>(null);
   const [selectedAttendance, setSelectedAttendance] = useState<MemberAttendance | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [_isDetailLoading, setIsDetailLoading] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [upcoming, today, att] = await Promise.all([
@@ -67,11 +64,11 @@ export default function MemberVisitsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Cancel Visit Handler
   const handleCancelVisit = async (visitId: string) => {

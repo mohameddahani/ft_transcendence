@@ -13,14 +13,11 @@ import {
   X,
   Receipt,
   User,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Loader2,
   CheckCircle2,
-  Send,
   Eye,
-  ArrowRight,
   TrendingUp,
 } from "lucide-react";
 import axios from "axios";

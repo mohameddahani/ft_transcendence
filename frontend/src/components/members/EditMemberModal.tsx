@@ -9,7 +9,6 @@ import {
   Loader2,
   ShieldCheck,
   Save,
-  CheckCircle2,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

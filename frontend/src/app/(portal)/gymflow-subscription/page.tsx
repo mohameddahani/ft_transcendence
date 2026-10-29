@@ -14,16 +14,10 @@ import {
   Download,
   Copy,
   Check,
-  ExternalLink,
-  ChevronRight,
   Sparkles,
-  ArrowUpRight,
   Filter,
   Search,
-  Building,
-  Info,
   Layers,
-  HelpCircle,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -34,8 +28,7 @@ import { fetchMembers } from "@/lib/api/members";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 export default function GymflowSubscriptionPage() {
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.language === "ar";
+  const { t } = useTranslation();
   const { companyName } = useCurrentUser();
 
   // Data state
@@ -551,7 +544,6 @@ export default function GymflowSubscriptionPage() {
                     const status = sub.subscriptionStatus;
                     const isActive = status === "ACTIVE";
                     const isExpired = status === "EXPIRED";
-                    const isCancelled = status === "CANCELLED";
 
                     const startDate = sub.startedAt ? sub.startedAt.split("T")[0] : "--";
                     const endDate = sub.expiresAt ? sub.expiresAt.split("T")[0] : "--";

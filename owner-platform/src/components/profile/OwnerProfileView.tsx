@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useTransition } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -46,7 +46,7 @@ export default function OwnerProfileView() {
     reset,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<UpdateProfileFormValues>({
-    resolver: zodResolver(updateProfileSchema) as any,
+    resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -60,7 +60,7 @@ export default function OwnerProfileView() {
   });
 
   // Fetch Owner Profile
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/api/users/owners/me");
@@ -84,11 +84,19 @@ export default function OwnerProfileView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reset]);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) {
+        void fetchProfile();
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [fetchProfile]);
 
   // Handle Image Upload
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +226,7 @@ export default function OwnerProfileView() {
           <div className="relative group shrink-0">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-secondary-container border-2 border-outline-variant flex items-center justify-center overflow-hidden shadow-md">
               {hasCustomAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profile?.profileImageUrl}
                   alt={`${profile?.firstName} ${profile?.lastName}`}

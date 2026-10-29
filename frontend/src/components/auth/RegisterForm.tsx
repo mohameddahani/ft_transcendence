@@ -43,7 +43,7 @@ export default function RegisterForm() {
       gender: undefined,
       birthDate: "",
       companyName: "",
-      countryCode: "+1",
+      countryCode: "+212",
       phone: "",
       email: "",
       password: "",
@@ -153,7 +153,7 @@ export default function RegisterForm() {
               <p className="font-headline text-xl lg:text-2xl italic leading-relaxed mb-4 text-white/95">
                 {t(
                   "quote",
-                  "GymFlow didn't just organize my members; it revolutionized our entire financial and operational workflow. The data density is a game-changer for enterprise growth."
+                  "GymFlow didn't just organize my members, it revolutionized our entire financial and operational workflow. The data density is a game-changer for enterprise growth."
                 )}
               </p>
             </div>
@@ -186,12 +186,12 @@ export default function RegisterForm() {
         <div className="w-full max-w-xl my-auto">
           <header className="mb-8 pt-8 lg:pt-0">
             <div className="flex items-center gap-2 mb-2 lg:hidden">
-              <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center">
+              {/* <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center">
                 <Zap className="w-5 h-5 fill-white text-white" />
-              </div>
-              <span className="font-bold text-xl text-on-surface font-headline">
+              </div> */}
+              {/* <span className="font-bold text-xl text-on-surface font-headline">
                 {t("brandName", "GymFlow")}
-              </span>
+              </span> */}
             </div>
             <h2 className="text-3xl font-bold text-on-surface tracking-tight font-headline mb-1">
               {t("adminSignUp", "Admin Sign Up")}
@@ -282,10 +282,6 @@ export default function RegisterForm() {
                   </option>
                   <option value="MALE">{t("male", "Male")}</option>
                   <option value="FEMALE">{t("female", "Female")}</option>
-                  <option value="OTHER">{t("other", "Other")}</option>
-                  <option value="PREFER_NOT_TO_SAY">
-                    {t("preferNotToSay", "Prefer not to say")}
-                  </option>
                 </select>
                 {errors.gender && (
                   <p className="text-xs text-error font-medium mt-1">
@@ -367,9 +363,9 @@ export default function RegisterForm() {
                     {...register("countryCode")}
                     className="w-24 px-2 py-2.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg bg-surface-container border-y border-l rtl:border-l-0 rtl:border-r border-outline-variant text-sm font-medium text-on-surface focus:outline-none"
                   >
+                    <option value="+212">+212 (MA)</option>
                     <option value="+1">+1 (US)</option>
                     <option value="+44">+44 (UK)</option>
-                    <option value="+212">+212 (MA)</option>
                     <option value="+33">+33 (FR)</option>
                     <option value="+49">+49 (DE)</option>
                     <option value="+61">+61 (AU)</option>

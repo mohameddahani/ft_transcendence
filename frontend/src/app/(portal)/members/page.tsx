@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Search,
   Download,
-  Filter,
   MoreVertical,
   Users,
   UserPlus,
@@ -19,7 +18,6 @@ import {
   Ban,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

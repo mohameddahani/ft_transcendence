@@ -1,16 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Bell,
   CheckCheck,
   RefreshCw,
-  Calendar,
   CreditCard,
   AlertTriangle,
   Clock,
-  Sparkles,
-  ExternalLink,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
@@ -49,19 +46,22 @@ export default function NotificationDropdown() {
   }, [seenStorageKey]);
 
   // Fetch notifications
-  const loadNotifications = async (showLoading = true, forMember = isMember) => {
-    if (showLoading) setIsLoading(true);
-    try {
-      const data = forMember
-        ? await fetchMemberNotifications(1, 30)
-        : await fetchAdminNotifications(1, 30);
-      setNotifications(data);
-    } catch {
-      // Fail silently if unauthorized or offline
-    } finally {
-      if (showLoading) setIsLoading(false);
-    }
-  };
+  const loadNotifications = useCallback(
+    async (showLoading = true, forMember = isMember) => {
+      if (showLoading) setIsLoading(true);
+      try {
+        const data = forMember
+          ? await fetchMemberNotifications(1, 30)
+          : await fetchAdminNotifications(1, 30);
+        setNotifications(data);
+      } catch {
+        // Fail silently if unauthorized or offline
+      } finally {
+        if (showLoading) setIsLoading(false);
+      }
+    },
+    [isMember]
+  );
 
   // Initial fetch and periodic polling every 45s (only after role is known)
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function NotificationDropdown() {
 
       return () => clearInterval(interval);
     }
-  }, [role, isRoleLoading]);
+  }, [role, isRoleLoading, loadNotifications]);
 
   // Close dropdown on outside click
   useEffect(() => {

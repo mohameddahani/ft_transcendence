@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ChevronRight,
   Mail,
@@ -13,18 +13,12 @@ import {
   Ban,
   User,
   Calendar,
-  Phone,
-  AlertTriangle,
   Home,
   Receipt,
   Award,
   ArrowUpRight,
   Loader2,
-  Clock,
-  Sparkles,
   ArrowLeft,
-  CheckCircle2,
-  DollarSign,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -41,7 +35,6 @@ import EditMemberModal from "@/components/members/EditMemberModal";
 export default function MemberDetailPage() {
   const { t } = useTranslation();
   const params = useParams();
-  const router = useRouter();
   const id = params?.id as string;
 
   const [member, setMember] = useState<BackendMember | null>(null);
@@ -49,7 +42,7 @@ export default function MemberDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const loadMemberData = async () => {
+  const loadMemberData = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
@@ -64,11 +57,11 @@ export default function MemberDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadMemberData();
-  }, [id]);
+  }, [loadMemberData]);
 
   if (isLoading) {
     return (

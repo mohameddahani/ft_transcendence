@@ -51,7 +51,6 @@ export default function LoginForm() {
       if (response.user) {
         try {
           localStorage.setItem("gym_user", JSON.stringify(response.user));
-          localStorage.removeItem("kinetic_user");
         } catch {
           // ignore localStorage error if in private mode
         }
@@ -66,7 +65,7 @@ export default function LoginForm() {
       // Short delay before redirect to ensure toast is visible
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1000);
+      }, 100);
     } catch (err: unknown) {
       if (err instanceof AxiosError && err.response?.data) {
         const errorData = err.response.data as {

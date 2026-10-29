@@ -1,21 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Search,
   Plus,
   Loader2,
-  Calendar,
   AlertTriangle,
   Building2,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Ban,
-  CheckCircle2,
-  Clock,
-  XCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
@@ -77,8 +73,18 @@ export default function SubscriptionsTable() {
     }
   }, [currentPage, itemsPerPage, searchQuery, statusFilter, sortBy]);
 
+  const [now] = useState(() => Date.now());
+
   useEffect(() => {
-    fetchSubscriptions();
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) {
+        void fetchSubscriptions();
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchSubscriptions]);
 
   // Handle Cancel Subscription
@@ -125,7 +131,7 @@ export default function SubscriptionsTable() {
   const isExpired = (expiresAt: string, status: SubscriptionStatus) => {
     if (status === "EXPIRED") return true;
     try {
-      return new Date(expiresAt).getTime() < Date.now();
+      return new Date(expiresAt).getTime() < now;
     } catch {
       return false;
     }

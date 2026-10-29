@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Search,
   Download,
-  Filter,
   MoreVertical,
   Users,
   UserPlus,
@@ -20,10 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
-  ShieldAlert,
-  Phone,
-  Mail,
-  Calendar,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

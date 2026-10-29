@@ -9,17 +9,12 @@ import {
   Filter,
   CheckCircle2,
   Clock,
-  AlertCircle,
-  ThumbsUp,
   Download,
   Lock,
   ChevronRight,
-  User,
   Phone,
   Mail,
-  Sparkles,
   TrendingUp,
-  Check,
   Loader2,
 } from "lucide-react";
 import axios from "axios";
@@ -435,7 +430,6 @@ function AdminStaffFeedbackView() {
             const isResolved = item.feedbackStatus === "RESOLVED";
             const isOpen = item.feedbackStatus === "OPEN";
             const isInReview = item.feedbackStatus === "IN_REVIEW";
-            const isDismissed = item.feedbackStatus === "DISMISSED";
 
             const submittedDate = new Date(item.createdAt).toLocaleDateString(
               undefined,
@@ -456,7 +450,7 @@ function AdminStaffFeedbackView() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/50">
                       {photo && photo !== "default-image.jpg" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
+                         
                         <img
                           src={photo}
                           alt={fullName}

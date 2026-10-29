@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -8,12 +8,6 @@ import {
   UserPlus,
   Loader2,
   ShieldCheck,
-  CheckCircle2,
-  Calendar,
-  Phone,
-  Mail,
-  Home,
-  AlertCircle,
   Award,
 } from "lucide-react";
 import axios from "axios";
@@ -97,8 +91,14 @@ export default function AddMemberModal({
   }, [isOpen, setValue, reset, selectedPlanId]);
 
   // When selected plan changes, auto-select first available duration
-  const currentPlan = plans.find((p) => p.id === selectedPlanId);
-  const currentDurations = currentPlan?.membershipPlanDurations || [];
+  const currentPlan = useMemo(
+    () => plans.find((p) => p.id === selectedPlanId),
+    [plans, selectedPlanId]
+  );
+  const currentDurations = useMemo(
+    () => currentPlan?.membershipPlanDurations || [],
+    [currentPlan]
+  );
 
   useEffect(() => {
     if (currentDurations.length > 0) {

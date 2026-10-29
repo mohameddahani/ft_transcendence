@@ -3,16 +3,12 @@
 import React from "react";
 import {
   X,
-  User,
-  Calendar,
   Clock,
   Phone,
   Mail,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
   CreditCard,
-  Building,
 } from "lucide-react";
 import { TodayVisit } from "@/types/visit";
 import { useTranslation } from "react-i18next";
@@ -113,7 +109,7 @@ export default function VisitDetailsModal({
         <div className="flex items-center gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/40">
           <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-primary/10 flex items-center justify-center shrink-0 border border-outline-variant/50">
             {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img
                 src={photo}
                 alt={fullName}

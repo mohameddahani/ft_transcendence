@@ -124,6 +124,7 @@ export default function TopNavBar() {
           aria-label="View Owner Profile"
         >
           {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarUrl}
               alt="Owner Avatar"

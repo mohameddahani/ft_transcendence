@@ -12,7 +12,6 @@ import {
   DollarSign,
   AlertCircle,
   Clock,
-  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";

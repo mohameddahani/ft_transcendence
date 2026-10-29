@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   X,
@@ -50,12 +50,13 @@ export default function ActivateSubscriptionModal({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
+    getValues,
     setValue,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ActiveSubscriptionFormValues>({
-    resolver: zodResolver(activeSubscriptionSchema) as any,
+    resolver: zodResolver(activeSubscriptionSchema),
     defaultValues: {
       userName: "",
       planId: "",
@@ -63,8 +64,8 @@ export default function ActivateSubscriptionModal({
     },
   });
 
-  const selectedPlanId = watch("planId");
-  const currentUserName = watch("userName");
+  const selectedPlanId = useWatch({ control, name: "planId" });
+  const currentUserName = useWatch({ control, name: "userName" });
 
   // Load plans & users when modal opens
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function ActivateSubscriptionModal({
   // Whenever selected plan changes, ensure duration is valid
   useEffect(() => {
     if (availableDurations.length > 0) {
-      const currentDurationId = watch("planDurationId");
+      const currentDurationId = getValues("planDurationId");
       const exists = availableDurations.some((d) => d.id === currentDurationId);
       if (!exists) {
         setValue("planDurationId", availableDurations[0].id);
@@ -136,7 +137,7 @@ export default function ActivateSubscriptionModal({
     } else {
       setValue("planDurationId", "");
     }
-  }, [selectedPlanId, availableDurations, setValue, watch]);
+  }, [selectedPlanId, availableDurations, setValue, getValues]);
 
   // Filter users based on search term
   const filteredUsers = useMemo(() => {
