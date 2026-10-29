@@ -39,6 +39,7 @@ import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { not } from 'supertest/lib/cookies';
 
 @Injectable()
 export class AuthProvider {
@@ -944,6 +945,100 @@ export class AuthProvider {
     });
   }
 
+  // * Email Change (Staff)
+  async emailChangeStaff(rawToken: string) {
+    // * Hash raw token
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.staffActionToken.findUnique({
+      where: {
+        tokenHash,
+        type: ActionTokenType.EMAIL_CHANGE,
+        pendingEmail: {
+          not: null,
+        },
+      },
+      include: {
+        staff: {
+          select: privateStaffSelect,
+        },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if token is already used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Make sure pending email exists
+    if (!token.pendingEmail) {
+      throw new BadRequestException('Invalid pending email');
+    }
+
+    // * Get pending email from token
+    const pendingEmail = token.pendingEmail;
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume EMAIL_CHANGE token
+      const { count } = await tx.staffActionToken.updateMany({
+        where: {
+          id: token.id,
+          StaffId: token.staff.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail,
+          usedAt: null,
+          expiresAt: {
+            gt: now,
+          },
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      // * Another request already consumed or expired this token
+      if (count !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Save new email
+      await tx.staff.update({
+        where: {
+          id: token.staff.id,
+        },
+        data: {
+          email: pendingEmail,
+        },
+      });
+
+      // * Invalidate all other active EMAIL_CHANGE tokens
+      await tx.staffActionToken.updateMany({
+        where: {
+          StaffId: token.staff.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+    });
+  }
+
   // * Login Member
   async loginMember(request: Request, data: LoginMemberDto) {
     // * Check if member already exist by userName before login
@@ -1796,6 +1891,100 @@ export class AuthProvider {
     });
   }
 
+  // * Email Change
+  async emailChange(rawToken: string) {
+    // * Hash raw token
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.userActionToken.findUnique({
+      where: {
+        tokenHash,
+        type: ActionTokenType.EMAIL_CHANGE,
+        pendingEmail: {
+          not: null,
+        },
+      },
+      include: {
+        user: {
+          select: privateUserSelect,
+        },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if token is already used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Make sure pending email exists
+    if (!token.pendingEmail) {
+      throw new BadRequestException('Invalid pending email');
+    }
+
+    // * Get pending email from token
+    const pendingEmail = token.pendingEmail;
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume EMAIL_CHANGE token
+      const { count } = await tx.userActionToken.updateMany({
+        where: {
+          id: token.id,
+          userId: token.user.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail,
+          usedAt: null,
+          expiresAt: {
+            gt: now,
+          },
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      // * Another request already consumed or expired this token
+      if (count !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Save new email
+      await tx.user.update({
+        where: {
+          id: token.user.id,
+        },
+        data: {
+          email: pendingEmail,
+        },
+      });
+
+      // * Invalidate all other active EMAIL_CHANGE tokens
+      await tx.userActionToken.updateMany({
+        where: {
+          userId: token.user.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+    });
+  }
+
   // * Forgot password (Member)
   async forgotPasswordMember(username: string) {
     // * Check if member already exist by username
@@ -1957,6 +2146,100 @@ export class AuthProvider {
         },
         data: {
           revokedAt: new Date(),
+        },
+      });
+    });
+  }
+
+  // * Email Change (Member)
+  async emailChangeMember(rawToken: string) {
+    // * Hash raw token
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.memberActionToken.findUnique({
+      where: {
+        tokenHash,
+        type: ActionTokenType.EMAIL_CHANGE,
+        pendingEmail: {
+          not: null,
+        },
+      },
+      include: {
+        member: {
+          select: privateMemberSelect,
+        },
+      },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Invalid token');
+    }
+
+    // * Check if token is already used
+    if (token.usedAt) {
+      throw new BadRequestException('Token already used');
+    }
+
+    // * Check if token is expired
+    if (token.expiresAt < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    // * Make sure pending email exists
+    if (!token.pendingEmail) {
+      throw new BadRequestException('Invalid pending email');
+    }
+
+    // * Get pending email from token
+    const pendingEmail = token.pendingEmail;
+
+    const now = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      // * Atomically consume EMAIL_CHANGE token
+      const { count } = await tx.memberActionToken.updateMany({
+        where: {
+          id: token.id,
+          memberId: token.member.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail,
+          usedAt: null,
+          expiresAt: {
+            gt: now,
+          },
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      // * Another request already consumed or expired this token
+      if (count !== 1) {
+        throw new BadRequestException('Invalid or expired token');
+      }
+
+      // * Save new email
+      await tx.member.update({
+        where: {
+          id: token.member.id,
+        },
+        data: {
+          email: pendingEmail,
+        },
+      });
+
+      // * Invalidate all other active EMAIL_CHANGE tokens
+      await tx.memberActionToken.updateMany({
+        where: {
+          memberId: token.member.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+          id: {
+            not: token.id,
+          },
+        },
+        data: {
+          usedAt: now,
         },
       });
     });

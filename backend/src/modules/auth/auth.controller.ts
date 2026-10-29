@@ -158,6 +158,13 @@ export class AuthController {
     return this.authService.resetPassword(rawToken.token, body.password);
   }
 
+  // * Email Change
+  @Post('email-change')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  emailChange(@Query() rawToken: QueryTokenDto) {
+    return this.authService.emailChange(rawToken.token);
+  }
+
   /* 
   =========================
   ! Admin / Owner / Staff / Member Refresh
@@ -375,6 +382,13 @@ export class AuthController {
     return this.authService.resetPasswordStaff(rawToken.token, body.password);
   }
 
+  // * Email Change (Staff)
+  @Post('staffs/email-change')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  emailChangeStaff(@Query() rawToken: QueryTokenDto) {
+    return this.authService.emailChangeStaff(rawToken.token);
+  }
+
   /* 
   =========================
   ! Member Auth
@@ -456,5 +470,12 @@ export class AuthController {
     @Body() body: ResetPasswordMemberDto,
   ) {
     return this.authService.resetPasswordMember(rawToken.token, body.password);
+  }
+
+  // * Email Change (Member)
+  @Post('members/email-change')
+  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  emailChangeMember(@Query() rawToken: QueryTokenDto) {
+    return this.authService.emailChangeMember(rawToken.token);
   }
 }
