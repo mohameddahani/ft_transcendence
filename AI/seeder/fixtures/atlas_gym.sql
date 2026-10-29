@@ -28,7 +28,7 @@ admin_user AS (
         gen_random_uuid()::text, 'Karim', 'Bennani', 'Atlas Fitness Agadir',
         'karim@atlasfitness.ma', 'karim_admin', '$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELViG',
         '+212600000001', 'MALE'::"Gender", '1988-04-15'::timestamp,
-        'ADMIN'::"Role", 'ACTIVE'::"UserAccountStatus", true, true,
+        'ADMIN'::"Role", 'ACTIVE'::"AccountStatus", true, true,
         'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521752/avatars-default-admin.png', 'avatars-default-admin',
         NOW(), NOW()
     )
@@ -72,12 +72,14 @@ member_rows AS (
     INSERT INTO members (
         id, admin_id, first_name, last_name, email, user_name, phone_number,
         address, emergency_contact, gender, birth_date, account_status, role,
+        company_name,
         profile_image_url, profile_image_public_id, created_at, updated_at
     )
     SELECT gen_random_uuid()::text, a.id, s.first_name, s.last_name, s.email, s.user_name,
            s.phone_number, s.address, s.emergency_contact,
            s.gender::"Gender", s.birth_date::timestamp,
-           'ACTIVE'::"MemberAccountStatus", 'MEMBER'::"Role",
+           'ACTIVE'::"AccountStatus", 'MEMBER'::"Role",
+           'Atlas Fitness Agadir',
            'https://res.cloudinary.com/dtu6nxcq7/image/upload/v1790521882/avatars-default-member.png', 'avatars-default-member',
            NOW() + make_interval(days => s.days_to_expiry)
                  - make_interval(days => gpd.duration_days),
