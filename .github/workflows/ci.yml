@@ -130,7 +130,7 @@ jobs:
       - name: Scaffold .env files from templates
         run: |
           chmod +x setup-env.sh
-          setup-env.sh
+          ./setup-env.sh
 
       - name: Validate docker-compose
         run: docker compose -f devops/docker-compose.yml config --quiet
