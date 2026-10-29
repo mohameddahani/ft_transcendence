@@ -27,7 +27,7 @@ export default function AddDurationModal({
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AddDurationFormValues>({
-    resolver: zodResolver(addDurationSchema) as any,
+    resolver: zodResolver(addDurationSchema),
     defaultValues: {
       durationDays: 30,
       price: 29.99,

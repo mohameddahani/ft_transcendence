@@ -2,7 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
-export interface BackendResponse<T = any> {
+export interface BackendResponse<T = unknown> {
   ok: boolean;
   status: number;
   statusText: string;
@@ -16,14 +16,14 @@ export interface BackendResponse<T = any> {
   raw: AxiosResponse<T>;
 }
 
-export async function fetchFromBackend<T = any>(
+export async function fetchFromBackend<T = unknown>(
   endpoint: string,
   userToken?: string,
   options?: RequestInit | {
     method?: string;
     headers?: Record<string, string> | HeadersInit;
-    body?: any;
-    [key: string]: any;
+    body?: unknown;
+    [key: string]: unknown;
   }
 ): Promise<BackendResponse<T>> {
   const url = `${API_URL}${endpoint}`;

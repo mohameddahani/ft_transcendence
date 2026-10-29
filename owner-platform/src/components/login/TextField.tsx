@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 type TextFieldProps = {
   id: string;
@@ -35,8 +36,10 @@ export default function TextField({
       </label>
       <div className="relative">
         <span
-          className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 !text-[18px] transition-colors"
-          style={{ color: focused ? "#c0c1ff" : "#c7c4d7" }}
+          className={cn(
+            "material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 !text-[18px] transition-colors pointer-events-none",
+            focused ? "text-primary" : "text-on-surface-variant"
+          )}
         >
           {icon}
         </span>
@@ -49,7 +52,7 @@ export default function TextField({
           required={required}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className="w-full h-row-height-md pl-10 pr-container-padding bg-[#2a2a2a] border border-outline-variant rounded font-mono-data text-mono-data text-on-surface placeholder:text-outline-variant input-focus-ring transition-all"
+          className="w-full h-row-height-md pl-10 pr-container-padding bg-surface-container dark:bg-surface-container-high border border-outline-variant rounded font-mono-data text-mono-data text-on-surface placeholder:text-on-surface-variant/40 input-focus-ring transition-all"
         />
       </div>
     </div>

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
   ChevronRight,
-  UserPlus,
   CheckCircle2,
   XCircle,
   Clock,
@@ -85,7 +84,15 @@ export default function AdminsTable() {
   }, [currentPage, itemsPerPage, searchTerm, statusFilter, verifiedFilter]);
 
   useEffect(() => {
-    fetchAdmins();
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) {
+        void fetchAdmins();
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchAdmins]);
 
   // Handle status update (active, pending, ban)
@@ -129,10 +136,6 @@ export default function AdminsTable() {
 
   const handleRowClick = (adminId: string) => {
     router.push(`/admins/${adminId}`);
-  };
-
-  const handleAddAdmin = () => {
-    toast.info("Create Gym Owner form dialog opening...");
   };
 
   return (

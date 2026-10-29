@@ -10,7 +10,6 @@ import {
   Edit2,
   RefreshCw,
   Package,
-  Layers,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -71,7 +70,15 @@ export default function PlansDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchPlans();
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) {
+        void fetchPlans();
+      }
+    });
+    return () => {
+      ignore = true;
+    };
   }, [fetchPlans]);
 
   // Toggle active status

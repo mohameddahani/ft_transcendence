@@ -20,7 +20,7 @@ export default function AddPlanModal({ isOpen, onClose, onSuccess }: AddPlanModa
     reset,
     formState: { errors, isSubmitting },
   } = useForm<AddPlanFormValues>({
-    resolver: zodResolver(addPlanSchema) as any,
+    resolver: zodResolver(addPlanSchema),
     defaultValues: {
       planName: "",
       maxMembers: 100,
