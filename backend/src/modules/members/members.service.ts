@@ -250,27 +250,30 @@ export class MembersService {
       }
     }
 
-    // * Save new data to member
-    const member = await this.prisma.member.update({
-      where: {
-        id: memberId,
-        adminId: adminId,
-      },
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        gender: data.gender,
-        birthDate: data.birthDate,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        address: data.address,
-        emergencyContact: data.emergencyContact,
+    // * Check if data has no new membership
+    if (!data.membershipPlanId && !data.membershipPlanDurationId) {
+      // * Save new data to member
+      return await this.prisma.member.update({
+        where: {
+          id: memberId,
+          adminId: adminId,
+        },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          gender: data.gender,
+          birthDate: data.birthDate,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          emergencyContact: data.emergencyContact,
 
-        // ! BLOCK_CHAINE
-        walletAddress: data.walletAddress,
-      },
-      select: privateMemberSelect,
-    });
+          // ! BLOCK_CHAINE
+          walletAddress: data.walletAddress,
+        },
+        select: privateMemberSelect,
+      });
+    }
 
     // * check if the admin update the membership plan
     if (data.membershipPlanId && data.membershipPlanDurationId) {
@@ -314,16 +317,51 @@ export class MembersService {
 
       // * Interactive transaction (function)
       // * tx is the prisma client inside a transaction
-      await this.prisma.$transaction(async (tx) => {
-        // * make old membership expired
-        await tx.membership.update({
-          where: { id: membership.id },
-          data: { membershipStatus: MembershipStatus.EXPIRED },
+      return await this.prisma.$transaction(async (tx) => {
+        // * Save new data to member
+        const member = await tx.member.update({
+          where: {
+            id: memberId,
+            adminId: adminId,
+          },
+          data: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            gender: data.gender,
+            birthDate: data.birthDate,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            address: data.address,
+            emergencyContact: data.emergencyContact,
+
+            // ! BLOCK_CHAINE
+            walletAddress: data.walletAddress,
+          },
+          select: privateMemberSelect,
         });
+
+        // * Expire old membership only if it is still ACTIVE
+        const { count } = await tx.membership.updateMany({
+          where: {
+            id: membership.id,
+            adminId,
+            memberId,
+            membershipStatus: MembershipStatus.ACTIVE,
+          },
+          data: {
+            membershipStatus: MembershipStatus.EXPIRED,
+          },
+        });
+
+        if (count !== 1) {
+          throw new ConflictException(
+            'Membership was already updated by another request.',
+          );
+        }
 
         // * Add new Membership to member
         const expiresAt = addDays(new Date(), duration.durationDays);
-        const newMembership = await this.prisma.membership.create({
+        const newMembership = await tx.membership.create({
           data: {
             admin: { connect: { id: adminId } },
             member: { connect: { id: memberId } },
@@ -347,6 +385,8 @@ export class MembersService {
             paymentStatus: PaymentStatus.PAID,
           },
         });
+
+        return member;
       });
     } else if (
       (data.membershipPlanId && !data.membershipPlanDurationId) ||
@@ -356,8 +396,6 @@ export class MembersService {
         'membership plan and duration must be provided together.',
       );
     }
-
-    return member;
   }
 
   // * Active a Member
