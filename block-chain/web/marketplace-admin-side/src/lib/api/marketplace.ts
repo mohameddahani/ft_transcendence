@@ -33,23 +33,19 @@ export async function submitGaslessTransaction(
 export const update_addressAdmin_forMember = async (address: string) => {
   try {
     const API_URL = `${process.env.NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN}`;
+    if (!API_URL)
+      throw new Error("NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN not work");
     await axios.patch(
       API_URL,
-      { walletAddress: address },
-      {
-        headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZiYWI3MDMwLTNmMzAtNGYzOC05OTViLWEyNDQ3YWJmMTA5ZiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5MTg4OTY0NSwiZXhwIjoxNzk0NDgxNjQ1fQ.ezAf4G4iFoOWOmTuKDzyOcvo5S6RtEctBW39f-L3SV0",
-        },
-      },
+      { walletAddress: address }
     );
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
+      console.log("Status:", error.response?.status);
+      console.log("Server error:", error.response?.data);
+      console.log("Message:", error.message);
     } else {
-      console.error("Unexpected error:", error);
+      console.log("Unexpected error:", error);
     }
   }
 };
