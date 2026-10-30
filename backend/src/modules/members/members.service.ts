@@ -533,7 +533,14 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: privateMemberSelect,
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     return members;
@@ -552,7 +559,14 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: privateMemberSelect,
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');
