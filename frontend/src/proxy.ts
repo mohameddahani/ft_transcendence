@@ -20,6 +20,8 @@ const protectedRoutes = [
   "/feedbacks",
   "/operating-hours",
   "/visits",
+  "/marketplace",
+  "/assistant",
 ];
 
 // Routes strictly forbidden to members (Admin & Staff management surfaces)
@@ -34,6 +36,7 @@ const memberForbiddenRoutes = [
   "/gymflow-subscription",
   "/check-in",
   "/settings",
+  "/assistant/documents",
 ];
 
 // Admin-only routes that staff members are not permitted to access
@@ -43,6 +46,7 @@ const adminOnlyRoutes = [
   "/operating-hours",
   "/staffs",
   "/gymflow-subscription",
+  "/assistant/documents",
 ];
 
 // Authentication routes that authenticated users shouldn't revisit

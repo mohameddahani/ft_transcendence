@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from app import agent, config, db, rag, sentiment
 from app.auth import User, current_user, rate_limited_user, require_api_key
 
+log = logging.getLogger(__name__)
+
 app = FastAPI(title="Gym AI service")
 
 # the frontend runs on another origin, so the browser needs permission to call us
@@ -38,13 +40,13 @@ def _sse(event: str, data: dict) -> str:
 def health():
     try:
         db.fetch_one("SELECT 1")
-    except Exception:
+    except Exception:  # noqa: BLE001
         return JSONResponse({"status": "database unreachable"}, status_code=503)
     return {"status": "ok"}
 
 
 @app.get("/ai/me")
-def me(user: User = Depends(current_user)):
+def me(user: User = Depends(current_user)):  # noqa: B008
     return {"role": user.role, "gym_name": _gym_name(user)}
 
 
@@ -54,7 +56,7 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/ai/chat")
-def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):
+def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):  # noqa: B008
     thread_id = str(body.thread_id or uuid.uuid4())
     history = db.load_messages(thread_id, user.id)
     gym = _gym_name(user)
@@ -72,7 +74,7 @@ def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):
                 db.save_message(thread_id, user.id, "model", answer)
             yield _sse("done", {})
         except Exception:
-            logging.exception("chat failed")
+            log.exception("chat failed")
             yield _sse("error", {"message": "The assistant is unavailable right now. Please try again."})
 
     return StreamingResponse(stream(), media_type="text/event-stream",
@@ -80,7 +82,7 @@ def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):
 
 
 @app.get("/ai/threads/{thread_id}")
-def thread(thread_id: uuid.UUID, user: User = Depends(current_user)):
+def thread(thread_id: uuid.UUID, user: User = Depends(current_user)):  # noqa: B008
     return db.load_messages(str(thread_id), user.id, limit=100)
 
 
@@ -94,13 +96,13 @@ def _owner_only(user: User) -> None:
 
 
 @app.get("/ai/documents")
-def list_documents(user: User = Depends(current_user)):
+def list_documents(user: User = Depends(current_user)):  # noqa: B008
     _owner_only(user)
     return rag.list_documents(user.admin_id)
 
 
 @app.post("/ai/documents")
-def upload_document(file: UploadFile, visibility: str = Form(), user: User = Depends(rate_limited_user)):
+def upload_document(file: UploadFile, visibility: str = Form(), user: User = Depends(rate_limited_user)):  # noqa: B008
     _owner_only(user)
     filename = Path(file.filename or "").name[:100]  # keep the name only, never a path
     if not filename.lower().endswith(ALLOWED_FILES):
@@ -112,20 +114,20 @@ def upload_document(file: UploadFile, visibility: str = Form(), user: User = Dep
         raise HTTPException(413, "The file is larger than 10 MB")
     try:
         text = rag.extract_text(data)
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise HTTPException(422, "Could not read any text from this file")
     try:
         chunks = rag.add_document(user.admin_id, filename, visibility, text)
     except ValueError as e:
         raise HTTPException(422, str(e))
     except Exception:
-        logging.exception("upload failed")
+        log.exception("upload failed")
         raise HTTPException(502, "The document could not be processed right now. Please try again.")
     return {"filename": filename, "visibility": visibility, "chunks": chunks}
 
 
 @app.delete("/ai/documents/{filename}")
-def delete_document(filename: str, user: User = Depends(current_user)):
+def delete_document(filename: str, user: User = Depends(current_user)):  # noqa: B008
     _owner_only(user)
     if filename not in [d["filename"] for d in rag.list_documents(user.admin_id)]:
         raise HTTPException(404, "No such document")
@@ -143,5 +145,5 @@ def classify_sentiment(body: SentimentRequest):
     try:
         return sentiment.classify(body.text)
     except Exception:
-        logging.exception("sentiment failed")
+        log.exception("sentiment failed")
         raise HTTPException(502, "Sentiment analysis is unavailable right now")

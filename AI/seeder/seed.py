@@ -8,13 +8,12 @@ import random
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 from pathlib import Path
 
 import asyncpg
 
-from seeder.catalogue import CATALOGUE, FIXTURE_MEMBER_USERNAMES, GymSpec
 from seeder.attendance import Window, build_check_ins, new_id, pick_archetype
+from seeder.catalogue import CATALOGUE, FIXTURE_MEMBER_USERNAMES, GymSpec
 from seeder.documents import write_all as write_documents
 from seeder.feedback import build_feedback
 from seeder.history import (
@@ -552,7 +551,7 @@ async def main() -> int:
             async with conn.transaction():
                 admin_id = await ensure_gym(conn, gym)
                 await ensure_subscription(conn, admin_id)
-                durations = await ensure_plans(conn, admin_id, gym)
+                await ensure_plans(conn, admin_id, gym)
                 await ensure_staff(conn, admin_id, gym)
                 written, _removed = await sync_members(
                     conn, admin_id, gym.company_name,

@@ -51,6 +51,7 @@ function AdminStaffDashboardView() {
   }, []);
 
   const totalMembers = members.length;
+  console.log(members);
   const activeMembers = members.filter((m) => m.status === "ACTIVE").length;
   const inactiveOrOther = totalMembers - activeMembers;
 
@@ -189,9 +190,6 @@ function AdminStaffDashboardView() {
             <h3 className="font-headline font-bold text-base text-on-surface">
               {t("recentMembers")}
             </h3>
-            <p className="text-xs text-on-surface-variant">
-              Fetched from <code className="bg-surface-container px-1 py-0.5 rounded text-[11px]">GET /api/admins/members</code>
-            </p>
           </div>
           <span className="text-xs font-semibold text-on-surface-variant">
             {totalMembers} {t("navMembers")}
