@@ -203,7 +203,7 @@ export class MembersService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.userActionToken.delete({
+      await this.prisma.userActionToken.deleteMany({
         where: { id: actionToken.id },
       });
       throw new InternalServerErrorException(
@@ -505,7 +505,7 @@ export class MembersService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.memberActionToken.delete({
+      await this.prisma.memberActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
@@ -533,7 +533,14 @@ export class MembersService {
       },
       skip: (page - 1) * limit,
       take: limit,
-      select: privateMemberSelect,
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     return members;
@@ -552,7 +559,14 @@ export class MembersService {
         adminId,
         id: memberId,
       },
-      select: privateMemberSelect,
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
     if (!member) {
       throw new NotFoundException('Member Not Found!');

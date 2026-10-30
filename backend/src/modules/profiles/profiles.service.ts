@@ -10,7 +10,7 @@ import {
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { UpdateProfileUserDto } from './dtos/update-profile-user.dto';
-import { Role } from '@/generated/prisma/enums';
+import { ActionTokenType, Role } from '@/generated/prisma/enums';
 import { CloudinaryService } from '@/infrastructure/cloudinary/cloudinary.service';
 import {
   privateMemberSelect,
@@ -24,12 +24,21 @@ import {
 } from '@/core/constants/default-avatars.constants';
 import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
 import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
+import { EmailService } from '@/infrastructure/email/email.service';
+import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
+import { RequestEmailChangeMemberDto } from './dtos/request-email-change-member.dto';
+import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudinaryService: CloudinaryService,
+    private readonly config: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   /* 
@@ -54,27 +63,28 @@ export class ProfilesService {
 
   // * Update data of user
   async update(id: string, data: UpdateProfileUserDto) {
-    // * Check if user updates email or phone number: they must be unique
-    const existingData = await this.prisma.user.findFirst({
-      where: {
-        id: { not: id }, // exclude current user
-        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
-      },
-    });
+    // * Check if phone number is already used by another user
+    if (data.phoneNumber !== undefined) {
+      const existingPhoneNumber = await this.prisma.user.findFirst({
+        where: {
+          id: {
+            not: id,
+          },
+          phoneNumber: data.phoneNumber,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (existingData) {
-      if (existingData.email === data.email) {
-        // * 409 = duplicate data
-        throw new ConflictException('Email already exists');
-      }
-
-      if (existingData.phoneNumber === data.phoneNumber) {
-        // * 409 = duplicate data
+      if (existingPhoneNumber) {
         throw new ConflictException('Phone number already exists');
       }
     }
 
     // * Check if user update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -104,17 +114,158 @@ export class ProfilesService {
       }
 
       data.password = await bcrypt.hash(data.password, 10);
+
+      isPasswordChanged = true;
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to user
-    return await this.prisma.user.update({
-      where: { id },
-      data: profileData,
-      select: privateUserSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to user
+      return await this.prisma.user.update({
+        where: { id },
+        data: profileData,
+        select: privateUserSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: {
+          id,
+        },
+        data: profileData,
+        select: privateUserSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.userRefreshToken.updateMany({
+        where: {
+          userId: id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedUser;
     });
+  }
+
+  // * Request email change
+  async requestEmailChange(id: string, data: RequestEmailChangeUserDto) {
+    // * Find current user
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // * New email must be different from current email
+    if (user.email === data.email) {
+      throw new BadRequestException(
+        'The new email address must be different from your current email address.',
+      );
+    }
+
+    // * Check if new email is already used
+    const existingEmail = await this.prisma.user.findUnique({
+      where: {
+        email: data.email,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingEmail) {
+      throw new ConflictException('Email address already exists');
+    }
+
+    // * Reauthenticate user with current password
+    const passwordIsMatch = await bcrypt.compare(
+      data.currentPassword,
+      user.password,
+    );
+
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    // * Generate email-change token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    const emailChangeTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'EMAIL_CHANGE_TOKEN_EXPIRES_IN',
+    );
+
+    const expiresAt = new Date(Date.now() + ms(emailChangeTokenExpiresIn));
+
+    const now = new Date();
+
+    // * Invalidate previous email-change requests
+    // * and create the new request atomically
+    const actionToken = await this.prisma.$transaction(async (tx) => {
+      await tx.userActionToken.updateMany({
+        where: {
+          userId: user.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      return tx.userActionToken.create({
+        data: {
+          user: {
+            connect: {
+              id: user.id,
+            },
+          },
+          tokenHash,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail: data.email,
+          expiresAt,
+        },
+      });
+    });
+
+    try {
+      // * Send verification to NEW email
+      await this.emailService.sendEmailChangeVerification(data.email, rawToken);
+    } catch {
+      // * Token was not delivered, so invalidate it
+      await this.prisma.userActionToken.deleteMany({
+        where: {
+          id: actionToken.id,
+        },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the email change verification message. Please try again later.',
+      );
+    }
+
+    return {
+      message: 'A verification email has been sent to your new email address.',
+    };
   }
 
   // * Upload profile image
@@ -253,27 +404,28 @@ export class ProfilesService {
 
   // * Update data of member
   async updateProfileMember(memberId: string, data: UpdateProfileMemberDto) {
-    // * Check if member update the email or phone number
-    const existingData = await this.prisma.member.findFirst({
-      where: {
-        id: { not: memberId }, // exclude current member
-        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
-      },
-    });
+    // * Check if phone number is already used by another member
+    if (data.phoneNumber !== undefined) {
+      const existingPhoneNumber = await this.prisma.member.findFirst({
+        where: {
+          id: {
+            not: memberId,
+          },
+          phoneNumber: data.phoneNumber,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (existingData) {
-      if (existingData.email === data.email) {
-        // * 409 = duplicate data
-        throw new ConflictException('Email already exists');
-      }
-
-      if (existingData.phoneNumber === data.phoneNumber) {
-        // * 409 = duplicate data
+      if (existingPhoneNumber) {
         throw new ConflictException('Phone number already exists');
       }
     }
 
     // * Check if member update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -309,18 +461,173 @@ export class ProfilesService {
         }
 
         data.password = await bcrypt.hash(data.password, 10);
+
+        isPasswordChanged = true;
       }
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to member
-    return await this.prisma.member.update({
-      where: { id: memberId },
-      data: profileData,
-      select: privateMemberSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to member
+      return await this.prisma.member.update({
+        where: { id: memberId },
+        data: profileData,
+        select: privateMemberSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedMember = await tx.member.update({
+        where: { id: memberId },
+        data: profileData,
+        select: privateMemberSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.memberRefreshToken.updateMany({
+        where: {
+          memberId: memberId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedMember;
     });
+  }
+
+  // * Request email change (Member)
+  async requestEmailChangeMember(
+    id: string,
+    data: RequestEmailChangeMemberDto,
+  ) {
+    // * Find current member
+    const member = await this.prisma.member.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        adminId: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    // * Member must already have a password
+    if (!member.password) {
+      throw new BadRequestException(
+        'You must set your password before changing your email address. Please try to login to set your password',
+      );
+    }
+
+    // * New email must be different from current email
+    if (member.email === data.email) {
+      throw new BadRequestException(
+        'The new email address must be different from your current email address.',
+      );
+    }
+
+    // * Check if new email is already used in this tenant
+    const existingEmail = await this.prisma.member.findUnique({
+      where: {
+        adminId_email: {
+          adminId: member.adminId,
+          email: data.email,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingEmail) {
+      throw new ConflictException('Email address already exists');
+    }
+
+    // * Reauthenticate member
+    const passwordIsMatch = await bcrypt.compare(
+      data.currentPassword,
+      member.password,
+    );
+
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    // * Generate email-change token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    const emailChangeTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'EMAIL_CHANGE_TOKEN_EXPIRES_IN',
+    );
+
+    const expiresAt = new Date(Date.now() + ms(emailChangeTokenExpiresIn));
+
+    const now = new Date();
+
+    // * Invalidate previous requests and create new request
+    const actionToken = await this.prisma.$transaction(async (tx) => {
+      await tx.memberActionToken.updateMany({
+        where: {
+          memberId: member.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      return tx.memberActionToken.create({
+        data: {
+          member: {
+            connect: {
+              id: member.id,
+            },
+          },
+          tokenHash,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail: data.email,
+          expiresAt,
+        },
+      });
+    });
+
+    try {
+      // * Send verification to NEW email
+      await this.emailService.sendEmailChangeVerificationMember(
+        data.email,
+        rawToken,
+      );
+    } catch {
+      // * Token was not delivered
+      await this.prisma.memberActionToken.deleteMany({
+        where: {
+          id: actionToken.id,
+        },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the email change verification message. Please try again later.',
+      );
+    }
+
+    return {
+      message: 'A verification email has been sent to your new email address.',
+    };
   }
 
   // * Upload profile image (Member)
@@ -465,27 +772,28 @@ export class ProfilesService {
 
   // * Update data of staff
   async updateProfileStaff(staffId: string, data: UpdateProfileStaffDto) {
-    // * Check if staff update the email or phone number
-    const existingData = await this.prisma.staff.findFirst({
-      where: {
-        id: { not: staffId }, // exclude current staff
-        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
-      },
-    });
+    // * Check if phone number is already used by another staff
+    if (data.phoneNumber !== undefined) {
+      const existingPhoneNumber = await this.prisma.staff.findFirst({
+        where: {
+          id: {
+            not: staffId,
+          },
+          phoneNumber: data.phoneNumber,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (existingData) {
-      if (existingData.email === data.email) {
-        // * 409 = duplicate data
-        throw new ConflictException('Email already exists');
-      }
-
-      if (existingData.phoneNumber === data.phoneNumber) {
-        // * 409 = duplicate data
+      if (existingPhoneNumber) {
         throw new ConflictException('Phone number already exists');
       }
     }
 
     // * Check if staff update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -521,18 +829,171 @@ export class ProfilesService {
         }
 
         data.password = await bcrypt.hash(data.password, 10);
+
+        isPasswordChanged = true;
       }
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to staff
-    return await this.prisma.staff.update({
-      where: { id: staffId },
-      data: profileData,
-      select: privateStaffSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to staff
+      return await this.prisma.staff.update({
+        where: { id: staffId },
+        data: profileData,
+        select: privateStaffSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedStaff = await tx.staff.update({
+        where: { id: staffId },
+        data: profileData,
+        select: privateStaffSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.staffRefreshToken.updateMany({
+        where: {
+          staffId: staffId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedStaff;
     });
+  }
+
+  // * Request email change (Staff)
+  async requestEmailChangeStaff(id: string, data: RequestEmailChangeStaffDto) {
+    // * Find current staff
+    const staff = await this.prisma.staff.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        adminId: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    if (!staff) {
+      throw new NotFoundException('Staff not found');
+    }
+
+    // * Staff must already have a password
+    if (!staff.password) {
+      throw new BadRequestException(
+        'You must set your password before changing your email address. Please try to login to set your password',
+      );
+    }
+
+    // * New email must be different from current email
+    if (staff.email === data.email) {
+      throw new BadRequestException(
+        'The new email address must be different from your current email address.',
+      );
+    }
+
+    // * Check if new email is already used
+    const existingEmail = await this.prisma.staff.findUnique({
+      where: {
+        adminId_email: {
+          adminId: staff.adminId,
+          email: data.email,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingEmail) {
+      throw new ConflictException('Email address already exists');
+    }
+
+    // * Reauthenticate staff with current password
+    const passwordIsMatch = await bcrypt.compare(
+      data.currentPassword,
+      staff.password,
+    );
+
+    if (!passwordIsMatch) {
+      throw new UnauthorizedException('Invalid current password');
+    }
+
+    // * Generate email-change token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    const emailChangeTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'EMAIL_CHANGE_TOKEN_EXPIRES_IN',
+    );
+
+    const expiresAt = new Date(Date.now() + ms(emailChangeTokenExpiresIn));
+
+    const now = new Date();
+
+    // * Invalidate previous email-change requests
+    // * and create new request atomically
+    const actionToken = await this.prisma.$transaction(async (tx) => {
+      await tx.staffActionToken.updateMany({
+        where: {
+          StaffId: staff.id,
+          type: ActionTokenType.EMAIL_CHANGE,
+          usedAt: null,
+        },
+        data: {
+          usedAt: now,
+        },
+      });
+
+      return tx.staffActionToken.create({
+        data: {
+          staff: {
+            connect: {
+              id: staff.id,
+            },
+          },
+          tokenHash,
+          type: ActionTokenType.EMAIL_CHANGE,
+          pendingEmail: data.email,
+          expiresAt,
+        },
+      });
+    });
+
+    try {
+      // * Send verification to NEW email
+      await this.emailService.sendEmailChangeVerificationStaff(
+        data.email,
+        rawToken,
+      );
+    } catch {
+      // * Remove token because email was not delivered
+      await this.prisma.staffActionToken.deleteMany({
+        where: {
+          id: actionToken.id,
+        },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the email change verification message. Please try again later.',
+      );
+    }
+
+    return {
+      message: 'A verification email has been sent to your new email address.',
+    };
   }
 
   // * Upload profile image (Staff)

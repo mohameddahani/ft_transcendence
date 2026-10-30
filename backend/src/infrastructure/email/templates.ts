@@ -608,3 +608,48 @@ export function setPasswordEmailTemplate(
       'If you were not expecting this invitation, you can safely ignore this email.',
   });
 }
+
+// ============================================================
+// Email Change Verification
+// ============================================================
+
+export function emailChangeTemplate(
+  link: string,
+  config: EmailTemplateConfig,
+): string {
+  const expiration = formatExpiresIn(config.emailChangeExpiresIn);
+
+  const content = `
+    ${actionButton(link, 'Verify new email address')}
+
+    ${infoBox(
+      `<strong>Security notice:</strong> This email change link expires in ${expiration}, can only be used once, and should not be shared with anyone.`,
+    )}
+
+    ${fallbackLink(link)}
+  `;
+
+  return emailLayout({
+    appName: config.appName,
+
+    supportEmail: config.supportEmail,
+
+    title: `Verify your new email | ${config.appName}`,
+
+    preheader:
+      'Verify this email address to complete your email change request.',
+
+    label: 'Email change',
+
+    heading: 'Verify your new email address',
+
+    description:
+      'We received a request to use this email address for your account. ' +
+      'To complete the change, verify this email address using the button below.',
+
+    content,
+
+    footerText:
+      'If you did not request this email change, you can safely ignore this email. Your current email address will remain unchanged.',
+  });
+}

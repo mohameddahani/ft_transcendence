@@ -124,7 +124,7 @@ export class StaffsService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.staffActionToken.delete({
+      await this.prisma.staffActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
@@ -364,7 +364,7 @@ export class StaffsService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.staffActionToken.delete({
+      await this.prisma.staffActionToken.deleteMany({
         where: { id: actionToken.id },
       });
 
