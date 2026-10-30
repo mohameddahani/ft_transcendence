@@ -7,6 +7,7 @@ export async function fetchMembers(page = 1, limit = 50): Promise<BackendMember[
   const response = await api.get<BackendMember[] | { members?: BackendMember[]; data?: BackendMember[] }>(
     url
   );
+  console.log(response);
 
   const payload = response.data;
   if (Array.isArray(payload)) {

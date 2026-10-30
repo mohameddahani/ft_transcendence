@@ -65,11 +65,10 @@ export default function SideBar({
     if (route === "/marketplace") {
       return pathname === "/marketplace" || pathname.startsWith("/marketplace/");
     }
+    if (route === "/assistant") {
+      return pathname === "/assistant" || pathname.startsWith("/assistant/");
+    }
     return pathname === route || pathname.startsWith(`${route}/`);
-  };
-
-  const handleComingSoon = (featureName: string) => {
-    toast.info(`${featureName} ${t("featureComingSoon") || "is coming soon!"}`);
   };
 
   const getItemClasses = (active: boolean) =>
@@ -242,6 +241,25 @@ export default function SideBar({
               </span>
             </Link>
 
+            {/* AI Assistant */}
+            <Link
+              href="/assistant"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/assistant") ? "page" : undefined}
+              className={getItemClasses(isRouteActive("/assistant"))}
+            >
+              {isRouteActive("/assistant") && (
+                <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+              )}
+              <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
+              <span className="font-medium tracking-tight">
+                {t("navAiAssistant") || "AI assistant"}
+              </span>
+              <span className="ms-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 tracking-wider">
+                AI
+              </span>
+            </Link>
+
             {/* Profile */}
             <Link
               href="/profile"
@@ -411,24 +429,24 @@ export default function SideBar({
                 </span>
               </Link>
 
-              {/* AI assistant (Preview trigger) */}
-              <button
-                type="button"
-                onClick={() =>
-                  handleComingSoon(t("navAiAssistant") || "AI assistant")
-                }
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all text-xs font-medium text-left rtl:text-right cursor-pointer"
+              {/* AI assistant */}
+              <Link
+                href="/assistant"
+                onClick={onCloseMobile}
+                aria-current={isRouteActive("/assistant") ? "page" : undefined}
+                className={getItemClasses(isRouteActive("/assistant"))}
               >
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
-                  <span className="tracking-tight">
-                    {t("navAiAssistant") || "AI assistant"}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant/40 tracking-wider">
+                {isRouteActive("/assistant") && (
+                  <span className="absolute left-0 rtl:left-auto rtl:right-0 top-2 bottom-2 w-1 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-primary" />
+                )}
+                <Sparkles className="w-[18px] h-[18px] shrink-0 text-primary" />
+                <span className="font-medium tracking-tight">
+                  {t("navAiAssistant") || "AI assistant"}
+                </span>
+                <span className="ms-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 tracking-wider">
                   AI
                 </span>
-              </button>
+              </Link>
             </div>
 
             {/* Group 4: Account */}
