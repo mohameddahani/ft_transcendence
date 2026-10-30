@@ -67,7 +67,7 @@ def check_rate_limit(user: User) -> None:
         _requests[user.id] = recent
 
 # authenticate the user and apply the rate limit
-def rate_limited_user(user: User = Depends(current_user)) -> User:
+def rate_limited_user(user: User = Depends(current_user)) -> User:  # noqa: B008
     check_rate_limit(user)
     return user
 
