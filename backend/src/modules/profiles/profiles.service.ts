@@ -83,6 +83,8 @@ export class ProfilesService {
     }
 
     // * Check if user update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -112,16 +114,47 @@ export class ProfilesService {
       }
 
       data.password = await bcrypt.hash(data.password, 10);
+
+      isPasswordChanged = true;
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to user
-    return await this.prisma.user.update({
-      where: { id },
-      data: profileData,
-      select: privateUserSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to user
+      return await this.prisma.user.update({
+        where: { id },
+        data: profileData,
+        select: privateUserSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: {
+          id,
+        },
+        data: profileData,
+        select: privateUserSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.userRefreshToken.updateMany({
+        where: {
+          userId: id,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedUser;
     });
   }
 
@@ -391,6 +424,8 @@ export class ProfilesService {
     }
 
     // * Check if member update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -426,17 +461,46 @@ export class ProfilesService {
         }
 
         data.password = await bcrypt.hash(data.password, 10);
+
+        isPasswordChanged = true;
       }
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to member
-    return await this.prisma.member.update({
-      where: { id: memberId },
-      data: profileData,
-      select: privateMemberSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to member
+      return await this.prisma.member.update({
+        where: { id: memberId },
+        data: profileData,
+        select: privateMemberSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedMember = await tx.member.update({
+        where: { id: memberId },
+        data: profileData,
+        select: privateMemberSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.memberRefreshToken.updateMany({
+        where: {
+          memberId: memberId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedMember;
     });
   }
 
@@ -728,6 +792,8 @@ export class ProfilesService {
     }
 
     // * Check if staff update the password: (we need to hash it)
+    let isPasswordChanged: boolean = false;
+
     if (
       (!data.password && data.currentPassword) ||
       (data.password && !data.currentPassword)
@@ -763,17 +829,46 @@ export class ProfilesService {
         }
 
         data.password = await bcrypt.hash(data.password, 10);
+
+        isPasswordChanged = true;
       }
     }
 
     // * Exclude the current password
     const { currentPassword, ...profileData } = data;
 
-    // * Save new data to staff
-    return await this.prisma.staff.update({
-      where: { id: staffId },
-      data: profileData,
-      select: privateStaffSelect,
+    if (!isPasswordChanged) {
+      // * Save new data to staff
+      return await this.prisma.staff.update({
+        where: { id: staffId },
+        data: profileData,
+        select: privateStaffSelect,
+      });
+    }
+
+    const now = new Date();
+
+    // * Password change is security-sensitive.
+    // * Update password/profile and revoke old authentication state atomically.
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedStaff = await tx.staff.update({
+        where: { id: staffId },
+        data: profileData,
+        select: privateStaffSelect,
+      });
+
+      // * Revoke all existing refresh-token sessions
+      await tx.staffRefreshToken.updateMany({
+        where: {
+          staffId: staffId,
+          revokedAt: null,
+        },
+        data: {
+          revokedAt: now,
+        },
+      });
+
+      return updatedStaff;
     });
   }
 
