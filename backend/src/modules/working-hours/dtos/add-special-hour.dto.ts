@@ -33,6 +33,7 @@ export class AddSpecialHourDto {
     nullable: true,
   })
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @IsMilitaryTime()
   startTime!: string;
@@ -44,6 +45,7 @@ export class AddSpecialHourDto {
     nullable: true,
   })
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @IsMilitaryTime()
   endTime!: string;

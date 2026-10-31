@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsPositive, IsUUID } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdatePlanDurationDto {
   // * PlanId
@@ -14,6 +20,7 @@ export class UpdatePlanDurationDto {
   @IsNumber()
   @IsPositive()
   @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({
     example: 60,
     description: 'Duration Days',
@@ -24,6 +31,7 @@ export class UpdatePlanDurationDto {
   @IsNumber()
   @IsPositive()
   @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({
     example: 500,
     description: 'Price',

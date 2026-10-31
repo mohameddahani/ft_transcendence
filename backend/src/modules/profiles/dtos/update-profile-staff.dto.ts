@@ -2,13 +2,14 @@ import { IsValidPassword } from '@/core/utils/password.validator';
 import { AddStaffDto } from '@/modules/staffs/dtos/add-staff.dto';
 import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, Validate } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Validate } from 'class-validator';
 
 export class UpdateProfileStaffDto extends PartialType(
   PickType(AddStaffDto, ['phoneNumber'] as const),
 ) {
   // * Password
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Validate(IsValidPassword)
   @Transform(({ value }): string =>
@@ -19,6 +20,7 @@ export class UpdateProfileStaffDto extends PartialType(
 
   // * Current Password
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
