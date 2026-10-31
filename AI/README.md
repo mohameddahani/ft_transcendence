@@ -74,7 +74,7 @@ Fitness Casablanca), `medina` (Medina Wellness Fes).
 
 | Email | Username | Gym | State |
 |---|---|---|---|
-| `omar@gmail.com` | `omar_t` | Atlas | membership expired 30 days ago, payment unpaid |
+| `omar@gmail.com` | `omar_t` | Atlas | membership expired 30 days ago, nothing owed |
 | `siham@gmail.com` | `siham_i` | Atlas | expires in 5 days |
 | `youssef@gmail.com` | `youssef_a` | Atlas | expires in 20 days |
 | `rachid@gmail.com`, `latifa@gmail.com` | `rachid_o`, `latifa_s` | Oasis | active |
@@ -183,7 +183,7 @@ curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" -d '{"question": "When does my membership end?"}'
 
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
-     -H "Content-Type: application/json" -d '{"question": "Do I have any unpaid payments?"}'
+     -H "Content-Type: application/json" -d '{"question": "Am I up to date on payments?"}'
 
 # member can see member documents
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \

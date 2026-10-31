@@ -19,16 +19,17 @@ class User:
     admin_id: str   # the gym this user belongs to
 
 
+# only ACTIVE accounts get in, like the backend: PENDING (frozen) and BANNED are refused
 def _find_gym(role: str, user_id: str) -> str | None:
     if role == "ADMIN":
-        row = db.fetch_one("SELECT id FROM users WHERE id = %s AND role = 'ADMIN'", (user_id,))
+        row = db.fetch_one("SELECT id FROM users WHERE id = %s AND role = 'ADMIN' AND account_status = 'ACTIVE'",
+                           (user_id,))
         return row["id"] if row else None
     if role == "STAFF":
         row = db.fetch_one("SELECT admin_id FROM staffs WHERE id = %s AND account_status = 'ACTIVE'",
                            (user_id,))
     else:
-        # a frozen member can still ask why; a banned one is out
-        row = db.fetch_one("SELECT admin_id FROM members WHERE id = %s AND account_status <> 'BANNED'",
+        row = db.fetch_one("SELECT admin_id FROM members WHERE id = %s AND account_status = 'ACTIVE'",
                            (user_id,))
     return row["admin_id"] if row else None
 

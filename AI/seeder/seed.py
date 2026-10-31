@@ -39,7 +39,7 @@ DEMO_PASSWORD_HASH = "$2b$10$O9ypzCDnTUD16AB9S6p.xeQMJ1zHUKTGIUNEqnrzFdGobasBELV
 # families share one phone number, which is why phone_number is not unique
 SHARED_PHONE_RATE = 0.06
 
-FROZEN_RATE, BANNED_RATE = 0.05, 0.01
+PENDING_RATE, BANNED_RATE = 0.05, 0.01
 
 SIGNUP_WINDOW_DAYS = 548
 
@@ -132,7 +132,10 @@ def generate_members(gym: GymSpec, count: int, rng: random.Random) -> list[Gener
         birth = anchor - timedelta(days=age * 365 + rng.randint(0, 364))
 
         roll = rng.random()
-        status = "BANNED" if roll < BANNED_RATE else "ACTIVE"
+        # PENDING is how the backend freezes a member
+        status = ("BANNED" if roll < BANNED_RATE
+                  else "PENDING" if roll < BANNED_RATE + PENDING_RATE
+                  else "ACTIVE")
 
         joined = _signup_date(rng, anchor)
 
@@ -356,12 +359,8 @@ INSERT INTO memberships (
 """
 
 _PAYMENT_INSERT = """
-INSERT INTO payments (
-    id, admin_id, member_id, amount, paid_at, due_date, payment_status,
-    created_at, updated_at
-) VALUES (
-    gen_random_uuid()::text, $1, $2, $3, $4, $5, $6::"PaymentStatus", $5, NOW()
-)
+INSERT INTO payments (id, admin_id, member_id, amount, paid_at, created_at, updated_at)
+VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $4, NOW())
 """
 
 
@@ -397,14 +396,14 @@ async def sync_history(
         history = build_history(
             member["id"], member["created_at"], pick_journey(rng), options, rng, now)
         membership_rows.extend(history)
-        payment_rows.extend(build_payments(history, rng, now))
+        payment_rows.extend(build_payments(history))
 
     await conn.executemany(_MEMBERSHIP_INSERT, [
         (admin_id, r.member_id, r.plan_id, r.duration_id, r.status, r.start_date, r.expires_at)
         for r in membership_rows
     ])
     await conn.executemany(_PAYMENT_INSERT, [
-        (admin_id, p.member_id, p.amount, p.paid_at, p.due_date, p.status)
+        (admin_id, p.member_id, p.amount, p.paid_at)
         for p in payment_rows
     ])
     return len(membership_rows), len(payment_rows)
@@ -571,8 +570,7 @@ async def main() -> int:
                       (SELECT count(*) FROM payments) AS payments,
                       (SELECT count(*) FROM attendances) AS check_ins,
                       (SELECT count(*) FROM feedbacks) AS feedbacks,
-                      (SELECT coalesce(sum(amount), 0) FROM payments
-                        WHERE payment_status = 'PAID') AS collected""")
+                      (SELECT coalesce(sum(amount), 0) FROM payments) AS collected""")
         print("-" * len(header))
         print(f"{'total':<28}{totals['plans']:>7}{totals['members']:>9}"
               f"{totals['memberships']:>9}{totals['payments']:>10}"

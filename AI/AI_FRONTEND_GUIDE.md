@@ -142,7 +142,7 @@ Check: `curl localhost:8000/health` → `{"status":"ok"}`.
 | Owner | `nadia@oasisgym.ma` (email) | Oasis |
 | Staff | `reception.atl` (username) | Atlas |
 | Staff | `reception.oas` (username) | Oasis |
-| Member | `omar_t` (username) | Atlas — membership **expired**, payment unpaid |
+| Member | `omar_t` (username) | Atlas — membership **expired**, nothing owed |
 | Member | `siham_i` (username) | Atlas — membership expires in 5 days |
 | Member | `youssef_a` (username) | Atlas — expires in 20 days |
 | Member | `rachid_o` (username) | Oasis — active |
@@ -198,7 +198,7 @@ Interactive mode (follow-ups continue the conversation):
 ./scripts/ask.sh member omar@gmail.com "When does my membership end?"
 # → his membership expired
 
-./scripts/ask.sh member omar@gmail.com "Do I have any unpaid payments?"
+./scripts/ask.sh member omar@gmail.com "Am I up to date on payments?"
 # → yes
 
 ./scripts/ask.sh member siham@gmail.com "How many times did I come this month?"
@@ -350,7 +350,7 @@ seconds. If the model doesn't answer within 30 s, you get the `error` event.
 
 | Status | When | `detail` |
 |---|---|---|
-| 401 | no token, an expired or invalid token, or a banned staff or member account | `"Invalid or expired token"` → send the user to the login page |
+| 401 | no token, an expired or invalid token, or an account that isn't ACTIVE (pending or banned) | `"Invalid or expired token"` → send the user to the login page |
 | 403 | documents, but not the owner | `"Only the gym owner can manage documents"` |
 | 404 | deleting a document that doesn't exist | `"No such document"` |
 | 413 | upload over 10 MB | `"The file is larger than 10 MB"` |
@@ -719,8 +719,8 @@ Rules for the pages:
 - [ ] "What is Youssef's phone number?" → refused
 - [ ] "What discount can reception give me?" → not in the gym's documents (that one is staff only)
 - [ ] typing `/assistant/documents` (or calling it) → "Only the gym owner can manage documents"
-- [ ] `omar_t`: "Did I pay?" → his 300.00 MAD payment is unpaid (overdue); "When does my
-  membership end?" → it ended 30 days before the demo data was loaded
+- [ ] `omar_t`: "Am I up to date on payments?" → his last payment (300.00 MAD) and that his
+  membership expired; "When does my membership end?" → it ended 30 days before the demo data was loaded
 - [ ] logged out → the member assistant page sends you to the member login
 
 **Documents page (owner):**

@@ -1,4 +1,4 @@
--- Atlas Fitness Agadir and three members: active, expiring in 5 days, expired and unpaid.
+-- Atlas Fitness Agadir and three members: active, expiring in 5 days, expired 30 days ago.
 -- Empties the database first (TRUNCATE), so run it before oasis_gym.sql and the seeder.
 
 TRUNCATE users, plans CASCADE;
@@ -59,14 +59,14 @@ gym_plan_duration AS (
 ),
 
 member_spec (first_name, last_name, email, user_name, phone_number,
-             address, emergency_contact, gender, birth_date, days_to_expiry, paid) AS (
+             address, emergency_contact, gender, birth_date, days_to_expiry) AS (
     VALUES
         ('Youssef','Alami',  'youssef@gmail.com','youssef_a','+212611111111',
-         'Agadir','+212699999991','MALE'  ,DATE '1995-05-12',  20, true ),
+         'Agadir','+212699999991','MALE'  ,DATE '1995-05-12',  20),
         ('Siham',  'Idrissi','siham@gmail.com',  'siham_i',  '+212622222222',
-         'Agadir','+212699999992','FEMALE',DATE '1998-11-23',   5, true ),
+         'Agadir','+212699999992','FEMALE',DATE '1998-11-23',   5),
         ('Omar',   'Tazi',   'omar@gmail.com',   'omar_t',   '+212633333333',
-         'Agadir','+212699999993','MALE'  ,DATE '1990-02-01', -30, false)
+         'Agadir','+212699999993','MALE'  ,DATE '1990-02-01', -30)
 ),
 member_rows AS (
     INSERT INTO members (
@@ -105,18 +105,12 @@ membership_rows AS (
     RETURNING id, admin_id, member_id, start_date
 ),
 
+-- like the backend: one payment per membership, paid on the day it starts
 payment_rows AS (
-    INSERT INTO payments (
-        id, admin_id, member_id, amount, paid_at, due_date, payment_status, created_at, updated_at
-    )
+    INSERT INTO payments (id, admin_id, member_id, amount, paid_at, created_at, updated_at)
     SELECT gen_random_uuid()::text, ms.admin_id, ms.member_id, gpd.price,
-           ms.start_date,
-           ms.start_date,
-           CASE WHEN s.paid THEN 'PAID' ELSE 'UNPAID' END::"PaymentStatus",
-           NOW(), NOW()
+           ms.start_date, NOW(), NOW()
     FROM membership_rows ms
-    JOIN member_rows m  ON m.id = ms.member_id
-    JOIN member_spec s  ON s.user_name = m.user_name
     CROSS JOIN gym_plan_duration gpd
     RETURNING id
 )
