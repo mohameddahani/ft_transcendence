@@ -14,7 +14,6 @@ import {
   ActionTokenType,
   MembershipStatus,
   AccountStatus,
-  PaymentStatus,
   Role,
 } from '@/generated/prisma/enums';
 import { UpdateMemberDto } from './dtos/update-member.dto';
@@ -164,10 +163,12 @@ export class MembersService {
         data: {
           member: { connect: { id: member.id } },
           admin: { connect: { id: adminId } },
+          staff:
+            accessTokenPayload.role === Role.STAFF
+              ? { connect: { id: accessTokenPayload.id } }
+              : undefined, // Ignore this field. Don't do anything with staff.
           amount: membership.membershipPlanDuration.price,
           paidAt: membership.startDate,
-          dueDate: membership.expiresAt,
-          paymentStatus: PaymentStatus.PAID,
         },
       });
 
@@ -379,10 +380,12 @@ export class MembersService {
           data: {
             member: { connect: { id: newMembership.memberId } },
             admin: { connect: { id: adminId } },
+            staff:
+              accessTokenPayload.role === Role.STAFF
+                ? { connect: { id: accessTokenPayload.id } }
+                : undefined, // Ignore this field. Don't do anything with staff.
             amount: newMembership.membershipPlanDuration.price,
             paidAt: newMembership.startDate,
-            dueDate: newMembership.expiresAt,
-            paymentStatus: PaymentStatus.PAID,
           },
         });
 

@@ -48,13 +48,6 @@ enum MembershipStatus {
   CANCELLED
 }
 
-// * this enum had Payment Status
-enum PaymentStatus {
-  PAID
-  UNPAID
-  DUE_SOON
-}
-
 // * this enum had Notification Type
 enum NotificationType {
   PAYMENT_REMINDER
@@ -327,9 +320,10 @@ model Membership {
   membershipPlanDurationId String                 @map("membership_plan_duration_id")
   membershipPlanDuration   MembershipPlanDuration @relation(fields: [membershipPlanDurationId], references: [id])
 
-  membershipStatus MembershipStatus @default(ACTIVE) @map("membership_status")
-  startDate        DateTime         @default(now()) @map("start_date")
-  expiresAt        DateTime         @map("expires_at")
+  membershipStatus     MembershipStatus @default(ACTIVE) @map("membership_status")
+  startDate            DateTime         @default(now()) @map("start_date")
+  expiresAt            DateTime         @map("expires_at")
+  expirationNotifiedAt DateTime?        @map("expiration_notified_at")
 
   visits      Visit[]
   attendances Attendance[]
@@ -516,18 +510,14 @@ model Payment {
   staffId String? @map("staff_id")
   staff   Staff?  @relation(fields: [staffId], references: [id])
 
-  amount               Decimal       @db.Decimal(10, 2)
-  paidAt               DateTime?     @map("paid_at")
-  dueDate              DateTime?     @map("due_date")
-  expirationNotifiedAt DateTime?     @map("expiration_notified_at")
-  paymentStatus        PaymentStatus @default(UNPAID) @map("payment_status")
-  createdAt            DateTime      @default(now()) @map("created_at")
-  updatedAt            DateTime      @updatedAt @map("updated_at")
+  amount Decimal  @db.Decimal(10, 2)
+  paidAt DateTime @map("paid_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([adminId, memberId])
   @@index([memberId])
-  @@index([paymentStatus])
-  @@index([paymentStatus, dueDate])
   @@map("payments")
 }
 

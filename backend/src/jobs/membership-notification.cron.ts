@@ -1,7 +1,8 @@
-import { NotificationType, PaymentStatus } from '@/generated/prisma/enums';
+import { MembershipStatus, NotificationType } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { addHours } from 'date-fns';
 
 @Injectable()
 export class MembershipNotificationCron {
@@ -9,29 +10,42 @@ export class MembershipNotificationCron {
 
   @Cron(CronExpression.EVERY_HOUR)
   async createNotification() {
-    // * Get Payments of Members and Check it if OVERDUE
-    const payments = await this.prisma.payment.findMany({
+    // * Create Range Of Date
+    const now = new Date();
+    const tomorrow = addHours(now, 24);
+
+    // * Get Membership That Will Be Expired After 24H
+    const memberships = await this.prisma.membership.findMany({
       where: {
-        paymentStatus: PaymentStatus.DUE_SOON,
+        membershipStatus: MembershipStatus.ACTIVE,
+        expiresAt: {
+          gt: now,
+          lte: tomorrow,
+        },
         expirationNotifiedAt: null,
       },
     });
 
-    if (payments.length === 0) {
+    if (memberships.length === 0) {
       return;
     }
 
     // * Create Notification to all this payments
-    for (const payment of payments) {
+    for (const membership of memberships) {
       await this.prisma.$transaction(async (tx) => {
-        const { count } = await tx.payment.updateMany({
+        const { count } = await tx.membership.updateMany({
           where: {
-            id: payment.id,
-            paymentStatus: PaymentStatus.DUE_SOON,
+            id: membership.id,
+            membershipStatus: MembershipStatus.ACTIVE,
+            expiresAt: {
+              equals: membership.expiresAt,
+              gt: now,
+              lte: tomorrow,
+            },
             expirationNotifiedAt: null,
           },
           data: {
-            expirationNotifiedAt: new Date(),
+            expirationNotifiedAt: now,
           },
         });
 
@@ -41,11 +55,11 @@ export class MembershipNotificationCron {
 
         await tx.memberNotification.create({
           data: {
-            member: { connect: { id: payment.memberId } },
-            notificationType: NotificationType.PAYMENT_REMINDER,
-            title: 'Membership Payment Due Soon',
+            member: { connect: { id: membership.memberId } },
+            notificationType: NotificationType.MEMBERSHIP_EXPIRATION,
+            title: 'Membership Expiring Soon',
             message:
-              'Your membership payment is due soon. Please complete your payment before the due date.',
+              'Your membership will expire within the next 24 hours. Please renew your membership to continue accessing the club.',
           },
         });
       });
