@@ -100,9 +100,9 @@ This creates 4 gyms with ~1,100 members, their history, check-ins, feedback, and
 documents. You need **Node.js 20+** (for Prisma) and **Python 3.11+** (for the seeder).
 
 ```bash
+set -a; source .env; set +a                                 # first: compose prefers exported values to .env
 docker compose down -v && docker compose up -d             # fresh database
 (cd ../backend && npm install && npx prisma migrate deploy) # the tables
-set -a; source .env; set +a                                 # load .env into this terminal
 docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   -v ai_password="$AI_DB_PASSWORD" < seeder/roles/ai_readonly.sql
 docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < seeder/fixtures/atlas_gym.sql
@@ -114,6 +114,13 @@ docker compose restart ai
 ```
 
 Check: `curl localhost:8000/health` → `{"status":"ok"}`.
+
+If prisma says `P1000` (authentication failed) or psql says `role "admin" does not exist`, the
+database was created with another user name. Usually the terminal still exports an old
+`POSTGRES_USER` from an earlier `source .env`. Check that `POSTGRES_USER`/`POSTGRES_PASSWORD`
+match `DATABASE_URL` in `backend/.env`, open a new terminal (or run the `source` line again), and
+redo the whole block from the top. The user name only takes effect on a new database, which is
+why `down -v` is part of the block.
 
 ### 2.4 The demo data
 

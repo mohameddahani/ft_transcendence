@@ -55,9 +55,9 @@ per gym.
 
 ```bash
 cd AI
+set -a; source .env; set +a                                 # first: compose prefers exported values to .env
 docker compose down -v && docker compose up -d             # empty database (also clears the AI's memory and documents)
 (cd ../backend && npm install && npx prisma migrate deploy) # the backend's tables
-set -a; source .env; set +a                                 # load .env into this terminal
 docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ai_password="$AI_DB_PASSWORD" < seeder/roles/ai_readonly.sql
 docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < seeder/fixtures/atlas_gym.sql
 docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < seeder/fixtures/oasis_gym.sql
@@ -264,6 +264,8 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | every login fails | the `JWT_*_ACCESS_SECRET` values differ from `backend/.env` |
 | "CORS" error in the browser console | `FRONTEND_URL` in `AI/.env` must be the page's exact address; then `docker compose up -d` |
 | a change to `.env` has no effect | use `docker compose up -d` (a `restart` keeps the old values) |
+| `role "admin" does not exist`, or prisma `P1000` after a reset | the terminal still exports an old `POSTGRES_USER`, and compose prefers it to `.env`: run `set -a; source .env; set +a` (or open a new terminal), then do §3 again from the start |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` changed | they must match `DATABASE_URL` in `backend/.env`, and only take effect on a new database (`docker compose down -v`) |
 | `/health` says "database unreachable" | Postgres is not running: `docker compose up -d` |
 | every document question is "not in the documents" | run `./scripts/load_docs.sh` (needed after every database reset) |
 | "The assistant is unavailable right now" | Gemini failed (key or quota): `docker compose logs ai` |
