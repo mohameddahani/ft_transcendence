@@ -47,19 +47,6 @@ export class MembersService {
         accessTokenPayload,
       );
 
-    // * Check if admin has place for new member
-    // * Count Members
-    const membersCount = await this.prisma.member.count({
-      where: {
-        adminId,
-      },
-    });
-    if (membersCount >= subscription.plan.maxMembers) {
-      throw new ForbiddenException(
-        `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
-      );
-    }
-
     // * Check if Admin Has Membership Plan With Duration
     const { duration, membershipPlan } =
       await this.checkIfAdminHasMembershipPlanWithDuration(
@@ -116,6 +103,19 @@ export class MembersService {
     // * Interactive transaction (function)
     // * tx is the prisma client inside a transaction
     const result = await this.prisma.$transaction(async (tx) => {
+      // * Check if admin has place for new member
+      // * Count Members
+      const membersCount = await tx.member.count({
+        where: {
+          adminId,
+        },
+      });
+      if (membersCount >= subscription.plan.maxMembers) {
+        throw new ForbiddenException(
+          `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
+        );
+      }
+
       // * Add members to database
       const member = await tx.member.create({
         data: {
