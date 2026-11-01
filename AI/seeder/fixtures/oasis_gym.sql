@@ -86,11 +86,9 @@ membership_rows AS (
     RETURNING id, admin_id, member_id, start_date
 ),
 payment_rows AS (
-    INSERT INTO payments (
-        id, admin_id, member_id, amount, paid_at, due_date, payment_status, created_at, updated_at
-    )
+    INSERT INTO payments (id, admin_id, member_id, amount, paid_at, created_at, updated_at)
     SELECT gen_random_uuid()::text, ms.admin_id, ms.member_id, gpd.price,
-           ms.start_date, ms.start_date, 'PAID'::"PaymentStatus", NOW(), NOW()
+           ms.start_date, NOW(), NOW()
     FROM membership_rows ms
     CROSS JOIN gym_plan_duration gpd
     RETURNING id

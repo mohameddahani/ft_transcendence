@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -20,6 +21,7 @@ export class UpdateMembershipPlanDurationDto {
   @IsNumber()
   @IsPositive()
   @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({ example: 60, description: 'Duration Days' }) // * Swagger Document
   durationDays?: number;
 
@@ -27,6 +29,7 @@ export class UpdateMembershipPlanDurationDto {
   @IsNumber()
   @IsPositive()
   @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({ example: 300, description: 'Price' }) // * Swagger Document
   price?: number;
 
@@ -34,6 +37,7 @@ export class UpdateMembershipPlanDurationDto {
   @IsInt()
   @IsPositive()
   @IsOptional()
+  @IsNotEmpty()
   @ApiProperty({
     example: 50,
     description: 'Price in G',

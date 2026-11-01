@@ -21,7 +21,6 @@ CHURN_MIN_DAYS, CHURN_MAX_DAYS = 30, 240
 EXPIRING_WEEK_RATE, EXPIRING_MONTH_RATE = 0.08, 0.20
 
 CANCELLED_RATE = 0.02
-PAID_RATE = 0.92
 PLAN_LOYALTY = 0.8
 
 
@@ -56,8 +55,6 @@ class PaymentRow:
     member_id: str
     amount: Decimal
     paid_at: datetime
-    due_date: datetime
-    status: str
 
 
 def pick_journey(rng: random.Random) -> Journey:
@@ -131,22 +128,7 @@ def build_history(
     return rows
 
 
-def build_payments(
-    memberships: list[MembershipRow], rng: random.Random, now: datetime
-) -> list[PaymentRow]:
-    payments: list[PaymentRow] = []
-    for membership in memberships:
-        due = membership.start_date
-
-        if rng.random() < PAID_RATE:
-            paid_at = min(due + timedelta(days=rng.randint(0, 5)), now)
-            status = "PAID"
-        else:
-            paid_at = due
-            status = "UNPAID"
-
-        payments.append(PaymentRow(
-            member_id=membership.member_id, amount=membership.price,
-            paid_at=paid_at, due_date=due, status=status,
-        ))
-    return payments
+# like the backend: one payment per membership, paid in full on the day it starts
+def build_payments(memberships: list[MembershipRow]) -> list[PaymentRow]:
+    return [PaymentRow(member_id=m.member_id, amount=m.price, paid_at=m.start_date)
+            for m in memberships]

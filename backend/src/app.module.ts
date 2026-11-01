@@ -11,7 +11,6 @@ import { SubscriptionsModule } from './modules/platform/subscriptions/subscripti
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionCron } from './jobs/subscription.cron';
 import { MembershipCron } from './jobs/membership.cron';
-import { PaymentCron } from './jobs/payment.cron';
 import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
@@ -96,7 +95,6 @@ import { ExternalApiModule } from './infrastructure/external-api/external-api.mo
     // * Cron
     SubscriptionCron,
     MembershipCron,
-    PaymentCron,
     MembershipNotificationCron,
     SubscriptionNotificationCron,
     VisitCron,
