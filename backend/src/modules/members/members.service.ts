@@ -204,7 +204,7 @@ export class MembersService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.userActionToken.deleteMany({
+      await this.prisma.memberActionToken.deleteMany({
         where: { id: actionToken.id },
       });
       throw new InternalServerErrorException(
