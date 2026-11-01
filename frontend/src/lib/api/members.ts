@@ -2,22 +2,12 @@ import api from "@/lib/axios";
 import { BackendMember, AddMemberInput, UpdateMemberInput } from "@/types/member";
 import { getApiEndpoint } from "@/lib/api/config";
 
-export async function fetchMembers(page = 1, limit = 50): Promise<BackendMember[]> {
+export async function fetchMembers(page = 1, limit = 500): Promise<BackendMember[]> {
   const url = getApiEndpoint(`/api/admins/members?page=${page}&limit=${limit}`);
-  const response = await api.get<BackendMember[] | { members?: BackendMember[]; data?: BackendMember[] }>(
-    url
-  );
-  console.log(response);
-
+  const response = await api.get<BackendMember[]>(url);
   const payload = response.data;
   if (Array.isArray(payload)) {
     return payload;
-  }
-  if (payload && Array.isArray(payload.members)) {
-    return payload.members;
-  }
-  if (payload && Array.isArray(payload.data)) {
-    return payload.data;
   }
   return [];
 }

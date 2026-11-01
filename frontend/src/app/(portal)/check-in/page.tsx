@@ -166,9 +166,11 @@ export default function CheckInPage() {
   // Open single visit details
   const handleInspectVisit = async (visit: TodayVisit) => {
     try {
+      console.log("visit", visit)
       // Fetch fresh details by ID
       const single = await fetchVisitById(visit.id).catch(() => visit);
       setSelectedVisit(single);
+      console.log("single", single)
     } catch {
       setSelectedVisit(visit);
     } finally {
@@ -300,7 +302,7 @@ export default function CheckInPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by member name, phone, email, or plan..."
+              placeholder="Search by member name, phone, email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"

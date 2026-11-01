@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMembers } from "@/lib/api/members";
+import { fetchMembershipPlans } from "@/lib/api/membership-plans";
 import { BackendMember } from "@/types/member";
+import { MembershipPlan } from "@/types/membership-plan";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import MemberDashboardView from "@/components/dashboard/MemberDashboardView";
@@ -24,15 +26,20 @@ function AdminStaffDashboardView() {
   const { t } = useTranslation();
   const { fullName, companyName, role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadMembers = async () => {
+  const loadDashboardData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchMembers();
-      setMembers(data);
+      const [membersData, plansData] = await Promise.all([
+        fetchMembers(),
+        fetchMembershipPlans().catch(() => []),
+      ]);
+      setMembers(membersData);
+      setPlans(plansData);
     } catch (err: unknown) {
       let msg = "Failed to load members";
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -47,13 +54,38 @@ function AdminStaffDashboardView() {
   };
 
   useEffect(() => {
-    loadMembers();
+    loadDashboardData();
   }, []);
 
   const totalMembers = members.length;
-  console.log(members);
-  const activeMembers = members.filter((m) => m.status === "ACTIVE").length;
+  // According to backend structure: check the first membership's status
+  const activeMembers = members.filter(
+    (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
+  ).length;
+  const expiredMembers = members.filter(
+    (m) => m.memberships?.[0]?.membershipStatus === "EXPIRED"
+  ).length;
+  const frozenMembers = members.filter(
+    (m) => m.accountStatus === "FROZEN"
+  ).length;
   const inactiveOrOther = totalMembers - activeMembers;
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "ACTIVE":
+        return "bg-secondary-container/20 text-on-secondary-container border border-secondary-container/30";
+      case "FROZEN":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+      case "EXPIRED":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
+      case "BANNED":
+        return "bg-error-container/30 text-error border border-error-container/40";
+      case "CANCELLED":
+        return "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20";
+      default:
+        return "bg-surface-variant text-on-surface-variant border border-outline-variant/30";
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-container-max mx-auto">
@@ -83,7 +115,7 @@ function AdminStaffDashboardView() {
         <div className="flex items-center gap-3 flex-wrap">
           <button
             type="button"
-            onClick={loadMembers}
+            onClick={loadDashboardData}
             disabled={isLoading}
             className="flex items-center gap-2 px-3.5 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-xs font-semibold text-on-surface hover:bg-surface-container transition-all cursor-pointer disabled:opacity-50"
           >
@@ -175,10 +207,16 @@ function AdminStaffDashboardView() {
                 {inactiveOrOther}
               </span>
             )}
-            <span className="text-xs text-on-surface-variant">{t("inactive")}</span>
+            <span className="text-xs text-on-surface-variant">
+              {totalMembers > 0
+                ? `${Math.round((inactiveOrOther / totalMembers) * 100)}% ${t("inactive")}`
+                : "—"}
+            </span>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            {t("frozenPausedMembers")}
+            {expiredMembers > 0 || frozenMembers > 0
+              ? `${expiredMembers} expired · ${frozenMembers} frozen`
+              : t("frozenPausedMembers")}
           </p>
         </div>
       </div>
@@ -254,51 +292,92 @@ function AdminStaffDashboardView() {
               <tbody className="divide-y divide-outline-variant text-xs">
                 {members.slice(0, 10).map((member) => {
                   const memberName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.userName || "Member";
-                  const memberInitials = (member.firstName?.[0] || "") + (member.lastName?.[0] || "") || "M";
-                  const hasPhoto = member.photo && member.photo !== "default-member-image.jpg" && member.photo !== "default-image.jpg";
-                  const activePlan = member.memberships?.[0]?.membershipPlan?.name || member.memberships?.[0]?.membershipPlan?.planName || "—";
+                  const memberInitials = ((member.firstName?.[0] || "") + (member.lastName?.[0] || "")).toUpperCase() || "M";
+                  const avatarUrl = member.profileImageUrl || member.photo;
+                  const hasPhoto = Boolean(
+                    avatarUrl &&
+                    !avatarUrl.includes("default-member") &&
+                    !avatarUrl.includes("default-image") &&
+                    !avatarUrl.includes("avatars-default")
+                  );
+
+                  const firstMembership = member.memberships?.[0];
+                  const membershipStatus = firstMembership?.membershipStatus;
+                  const isAccountFrozen = member.accountStatus === "FROZEN";
+                  const isAccountBanned = member.accountStatus === "BANNED";
+
+                  let statusText = "INACTIVE";
+                  if (isAccountBanned) {
+                    statusText = "BANNED";
+                  } else if (isAccountFrozen) {
+                    statusText = "FROZEN";
+                  } else if (membershipStatus) {
+                    statusText = membershipStatus;
+                  } else if (member.accountStatus) {
+                    statusText = member.accountStatus;
+                  }
+
+                  const matchedPlan = plans.find((p) => p.id === firstMembership?.membershipPlanId);
+                  const activePlan =
+                    firstMembership?.membershipPlan?.planName ||
+                    firstMembership?.membershipPlan?.name ||
+                    matchedPlan?.planName ||
+                    (firstMembership ? "Standard Plan" : "—");
+
                   const joinedDate = member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "—";
 
                   return (
                     <tr key={member.id} className="hover:bg-surface-container-low/60 transition-colors">
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
+                        <Link
+                          href={`/members/${member.id}`}
+                          className="flex items-center gap-3 group hover:opacity-90 transition-opacity"
+                        >
                           {hasPhoto ? (
                             <img
-                              src={member.photo!}
+                              src={avatarUrl!}
                               alt={memberName}
-                              className="w-8 h-8 rounded-full object-cover border border-outline-variant"
+                              className="w-8 h-8 rounded-full object-cover border border-outline-variant shrink-0"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs select-none">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs select-none shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
                               {memberInitials}
                             </div>
                           )}
-                          <div>
-                            <p className="font-bold text-on-surface">{memberName}</p>
-                            <p className="text-[11px] text-on-surface-variant">{member.email}</p>
+                          <div className="min-w-0">
+                            <p className="font-bold text-on-surface group-hover:text-primary transition-colors truncate">
+                              {memberName}
+                            </p>
+                            <p className="text-[11px] text-on-surface-variant truncate">
+                              {member.email}
+                            </p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-6 py-3.5 text-on-surface-variant font-mono text-[11px]">
-                        @{member.userName || "—"}
+                        {member.userName ? `@${member.userName}` : "—"}
                       </td>
                       <td className="px-6 py-3.5 text-on-surface-variant">
                         {member.phoneNumber || "—"}
                       </td>
                       <td className="px-6 py-3.5">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            member.status === "ACTIVE"
-                              ? "bg-secondary-container/20 text-on-secondary-container border border-secondary-container/30"
-                              : "bg-surface-variant text-on-surface-variant border border-outline-variant/30"
-                          }`}
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
+                            statusText
+                          )}`}
                         >
-                          {member.status || "ACTIVE"}
+                          {statusText}
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-on-surface font-medium">
-                        {activePlan}
+                        <div>
+                          <span>{activePlan}</span>
+                          {firstMembership?.expiresAt && (
+                            <span className="block text-[10px] text-on-surface-variant font-normal">
+                              Exp: {new Date(firstMembership.expiresAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-3.5 text-on-surface-variant">
                         {joinedDate}

@@ -55,16 +55,32 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const url = originalRequest.url || "";
 
-    // Ignore 401s from login or refresh endpoints to avoid infinite loops
+    // Ignore 401s from public auth endpoints (login, forgot-password, reset-password, set-password, verification)
+    // or refresh endpoints to avoid infinite loops and false session-expired redirects
+    const isPublicAuthApi =
+      url.includes("/api/auth/login") ||
+      url.includes("/api/auth/staffs/login") ||
+      url.includes("/api/auth/members/login") ||
+      url.includes("/api/auth/register") ||
+      url.includes("/api/auth/forgot-password") ||
+      url.includes("/api/auth/staffs/forgot-password") ||
+      url.includes("/api/auth/members/forgot-password") ||
+      url.includes("/api/auth/reset-password") ||
+      url.includes("/api/auth/staffs/reset-password") ||
+      url.includes("/api/auth/members/reset-password") ||
+      url.includes("/api/auth/set-password") ||
+      url.includes("/api/auth/staffs/set-password") ||
+      url.includes("/api/auth/members/set-password") ||
+      url.includes("/api/auth/email-verification") ||
+      url.includes("/api/auth/email-change") ||
+      url.includes("/api/auth/admins/refresh") ||
+      url.includes("/api/auth/staffs/refresh") ||
+      url.includes("/api/auth/members/refresh");
+
     if (
       status === 401 &&
       !originalRequest._retry &&
-      !url.includes("/api/auth/login") &&
-      !url.includes("/api/auth/staffs/login") &&
-      !url.includes("/api/auth/members/login") &&
-      !url.includes("/api/auth/admins/refresh") &&
-      !url.includes("/api/auth/staffs/refresh") &&
-      !url.includes("/api/auth/members/refresh")
+      !isPublicAuthApi
     ) {
       if (isRefreshing) {
         // Another request is already refreshing the token, wait for it
@@ -120,14 +136,31 @@ api.interceptors.response.use(
           (userRole === "MEMBER" && url.includes("/api/admins/")) ||
           (userRole !== "MEMBER" && url.includes("/api/members/"));
 
+        // Helper to check if current page is any unauthenticated/public auth page
+        const isPublicAuthPage = (pathname: string): boolean => {
+          return (
+            pathname.startsWith("/login") ||
+            pathname.startsWith("/admin/login") ||
+            pathname.startsWith("/admin/forgot-password") ||
+            pathname.startsWith("/staff/login") ||
+            pathname.startsWith("/staffs/login") ||
+            pathname.startsWith("/member/login") ||
+            pathname.startsWith("/members/login") ||
+            pathname.startsWith("/register") ||
+            pathname.startsWith("/forgot-password") ||
+            pathname.startsWith("/reset-password") ||
+            pathname.startsWith("/email-verification") ||
+            pathname.startsWith("/email-change") ||
+            pathname.includes("/forgot-password") ||
+            pathname.includes("/reset-password") ||
+            pathname.includes("/set-password")
+          );
+        };
+
         if (
           !isRoleEndpointMismatch &&
           typeof window !== "undefined" &&
-          !window.location.pathname.startsWith("/login") &&
-          !window.location.pathname.startsWith("/staff/login") &&
-          !window.location.pathname.startsWith("/admin/login") &&
-          !window.location.pathname.startsWith("/member/login") &&
-          !window.location.pathname.startsWith("/members/login")
+          !isPublicAuthPage(window.location.pathname)
         ) {
           const redirectPath =
             userRole === "MEMBER" || window.location.pathname.startsWith("/member")

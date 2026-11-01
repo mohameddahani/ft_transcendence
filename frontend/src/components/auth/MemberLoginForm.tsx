@@ -272,6 +272,12 @@ export default function MemberLoginForm() {
                 >
                   {t("password", "Password")}
                 </label>
+                <Link
+                  href="/member/forgot-password"
+                  className="text-xs font-semibold text-primary hover:underline transition-all"
+                >
+                  {t("forgotPassword", "Forgot password?")}
+                </Link>
               </div>
               <div className="relative">
                 <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">

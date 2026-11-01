@@ -68,3 +68,26 @@ export interface LoginResponse {
   accessToken: string;
   message?: string;
 }
+
+export interface GenericAuthResponse {
+  message: string;
+  success?: boolean;
+}
+
+export interface SetPasswordPayload {
+  password: string;
+}
+
+export interface ResetPasswordPayload {
+  password: string;
+}
+
+export interface ForgotPasswordAdminPayload {
+  email: string;
+}
+
+export interface ForgotPasswordUsernamePayload {
+  userName: string;
+}
+
+

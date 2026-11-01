@@ -35,6 +35,8 @@ import {
   MemberMembership,
   formatMembershipDuration,
 } from "@/types/member-portal";
+import EmailChangeSection from "@/components/profile/EmailChangeSection";
+
 
 export default function MemberProfileView() {
   const { t } = useTranslation();
@@ -484,6 +486,14 @@ export default function MemberProfileView() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            {/* Email Change Section for Member */}
+            <div className="lg:col-span-3">
+              <EmailChangeSection
+                role="member"
+                currentEmail={profile?.email || ""}
+              />
             </div>
           </div>
         </div>

@@ -60,3 +60,18 @@ export const updateProfileSchema = z.object({
 });
 
 export type UpdateProfileFormValues = z.infer<typeof updateProfileSchema>;
+
+export const requestEmailChangeSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "New email address is required")
+    .email("Please enter a valid email address"),
+  currentPassword: z
+    .string()
+    .trim()
+    .min(1, "Current password is required to verify identity"),
+});
+
+export type RequestEmailChangeFormValues = z.infer<typeof requestEmailChangeSchema>;
+

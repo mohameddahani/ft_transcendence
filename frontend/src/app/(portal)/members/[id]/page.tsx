@@ -102,10 +102,17 @@ export default function MemberDetailPage() {
   const avatarUrl = member.profileImageUrl || member.photo;
   const hasPhoto = avatarUrl && !avatarUrl.includes("default-");
 
-  const status = (member.accountStatus || member.status || "ACTIVE").toUpperCase();
-
   // Active membership details
   const activeMembership = member.memberships?.[0];
+  const membershipStatus = activeMembership?.membershipStatus;
+  const status = (
+    member.accountStatus === "BANNED"
+      ? "BANNED"
+      : member.accountStatus === "FROZEN"
+      ? "FROZEN"
+      : membershipStatus || member.accountStatus || "ACTIVE"
+  ).toUpperCase();
+
   const planName =
     activeMembership?.membershipPlan?.planName ||
     activeMembership?.membershipPlan?.name ||
@@ -231,10 +238,12 @@ export default function MemberDetailPage() {
                   ? "bg-secondary text-white"
                   : status === "FROZEN"
                   ? "bg-tertiary text-white"
+                  : status === "EXPIRED"
+                  ? "bg-rose-500 text-white"
                   : "bg-error text-white"
               }`}
             >
-              {status === "ACTIVE" ? t("active") : status === "FROZEN" ? t("frozen") : t("banned")}
+              {status === "ACTIVE" ? t("active") : status === "FROZEN" ? t("frozen") : status === "EXPIRED" ? "EXPIRED" : t("banned")}
             </div>
           </div>
 

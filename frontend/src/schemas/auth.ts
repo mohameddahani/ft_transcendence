@@ -99,3 +99,56 @@ export const memberLoginSchema = z.object({
 });
 
 export type MemberLoginFormValues = z.infer<typeof memberLoginSchema>;
+
+// Password rule that matches the Register and Backend validation rules
+export const passwordRule = z
+  .string()
+  .trim()
+  .min(8, "Password must be at least 8 characters")
+  .max(64, "Password cannot exceed 64 characters")
+  .regex(/[A-Z]/, "Password must include at least one uppercase letter")
+  .regex(/[a-z]/, "Password must include at least one lowercase letter")
+  .regex(/[0-9]/, "Password must include at least one number")
+  .regex(
+    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+    "Password must include at least one special character"
+  )
+  .refine((val) => !/\s/.test(val), "Password cannot contain spaces");
+
+// Set Password Schema (Password + Confirmation)
+export const setPasswordSchema = z
+  .object({
+    password: passwordRule,
+    confirmPassword: z.string().trim().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type SetPasswordFormValues = z.infer<typeof setPasswordSchema>;
+
+// Reset Password Schema (Identical structure for password reset)
+export const resetPasswordSchema = setPasswordSchema;
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+// Forgot Password Schemas
+export const forgotPasswordAdminSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address"),
+});
+export type ForgotPasswordAdminFormValues = z.infer<typeof forgotPasswordAdminSchema>;
+
+export const forgotPasswordUsernameSchema = z.object({
+  userName: z
+    .string()
+    .trim()
+    .min(1, "Username is required")
+    .min(2, "Username must be at least 2 characters"),
+});
+export type ForgotPasswordUsernameFormValues = z.infer<typeof forgotPasswordUsernameSchema>;
+
+

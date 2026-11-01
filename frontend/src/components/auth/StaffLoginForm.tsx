@@ -211,12 +211,20 @@ export default function StaffLoginForm() {
 
             {/* Password Field */}
             <div className="space-y-1.5">
-              <label
-                className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                htmlFor="password"
-              >
-                {t("password", "Password")}
-              </label>
+              <div className="flex justify-between items-center">
+                <label
+                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
+                  htmlFor="password"
+                >
+                  {t("password", "Password")}
+                </label>
+                <Link
+                  href="/staff/forgot-password"
+                  className="text-xs font-semibold text-primary hover:underline transition-all"
+                >
+                  {t("forgotPassword", "Forgot password?")}
+                </Link>
+              </div>
               <div className="relative">
                 <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
                   <Lock className="w-5 h-5" />
