@@ -293,23 +293,21 @@ export class MembersService {
         );
       }
 
-      // * Check Membership Before update
-      const membership = await this.prisma.membership.findFirst({
+      // * Check if member currently has an active membership
+      const activeMembership = await this.prisma.membership.findFirst({
         where: {
-          adminId: adminId,
-          memberId: memberId,
+          adminId,
+          memberId,
           membershipStatus: MembershipStatus.ACTIVE,
         },
       });
-      if (!membership) {
-        throw new NotFoundException('Membership Not Found!');
-      }
 
       // * Check if the new membership is duplicate or already active
       if (
-        data.membershipPlanId === membership.membershipPlanId &&
-        data.membershipPlanDurationId === membership.membershipPlanDurationId &&
-        membership.membershipStatus === MembershipStatus.ACTIVE
+        activeMembership &&
+        data.membershipPlanId === activeMembership.membershipPlanId &&
+        data.membershipPlanDurationId ===
+          activeMembership.membershipPlanDurationId
       ) {
         throw new ConflictException(
           'This member already has an active membership with the same plan and duration.',
@@ -342,22 +340,24 @@ export class MembersService {
         });
 
         // * Expire old membership only if it is still ACTIVE
-        const { count } = await tx.membership.updateMany({
-          where: {
-            id: membership.id,
-            adminId,
-            memberId,
-            membershipStatus: MembershipStatus.ACTIVE,
-          },
-          data: {
-            membershipStatus: MembershipStatus.EXPIRED,
-          },
-        });
+        if (activeMembership) {
+          const { count } = await tx.membership.updateMany({
+            where: {
+              id: activeMembership.id,
+              adminId,
+              memberId,
+              membershipStatus: MembershipStatus.ACTIVE,
+            },
+            data: {
+              membershipStatus: MembershipStatus.EXPIRED,
+            },
+          });
 
-        if (count !== 1) {
-          throw new ConflictException(
-            'Membership was already updated by another request.',
-          );
+          if (count !== 1) {
+            throw new ConflictException(
+              'Membership was already updated by another request.',
+            );
+          }
         }
 
         // * Add new Membership to member
