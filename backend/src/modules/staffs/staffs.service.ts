@@ -24,6 +24,7 @@ import {
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
 import { AccessesService } from '@/core/access/access.service';
+import { isAfter, subYears } from 'date-fns';
 
 @Injectable()
 export class StaffsService {
@@ -55,6 +56,15 @@ export class StaffsService {
       if (existingStaff.phoneNumber === data.phoneNumber) {
         throw new UnauthorizedException('Phone number already exists');
       }
+    }
+
+    // * Check if staff >= 18 years old
+    const minimumBirthDate = subYears(new Date(), 18);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'The Staff must be at least 18 years old to add.',
+      );
     }
 
     // * Genarate a userName
@@ -159,6 +169,17 @@ export class StaffsService {
       if (existingData.phoneNumber === data.phoneNumber) {
         // * 409 = duplicate data
         throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if staff >= 18 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 18);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException(
+          'The Staff must be at least 18 years old to add.',
+        );
       }
     }
 

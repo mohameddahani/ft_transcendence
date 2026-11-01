@@ -31,6 +31,7 @@ import { EmailService } from '@/infrastructure/email/email.service';
 import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
 import { RequestEmailChangeMemberDto } from './dtos/request-email-change-member.dto';
 import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
+import { isAfter, subYears } from 'date-fns';
 
 @Injectable()
 export class ProfilesService {
@@ -79,6 +80,15 @@ export class ProfilesService {
 
       if (existingPhoneNumber) {
         throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if user >= 18 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 18);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException('You must be at least 18 years old.');
       }
     }
 

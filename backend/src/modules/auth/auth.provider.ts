@@ -39,6 +39,7 @@ import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { isAfter, subYears } from 'date-fns';
 
 @Injectable()
 export class AuthProvider {
@@ -66,6 +67,15 @@ export class AuthProvider {
       if (existingUser.phoneNumber === data.phoneNumber) {
         throw new UnauthorizedException('Phone number already exists');
       }
+    }
+
+    // * Check if user >= 18 years old
+    const minimumBirthDate = subYears(new Date(), 18);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'You must be at least 18 years old to register.',
+      );
     }
 
     // * Check if user accept the terms

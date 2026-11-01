@@ -22,7 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { addDays } from 'date-fns';
+import { addDays, isAfter, subYears } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
@@ -77,6 +77,15 @@ export class MembersService {
       if (existingMember.phoneNumber === data.phoneNumber) {
         throw new ConflictException('Phone number already exists');
       }
+    }
+
+    // * Check if member >= 13 years old
+    const minimumBirthDate = subYears(new Date(), 13);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'The Member must be at least 18 years old to add.',
+      );
     }
 
     // * Genarate a userName
@@ -248,6 +257,17 @@ export class MembersService {
       if (existingData.phoneNumber === data.phoneNumber) {
         // * 409 = duplicate data
         throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if member >= 13 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 13);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException(
+          'The Member must be at least 18 years old to add.',
+        );
       }
     }
 
