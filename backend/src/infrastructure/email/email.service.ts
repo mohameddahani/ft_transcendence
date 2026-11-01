@@ -1,21 +1,14 @@
-import {
-  Inject,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
-
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-
-import { Resend } from 'resend';
-
 import {
   verificationEmailTemplate,
   resetPasswordEmailTemplate,
   setPasswordEmailTemplate,
+  emailChangeTemplate,
 } from './templates';
-
-import { RESEND } from './email.provider';
 import { EmailTemplateConfig } from '@/core/types/email-template.config.type';
+import { EMAIL_SENDER } from '@/core/constants/email.constants';
+import type { EmailSender } from '@/core/interfaces/email-sender.interface';
 
 @Injectable()
 export class EmailService {
@@ -25,19 +18,25 @@ export class EmailService {
   private readonly templateConfig: EmailTemplateConfig;
 
   constructor(
-    @Inject(RESEND)
-    private readonly resend: Resend,
+    @Inject(EMAIL_SENDER)
+    private readonly emailSender: EmailSender,
 
     private readonly config: ConfigService,
   ) {
     this.frontendUrl = this.config.getOrThrow<string>('FRONTEND_URL');
 
-    this.mailFrom = this.config.getOrThrow<string>('MAIL_FROM');
+    this.mailFrom =
+      config.getOrThrow<string>('NODE_ENV') === 'production'
+        ? this.config.getOrThrow<string>('MAIL_FROM')
+        : this.config.getOrThrow<string>('NODE_MAIL_FROM');
 
     this.templateConfig = {
       appName: this.config.getOrThrow<string>('APP_NAME'),
 
-      supportEmail: this.config.getOrThrow<string>('SUPPORT_EMAIL'),
+      supportEmail:
+        config.getOrThrow<string>('NODE_ENV') === 'production'
+          ? this.config.getOrThrow<string>('SUPPORT_EMAIL')
+          : this.config.getOrThrow<string>('NODE_SUPPORT_EMAIL'),
 
       verificationExpiresIn: this.config.getOrThrow<string>(
         'EMAIL_VERIFICATION_TOKEN_EXPIRES_IN',
@@ -49,6 +48,9 @@ export class EmailService {
 
       setPasswordExpiresIn: this.config.getOrThrow<string>(
         'SET_PASSWORD_TOKEN_EXPIRES_IN',
+      ),
+      emailChangeExpiresIn: this.config.getOrThrow<string>(
+        'EMAIL_CHANGE_TOKEN_EXPIRES_IN',
       ),
     };
   }
@@ -62,7 +64,7 @@ export class EmailService {
   async sendVerificationEmail(email: string, token: string) {
     const link = `${this.frontendUrl}/email-verification#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -71,18 +73,12 @@ export class EmailService {
 
       html: verificationEmailTemplate(link, this.templateConfig),
     });
-
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send verification email.',
-      );
-    }
   }
 
   async sendResetPasswordEmail(email: string, token: string) {
     const link = `${this.frontendUrl}/reset-password#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -91,12 +87,20 @@ export class EmailService {
 
       html: resetPasswordEmailTemplate(link, this.templateConfig),
     });
+  }
 
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send password reset email.',
-      );
-    }
+  async sendEmailChangeVerification(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    await this.emailSender.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
+    });
   }
 
   /* 
@@ -112,7 +116,7 @@ export class EmailService {
   ) {
     const link = `${this.frontendUrl}/members/set-password#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -121,18 +125,12 @@ export class EmailService {
 
       html: setPasswordEmailTemplate(link, username, this.templateConfig),
     });
-
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send set password email.',
-      );
-    }
   }
 
   async sendResetPasswordMemberEmail(email: string, token: string) {
     const link = `${this.frontendUrl}/members/reset-password#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -141,12 +139,20 @@ export class EmailService {
 
       html: resetPasswordEmailTemplate(link, this.templateConfig),
     });
+  }
 
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send password reset email.',
-      );
-    }
+  async sendEmailChangeVerificationMember(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    await this.emailSender.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
+    });
   }
 
   /* 
@@ -162,7 +168,7 @@ export class EmailService {
   ) {
     const link = `${this.frontendUrl}/staffs/set-password#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -171,18 +177,12 @@ export class EmailService {
 
       html: setPasswordEmailTemplate(link, username, this.templateConfig),
     });
-
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send set password email.',
-      );
-    }
   }
 
   async sendResetPasswordStaffEmail(email: string, token: string) {
     const link = `${this.frontendUrl}/staffs/reset-password#token=${token}`;
 
-    const { error } = await this.resend.emails.send({
+    await this.emailSender.send({
       from: this.mailFrom,
 
       to: email,
@@ -191,11 +191,19 @@ export class EmailService {
 
       html: resetPasswordEmailTemplate(link, this.templateConfig),
     });
+  }
 
-    if (error) {
-      throw new InternalServerErrorException(
-        'Failed to send password reset email.',
-      );
-    }
+  async sendEmailChangeVerificationStaff(email: string, token: string) {
+    const link = `${this.frontendUrl}/email-change#token=${token}`;
+
+    await this.emailSender.send({
+      from: this.mailFrom,
+
+      to: email,
+
+      subject: `Verify your new email | ${this.templateConfig.appName}`,
+
+      html: emailChangeTemplate(link, this.templateConfig),
+    });
   }
 }

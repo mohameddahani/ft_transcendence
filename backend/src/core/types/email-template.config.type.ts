@@ -5,4 +5,5 @@ export type EmailTemplateConfig = {
   verificationExpiresIn: string;
   resetPasswordExpiresIn: string;
   setPasswordExpiresIn: string;
+  emailChangeExpiresIn: string;
 };

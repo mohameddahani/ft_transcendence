@@ -21,6 +21,7 @@ import { Roles } from '@/core/decorators/user-role.decorator';
 import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { fileTypeFromBuffer } from 'file-type';
+import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
 
 @Controller('/api/users/owners')
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
@@ -51,6 +52,16 @@ export class OwnerProfilesController {
     @Body() body: UpdateProfileUserDto,
   ) {
     return this.profilesService.update(accessTokenPayload.id, body);
+  }
+
+  // * Request email change
+  @Post('email-change')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  requestEmailChange(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: RequestEmailChangeUserDto,
+  ) {
+    return this.profilesService.requestEmailChange(accessTokenPayload.id, body);
   }
 
   // * Upload profile image

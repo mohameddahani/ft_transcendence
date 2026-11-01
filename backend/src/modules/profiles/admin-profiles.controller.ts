@@ -23,6 +23,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 // * Side-effect import
 import 'multer'; // * Load/execute the Multer module, but don't give me any exported value to use.
 import { fileTypeFromBuffer } from 'file-type';
+import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
 
 @Controller('/api/users/admins')
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
@@ -53,6 +54,16 @@ export class AdminProfilesController {
     @Body() body: UpdateProfileUserDto,
   ) {
     return this.profilesService.update(accessTokenPayload.id, body);
+  }
+
+  // * Request email change
+  @Post('email-change')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  requestEmailChange(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: RequestEmailChangeUserDto,
+  ) {
+    return this.profilesService.requestEmailChange(accessTokenPayload.id, body);
   }
 
   // * Upload profile image

@@ -68,6 +68,7 @@ enum ActionTokenType {
   EMAIL_VERIFICATION
   RESET_PASSWORD
   SET_PASSWORD
+  EMAIL_CHANGE
 }
 
 // * this enum had Attendance Method Type
@@ -222,7 +223,7 @@ model Staff {
   gender      Gender
   birthDate   DateTime @map("birth_date")
   userName    String   @unique @map("user_name")
-  email       String   @unique
+  email       String
   password    String?
   phoneNumber String   @unique @map("phone_number")
   companyName String   @map("company_name")
@@ -248,6 +249,7 @@ model Staff {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@unique([adminId, email])
   @@index([firstName, lastName])
   @@index([role])
   @@map("staffs")
@@ -718,10 +720,11 @@ model UserActionToken {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
-  tokenHash String          @unique @map("token_hash")
-  type      ActionTokenType
-  expiresAt DateTime        @map("expires_at")
-  usedAt    DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -737,10 +740,11 @@ model StaffActionToken {
   StaffId String @map("staff_id")
   staff   Staff  @relation(fields: [StaffId], references: [id])
 
-  tokenHash String          @unique @map("token_hash")
-  type      ActionTokenType
-  expiresAt DateTime        @map("expires_at")
-  usedAt    DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -756,10 +760,11 @@ model MemberActionToken {
   memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  tokenHash String          @unique @map("token_hash")
-  type      ActionTokenType
-  expiresAt DateTime        @map("expires_at")
-  usedAt    DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

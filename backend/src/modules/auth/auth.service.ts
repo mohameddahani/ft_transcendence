@@ -63,6 +63,11 @@ export class AuthService {
     return this.authProvider.resetPasswordStaff(rawToken, password);
   }
 
+  // * Email Change (Staff)
+  emailChangeStaff(rawToken: string) {
+    return this.authProvider.emailChangeStaff(rawToken);
+  }
+
   // * Login Member
   loginMember(request: Request, data: LoginMemberDto) {
     return this.authProvider.loginMember(request, data);
@@ -127,6 +132,11 @@ export class AuthService {
     return this.authProvider.resetPassword(rawToken, password);
   }
 
+  // * Email Change
+  emailChange(rawToken: string) {
+    return this.authProvider.emailChange(rawToken);
+  }
+
   // * Forgot password (Member)
   forgotPasswordMember(username: string) {
     return this.authProvider.forgotPasswordMember(username);
@@ -135,5 +145,10 @@ export class AuthService {
   // * Password reset (Member)
   resetPasswordMember(rawToken: string, password: string) {
     return this.authProvider.resetPasswordMember(rawToken, password);
+  }
+
+  // * Email Change (Member)
+  emailChangeMember(rawToken: string) {
+    return this.authProvider.emailChangeMember(rawToken);
   }
 }

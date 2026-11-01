@@ -5,6 +5,7 @@ import { OwnerProfilesController } from './owner-profiles.controller';
 import { MemberProfilesController } from './member-profiles.controller';
 import { CloudinaryModule } from '@/infrastructure/cloudinary/cloudinary.module';
 import { StaffProfilesController } from './staff-profiles.controller';
+import { EmailModule } from '@/infrastructure/email/email.module';
 
 @Module({
   controllers: [
@@ -16,6 +17,7 @@ import { StaffProfilesController } from './staff-profiles.controller';
   providers: [ProfilesService],
   imports: [
     CloudinaryModule, // * Import to upload files to Cloudinary
+    EmailModule,
   ],
   exports: [],
 })

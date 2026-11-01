@@ -21,6 +21,7 @@ import { Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { fileTypeFromBuffer } from 'file-type';
 import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
+import { RequestEmailChangeMemberDto } from './dtos/request-email-change-member.dto';
 
 @Controller('/api/users/members')
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
@@ -53,6 +54,19 @@ export class MemberProfilesController {
     @Body() body: UpdateProfileMemberDto,
   ) {
     return this.profilesService.updateProfileMember(
+      accessTokenPayload.id,
+      body,
+    );
+  }
+
+  // * Request email change
+  @Post('email-change')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  requestEmailChangeMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Body() body: RequestEmailChangeMemberDto,
+  ) {
+    return this.profilesService.requestEmailChangeMember(
       accessTokenPayload.id,
       body,
     );
