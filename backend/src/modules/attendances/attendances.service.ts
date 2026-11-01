@@ -2,6 +2,7 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { MembershipWithPlan } from '@/core/types/membership-with-plan.type';
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -340,14 +341,23 @@ export class AttendancesService {
       }
 
       // * Update visit status
-      await tx.visit.update({
+      const { count } = await tx.visit.updateMany({
         where: {
           id: visit.id,
+          adminId: adminId,
+          memberId: memberId,
+          visitStatus: VisitStatus.READY,
         },
         data: {
           visitStatus: VisitStatus.CHECKED_IN,
         },
       });
+
+      if (count !== 1) {
+        throw new ConflictException(
+          'Visit is no longer available for check-in.',
+        );
+      }
 
       // * Create attendance
       await tx.attendance.create({
