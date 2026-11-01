@@ -11,6 +11,7 @@ import {
   IsAlpha,
   IsOptional,
   IsEthereumAddress,
+  IsNotEmpty,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { IsValidPassword } from '@/core/utils/password.validator';
@@ -99,6 +100,8 @@ export class RegisterUserDto {
   // ! BLOCK_CHAINE
   // * Optional blockchain wallet address.
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   @IsEthereumAddress()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,

@@ -2,7 +2,7 @@ import { IsValidPassword } from '@/core/utils/password.validator';
 import { AddMemberDto } from '@/modules/members/dtos/add-member.dto';
 import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, Validate } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, Validate } from 'class-validator';
 
 export class UpdateProfileMemberDto extends PartialType(
   PickType(AddMemberDto, [
@@ -16,6 +16,7 @@ export class UpdateProfileMemberDto extends PartialType(
 ) {
   // * Password
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Validate(IsValidPassword)
   @Transform(({ value }): string =>
@@ -26,6 +27,7 @@ export class UpdateProfileMemberDto extends PartialType(
 
   // * Current Password
   @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,

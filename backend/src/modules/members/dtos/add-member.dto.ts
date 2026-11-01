@@ -10,6 +10,7 @@ import {
   IsAlpha,
   IsOptional,
   IsEthereumAddress,
+  IsNotEmpty,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { Gender } from '@/generated/prisma/enums';
@@ -101,6 +102,8 @@ export class AddMemberDto {
   // ! BLOCK_CHAINE
   // * Optional blockchain wallet address.
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
   @IsEthereumAddress()
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
