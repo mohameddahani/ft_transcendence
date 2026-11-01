@@ -134,11 +134,10 @@ def my_membership(user: User) -> dict:
 # returns the user's own last 12 payments
 def my_payments(user: User) -> dict:
     rows = db.fetch_all("""
-        SELECT amount AS amount_mad, payment_status AS status,
-               paid_at::date AS paid_on, due_date::date AS due_on
+        SELECT amount AS amount_mad, paid_at::date AS paid_on
         FROM payments
         WHERE member_id = %s
-        ORDER BY coalesce(paid_at, due_date) DESC
+        ORDER BY paid_at DESC
         LIMIT 12""", (user.id,))
     return {"payments": rows}
 
@@ -229,7 +228,9 @@ TOOLS = {
         "roles": ["MEMBER"],
     },
     "my_payments": {
-        "description": "The user's own last 12 payments.",
+        "description": "The user's own last 12 payments: amount and date. Each one was paid when a "
+                       "membership was bought or renewed. For questions about owing money or being up "
+                       "to date, call it together with my_membership.",
         "parameters": NO_PARAMS,
         "function": my_payments,
         "roles": ["MEMBER"],

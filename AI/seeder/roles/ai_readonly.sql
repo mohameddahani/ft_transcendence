@@ -32,7 +32,7 @@ GRANT SELECT (
 ) ON members TO ai_readonly;
 
 GRANT SELECT (
-    id, company_name, role
+    id, company_name, role, account_status
 ) ON users TO ai_readonly;
 
 GRANT SELECT (
