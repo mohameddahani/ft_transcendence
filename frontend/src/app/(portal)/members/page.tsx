@@ -134,9 +134,16 @@ export default function MembershipsPage() {
         email.includes(query) ||
         username.includes(query);
 
-      // Status check
-      const currentStatus = (member.accountStatus || member.status || "ACTIVE").toUpperCase();
-      const matchesStatus = !selectedStatus || currentStatus === selectedStatus.toUpperCase();
+      // Status check (check first membership's status or accountStatus)
+      const membershipStatus = member.memberships?.[0]?.membershipStatus;
+      const effectiveStatus = (
+        member.accountStatus === "BANNED"
+          ? "BANNED"
+          : member.accountStatus === "FROZEN"
+          ? "FROZEN"
+          : membershipStatus || member.accountStatus || "ACTIVE"
+      ).toUpperCase();
+      const matchesStatus = !selectedStatus || effectiveStatus === selectedStatus.toUpperCase();
 
       // Plan check
       const memberPlanId = member.memberships?.[0]?.membershipPlanId;
@@ -154,16 +161,16 @@ export default function MembershipsPage() {
     return filteredMembers.slice(start, start + pageSize);
   }, [filteredMembers, currentPage, pageSize]);
 
-  // Statistics calculation
+  // Statistics calculation based on backend structure
   const totalCount = members.length;
   const activeCount = members.filter(
-    (m) => (m.accountStatus || m.status || "ACTIVE").toUpperCase() === "ACTIVE"
+    (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
   ).length;
   const frozenCount = members.filter(
-    (m) => (m.accountStatus || m.status || "").toUpperCase() === "FROZEN"
+    (m) => (m.accountStatus || "").toUpperCase() === "FROZEN"
   ).length;
   const bannedCount = members.filter(
-    (m) => (m.accountStatus || m.status || "").toUpperCase() === "BANNED"
+    (m) => (m.accountStatus || "").toUpperCase() === "BANNED"
   ).length;
 
   // Status Action Handlers
@@ -268,8 +275,14 @@ export default function MembershipsPage() {
       m.email || "",
       m.phoneNumber || "",
       `"${(m.address || "").replace(/"/g, '""')}"`,
-      m.accountStatus || m.status || "ACTIVE",
-      m.memberships?.[0]?.membershipPlan?.planName || "None",
+      m.accountStatus === "BANNED"
+        ? "BANNED"
+        : m.accountStatus === "FROZEN"
+        ? "FROZEN"
+        : m.memberships?.[0]?.membershipStatus || m.accountStatus || "ACTIVE",
+      m.memberships?.[0]?.membershipPlan?.planName ||
+        plans.find((p) => p.id === m.memberships?.[0]?.membershipPlanId)?.planName ||
+        "None",
       m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "",
     ]);
 
@@ -480,7 +493,14 @@ export default function MembershipsPage() {
                     ? `${durationDays} Days`
                     : activeMembership?.membershipPlanDuration?.duration || "Monthly";
 
-                  const status = (member.accountStatus || member.status || "ACTIVE").toUpperCase();
+                  const membershipStatus = activeMembership?.membershipStatus;
+                  const status = (
+                    member.accountStatus === "BANNED"
+                      ? "BANNED"
+                      : member.accountStatus === "FROZEN"
+                      ? "FROZEN"
+                      : membershipStatus || member.accountStatus || "ACTIVE"
+                  ).toUpperCase();
 
                   const startDate = activeMembership?.startDate
                     ? new Date(activeMembership.startDate).toLocaleDateString()
@@ -549,7 +569,9 @@ export default function MembershipsPage() {
                             status === "ACTIVE"
                               ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
                               : status === "FROZEN"
-                              ? "bg-tertiary-fixed/30 text-on-tertiary-fixed-variant border-tertiary-fixed/50"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                              : status === "EXPIRED"
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
                               : "bg-error-container/30 text-error border-error-container/40"
                           }`}
                         >

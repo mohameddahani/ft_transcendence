@@ -55,3 +55,40 @@ export async function deleteStaffProfileImage(): Promise<void> {
   await api.delete(url);
 }
 
+/**
+ * Request email change for Admin / Owner
+ */
+export async function requestEmailChangeAdmin(data: {
+  email: string;
+  currentPassword: string;
+}): Promise<{ message: string }> {
+  const url = getApiEndpoint("/api/users/admins/email-change");
+  const response = await api.post<{ message: string }>(url, data);
+  return response.data;
+}
+
+/**
+ * Request email change for Staff
+ */
+export async function requestEmailChangeStaff(data: {
+  email: string;
+  currentPassword: string;
+}): Promise<{ message: string }> {
+  const url = getApiEndpoint("/api/users/staffs/email-change");
+  const response = await api.post<{ message: string }>(url, data);
+  return response.data;
+}
+
+/**
+ * Request email change for Member
+ */
+export async function requestEmailChangeMember(data: {
+  email: string;
+  currentPassword: string;
+}): Promise<{ message: string }> {
+  const url = getApiEndpoint("/api/users/members/email-change");
+  const response = await api.post<{ message: string }>(url, data);
+  return response.data;
+}
+
+

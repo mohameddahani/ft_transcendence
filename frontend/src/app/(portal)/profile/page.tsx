@@ -48,6 +48,8 @@ import {
 } from "@/schemas/profile";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberProfileView from "@/components/profile/MemberProfileView";
+import EmailChangeSection from "@/components/profile/EmailChangeSection";
+
 
 const syncAdminLocalStorage = (data: AdminProfile) => {
   try {
@@ -715,6 +717,14 @@ function AdminStaffProfileView() {
               </div>
             </div>
           </div>
+
+          {/* Email Change Section for Staff */}
+          <div className="md:col-span-2">
+            <EmailChangeSection
+              role="staff"
+              currentEmail={staffProfile.email || ""}
+            />
+          </div>
         </div>
       </div>
     );
@@ -989,28 +999,25 @@ function AdminStaffProfileView() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Email */}
             <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("emailAddress", "Email Address")} <span className="text-error">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-on-surface">
+                  {t("emailAddress", "Email Address")} <span className="text-error">*</span>
+                </label>
+                <span className="text-[10px] text-primary font-medium">
+                  {t("changeEmailViaSection", "See Email Change section below")}
+                </span>
+              </div>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
                 <input
                   type="email"
                   {...register("email")}
-                  placeholder="e.g. alex.sterling@enterprise-fit.com"
-                  className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
-                    errors.email
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant focus:ring-primary-container"
-                  } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
+                  readOnly
+                  disabled
+                  title={t("useEmailChangeSection", "Use the dedicated Email Change section below to update your email")}
+                  className="w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-high/60 border border-outline-variant/60 rounded-xl text-sm text-on-surface opacity-80 cursor-not-allowed outline-none"
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.email.message}</span>
-                </p>
-              )}
             </div>
 
             {/* Phone Number */}
@@ -1212,6 +1219,12 @@ function AdminStaffProfileView() {
           </button>
         </div>
       </form>
+
+      {/* Section: Email Change for Administrator (Separated from main settings form) */}
+      <EmailChangeSection
+        role="admin"
+        currentEmail={profile?.email || ""}
+      />
     </div>
   );
 }
