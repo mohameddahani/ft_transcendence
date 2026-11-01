@@ -13,8 +13,6 @@ import {
   X,
   Receipt,
   User,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   CheckCircle2,
   Eye,
@@ -26,12 +24,22 @@ import { fetchPayments } from "@/lib/api/payments";
 import { BackendPayment } from "@/types/payment";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
+import Pagination from "@/components/ui/Pagination";
+
+function getEffectivePaymentStatus(p: BackendPayment): string {
+  if (p.paymentStatus) return p.paymentStatus.toUpperCase();
+  if (p.paidAt) return "PAID";
+  if (p.dueDate && new Date(p.dueDate).getTime() < Date.now()) return "OVERDUE";
+  return "PENDING";
+}
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
   const { companyName } = useCurrentUser();
   const [payments, setPayments] = useState<BackendPayment[]>([]);
+  const [pagedPayments, setPagedPayments] = useState<BackendPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,8 +53,13 @@ export default function PaymentsPage() {
   const loadPayments = async () => {
     setIsLoading(true);
     try {
-      const data = await fetchPayments(1, 100);
-      setPayments(data);
+      const [fullList, initialPage] = await Promise.all([
+        fetchPayments(1, 1000),
+        fetchPayments(1, pageSize),
+      ]);
+      setPayments(fullList);
+      setPagedPayments(initialPage);
+      setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -62,6 +75,22 @@ export default function PaymentsPage() {
     loadPayments();
   }, []);
 
+  // Handle page changes with explicit API calls
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    if (!searchTerm && statusFilter === "ALL") {
+      setIsPageLoading(true);
+      try {
+        const pageData = await fetchPayments(newPage, pageSize);
+        setPagedPayments(pageData);
+      } catch {
+        // fail gracefully
+      } finally {
+        setIsPageLoading(false);
+      }
+    }
+  };
+
   // Close side panel with Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -74,6 +103,7 @@ export default function PaymentsPage() {
   }, []);
 
   // Filtered Payments
+  const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
       const member = payment.member;
@@ -87,7 +117,7 @@ export default function PaymentsPage() {
         email.includes(query) ||
         invoiceId.includes(query);
 
-      const status = (payment.paymentStatus || "PAID").toUpperCase();
+      const status = getEffectivePaymentStatus(payment);
       const matchesStatus =
         statusFilter === "ALL" || status === statusFilter.toUpperCase();
 
@@ -96,24 +126,27 @@ export default function PaymentsPage() {
   }, [payments, searchTerm, statusFilter]);
 
   // Pagination
-  const totalItems = filteredPayments.length;
+  const totalItems = isFiltering ? filteredPayments.length : payments.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedPayments = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredPayments.slice(start, start + pageSize);
-  }, [filteredPayments, currentPage, pageSize]);
+    if (isFiltering) {
+      const start = (currentPage - 1) * pageSize;
+      return filteredPayments.slice(start, start + pageSize);
+    }
+    return pagedPayments;
+  }, [isFiltering, filteredPayments, pagedPayments, currentPage, pageSize]);
 
   // Statistics Calculation
   const totalCollected = useMemo(() => {
     return payments
-      .filter((p) => (p.paymentStatus || "").toUpperCase() === "PAID")
+      .filter((p) => getEffectivePaymentStatus(p) === "PAID")
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
   }, [payments]);
 
   const outstandingTotal = useMemo(() => {
     return payments
       .filter((p) => {
-        const s = (p.paymentStatus || "").toUpperCase();
+        const s = getEffectivePaymentStatus(p);
         return s === "PENDING" || s === "UNPAID" || s === "PARTIAL";
       })
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
@@ -121,15 +154,16 @@ export default function PaymentsPage() {
 
   const pendingCount = useMemo(() => {
     return payments.filter((p) => {
-      const s = (p.paymentStatus || "").toUpperCase();
+      const s = getEffectivePaymentStatus(p);
       return s === "PENDING" || s === "UNPAID" || s === "PARTIAL";
     }).length;
   }, [payments]);
 
   const overdueCount = useMemo(() => {
-    return payments.filter(
-      (p) => (p.paymentStatus || "").toUpperCase() === "OVERDUE"
-    ).length;
+    return payments.filter((p) => {
+      const s = getEffectivePaymentStatus(p);
+      return s === "OVERDUE" || s === "FAILED";
+    }).length;
   }, [payments]);
 
   // Export to CSV
@@ -145,7 +179,6 @@ export default function PaymentsPage() {
       "Member Email",
       "Amount ($)",
       "Status",
-      "Due Date",
       "Paid Date",
       "Created At",
     ];
@@ -155,8 +188,7 @@ export default function PaymentsPage() {
       `"${(p.member?.firstName || "") + " " + (p.member?.lastName || "")}"`,
       p.member?.email || "",
       Number(p.amount || 0).toFixed(2),
-      p.paymentStatus || "PAID",
-      p.dueDate ? new Date(p.dueDate).toLocaleDateString() : "—",
+      getEffectivePaymentStatus(p),
       p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "—",
       new Date(p.createdAt).toLocaleDateString(),
     ]);
@@ -189,7 +221,7 @@ export default function PaymentsPage() {
 ========================================
 Invoice Number : #INV-${payment.id.slice(0, 8)}
 Date Issued    : ${new Date(payment.createdAt).toLocaleDateString()}
-Payment Status : ${(payment.paymentStatus || "PAID").toUpperCase()}
+Payment Status : ${getEffectivePaymentStatus(payment)}
 Amount Due     : $${Number(payment.amount).toFixed(2)}
 Paid At        : ${payment.paidAt ? new Date(payment.paidAt).toLocaleDateString() : "Pending"}
 Due Date       : ${payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : "N/A"}
@@ -390,9 +422,6 @@ Thank you for training with ${companyName || "us"}!
                     {t("amount")}
                   </th>
                   <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("expiryDate")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
                     {t("paymentDate")}
                   </th>
                   <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
@@ -404,19 +433,16 @@ Thank you for training with ${companyName || "us"}!
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/60">
-                {paginatedPayments.map((payment) => {
+                {
+                paginatedPayments.map((payment) => {
                   const member = payment.member;
                   const memberName = `${member?.firstName || ""} ${member?.lastName || ""}`.trim() || member?.userName || t("member");
                   const memberInitials = ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() || "M";
                   const avatarUrl = member?.profileImageUrl || member?.photo;
                   const hasPhoto = avatarUrl && !avatarUrl.includes("default-");
 
-                  const status = (payment.paymentStatus || "PAID").toUpperCase();
-                  const isOverdue = status === "OVERDUE";
-
-                  const dueDateStr = payment.dueDate
-                    ? new Date(payment.dueDate).toLocaleDateString()
-                    : "—";
+                  const status = getEffectivePaymentStatus(payment);
+                  const isOverdue = status === "OVERDUE" || status === "FAILED";
 
                   const paidDateStr = payment.paidAt
                     ? new Date(payment.paidAt).toLocaleDateString()
@@ -458,15 +484,6 @@ Thank you for training with ${companyName || "us"}!
                       {/* Amount */}
                       <td className="px-6 py-4 font-headline text-sm font-bold text-on-surface">
                         ${Number(payment.amount).toFixed(2)}
-                      </td>
-
-                      {/* Due Date */}
-                      <td
-                        className={`px-6 py-4 text-xs font-semibold ${
-                          isOverdue ? "text-error" : "text-on-surface-variant"
-                        }`}
-                      >
-                        {dueDateStr}
                       </td>
 
                       {/* Paid Date */}
@@ -514,54 +531,16 @@ Thank you for training with ${companyName || "us"}!
         )}
 
         {/* Pagination Footer */}
-        {filteredPayments.length > 0 && (
-          <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-bright border-t border-outline-variant">
-            <span className="text-xs text-on-surface-variant">
-              {t("showing")}{" "}
-              <span className="font-bold text-on-surface">
-                {Math.min((currentPage - 1) * pageSize + 1, totalItems)} -{" "}
-                {Math.min(currentPage * pageSize, totalItems)}
-              </span>{" "}
-              {t("of")} <span className="font-bold text-on-surface">{totalItems}</span>
-            </span>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === page
-                        ? "bg-primary text-white shadow-xs"
-                        : "border border-outline-variant hover:bg-surface-container text-on-surface-variant"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-            </div>
-          </div>
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            isLoading={isPageLoading}
+            itemLabel={t("payments") || "payments"}
+          />
         )}
       </div>
 
@@ -655,14 +634,18 @@ Thank you for training with ${companyName || "us"}!
                   <span className="text-xs font-medium text-on-surface">{t("status")}</span>
                   <span
                     className={`px-3 py-1 text-[11px] font-bold uppercase rounded-full border ${
-                      (selectedPayment.paymentStatus || "").toUpperCase() === "PAID"
+                      getEffectivePaymentStatus(selectedPayment) === "PAID"
                         ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
-                        : (selectedPayment.paymentStatus || "").toUpperCase() === "OVERDUE"
+                        : getEffectivePaymentStatus(selectedPayment) === "OVERDUE"
                         ? "bg-error-container/30 text-error border-error-container/40"
                         : "bg-amber-100 text-amber-800 border-amber-200"
                     }`}
                   >
-                    {(selectedPayment.paymentStatus || "").toUpperCase() === "PAID" ? t("paid") : (selectedPayment.paymentStatus || "").toUpperCase() === "PENDING" ? t("pending") : selectedPayment.paymentStatus || t("paid")}
+                    {getEffectivePaymentStatus(selectedPayment) === "PAID"
+                      ? t("paid")
+                      : getEffectivePaymentStatus(selectedPayment) === "PENDING"
+                      ? t("pending")
+                      : getEffectivePaymentStatus(selectedPayment)}
                   </span>
                 </div>
               </section>

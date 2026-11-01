@@ -14,17 +14,13 @@ import {
   Eye,
   Edit,
   ShieldCheck,
-  PauseCircle,
   Ban,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import {
   fetchMembers,
   activeMember,
-  freezeMember,
   banMember,
 } from "@/lib/api/members";
 import { fetchMembershipPlans } from "@/lib/api/membership-plans";
@@ -32,13 +28,16 @@ import { BackendMember } from "@/types/member";
 import { MembershipPlan } from "@/types/membership-plan";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import EditMemberModal from "@/components/members/EditMemberModal";
+import Pagination from "@/components/ui/Pagination";
 import { useTranslation } from "react-i18next";
 
 export default function MembershipsPage() {
   const { t } = useTranslation();
   const [members, setMembers] = useState<BackendMember[]>([]);
+  const [pagedMembers, setPagedMembers] = useState<BackendMember[]>([]);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState("");
@@ -69,12 +68,15 @@ export default function MembershipsPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [membersData, plansData] = await Promise.all([
-        fetchMembers(1, 100),
+      const [membersData, initialPage, plansData] = await Promise.all([
+        fetchMembers(1, 1000),
+        fetchMembers(1, pageSize),
         fetchMembershipPlans(1, 100).catch(() => []),
       ]);
       setMembers(membersData);
+      setPagedMembers(initialPage);
       setPlans(plansData);
+      setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -89,6 +91,22 @@ export default function MembershipsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Handle page changes with explicit API calls
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    if (!searchTerm && !selectedStatus && !selectedPlanId) {
+      setIsPageLoading(true);
+      try {
+        const pageData = await fetchMembers(newPage, pageSize);
+        setPagedMembers(pageData);
+      } catch {
+        // fail gracefully
+      } finally {
+        setIsPageLoading(false);
+      }
+    }
+  };
 
   // Close portal action menu on outside click, window resize, scroll, or Escape key
   useEffect(() => {
@@ -139,8 +157,8 @@ export default function MembershipsPage() {
       const effectiveStatus = (
         member.accountStatus === "BANNED"
           ? "BANNED"
-          : member.accountStatus === "FROZEN"
-          ? "FROZEN"
+          : member.accountStatus === "PENDING"
+          ? "PENDING"
           : membershipStatus || member.accountStatus || "ACTIVE"
       ).toUpperCase();
       const matchesStatus = !selectedStatus || effectiveStatus === selectedStatus.toUpperCase();
@@ -154,20 +172,24 @@ export default function MembershipsPage() {
   }, [members, searchTerm, selectedStatus, selectedPlanId]);
 
   // Paginated members
-  const totalItems = filteredMembers.length;
+  const isFiltering = Boolean(searchTerm || selectedStatus || selectedPlanId);
+  const totalItems = isFiltering ? filteredMembers.length : members.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedMembers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredMembers.slice(start, start + pageSize);
-  }, [filteredMembers, currentPage, pageSize]);
+    if (isFiltering) {
+      const start = (currentPage - 1) * pageSize;
+      return filteredMembers.slice(start, start + pageSize);
+    }
+    return pagedMembers;
+  }, [isFiltering, filteredMembers, pagedMembers, currentPage, pageSize]);
 
   // Statistics calculation based on backend structure
   const totalCount = members.length;
   const activeCount = members.filter(
     (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
   ).length;
-  const frozenCount = members.filter(
-    (m) => (m.accountStatus || "").toUpperCase() === "FROZEN"
+  const pendingCount = members.filter(
+    (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
   const bannedCount = members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "BANNED"
@@ -185,21 +207,6 @@ export default function MembershipsPage() {
         toast.error(err.response.data.message);
       } else {
         toast.error("Failed to activate member");
-      }
-    }
-  };
-
-  const handleFreeze = async (member: BackendMember) => {
-    setMenuAnchor(null);
-    try {
-      await freezeMember(member.id);
-      toast.info(`Member ${member.firstName} ${member.lastName} is now FROZEN.`);
-      await loadData();
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      } else {
-        toast.error("Failed to freeze member");
       }
     }
   };
@@ -277,8 +284,8 @@ export default function MembershipsPage() {
       `"${(m.address || "").replace(/"/g, '""')}"`,
       m.accountStatus === "BANNED"
         ? "BANNED"
-        : m.accountStatus === "FROZEN"
-        ? "FROZEN"
+        : m.accountStatus === "PENDING"
+        ? "PENDING"
         : m.memberships?.[0]?.membershipStatus || m.accountStatus || "ACTIVE",
       m.memberships?.[0]?.membershipPlan?.planName ||
         plans.find((p) => p.id === m.memberships?.[0]?.membershipPlanId)?.planName ||
@@ -393,7 +400,9 @@ export default function MembershipsPage() {
           >
             <option value="">{t("allStatuses")}</option>
             <option value="ACTIVE">{t("active")}</option>
-            <option value="FROZEN">{t("frozen")}</option>
+            <option value="PENDING">{t("pending")}</option>
+            <option value="EXPIRED">{t("expired")}</option>
+            <option value="CANCELLED">{t("cancelled")}</option>
             <option value="BANNED">{t("banned")}</option>
           </select>
         </div>
@@ -497,8 +506,8 @@ export default function MembershipsPage() {
                   const status = (
                     member.accountStatus === "BANNED"
                       ? "BANNED"
-                      : member.accountStatus === "FROZEN"
-                      ? "FROZEN"
+                      : member.accountStatus === "PENDING"
+                      ? "PENDING"
                       : membershipStatus || member.accountStatus || "ACTIVE"
                   ).toUpperCase();
 
@@ -568,14 +577,24 @@ export default function MembershipsPage() {
                           className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full border tracking-wider ${
                             status === "ACTIVE"
                               ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
-                              : status === "FROZEN"
+                              : status === "PENDING"
                               ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
                               : status === "EXPIRED"
                               ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                              : status === "CANCELLED"
+                              ? "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20"
                               : "bg-error-container/30 text-error border-error-container/40"
                           }`}
                         >
-                          {status}
+                          {status === "ACTIVE"
+                            ? t("active")
+                            : status === "PENDING"
+                            ? t("pending")
+                            : status === "EXPIRED"
+                            ? t("expired")
+                            : status === "CANCELLED"
+                            ? t("cancelled")
+                            : t("banned")}
                         </span>
                       </td>
 
@@ -613,54 +632,16 @@ export default function MembershipsPage() {
         )}
 
         {/* Pagination Footer */}
-        {filteredMembers.length > 0 && (
-          <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-bright border-t border-outline-variant">
-            <p className="text-xs text-on-surface-variant">
-              {t("showing")}{" "}
-              <span className="font-bold text-on-surface">
-                {Math.min((currentPage - 1) * pageSize + 1, totalItems)} -{" "}
-                {Math.min(currentPage * pageSize, totalItems)}
-              </span>{" "}
-              {t("of")} <span className="font-bold text-on-surface">{totalItems}</span> {t("navMembers")}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 hover:bg-surface-container rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === page
-                        ? "bg-primary text-white shadow-xs"
-                        : "hover:bg-surface-container text-on-surface-variant"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 hover:bg-surface-container rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-            </div>
-          </div>
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            isLoading={isPageLoading}
+            itemLabel={t("navMembers") || "members"}
+          />
         )}
       </div>
 
@@ -677,10 +658,10 @@ export default function MembershipsPage() {
 
         <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
           <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-            {t("frozenPausedMembers")}
+            {t("pendingMembers")}
           </p>
-          <p className="font-headline text-2xl md:text-3xl font-bold text-tertiary">
-            {frozenCount}
+          <p className="font-headline text-2xl md:text-3xl font-bold text-amber-500">
+            {pendingCount}
           </p>
         </div>
 
@@ -768,21 +749,6 @@ export default function MembershipsPage() {
             >
               <ShieldCheck className="w-4 h-4 text-secondary" />
               <span>{t("makeActive")}</span>
-            </button>
-          )}
-
-          {(menuAnchor.member.accountStatus || menuAnchor.member.status || "").toUpperCase() !== "FROZEN" && (
-            <button
-              type="button"
-              onClick={() => {
-                const m = menuAnchor.member;
-                setMenuAnchor(null);
-                handleFreeze(m);
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-tertiary hover:bg-tertiary-fixed/30 transition-colors cursor-pointer text-left rtl:text-right"
-            >
-              <PauseCircle className="w-4 h-4 text-tertiary" />
-              <span>{t("freezeMember")}</span>
             </button>
           )}
 
