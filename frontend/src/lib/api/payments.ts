@@ -4,22 +4,23 @@ import { getApiEndpoint } from "@/lib/api/config";
 
 export async function fetchPayments(
   page = 1,
-  limit = 50
+  limit = 500
 ): Promise<BackendPayment[]> {
   const url = getApiEndpoint(`/api/admins/payments?page=${page}&limit=${limit}`);
   const response = await api.get<
     BackendPayment[] | { payments?: BackendPayment[]; data?: BackendPayment[] }
   >(url);
-
   const payload = response.data;
   if (Array.isArray(payload)) {
     return payload;
   }
-  if (payload && Array.isArray(payload.payments)) {
-    return payload.payments;
-  }
-  if (payload && Array.isArray(payload.data)) {
-    return payload.data;
+  if (payload && typeof payload === "object") {
+    if (Array.isArray((payload as { data?: BackendPayment[] }).data)) {
+      return (payload as { data?: BackendPayment[] }).data!;
+    }
+    if (Array.isArray((payload as { payments?: BackendPayment[] }).payments)) {
+      return (payload as { payments?: BackendPayment[] }).payments!;
+    }
   }
   return [];
 }

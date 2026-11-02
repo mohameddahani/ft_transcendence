@@ -3,7 +3,7 @@
 
 set -e  # Exit on error
 
-SERVICES=("frontend" "owner-platform" "backend" "devops" "block-chain/api" "AI")
+SERVICES=("frontend" "owner-platform" "backend" "devops" "blockchain/api" "AI")
 
 for service in "${SERVICES[@]}"; do
   example_file="./${service}/.env.example"

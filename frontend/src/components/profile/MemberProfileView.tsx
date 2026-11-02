@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   User,
   Mail,
@@ -84,7 +84,7 @@ export default function MemberProfileView() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [profileData, activeData, allData] = await Promise.all([
@@ -104,11 +104,11 @@ export default function MemberProfileView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Upload Photo Handler
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

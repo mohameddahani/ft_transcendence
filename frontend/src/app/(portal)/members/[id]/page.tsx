@@ -9,7 +9,6 @@ import {
   Fingerprint,
   Edit,
   ShieldCheck,
-  PauseCircle,
   Ban,
   User,
   Calendar,
@@ -26,7 +25,6 @@ import { useTranslation } from "react-i18next";
 import {
   fetchMember,
   activeMember,
-  freezeMember,
   banMember,
 } from "@/lib/api/members";
 import { BackendMember } from "@/types/member";
@@ -108,8 +106,8 @@ export default function MemberDetailPage() {
   const status = (
     member.accountStatus === "BANNED"
       ? "BANNED"
-      : member.accountStatus === "FROZEN"
-      ? "FROZEN"
+      : member.accountStatus === "PENDING"
+      ? "PENDING"
       : membershipStatus || member.accountStatus || "ACTIVE"
   ).toUpperCase();
 
@@ -161,23 +159,6 @@ export default function MemberDetailPage() {
         toast.error(err.response.data.message);
       } else {
         toast.error("Failed to activate member");
-      }
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
-  const handleFreeze = async () => {
-    setIsActionLoading(true);
-    try {
-      await freezeMember(member.id);
-      toast.info(t("freezeMember"));
-      await loadMemberData();
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      } else {
-        toast.error("Failed to freeze member");
       }
     } finally {
       setIsActionLoading(false);
@@ -236,14 +217,24 @@ export default function MemberDetailPage() {
               className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm border-2 border-white ${
                 status === "ACTIVE"
                   ? "bg-secondary text-white"
-                  : status === "FROZEN"
-                  ? "bg-tertiary text-white"
+                  : status === "PENDING"
+                  ? "bg-amber-500 text-white"
                   : status === "EXPIRED"
                   ? "bg-rose-500 text-white"
+                  : status === "CANCELLED"
+                  ? "bg-slate-500 text-white"
                   : "bg-error text-white"
               }`}
             >
-              {status === "ACTIVE" ? t("active") : status === "FROZEN" ? t("frozen") : status === "EXPIRED" ? "EXPIRED" : t("banned")}
+              {status === "ACTIVE"
+                ? t("active")
+                : status === "PENDING"
+                ? t("pending")
+                : status === "EXPIRED"
+                ? t("expired")
+                : status === "CANCELLED"
+                ? t("cancelled")
+                : t("banned")}
             </div>
           </div>
 
@@ -283,18 +274,6 @@ export default function MemberDetailPage() {
             >
               <ShieldCheck className="w-4 h-4" />
               <span>{t("makeActive")}</span>
-            </button>
-          )}
-
-          {status !== "FROZEN" && (
-            <button
-              type="button"
-              onClick={handleFreeze}
-              disabled={isActionLoading}
-              className="px-4 py-2.5 bg-surface-container-high hover:bg-surface-variant text-on-surface font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <PauseCircle className="w-4 h-4 text-tertiary" />
-              <span>{t("freezeMember")}</span>
             </button>
           )}
 
@@ -552,12 +531,24 @@ export default function MemberDetailPage() {
                   className={`text-xs font-bold uppercase px-2.5 py-0.5 rounded-full ${
                     status === "ACTIVE"
                       ? "bg-secondary-container/20 text-on-secondary-container"
-                      : status === "FROZEN"
-                      ? "bg-tertiary-fixed/30 text-on-tertiary-fixed-variant"
+                      : status === "PENDING"
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : status === "EXPIRED"
+                      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                      : status === "CANCELLED"
+                      ? "bg-slate-500/10 text-slate-600 dark:text-slate-400"
                       : "bg-error-container/30 text-error"
                   }`}
                 >
-                  {status === "ACTIVE" ? t("active") : status === "FROZEN" ? t("frozen") : t("banned")}
+                  {status === "ACTIVE"
+                    ? t("active")
+                    : status === "PENDING"
+                    ? t("pending")
+                    : status === "EXPIRED"
+                    ? t("expired")
+                    : status === "CANCELLED"
+                    ? t("cancelled")
+                    : t("banned")}
                 </span>
               </div>
 

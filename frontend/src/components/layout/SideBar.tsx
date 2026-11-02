@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
-import { toast } from "react-toastify";
 
 interface SideBarProps {
   isMobileOpen: boolean;

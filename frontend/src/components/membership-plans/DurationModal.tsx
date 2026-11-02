@@ -12,6 +12,7 @@ import {
   DollarSign,
   AlertCircle,
   Clock,
+  Coins,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -56,19 +57,25 @@ export default function DurationModal({
     defaultValues: {
       durationDays: 30,
       price: 50,
+      priceByG: 50,
     },
   });
 
   useEffect(() => {
     if (durationToEdit) {
+      const p = Number(durationToEdit.price);
       reset({
         durationDays: Number(durationToEdit.durationDays),
-        price: Number(durationToEdit.price),
+        price: p,
+        priceByG: durationToEdit.priceByG
+          ? Number(durationToEdit.priceByG)
+          : Math.max(1, Math.round(p)),
       });
     } else {
       reset({
         durationDays: 30,
         price: 50,
+        priceByG: 50,
       });
     }
   }, [durationToEdit, reset]);
@@ -85,18 +92,25 @@ export default function DurationModal({
   const onSubmit = async (values: DurationFormValues) => {
     setIsSubmitting(true);
     try {
+      const priceVal = Number(values.price);
+      const priceByGVal = values.priceByG
+        ? Math.max(1, Math.round(Number(values.priceByG)))
+        : Math.max(1, Math.round(priceVal));
+
       if (isEditing && durationToEdit) {
         await updateMembershipPlanDuration(durationToEdit.id, {
           membershipPlanId: plan.id,
           durationDays: Number(values.durationDays),
-          price: Number(values.price),
+          price: priceVal,
+          priceByG: priceByGVal,
         });
         toast.success("Duration tier updated successfully!");
       } else {
         await addMembershipPlanDuration({
           membershipPlanId: plan.id,
           durationDays: Number(values.durationDays),
-          price: Number(values.price),
+          price: priceVal,
+          priceByG: priceByGVal,
         });
         toast.success(`Added ${values.durationDays}-day duration to "${plan.planName}"!`);
       }
@@ -200,32 +214,71 @@ export default function DurationModal({
             )}
           </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-xs font-bold text-on-surface mb-1.5">
-              {t("price")} <span className="text-error">*</span>
-            </label>
-            <div className="relative">
-              <DollarSign className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-              <input
-                type="number"
-                step="0.01"
-                min={0.01}
-                {...register("price", { valueAsNumber: true })}
-                placeholder="49.99"
-                className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
-                  errors.price
-                    ? "border-error focus:ring-error"
-                    : "border-outline-variant focus:ring-primary-container"
-                } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
-              />
+          {/* Pricing: Fiat ($) and Blockchain Tokens (G) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Price ($) */}
+            <div>
+              <label className="block text-xs font-bold text-on-surface mb-1.5">
+                {t("price")} ($) <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                <input
+                  type="number"
+                  step="0.01"
+                  min={0.01}
+                  {...register("price", {
+                    valueAsNumber: true,
+                    onChange: (e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && val > 0) {
+                        setValue("priceByG", Math.max(1, Math.round(val)));
+                      }
+                    },
+                  })}
+                  placeholder="49.99"
+                  className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
+                    errors.price
+                      ? "border-error focus:ring-error"
+                      : "border-outline-variant focus:ring-primary-container"
+                  } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
+                />
+              </div>
+              {errors.price && (
+                <p className="text-xs text-error mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.price.message}</span>
+                </p>
+              )}
             </div>
-            {errors.price && (
-              <p className="text-xs text-error mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 shrink-0" />
-                <span>{errors.price.message}</span>
-              </p>
-            )}
+
+            {/* Price in G Tokens */}
+            <div>
+              <label className="block text-xs font-bold text-on-surface mb-1.5">
+                {t("priceInG") || "Price in G Tokens"} <span className="text-error">*</span>
+              </label>
+              <div className="relative">
+                <Coins className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-primary pointer-events-none" />
+                <input
+                  type="number"
+                  step={1}
+                  min={1}
+                  {...register("priceByG", { valueAsNumber: true })}
+                  placeholder="50"
+                  className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
+                    errors.priceByG
+                      ? "border-error focus:ring-error"
+                      : "border-outline-variant focus:ring-primary-container"
+                  } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
+                />
+              </div>
+              {errors.priceByG && (
+                <p className="text-xs text-error mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{errors.priceByG.message}</span>
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Actions */}

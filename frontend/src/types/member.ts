@@ -3,7 +3,19 @@ export enum Gender {
   FEMALE = "FEMALE",
 }
 
-export type MemberAccountStatus = "ACTIVE" | "FROZEN" | "BANNED";
+export enum AccountStatus {
+  ACTIVE = "ACTIVE",
+  PENDING = "PENDING",
+  BANNED = "BANNED",
+}
+
+export enum MembershipStatus {
+  ACTIVE = "ACTIVE",
+  EXPIRED = "EXPIRED",
+  CANCELLED = "CANCELLED",
+}
+
+export type MemberAccountStatus = "ACTIVE" | "PENDING" | "BANNED";
 
 export interface BackendMembership {
   id: string;
@@ -11,7 +23,7 @@ export interface BackendMembership {
   memberId?: string;
   membershipPlanId?: string;
   membershipPlanDurationId?: string;
-  membershipStatus?: "ACTIVE" | "EXPIRED" | "CANCELLED" | string;
+  membershipStatus?: MembershipStatus | "ACTIVE" | "EXPIRED" | "CANCELLED" | string;
   startDate?: string;
   expiresAt?: string;
   createdAt?: string;

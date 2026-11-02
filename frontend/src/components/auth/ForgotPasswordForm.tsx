@@ -300,7 +300,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
                       type="email"
                       placeholder={config.fieldPlaceholder}
                       autoComplete="email"
-                      {...register("email" as "email")}
+                      {...register("email" as const)}
                       className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-3 bg-surface-container-lowest border ${
                         (errors as Record<string, { message?: string }>).email
                           ? "border-error focus:ring-error"
@@ -332,7 +332,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
                       type="text"
                       placeholder={config.fieldPlaceholder}
                       autoComplete="username"
-                      {...register("userName" as "userName")}
+                      {...register("userName" as const)}
                       className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-3 bg-surface-container-lowest border ${
                         (errors as Record<string, { message?: string }>).userName
                           ? "border-error focus:ring-error"

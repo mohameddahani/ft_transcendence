@@ -51,15 +51,18 @@ export default function WorkingHourModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditing = !!initialData;
 
-  const daysList = [
-    { value: 1, label: t("monday") },
-    { value: 2, label: t("tuesday") },
-    { value: 3, label: t("wednesday") },
-    { value: 4, label: t("thursday") },
-    { value: 5, label: t("friday") },
-    { value: 6, label: t("saturday") },
-    { value: 7, label: t("sunday") },
-  ];
+  const daysList = useMemo(
+    () => [
+      { value: 1, label: t("monday") },
+      { value: 2, label: t("tuesday") },
+      { value: 3, label: t("wednesday") },
+      { value: 4, label: t("thursday") },
+      { value: 5, label: t("friday") },
+      { value: 6, label: t("saturday") },
+      { value: 7, label: t("sunday") },
+    ],
+    [t]
+  );
 
   // Pick first unconfigured day as default if adding
   const firstAvailableDay =
@@ -107,7 +110,7 @@ export default function WorkingHourModal({
         });
       }
     }
-  }, [isOpen, initialData, reset]);
+  }, [isOpen, initialData, reset, configuredDays, daysList]);
 
   if (!isOpen) return null;
 
