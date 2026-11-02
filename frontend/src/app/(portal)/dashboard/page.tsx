@@ -65,8 +65,8 @@ function AdminStaffDashboardView() {
   const expiredMembers = members.filter(
     (m) => m.memberships?.[0]?.membershipStatus === "EXPIRED"
   ).length;
-  const frozenMembers = members.filter(
-    (m) => m.accountStatus === "FROZEN"
+  const bannedMembers = members.filter(
+    (m) => m.accountStatus === "BANNED"
   ).length;
   const inactiveOrOther = totalMembers - activeMembers;
 
@@ -74,7 +74,7 @@ function AdminStaffDashboardView() {
     switch (status.toUpperCase()) {
       case "ACTIVE":
         return "bg-secondary-container/20 text-on-secondary-container border border-secondary-container/30";
-      case "FROZEN":
+      case "PENDING":
         return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
       case "EXPIRED":
         return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
@@ -214,9 +214,9 @@ function AdminStaffDashboardView() {
             </span>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            {expiredMembers > 0 || frozenMembers > 0
-              ? `${expiredMembers} expired · ${frozenMembers} frozen`
-              : t("frozenPausedMembers")}
+            {expiredMembers > 0 || bannedMembers > 0
+              ? `${expiredMembers} ${t("expired")?.toLowerCase() || "expired"} · ${bannedMembers} ${t("banned")?.toLowerCase() || "banned"}`
+              : t("inactive")}
           </p>
         </div>
       </div>
@@ -303,14 +303,14 @@ function AdminStaffDashboardView() {
 
                   const firstMembership = member.memberships?.[0];
                   const membershipStatus = firstMembership?.membershipStatus;
-                  const isAccountFrozen = member.accountStatus === "FROZEN";
                   const isAccountBanned = member.accountStatus === "BANNED";
+                  const isAccountPending = member.accountStatus === "PENDING";
 
                   let statusText = "INACTIVE";
                   if (isAccountBanned) {
                     statusText = "BANNED";
-                  } else if (isAccountFrozen) {
-                    statusText = "FROZEN";
+                  } else if (isAccountPending) {
+                    statusText = "PENDING";
                   } else if (membershipStatus) {
                     statusText = membershipStatus;
                   } else if (member.accountStatus) {

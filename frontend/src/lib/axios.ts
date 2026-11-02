@@ -168,6 +168,7 @@ api.interceptors.response.use(
               : userRole === "STAFF" || window.location.pathname.startsWith("/staff")
               ? "/staff/login"
               : "/login";
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = `${redirectPath}?from=${encodeURIComponent(
             window.location.pathname
           )}&error=session_expired`;

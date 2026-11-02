@@ -25,15 +25,22 @@ import {
 import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
 import SuccessCelebrationModal from "@/components/check-in/SuccessCelebrationModal";
+import Pagination from "@/components/ui/Pagination";
 
 export default function CheckInPage() {
   const { t } = useTranslation();
 
   // State
-  const [visits, setVisits] = useState<TodayVisit[]>([]);
+  const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
+  const [pagedVisits, setPagedVisits] = useState<TodayVisit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "READY" | "CHECKED_IN">("ALL");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   // Active Modals state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -50,8 +57,13 @@ export default function CheckInPage() {
   const loadVisits = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchTodayVisits(1, 100);
-      setVisits(data);
+      const [fullList, initialPage] = await Promise.all([
+        fetchTodayVisits(1, 500),
+        fetchTodayVisits(1, pageSize),
+      ]);
+      setAllVisits(fullList);
+      setPagedVisits(initialPage);
+      setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -61,23 +73,40 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
     loadVisits();
   }, [loadVisits]);
 
+  // Handle page changes with explicit API calls
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    if (!searchTerm && statusFilter === "ALL") {
+      setIsPageLoading(true);
+      try {
+        const pageData = await fetchTodayVisits(newPage, pageSize);
+        setPagedVisits(pageData);
+      } catch {
+        // fail gracefully
+      } finally {
+        setIsPageLoading(false);
+      }
+    }
+  };
+
   // Statistics
   const stats = useMemo(() => {
-    const total = visits.length;
-    const ready = visits.filter((v) => v.visitStatus === "READY").length;
-    const checkedIn = visits.filter((v) => v.visitStatus === "CHECKED_IN").length;
+    const total = allVisits.length;
+    const ready = allVisits.filter((v) => v.visitStatus === "READY").length;
+    const checkedIn = allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length;
     return { total, ready, checkedIn };
-  }, [visits]);
+  }, [allVisits]);
 
   // Filtered visits
+  const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
   const filteredVisits = useMemo(() => {
-    return visits.filter((v) => {
+    return allVisits.filter((v) => {
       const member = v.member;
       const fullName = `${member.firstName || ""} ${member.lastName || ""}`.toLowerCase();
       const email = (member.email || "").toLowerCase();
@@ -102,7 +131,18 @@ export default function CheckInPage() {
 
       return true;
     });
-  }, [visits, searchTerm, statusFilter]);
+  }, [allVisits, searchTerm, statusFilter]);
+
+  const totalItems = isFiltering ? filteredVisits.length : allVisits.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  const displayedVisits = useMemo(() => {
+    if (isFiltering) {
+      const start = (currentPage - 1) * pageSize;
+      return filteredVisits.slice(start, start + pageSize);
+    }
+    return pagedVisits;
+  }, [isFiltering, filteredVisits, pagedVisits, currentPage, pageSize]);
 
   // Manual Check-In action
   const handleManualCheckIn = async (memberId: string) => {
@@ -112,7 +152,7 @@ export default function CheckInPage() {
       toast.success(t("checkInSuccess") || "Member checked in successfully!");
 
       // Find the visit for celebration
-      const found = visits.find((v) => v.member.id === memberId);
+      const found = allVisits.find((v) => v.member.id === memberId);
       if (found) {
         const updated = { ...found, visitStatus: "CHECKED_IN" as const };
         setCelebrationVisit(updated);
@@ -143,8 +183,10 @@ export default function CheckInPage() {
       setIsScannerOpen(false);
 
       // Re-load to find the newly checked in member
-      const freshVisits = await fetchTodayVisits(1, 100);
-      setVisits(freshVisits);
+      const freshVisits = await fetchTodayVisits(1, 500);
+      setAllVisits(freshVisits);
+      const currentPageData = await fetchTodayVisits(currentPage, pageSize);
+      setPagedVisits(currentPageData);
 
       // Find recently updated visit for celebration
       const newlyCheckedIn = freshVisits.find((v) => v.visitStatus === "CHECKED_IN");
@@ -304,7 +346,10 @@ export default function CheckInPage() {
               type="text"
               placeholder="Search by member name, phone, email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full pl-10 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"
             />
           </div>
@@ -314,12 +359,13 @@ export default function CheckInPage() {
             <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
             <select
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as "ALL" | "READY" | "CHECKED_IN")
-              }
+              onChange={(e) => {
+                setStatusFilter(e.target.value as "ALL" | "READY" | "CHECKED_IN");
+                setCurrentPage(1);
+              }}
               className="w-full px-3 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none cursor-pointer"
             >
-              <option value="ALL">All Visits ({visits.length})</option>
+              <option value="ALL">All Visits ({allVisits.length})</option>
               <option value="READY">Awaiting Check-in ({stats.ready})</option>
               <option value="CHECKED_IN">Checked In ({stats.checkedIn})</option>
             </select>
@@ -349,7 +395,7 @@ export default function CheckInPage() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredVisits.length === 0 ? (
+                ) : displayedVisits.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-on-surface-variant">
                       <div className="flex flex-col items-center justify-center space-y-2">
@@ -364,7 +410,7 @@ export default function CheckInPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredVisits.map((visit) => {
+                  displayedVisits.map((visit) => {
                     const member = visit.member;
                     const fullName =
                       `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
@@ -513,6 +559,17 @@ export default function CheckInPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            isLoading={isPageLoading}
+            itemLabel={t("visits") || "visits"}
+          />
         </div>
       </div>
 

@@ -51,6 +51,11 @@ export const durationSchema = z.object({
   price: z
     .number()
     .positive("Price must be greater than 0"),
+  priceByG: z
+    .number()
+    .int("Price in G must be an integer")
+    .positive("Price in G must be greater than 0")
+    .optional(),
 });
 
 export type DurationFormValues = z.infer<typeof durationSchema>;

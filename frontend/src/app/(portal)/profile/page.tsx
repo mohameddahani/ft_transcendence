@@ -10,7 +10,6 @@ import {
   Phone,
   Building,
   Calendar,
-  Lock,
   Camera,
   Trash2,
   Save,
@@ -18,12 +17,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Eye,
-  EyeOff,
   ShieldCheck,
-  Sparkles,
-  Check,
-  X,
   Info,
   QrCode,
   Users,
@@ -121,15 +115,12 @@ function AdminStaffProfileView() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm<UpdateProfileFormValues>({
     resolver: zodResolver(updateProfileSchema),
@@ -141,20 +132,8 @@ function AdminStaffProfileView() {
       companyName: "",
       email: "",
       phoneNumber: "",
-      password: "",
     },
   });
-
-  const watchPassword = watch("password") || "";
-
-  // Password requirement checks for visual helper
-  const passChecks = {
-    length: watchPassword.length >= 8,
-    upper: /[A-Z]/.test(watchPassword),
-    lower: /[a-z]/.test(watchPassword),
-    number: /[0-9]/.test(watchPassword),
-    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(watchPassword),
-  };
 
   // Load Profile from backend based on role
   const loadProfile = useCallback(async () => {
@@ -187,7 +166,6 @@ function AdminStaffProfileView() {
           companyName: data.companyName || "",
           email: data.email || "",
           phoneNumber: data.phoneNumber || "",
-          password: "",
         });
 
         syncAdminLocalStorage(data);
@@ -227,7 +205,6 @@ function AdminStaffProfileView() {
       companyName: profile.companyName || "",
       email: profile.email || "",
       phoneNumber: profile.phoneNumber || "",
-      password: "",
     });
   };
 
@@ -244,10 +221,6 @@ function AdminStaffProfileView() {
         gender: values.gender,
         birthDate: values.birthDate,
       };
-
-      if (values.password && values.password.trim().length > 0) {
-        payload.password = values.password.trim();
-      }
 
       await updateAdminProfile(payload);
       toast.success(t("profileUpdatedSuccess", "Profile updated successfully!"));
@@ -1078,119 +1051,6 @@ function AdminStaffProfileView() {
                 </p>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Section: Security & Password Update */}
-        <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-outline-variant">
-            <div className="flex items-center gap-2.5">
-              <Lock className="w-5 h-5 text-tertiary" />
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("securityPassword", "Security & Password")}
-              </h3>
-            </div>
-            <span className="text-xs font-medium text-on-surface-variant bg-surface-container px-2.5 py-1 rounded-full w-fit">
-              {t("leaveBlankOptional", "Optional • Leave blank to keep current password")}
-            </span>
-          </div>
-
-          <div className="space-y-4 pt-1">
-            <div className="w-full">
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("newPassword", "New Password")}
-              </label>
-
-              <div className="relative w-full">
-                <div className="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 pl-3.5 rtl:pl-0 rtl:pr-3.5 flex items-center pointer-events-none text-on-surface-variant">
-                  <Lock className="w-4 h-4" />
-                </div>
-
-                <input
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  placeholder={t("leaveBlankPlaceholder", "Leave blank to keep current password")}
-                  autoComplete="new-password"
-                  className={`w-full pl-10 pr-12 rtl:pl-12 rtl:pr-10 py-2.5 bg-surface-container-low border ${
-                    errors.password
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant focus:ring-primary-container"
-                  } rounded-xl text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:ring-2 outline-none transition-all`}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 pr-3.5 rtl:pr-0 rtl:pl-3.5 flex items-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              {errors.password && (
-                <p className="text-xs text-error mt-1.5 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{errors.password.message}</span>
-                </p>
-              )}
-            </div>
-
-            {/* Requirement Tracker */}
-            {watchPassword.length > 0 && (
-              <div className="p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/60 space-y-2 animate-in fade-in-0 duration-200">
-                <p className="text-xs font-bold text-on-surface flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>{t("passwordRequirements", "Password Requirements:")}</span>
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div
-                    className={`flex items-center gap-1.5 ${
-                      passChecks.length ? "text-emerald-500 font-semibold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {passChecks.length ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>{t("reqLength", "At least 8 characters")}</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1.5 ${
-                      passChecks.upper ? "text-emerald-500 font-semibold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {passChecks.upper ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>{t("reqUpper", "One uppercase letter")}</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1.5 ${
-                      passChecks.lower ? "text-emerald-500 font-semibold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {passChecks.lower ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>{t("reqLower", "One lowercase letter")}</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1.5 ${
-                      passChecks.number ? "text-emerald-500 font-semibold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {passChecks.number ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>{t("reqNumber", "One number")}</span>
-                  </div>
-                  <div
-                    className={`flex items-center gap-1.5 sm:col-span-2 ${
-                      passChecks.special ? "text-emerald-500 font-semibold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {passChecks.special ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5 text-on-surface-variant/50" />}
-                    <span>{t("reqSpecial", "One special symbol (!@#$%^&*...)")}</span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

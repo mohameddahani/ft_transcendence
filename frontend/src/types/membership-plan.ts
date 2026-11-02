@@ -3,6 +3,7 @@ export interface MembershipPlanDuration {
   membershipPlanId: string;
   durationDays: number;
   price: number | string;
+  priceByG?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,10 +37,12 @@ export interface AddMembershipPlanDurationInput {
   membershipPlanId: string;
   durationDays: number;
   price: number;
+  priceByG: number;
 }
 
 export interface UpdateMembershipPlanDurationInput {
   membershipPlanId: string;
   durationDays?: number;
   price?: number;
+  priceByG?: number;
 }

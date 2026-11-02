@@ -39,7 +39,7 @@ export interface MemberMembership {
   id?: string;
   membershipPlan: MemberMembershipPlan;
   membershipPlanDuration?: MemberMembershipDuration | string | null;
-  membershipStatus: "ACTIVE" | "EXPIRED" | "FROZEN" | "CANCELLED" | string;
+  membershipStatus: "ACTIVE" | "EXPIRED" | "CANCELLED" | string;
   startDate: string;
   expiresAt: string;
 }

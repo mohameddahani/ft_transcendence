@@ -433,9 +433,16 @@ export default function MembershipPlansPage() {
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <span className="text-sm font-black text-primary">
-                                ${Number(dur.price).toFixed(2)}
-                              </span>
+                              <div className="text-right">
+                                <span className="text-sm font-black text-primary block leading-tight">
+                                  ${Number(dur.price).toFixed(2)}
+                                </span>
+                                {dur.priceByG ? (
+                                  <span className="text-[10px] font-bold text-secondary block leading-tight">
+                                    {dur.priceByG} G
+                                  </span>
+                                ) : null}
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => {
