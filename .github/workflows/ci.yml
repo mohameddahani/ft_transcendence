@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: block-chain/api
+        working-directory: blockchain/api
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -91,7 +91,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: block-chain/api/package-lock.json
+          cache-dependency-path: blockchain/api/package-lock.json
 
       - run: npm ci
       - run: npm run lint

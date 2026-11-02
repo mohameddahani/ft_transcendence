@@ -239,7 +239,7 @@ backend/src/
 ### Integration with Subsystems
 1. **Next.js Portals (`admin-staff-platform` & `owner-platform`):** Consume REST endpoints using Axios. Authenticate via Bearer tokens in headers and rotated refresh tokens in `HttpOnly` cookies.
 2. **AI Microservice (`AI/`):** Python FastAPI service. The backend sends member feedback text for sentiment classification and triggers midnight batch retries. The AI service also accesses PostgreSQL directly using a dedicated read-only role (`ai_readonly`).
-3. **Blockchain Subsystem (`block-chain/`):** Smart contracts handle ERC-20 gym tokenomics. The backend stores wallet addresses on User and Member models and records token prices (`priceByG`) on membership durations.
+3. **Blockchain Subsystem (`blockchain/`):** Smart contracts handle ERC-20 gym tokenomics. The backend stores wallet addresses on User and Member models and records token prices (`priceByG`) on membership durations.
 4. **DevOps Stack (`devops/`):** Automated containerization via Docker Compose, routed through an Nginx reverse proxy with SSL termination and monitored via Prometheus, Alertmanager, and Grafana.
 
 ---
@@ -582,7 +582,7 @@ The 42 School `ft_transcendence` evaluation requires projects to be composed of 
 | **Standard User Management & Auth** | User Management | **Major** | **2** | 4-tier role management, JWT access/refresh rotation, persistent sessions, Cloudinary avatars. | **mdahani** (Full auth subsystem) |
 | **Frontend Framework** | Web | **Major** | **2** | Dual web applications (Admin/Staff Portal & Owner Portal) built on Next.js 15 and React 19. | **ael-jama** (`admin-staff-platform`, `owner-platform`) |
 | **AI Integration & Microservice** | AI / Data | **Major** | **2** | FastAPI Python microservice with Google Gemini RAG assistant and feedback sentiment analysis. | **Oussama Bousselham** (`AI/` service); client by **mdahani** |
-| **Blockchain / Web3 Integration** | Web3 | **Major** | **2** | Solidity ERC-20 smart contracts (`GymToken`, `GymForwarder`), marketplace, Web3 API relayer. | **OB4413** (`block-chain/`); metadata by **mdahani** |
+| **Blockchain / Web3 Integration** | Web3 | **Major** | **2** | Solidity ERC-20 smart contracts (`GymToken`, `GymForwarder`), marketplace, Web3 API relayer. | **OB4413** (`blockchain/`); metadata by **mdahani** |
 | **DevOps & Monitoring Stack** | Infrastructure | **Major** | **2** | Multi-container Docker Compose, Nginx reverse proxy, SSL certs, Prometheus, Alertmanager, Grafana. | **Mohamed-Ait-Alla** (`devops/` stack) |
 | **Custom Module of Choice: Sports Club Operational Suite** | Extended Platform | **Major** | **2** | Complete multi-tenant operational suite: memberships, visit scheduling, QR check-in, attendance logs, working hours. | **mdahani** (Architecture & implementation) |
 
@@ -880,7 +880,7 @@ In accordance with 42 School evaluation guidelines, AI tool usage throughout thi
 ### AI Usage Details Requiring Team Confirmation
 
 Prior to publishing the final consolidated team README, team members must confirm:
-- Specific AI tools used during the development of their respective subsystems (`AI/`, `block-chain/`, `admin-staff-platform/`, `owner-platform/`, `devops/`).
+- Specific AI tools used during the development of their respective subsystems (`AI/`, `blockchain/`, `admin-staff-platform/`, `owner-platform/`, `devops/`).
 - Specific files or algorithms generated or assisted by AI within those directories.
 - Verification that all AI-generated code was manually audited and tested by the team.
 
@@ -901,6 +901,6 @@ The following items must be reviewed and confirmed by team members before creati
 6. **Integration of Teammate Contributions:** Merge this backend document with the individual contribution documents from:
    - Frontend Developer (`admin-staff-platform` & `owner-platform`).
    - AI Subsystem Developer (`AI/`).
-   - Blockchain Subsystem Developer (`block-chain/`).
+   - Blockchain Subsystem Developer (`blockchain/`).
    - DevOps / Infrastructure Specialist (`devops/`).
 

@@ -27,8 +27,8 @@ jobs:
             dockerfile: backend/Dockerfile
 
           - name: blockchain-api
-            context: block-chain/api
-            dockerfile: block-chain/api/Dockerfile
+            context: blockchain/api
+            dockerfile: blockchain/api/Dockerfile
 
           - name: ai
             context: AI
