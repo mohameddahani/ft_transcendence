@@ -6,18 +6,21 @@ import axios from 'axios';
 @Injectable()
 export class ExternalApiService {
   private readonly aiApiUrl: string;
+  private readonly aiKey: string;
   private readonly logger = new Logger(ExternalApiService.name);
 
   constructor(private readonly config: ConfigService) {
     this.aiApiUrl = config.getOrThrow<string>('AI_API_URL');
+    this.aiKey = config.getOrThrow<string>('INTERNAL_API_KEY');
   }
 
   async getSentiment(content: string): Promise<AiApiType | null> {
     try {
       const response = await axios.post<AiApiType>(
         this.aiApiUrl,
-        { content },
+        { text: content },
         {
+          headers: { 'X-API-Key': this.aiKey },
           timeout: 5_000, // Stop waiting after 5 seconds.
         },
       );
