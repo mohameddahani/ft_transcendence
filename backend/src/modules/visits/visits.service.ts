@@ -49,13 +49,17 @@ export class VisitsService {
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
 
     // * Check that the admin account, subscription, and plan are active.
-    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+    await this.accessesService.validateAdminAccountAndSubscription(
+      adminId,
+      data.visitDateAndTime,
+    );
 
     // * Check that the member account and membership are active.
     const membership =
       await this.accessesService.validateMemberAccountAndMembership(
         memberId,
         adminId,
+        data.visitDateAndTime,
       );
 
     // * Check Special Hours
