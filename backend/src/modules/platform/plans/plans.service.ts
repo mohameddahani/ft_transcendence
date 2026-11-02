@@ -33,13 +33,8 @@ export class PlansService {
     });
 
     if (existingPlan) {
-      throw new UnauthorizedException('Plan Name already exists');
+      throw new ConflictException('Plan Name already exists');
     }
-
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
 
     // * Add plan to database
     return await this.prisma.plan.create({ data });
@@ -48,7 +43,15 @@ export class PlansService {
   // * Add Plan Duration by Owner
   async addPlanDuration(data: AddPlanDurationDto) {
     // * Check if plan exist
-    await this.findOne(data.planId);
+    const plan = await this.prisma.plan.findUnique({
+      where: {
+        id: data.planId,
+      },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Plan Not Found!');
+    }
 
     // * Check if plan duration is duplicate
     await this.checkIfDurationIsDuplicateInPlan(
@@ -57,25 +60,34 @@ export class PlansService {
       data.price,
     );
 
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Add plan duration to database
-    return await this.prisma.planDuration.create({
+    const duration = await this.prisma.planDuration.create({
       data: {
         durationDays: data.durationDays,
         price: data.price,
         plan: { connect: { id: data.planId } },
       },
     });
+
+    // * Delete stale plan cache
+    await this.cache.del(`platform:plans:${data.planId}`);
+
+    return duration;
   }
 
   // * Update a Plan
   async update(id: string, data: UpdatePlanDto) {
     // * Check if this plan already exist
-    const plan = await this.findOne(id);
+    // * Get fresh plan data from database
+    const plan = await this.prisma.plan.findUnique({
+      where: {
+        id: id,
+      },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Plan Not Found!');
+    }
 
     // * Check if status of plan will be updated
     if (data.isActive !== undefined) {
@@ -111,18 +123,18 @@ export class PlansService {
       }
     }
 
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Update data
-    return await this.prisma.plan.update({
+    const updatedPlan = await this.prisma.plan.update({
       where: {
         id: id,
       },
       data,
     });
+
+    // * Delete stale plan cache
+    await this.cache.del(`platform:plans:${id}`);
+
+    return updatedPlan;
   }
 
   // * Update a Plan Duration
@@ -183,33 +195,22 @@ export class PlansService {
       }
     }
 
-    const key = `platform:plans`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Update data
-    return await this.prisma.planDuration.update({
+    const updateDuration = await this.prisma.planDuration.update({
       where: {
         id: id,
       },
       data,
     });
+
+    // * Delete parent plan cache
+    await this.cache.del(`platform:plans:${duration.planId}`);
+
+    return updateDuration;
   }
 
   // * Get all Plans
   async findAll(page: number, limit: number) {
-    // * Check if Data is already store in caching
-    const key = `platform:plans:page:${page}:limit:${limit}`;
-
-    // * Get data from redis server
-    const cachedPlans = await this.cache.get(key);
-
-    // * Check if redis store Data
-    if (cachedPlans) {
-      return cachedPlans;
-    }
-
     const plans = await this.prisma.plan.findMany({
       skip: (page - 1) * limit,
       take: limit,
@@ -219,23 +220,20 @@ export class PlansService {
       },
     });
 
-    // * Set Data in Redis
-    await this.cache.set(key, plans, 300_000); // * ttl: 5min
-
     return plans;
   }
 
   // * Get one Plan
   async findOne(planId: string) {
     // * Check if Data is already store in caching
-    const key = `platform:plans`;
+    const key = `platform:plans:${planId}`;
 
     // * Get data from redis server
-    const cachedPlan = await this.cache.get(key);
+    const cachedPlan = await this.cache.get<Plan>(key);
 
     // * Check if redis store Data
     if (cachedPlan) {
-      return cachedPlan as Plan;
+      return cachedPlan;
     }
 
     const plan = await this.prisma.plan.findUnique({
