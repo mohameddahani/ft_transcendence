@@ -75,6 +75,8 @@ server {
 
 	# Everything else — Next.js frontend
 	location / {
+		client_max_body_size 10m; # limit uploading to 10MB
+
 		proxy_pass http://frontend:3000/;
 
 		# Required for Next.js SSR streaming responses
