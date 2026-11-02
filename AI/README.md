@@ -276,35 +276,6 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | port 5432 already in use | the team's other stack is running: stop one of them |
 | a code change has no effect | run `docker compose restart ai` (on macOS with Colima the automatic reload doesn't see changes made on the Mac); after changing `requirements.txt`, run `docker compose up -d --build` |
 
-## 8. In the team's Docker stack (`make up`)
-
-The team's `devops/docker-compose.yml` runs this service as the `ai` container, with this folder's
-`.env` unchanged: the database container is called `db` there, and it also answers to the name
-`postgres`, which is the name `AI_DATABASE_URL` uses. nginx sends `/api/ai/` to the frontend (with
-streaming and a 10 MB upload limit); the AI service itself is never exposed.
-
-**Once, after the stack has started** (the backend container creates the tables when it starts),
-create the AI's read-only database user, then restart the AI:
-
-```bash
-cd ~/Developer/gym_saas/ft_transcendence
-set -a; source AI/.env; set +a
-docker exec -i db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ai_password="$AI_DB_PASSWORD" < AI/seeder/roles/ai_readonly.sql
-docker restart ai
-docker exec ai python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read())"
-# → b'{"status":"ok"}'
-```
-
-`POSTGRES_USER` and `POSTGRES_DB` must be the same as in `devops/.env` (the team database).
-
-**The other services' settings:**
-- frontend: `AI_URL=http://ai:8000`;
-- backend: `AI_API_URL=http://ai:8000/internal/sentiment`, and `INTERNAL_API_KEY` with the same value as
-  in this folder's `.env`.
-
-**Documents:** each gym owner uploads them on the **Knowledge Documents** page. `scripts/load_docs.sh`
-is for the local setup above only: it uses port 8000, which the team stack doesn't open.
-
 ## The service's addresses
 
 | Method + URL | Who | What |

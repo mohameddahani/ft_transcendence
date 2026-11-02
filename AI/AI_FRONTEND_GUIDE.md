@@ -708,17 +708,17 @@ Rules for the pages:
 ## 10. Production (for whoever does Docker and nginx)
 
 - **The AI service on the team's Docker network.** It reads the same Postgres through its own
-  read-only user (see `AI/README.md`, section 8). The database container also answers to the name
-  `postgres`, so the AI's `.env` works unchanged.
+  read-only user (see `AI/README.md`).
 - **Frontend container:** `AI_URL=http://ai:8000`.
 - **nginx: no route to the AI service.** It stays internal.
-- **nginx: `/api/ai/` goes to the frontend** (`devops/nginx/conf.d/gym.conf.template`), before the
-  `/api/` block that goes to the backend. That location has `proxy_buffering off` (the answer
-  streams word by word) and `client_max_body_size 10m` (documents up to 10 MB; the default is 1 MB).
-  Tested with nginx 1.30: `/api/ai/...` reaches the frontend, the rest of `/api/` still reaches the
-  backend, a 2 MB upload passes, 11 MB is refused, and events arrive live.
-- **Your other server routes** (`/api/auth/login`, …) still go to the backend through `/api/`.
-  If they must reach Next.js in Docker too, they need their own location, like `/api/ai/`.
+- **nginx: `client_max_body_size 10m;`** on the location that serves the frontend. The default
+  is 1 MB, so without it any document over 1 MB fails with 413 before reaching Next.js.
+- **Streaming through nginx:** your `location /` already has `proxy_buffering off`, so the
+  answer keeps streaming. `proxy_read_timeout 60s` is enough: events arrive every few hundred
+  milliseconds.
+- **One thing to settle with DevOps:** nginx currently sends every `/api/` request to the
+  backend. Your app's own server routes (`/api/auth/login`, and this `/api/ai/...`) need to
+  reach Next.js instead. Whatever you decide for your routes, the assistant's route follows.
 
 ---
 

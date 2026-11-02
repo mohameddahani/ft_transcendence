@@ -33,13 +33,6 @@ server {
 		return 302 https://status.${DOMAIN};
 	}
 
-	# AI assistant: a route of the frontend (it adds the login token), not of the backend
-	location /api/ai/ {
-		proxy_pass http://frontend:3000;
-		proxy_buffering off;          # the answer streams word by word
-		client_max_body_size 10m;     # document uploads (the default is 1 MB)
-	}
-
 	# backend api
 	location /api/ {
 		proxy_pass http://backend:3000;
