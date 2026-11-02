@@ -22,7 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { generateActionToken } from '@/core/utils/generate-action-token';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
-import { addDays } from 'date-fns';
+import { addDays, isAfter, subYears } from 'date-fns';
 import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
@@ -46,19 +46,6 @@ export class MembersService {
       await this.accessesService.authorizeAdminOrStaffAccess(
         accessTokenPayload,
       );
-
-    // * Check if admin has place for new member
-    // * Count Members
-    const membersCount = await this.prisma.member.count({
-      where: {
-        adminId,
-      },
-    });
-    if (membersCount >= subscription.plan.maxMembers) {
-      throw new ForbiddenException(
-        `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
-      );
-    }
 
     // * Check if Admin Has Membership Plan With Duration
     const { duration, membershipPlan } =
@@ -92,6 +79,15 @@ export class MembersService {
       }
     }
 
+    // * Check if member >= 13 years old
+    const minimumBirthDate = subYears(new Date(), 13);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'The Member must be at least 18 years old to add.',
+      );
+    }
+
     // * Genarate a userName
     let userName: string;
     let firstNameCharCount = 1;
@@ -116,6 +112,19 @@ export class MembersService {
     // * Interactive transaction (function)
     // * tx is the prisma client inside a transaction
     const result = await this.prisma.$transaction(async (tx) => {
+      // * Check if admin has place for new member
+      // * Count Members
+      const membersCount = await tx.member.count({
+        where: {
+          adminId,
+        },
+      });
+      if (membersCount >= subscription.plan.maxMembers) {
+        throw new ForbiddenException(
+          `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
+        );
+      }
+
       // * Add members to database
       const member = await tx.member.create({
         data: {
@@ -204,7 +213,7 @@ export class MembersService {
       );
     } catch {
       // * Remove action token if email faild to send
-      await this.prisma.userActionToken.deleteMany({
+      await this.prisma.memberActionToken.deleteMany({
         where: { id: actionToken.id },
       });
       throw new InternalServerErrorException(
@@ -251,6 +260,17 @@ export class MembersService {
       }
     }
 
+    // * Check if member >= 13 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 13);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException(
+          'The Member must be at least 18 years old to add.',
+        );
+      }
+    }
+
     // * Check if data has no new membership
     if (!data.membershipPlanId && !data.membershipPlanDurationId) {
       // * Save new data to member
@@ -293,23 +313,21 @@ export class MembersService {
         );
       }
 
-      // * Check Membership Before update
-      const membership = await this.prisma.membership.findFirst({
+      // * Check if member currently has an active membership
+      const activeMembership = await this.prisma.membership.findFirst({
         where: {
-          adminId: adminId,
-          memberId: memberId,
+          adminId,
+          memberId,
           membershipStatus: MembershipStatus.ACTIVE,
         },
       });
-      if (!membership) {
-        throw new NotFoundException('Membership Not Found!');
-      }
 
       // * Check if the new membership is duplicate or already active
       if (
-        data.membershipPlanId === membership.membershipPlanId &&
-        data.membershipPlanDurationId === membership.membershipPlanDurationId &&
-        membership.membershipStatus === MembershipStatus.ACTIVE
+        activeMembership &&
+        data.membershipPlanId === activeMembership.membershipPlanId &&
+        data.membershipPlanDurationId ===
+          activeMembership.membershipPlanDurationId
       ) {
         throw new ConflictException(
           'This member already has an active membership with the same plan and duration.',
@@ -342,22 +360,24 @@ export class MembersService {
         });
 
         // * Expire old membership only if it is still ACTIVE
-        const { count } = await tx.membership.updateMany({
-          where: {
-            id: membership.id,
-            adminId,
-            memberId,
-            membershipStatus: MembershipStatus.ACTIVE,
-          },
-          data: {
-            membershipStatus: MembershipStatus.EXPIRED,
-          },
-        });
+        if (activeMembership) {
+          const { count } = await tx.membership.updateMany({
+            where: {
+              id: activeMembership.id,
+              adminId,
+              memberId,
+              membershipStatus: MembershipStatus.ACTIVE,
+            },
+            data: {
+              membershipStatus: MembershipStatus.EXPIRED,
+            },
+          });
 
-        if (count !== 1) {
-          throw new ConflictException(
-            'Membership was already updated by another request.',
-          );
+          if (count !== 1) {
+            throw new ConflictException(
+              'Membership was already updated by another request.',
+            );
+          }
         }
 
         // * Add new Membership to member

@@ -65,7 +65,7 @@ export class AccessesService {
     }
 
     // * Check account status
-    this.assertUserAccountActive(
+    this.assertAccountActive(
       subscription.user.accountStatus,
       'The admin account',
     );
@@ -104,7 +104,10 @@ export class AccessesService {
     }
 
     // * Check account status
-    this.assertMemberAccountActive(membership.member.accountStatus);
+    this.assertAccountActive(
+      membership.member.accountStatus,
+      'The member account',
+    );
 
     return membership;
   }
@@ -148,7 +151,7 @@ export class AccessesService {
       }
 
       // * Check account status
-      this.assertUserAccountActive(staff.accountStatus, 'Your staff account');
+      this.assertAccountActive(staff.accountStatus, 'Your staff account');
 
       return staff.adminId;
     } else {
@@ -159,7 +162,7 @@ export class AccessesService {
   }
 
   // * Validate an already-loaded admin or staff status without querying the DB.
-  private assertUserAccountActive(
+  private assertAccountActive(
     status: AccountStatus,
     accountLabel: string,
   ): void {
@@ -173,19 +176,6 @@ export class AccessesService {
       );
     } else {
       throw new ForbiddenException(`${accountLabel} is not active.`);
-    }
-  }
-
-  // * Validate an already-loaded member status without querying the DB.
-  private assertMemberAccountActive(status: AccountStatus) {
-    if (status === AccountStatus.ACTIVE) {
-      return;
-    } else if (status === AccountStatus.PENDING) {
-      throw new ForbiddenException('The member account is pending.');
-    } else if (status === AccountStatus.BANNED) {
-      throw new ForbiddenException('The member account has been suspended.');
-    } else {
-      throw new ForbiddenException('The member account is not active.');
     }
   }
 }

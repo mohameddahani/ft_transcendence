@@ -39,6 +39,7 @@ import {
   DEFAULT_AVATARS,
   DEFAULT_AVATARS_ID,
 } from '@/core/constants/default-avatars.constants';
+import { isAfter, subYears } from 'date-fns';
 
 @Injectable()
 export class AuthProvider {
@@ -66,6 +67,15 @@ export class AuthProvider {
       if (existingUser.phoneNumber === data.phoneNumber) {
         throw new UnauthorizedException('Phone number already exists');
       }
+    }
+
+    // * Check if user >= 18 years old
+    const minimumBirthDate = subYears(new Date(), 18);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'You must be at least 18 years old to register.',
+      );
     }
 
     // * Check if user accept the terms
@@ -180,13 +190,6 @@ export class AuthProvider {
     const passwordIsMatch = await bcrypt.compare(data.password, user.password);
     if (!passwordIsMatch) {
       throw new UnauthorizedException('Invalid Email or Password');
-    }
-
-    // * Check if the user's account is verified.
-    if (!user.isAccountVerified) {
-      throw new UnauthorizedException(
-        'Please verify your email address to continue.',
-      );
     }
 
     // * Check if the user has accepted the terms.

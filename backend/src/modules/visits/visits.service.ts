@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -258,7 +259,7 @@ export class VisitsService {
     }
 
     // * Cancel the visit
-    return await this.prisma.visit.update({
+    const { count } = await this.prisma.visit.updateMany({
       where: {
         id: visitId,
       },
@@ -266,6 +267,12 @@ export class VisitsService {
         visitStatus: VisitStatus.CANCELLED,
       },
     });
+
+    if (count !== 1) {
+      throw new ConflictException(
+        'Visit can no longer be cancelled because its status has already changed.',
+      );
+    }
   }
 
   // * Get all visits
