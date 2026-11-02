@@ -110,13 +110,13 @@ services:
 
   blockchain:
     build:
-      context: ../block-chain/api
+      context: ../blockchain/api
       dockerfile: Dockerfile
-    image: block-chain:latest
-    container_name: blockchain
+    image: blockchain-api:latest
+    container_name: blockchain-api
     restart: unless-stopped
     env_file:
-      - ../block-chain/api/.env
+      - ../blockchain/api/.env
     networks:
       - ft_transcendence-net
     depends_on:
