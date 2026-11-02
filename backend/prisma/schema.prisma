@@ -218,7 +218,7 @@ model Staff {
   userName    String   @unique @map("user_name")
   email       String
   password    String?
-  phoneNumber String   @unique @map("phone_number")
+  phoneNumber String   @map("phone_number")
   companyName String   @map("company_name")
 
   adminId String @map("admin_id")

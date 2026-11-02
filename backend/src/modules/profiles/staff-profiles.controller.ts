@@ -51,7 +51,7 @@ export class StaffProfilesController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: UpdateProfileStaffDto,
   ) {
-    return this.profilesService.updateProfileStaff(accessTokenPayload.id, body);
+    return this.profilesService.updateProfileStaff(accessTokenPayload, body);
   }
 
   // * Request email change
