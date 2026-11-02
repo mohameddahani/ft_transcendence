@@ -138,90 +138,103 @@ export class VisitsService {
       );
     }
 
-    // * Check if member already has a visit on the chosen day
-    const startOfToday = startOfDay(data.visitDateAndTime);
-    const endOfToday = endOfDay(data.visitDateAndTime);
+    const rawToken = await this.prisma.$transaction(async (tx) => {
+      // * Block this member for Update
+      await tx.$queryRaw`
+        SELECT "id" FROM "members" 
+        WHERE "id" = ${memberId}
+        FOR UPDATE
+        `;
 
-    const alreadyVisited = await this.prisma.visit.findFirst({
-      where: {
-        adminId: adminId,
-        memberId: memberId,
-        visitDateAndTime: {
-          gte: startOfToday,
-          lte: endOfToday,
+      // * Get Start of Day and End
+      const startOfToday = startOfDay(data.visitDateAndTime);
+      const endOfToday = endOfDay(data.visitDateAndTime);
+
+      // * Check if member already has a visit on the chosen day
+      const alreadyVisited = await tx.visit.findFirst({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          visitDateAndTime: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
         },
-      },
-    });
+      });
 
-    if (alreadyVisited) {
-      throw new ForbiddenException(
-        'You already have a visit scheduled for this day.',
-      );
-    }
+      if (alreadyVisited) {
+        throw new ForbiddenException(
+          'You already have a visit scheduled for this day.',
+        );
+      }
 
-    // * Calculate choosen week
-    // Monday = first day of the week
-    const monday = startOfWeek(data.visitDateAndTime, {
-      weekStartsOn: 1,
-    });
+      // * Calculate choosen week
+      // Monday = first day of the week
+      const monday = startOfWeek(data.visitDateAndTime, {
+        weekStartsOn: 1,
+      });
 
-    // Sunday = last day of the week
-    const sunday = endOfWeek(data.visitDateAndTime, {
-      weekStartsOn: 1,
-    });
+      // Sunday = last day of the week
+      const sunday = endOfWeek(data.visitDateAndTime, {
+        weekStartsOn: 1,
+      });
 
-    // * Check weekly visit limit
-    const visitCount = await this.prisma.visit.count({
-      where: {
-        adminId: adminId,
-        memberId: memberId,
-        visitDateAndTime: {
-          gte: monday,
-          lte: sunday,
+      // * Check weekly visit limit
+      const visitCount = await tx.visit.count({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          visitDateAndTime: {
+            gte: monday,
+            lte: sunday,
+          },
+          visitStatus: { not: VisitStatus.CANCELLED },
         },
-        visitStatus: { not: VisitStatus.CANCELLED },
-      },
-    });
+      });
 
-    if (visitCount >= membership.membershipPlan.weeklyVisitLimit) {
-      throw new ForbiddenException(
-        'Weekly visit limit has been reached for this membership.',
-      );
-    }
+      if (visitCount >= membership.membershipPlan.weeklyVisitLimit) {
+        throw new ForbiddenException(
+          'Weekly visit limit has been reached for this membership.',
+        );
+      }
 
-    const attendanceCount = await this.prisma.attendance.count({
-      where: {
-        adminId: adminId,
-        memberId: memberId,
-        checkedInAt: {
-          gte: monday,
-          lte: sunday,
+      const attendanceCount = await tx.attendance.count({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          checkedInAt: {
+            gte: monday,
+            lte: sunday,
+          },
         },
-      },
+      });
+
+      if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
+        throw new ForbiddenException(
+          'Weekly attendance limit has been reached for this membership.',
+        );
+      }
+
+      // * Create Visit
+      const { rawToken, tokenHash } = generateActionToken();
+
+      await tx.visit.create({
+        data: {
+          admin: { connect: { id: adminId } },
+          member: { connect: { id: memberId } },
+          membership: { connect: { id: membership.id } },
+          visitDateAndTime: data.visitDateAndTime,
+          qrTokenHash: tokenHash,
+          visitDateAndTimeExpiresAt: addMinutes(
+            data.visitDateAndTime,
+            VISIT_EXPIRATION_MINUTES,
+          ), // * Add 30 min
+        },
+      });
+
+      return rawToken;
     });
 
-    if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
-      throw new ForbiddenException(
-        'Weekly attendance limit has been reached for this membership.',
-      );
-    }
-
-    // * Create Visit
-    const { rawToken, tokenHash } = generateActionToken();
-
-    await this.prisma.visit.create({
-      data: {
-        admin: { connect: { id: adminId } },
-        member: { connect: { id: memberId } },
-        membership: { connect: { id: membership.id } },
-        visitDateAndTime: data.visitDateAndTime,
-        qrTokenHash: tokenHash,
-        visitDateAndTimeExpiresAt: addMinutes(
-          data.visitDateAndTime,
-          VISIT_EXPIRATION_MINUTES,
-        ), // * Add 30 min
-      },
-    });
     return { rawToken: rawToken };
   }
 
