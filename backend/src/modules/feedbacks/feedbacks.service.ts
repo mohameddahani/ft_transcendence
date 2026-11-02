@@ -56,7 +56,7 @@ export class FeedbacksService {
         content: data.content,
         rating: data.rating,
         sentiment: response?.sentiment ?? null,
-        sentimentScore: response?.sentimentScore ?? null,
+        sentimentScore: response?.score ?? null,
       },
     });
   }

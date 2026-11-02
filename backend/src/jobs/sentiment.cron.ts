@@ -32,7 +32,7 @@ export class SentimentCron {
           where: { id: feedback.id },
           data: {
             sentiment: response.sentiment,
-            sentimentScore: response.sentimentScore,
+            sentimentScore: response.score,
           },
         });
       }
