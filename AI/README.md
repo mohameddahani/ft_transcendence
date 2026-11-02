@@ -64,7 +64,7 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < see
 python3 -m venv .venv && .venv/bin/pip install asyncpg     # first time only
 .venv/bin/python -m seeder.seed
 docker compose restart ai
-./scripts/load_docs.sh                                      # the 16 gym documents
+./scripts/load_docs.sh                                      # the 16 gym documents: ends with "16/16 documents loaded"
 ```
 
 **The demo gyms:** `atlas` (Atlas Fitness Agadir), `oasis` (Oasis Gym Marrakech), `titan` (Titan
@@ -132,6 +132,10 @@ curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"question": "And who expires in the next 30 days?", "thread_id": "<paste thread_id>"}'
+
+# your conversations (newest first), then delete one
+curl -s localhost:8000/ai/threads -H "Authorization: Bearer $TOKEN"
+curl -s -X DELETE localhost:8000/ai/threads/<paste thread_id> -H "Authorization: Bearer $TOKEN"
 
 # revenue (owner only)
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
@@ -267,10 +271,39 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | `role "admin" does not exist`, or prisma `P1000` after a reset | the terminal still exports an old `POSTGRES_USER`, and compose prefers it to `.env`: run `set -a; source .env; set +a` (or open a new terminal), then do §3 again from the start |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` changed | they must match `DATABASE_URL` in `backend/.env`, and only take effect on a new database (`docker compose down -v`) |
 | `/health` says "database unreachable" | Postgres is not running: `docker compose up -d` |
-| every document question is "not in the documents" | run `./scripts/load_docs.sh` (needed after every database reset) |
+| every document question is "not in the documents" | run `./scripts/load_docs.sh` (needed after every database reset); it must end with "16/16 documents loaded". A file that failed twice is shown with its code: run the script again |
 | "The assistant is unavailable right now" | Gemini failed (key or quota): `docker compose logs ai` |
 | port 5432 already in use | the team's other stack is running: stop one of them |
-| a code change has no effect | `app/` reloads by itself in development; after changing `requirements.txt`, run `docker compose up -d --build` |
+| a code change has no effect | run `docker compose restart ai` (on macOS with Colima the automatic reload doesn't see changes made on the Mac); after changing `requirements.txt`, run `docker compose up -d --build` |
+
+## 8. In the team's Docker stack (`make up`)
+
+The team's `devops/docker-compose.yml` runs this service as the `ai` container, with this folder's
+`.env` unchanged: the database container is called `db` there, and it also answers to the name
+`postgres`, which is the name `AI_DATABASE_URL` uses. nginx sends `/api/ai/` to the frontend (with
+streaming and a 10 MB upload limit); the AI service itself is never exposed.
+
+**Once, after the stack has started** (the backend container creates the tables when it starts),
+create the AI's read-only database user, then restart the AI:
+
+```bash
+cd ~/Developer/gym_saas/ft_transcendence
+set -a; source AI/.env; set +a
+docker exec -i db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ai_password="$AI_DB_PASSWORD" < AI/seeder/roles/ai_readonly.sql
+docker restart ai
+docker exec ai python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read())"
+# → b'{"status":"ok"}'
+```
+
+`POSTGRES_USER` and `POSTGRES_DB` must be the same as in `devops/.env` (the team database).
+
+**The other services' settings:**
+- frontend: `AI_URL=http://ai:8000`;
+- backend: `AI_API_URL=http://ai:8000/internal/sentiment`, and `INTERNAL_API_KEY` with the same value as
+  in this folder's `.env`.
+
+**Documents:** each gym owner uploads them on the **Knowledge Documents** page. `scripts/load_docs.sh`
+is for the local setup above only: it uses port 8000, which the team stack doesn't open.
 
 ## The service's addresses
 
@@ -279,6 +312,8 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | `GET /health` | anyone | is the service and its database up |
 | `GET /ai/me` | logged in | role and gym name |
 | `POST /ai/chat` | logged in | ask a question, answer streamed as server-sent events |
-| `GET /ai/threads/{id}` | logged in | your own messages in a conversation |
+| `GET /ai/threads` | logged in | your own conversations, newest first (at most 30), each titled with its first question |
+| `GET /ai/threads/{id}` | logged in | your own messages in a conversation, with their time |
+| `DELETE /ai/threads/{id}` | logged in | delete one of your conversations (someone else's → 404) |
 | `GET`, `POST /ai/documents`, `DELETE /ai/documents/{name}` | owner | the gym's documents |
 | `POST /internal/sentiment` | backend (`X-API-Key`) | classify a feedback text |

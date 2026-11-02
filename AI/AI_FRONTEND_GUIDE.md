@@ -317,7 +317,9 @@ All paths below are the **AI service's** paths. Your pages call them through you
 |---|---|---|---|
 | `GET /ai/me` | any role | — | `{"role": "ADMIN" \| "STAFF" \| "MEMBER", "gym_name": "Atlas Fitness Agadir"}` |
 | `POST /ai/chat` | any role | `{"question": "...", "thread_id": "<uuid>" or null}` | **a stream of events** (below) |
-| `GET /ai/threads/{thread_id}` | any role | — | `[{"role": "user" \| "model", "text": "..."}]` (up to 100, oldest first; someone else's id → `[]`) |
+| `GET /ai/threads` | any role | — | `[{"thread_id": "<uuid>", "title": "...", "last_at": "2026-11-02T12:25:47Z"}]` (your own conversations, newest first, at most 30; `title` is the first question) |
+| `GET /ai/threads/{thread_id}` | any role | — | `[{"role": "user" \| "model", "text": "...", "created_at": "2026-11-02T12:25:44Z"}]` (up to 100, oldest first; someone else's id → `[]`) |
+| `DELETE /ai/threads/{thread_id}` | any role | — | `{"deleted": "<uuid>"}`; not found or not yours → 404 |
 | `GET /ai/documents` | owner | — | `[{"filename": "membership-terms.md", "visibility": "member" \| "staff", "chunks": 3}]` |
 | `POST /ai/documents` | owner | multipart form: `file`, `visibility` (`member` or `staff`) | `{"filename": "...", "visibility": "...", "chunks": 2}` |
 | `DELETE /ai/documents/{filename}` | owner | — | `{"deleted": "..."}` |
@@ -455,7 +457,8 @@ const BASE = "/api"; // the app's own server route adds the login token (app/api
 
 export type Role = "ADMIN" | "STAFF" | "MEMBER";
 export type Me = { role: Role; gym_name: string };
-export type SavedMessage = { role: "user" | "model"; text: string };
+export type SavedMessage = { role: "user" | "model"; text: string; created_at: string };
+export type ThreadInfo = { thread_id: string; title: string; last_at: string };
 export type DocumentInfo = { filename: string; visibility: "member" | "staff"; chunks: number };
 
 export class ApiError extends Error {
@@ -471,9 +474,13 @@ export class ApiError extends Error {
   }
 }
 
+const LOGIN_PAGE: Record<Role, string> = { ADMIN: "/login", STAFF: "/staff/login", MEMBER: "/member/login" };
+
 // after a 401 the session is really over (the route already tried a refresh)
-export function toLogin() {
-  window.location.href = `/login?from=${encodeURIComponent(location.pathname)}&error=session_expired`;
+export function toLogin(role?: Role) {
+  const page = role ? LOGIN_PAGE[role] : "/login";
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.href = `${page}?from=${encodeURIComponent(location.pathname)}&error=session_expired`;
 }
 
 async function call(path: string, init: RequestInit = {}): Promise<Response> {
@@ -495,6 +502,14 @@ export async function getMe(): Promise<Me> {
 
 export async function getThread(threadId: string): Promise<SavedMessage[]> {
   return (await call(`/ai/threads/${threadId}`)).json();
+}
+
+export async function listThreads(): Promise<ThreadInfo[]> {
+  return (await call("/ai/threads")).json();
+}
+
+export async function deleteThread(threadId: string): Promise<void> {
+  await call(`/ai/threads/${threadId}`, { method: "DELETE" });
 }
 
 export async function listDocuments(): Promise<DocumentInfo[]> {
@@ -543,8 +558,10 @@ export async function streamChat(
 - **Why `fetch` and not `EventSource`:** `EventSource` only does GET requests, and this is a POST.
 - **Why the buffer:** a network piece can end in the middle of an event, so the unfinished end
   waits for the next piece.
-- `toLogin()` matches what your axios client does when a session ends. ESLint warns about
-  `window.location.href`, the same warning as in your `axios.ts`.
+- `toLogin(role)` matches what your axios client does when a session ends, and sends each role
+  back to its own login page: pass the role from `getMe()` (without it, `/login`). ESLint warns
+  about `window.location.href`, the same warning as in your `axios.ts`; the comment above the line
+  silences it.
 
 ---
 
@@ -586,10 +603,13 @@ The AI service does the rest: the same calls, but different answers per role.
 - empty or blank questions are not sent.
 
 **"New chat" button:** remove `thread_id` from `sessionStorage`, forget it, clear the list.
-There is no list of past conversations: the AI service only reloads the tab's current one.
+The old conversation stays stored, and `GET /ai/threads` lists it (section 4).
 
 **Logout:** also remove `sessionStorage["thread_id"]`, so the next person in that tab starts
 fresh. The AI service would return `[]` to them anyway.
+
+**Message times:** each saved message has its own `created_at`. Show that time when a conversation
+is reloaded, not the current time.
 
 **Showing answers:**
 - **as plain text only**, e.g. `<p className="whitespace-pre-wrap">{text}</p>`. **No Markdown
@@ -688,17 +708,17 @@ Rules for the pages:
 ## 10. Production (for whoever does Docker and nginx)
 
 - **The AI service on the team's Docker network.** It reads the same Postgres through its own
-  read-only user (see `AI/README.md`).
+  read-only user (see `AI/README.md`, section 8). The database container also answers to the name
+  `postgres`, so the AI's `.env` works unchanged.
 - **Frontend container:** `AI_URL=http://ai:8000`.
 - **nginx: no route to the AI service.** It stays internal.
-- **nginx: `client_max_body_size 10m;`** on the location that serves the frontend. The default
-  is 1 MB, so without it any document over 1 MB fails with 413 before reaching Next.js.
-- **Streaming through nginx:** your `location /` already has `proxy_buffering off`, so the
-  answer keeps streaming. `proxy_read_timeout 60s` is enough: events arrive every few hundred
-  milliseconds.
-- **One thing to settle with DevOps:** nginx currently sends every `/api/` request to the
-  backend. Your app's own server routes (`/api/auth/login`, and this `/api/ai/...`) need to
-  reach Next.js instead. Whatever you decide for your routes, the assistant's route follows.
+- **nginx: `/api/ai/` goes to the frontend** (`devops/nginx/conf.d/gym.conf.template`), before the
+  `/api/` block that goes to the backend. That location has `proxy_buffering off` (the answer
+  streams word by word) and `client_max_body_size 10m` (documents up to 10 MB; the default is 1 MB).
+  Tested with nginx 1.30: `/api/ai/...` reaches the frontend, the rest of `/api/` still reaches the
+  backend, a 2 MB upload passes, 11 MB is refused, and events arrive live.
+- **Your other server routes** (`/api/auth/login`, …) still go to the backend through `/api/`.
+  If they must reach Next.js in Docker too, they need their own location, like `/api/ai/`.
 
 ---
 

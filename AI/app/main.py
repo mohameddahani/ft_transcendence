@@ -81,9 +81,22 @@ def chat(body: ChatRequest, user: User = Depends(rate_limited_user)):  # noqa: B
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+@app.get("/ai/threads")
+def threads(user: User = Depends(current_user)):  # noqa: B008
+    return db.list_threads(user.id)
+
+
 @app.get("/ai/threads/{thread_id}")
 def thread(thread_id: uuid.UUID, user: User = Depends(current_user)):  # noqa: B008
     return db.load_messages(str(thread_id), user.id, limit=100)
+
+
+@app.delete("/ai/threads/{thread_id}")
+def delete_thread(thread_id: uuid.UUID, user: User = Depends(current_user)):  # noqa: B008
+    # someone else's conversation gets the same 404 as one that doesn't exist
+    if not db.delete_thread(str(thread_id), user.id):
+        raise HTTPException(404, "No such conversation")
+    return {"deleted": str(thread_id)}
 
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
