@@ -1,5 +1,5 @@
 import {
-  IsNumber,
+  IsInt,
   IsOptional,
   IsPositive,
   IsString,
@@ -25,7 +25,7 @@ export class AddPlanDto {
   planName!: string;
 
   // * Max Members
-  @IsNumber()
+  @IsInt()
   @IsPositive()
   @ApiProperty({
     example: 500,

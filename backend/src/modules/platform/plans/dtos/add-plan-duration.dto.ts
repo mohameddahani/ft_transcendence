@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsPositive, IsUUID } from 'class-validator';
+import { IsInt, IsNumber, IsPositive, IsUUID } from 'class-validator';
 
 export class AddPlanDurationDto {
   // * PlanId
@@ -11,7 +11,7 @@ export class AddPlanDurationDto {
   planId!: string;
 
   // * Duration
-  @IsNumber()
+  @IsInt()
   @IsPositive()
   @ApiProperty({
     example: 180,
