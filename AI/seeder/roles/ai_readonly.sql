@@ -15,7 +15,8 @@ ALTER ROLE ai_readonly PASSWORD :'ai_password';
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ai_readonly;
 REVOKE ALL ON SCHEMA public FROM ai_readonly;
 
-GRANT CONNECT ON DATABASE ft_transcendence TO ai_readonly;
+-- DBNAME and USER are psql's own variables: the database and user this script runs as
+GRANT CONNECT ON DATABASE :"DBNAME" TO ai_readonly;
 GRANT USAGE ON SCHEMA public TO ai_readonly;
 
 GRANT SELECT ON
@@ -47,5 +48,5 @@ GRANT SELECT (
 
 -- never granted: visits (qr_token_hash opens the gym door), token tables, passwords
 -- tables created later stay unreadable until they are granted here
-ALTER DEFAULT PRIVILEGES FOR ROLE admin IN SCHEMA public
+ALTER DEFAULT PRIVILEGES FOR ROLE :"USER" IN SCHEMA public
     REVOKE ALL ON TABLES FROM ai_readonly;
