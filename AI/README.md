@@ -64,7 +64,7 @@ docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < see
 python3 -m venv .venv && .venv/bin/pip install asyncpg     # first time only
 .venv/bin/python -m seeder.seed
 docker compose restart ai
-./scripts/load_docs.sh                                      # the 16 gym documents
+./scripts/load_docs.sh                                      # the 16 gym documents: ends with "16/16 documents loaded"
 ```
 
 **The demo gyms:** `atlas` (Atlas Fitness Agadir), `oasis` (Oasis Gym Marrakech), `titan` (Titan
@@ -132,6 +132,10 @@ curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"question": "And who expires in the next 30 days?", "thread_id": "<paste thread_id>"}'
+
+# your conversations (newest first), then delete one
+curl -s localhost:8000/ai/threads -H "Authorization: Bearer $TOKEN"
+curl -s -X DELETE localhost:8000/ai/threads/<paste thread_id> -H "Authorization: Bearer $TOKEN"
 
 # revenue (owner only)
 curl -N -X POST localhost:8000/ai/chat -H "Authorization: Bearer $TOKEN" \
@@ -267,10 +271,10 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | `role "admin" does not exist`, or prisma `P1000` after a reset | the terminal still exports an old `POSTGRES_USER`, and compose prefers it to `.env`: run `set -a; source .env; set +a` (or open a new terminal), then do §3 again from the start |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` changed | they must match `DATABASE_URL` in `backend/.env`, and only take effect on a new database (`docker compose down -v`) |
 | `/health` says "database unreachable" | Postgres is not running: `docker compose up -d` |
-| every document question is "not in the documents" | run `./scripts/load_docs.sh` (needed after every database reset) |
+| every document question is "not in the documents" | run `./scripts/load_docs.sh` (needed after every database reset); it must end with "16/16 documents loaded". A file that failed twice is shown with its code: run the script again |
 | "The assistant is unavailable right now" | Gemini failed (key or quota): `docker compose logs ai` |
 | port 5432 already in use | the team's other stack is running: stop one of them |
-| a code change has no effect | `app/` reloads by itself in development; after changing `requirements.txt`, run `docker compose up -d --build` |
+| a code change has no effect | run `docker compose restart ai` (on macOS with Colima the automatic reload doesn't see changes made on the Mac); after changing `requirements.txt`, run `docker compose up -d --build` |
 
 ## The service's addresses
 
@@ -279,6 +283,8 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 | `GET /health` | anyone | is the service and its database up |
 | `GET /ai/me` | logged in | role and gym name |
 | `POST /ai/chat` | logged in | ask a question, answer streamed as server-sent events |
-| `GET /ai/threads/{id}` | logged in | your own messages in a conversation |
+| `GET /ai/threads` | logged in | your own conversations, newest first (at most 30), each titled with its first question |
+| `GET /ai/threads/{id}` | logged in | your own messages in a conversation, with their time |
+| `DELETE /ai/threads/{id}` | logged in | delete one of your conversations (someone else's → 404) |
 | `GET`, `POST /ai/documents`, `DELETE /ai/documents/{name}` | owner | the gym's documents |
 | `POST /internal/sentiment` | backend (`X-API-Key`) | classify a feedback text |
