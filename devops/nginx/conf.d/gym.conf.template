@@ -33,11 +33,6 @@ server {
 		return 302 https://status.${DOMAIN};
 	}
 
-	# backend api
-	location /api/ {
-		proxy_pass http://backend:3000;
-	}
-
 	# superadmin platform
 	location ^~ /superadmin {
 		proxy_pass http://superadmin:3000;
