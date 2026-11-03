@@ -244,6 +244,7 @@ model Staff {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([adminId, email])
+  @@unique([adminId, phoneNumber])
   @@index([firstName, lastName])
   @@index([role])
   @@map("staffs")
