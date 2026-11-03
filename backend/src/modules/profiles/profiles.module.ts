@@ -6,6 +6,7 @@ import { MemberProfilesController } from './member-profiles.controller';
 import { CloudinaryModule } from '@/infrastructure/cloudinary/cloudinary.module';
 import { StaffProfilesController } from './staff-profiles.controller';
 import { EmailModule } from '@/infrastructure/email/email.module';
+import { AccessesModule } from '@/core/access/access.module';
 
 @Module({
   controllers: [
@@ -18,6 +19,7 @@ import { EmailModule } from '@/infrastructure/email/email.module';
   imports: [
     CloudinaryModule, // * Import to upload files to Cloudinary
     EmailModule,
+    AccessesModule,
   ],
   exports: [],
 })

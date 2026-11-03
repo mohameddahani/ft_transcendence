@@ -21,7 +21,7 @@ import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateMemberDto } from '../members/dtos/update-member.dto';
 import { MembersService } from '../members/members.service';
 
-@Controller('/api/staffs/members')
+@Controller('staffs/members')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])

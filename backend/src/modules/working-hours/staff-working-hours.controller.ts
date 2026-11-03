@@ -17,7 +17,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { WorkingHoursService } from './working-hours.service';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 
-@Controller('/api/staffs/working-hours')
+@Controller('staffs/working-hours')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])

@@ -21,7 +21,7 @@ import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddStaffDto } from './dtos/add-staff.dto';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 
-@Controller('/api/admins/staffs')
+@Controller('admins/staffs')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])

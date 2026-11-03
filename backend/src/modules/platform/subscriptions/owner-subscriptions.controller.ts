@@ -19,7 +19,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { CancelSubscriptionDto } from './dtos/cancel-subscription.dto';
 import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-token-auth.guard';
 
-@Controller('/api/owners/subscriptions')
+@Controller('owners/subscriptions')
 // * Make Authorazation Golbal on this route
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.OWNER])
