@@ -23,7 +23,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { fileTypeFromBuffer } from 'file-type';
 import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
 
-@Controller('/api/users/owners')
+@Controller('users/owners')
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.OWNER])
 export class OwnerProfilesController {

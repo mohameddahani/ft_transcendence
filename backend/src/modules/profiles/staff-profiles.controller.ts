@@ -23,7 +23,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
 import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
 
-@Controller('/api/users/staffs')
+@Controller('users/staffs')
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])
 export class StaffProfilesController {

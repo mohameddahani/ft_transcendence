@@ -21,7 +21,7 @@ import { UpdatePlanDto } from './dtos/update-plan.dto';
 import { UpdatePlanDurationDto } from './dtos/update-plan-duration.dto';
 import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-token-auth.guard';
 
-@Controller('/api/plans')
+@Controller('plans')
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 

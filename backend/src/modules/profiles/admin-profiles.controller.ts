@@ -25,7 +25,7 @@ import 'multer'; // * Load/execute the Multer module, but don't give me any expo
 import { fileTypeFromBuffer } from 'file-type';
 import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto';
 
-@Controller('/api/users/admins')
+@Controller('users/admins')
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
 export class AdminProfilesController {

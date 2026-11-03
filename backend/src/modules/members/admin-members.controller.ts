@@ -21,7 +21,7 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 
-@Controller('/api/admins/members')
+@Controller('admins/members')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])

@@ -1,7 +1,7 @@
 import { Controller, Get, Header } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 
-@Controller('/api/health')
+@Controller('health')
 export class HealthController {
   constructor() {}
 

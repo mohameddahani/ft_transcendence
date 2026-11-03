@@ -16,7 +16,7 @@ import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { VisitsService } from './visits.service';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 
-@Controller('/api/staffs/visits')
+@Controller('staffs/visits')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])

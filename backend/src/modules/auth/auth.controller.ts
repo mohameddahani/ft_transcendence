@@ -41,7 +41,7 @@ import { StaffRefreshTokenAuthGuard } from './guards/staff-refresh-token-auth.gu
 import { ForgotPasswordStaffDto } from './dtos/forgot-password-staff.dto';
 import { ResetPasswordStaffDto } from './dtos/reset-password-staff.dto';
 
-@Controller('api/auth')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
