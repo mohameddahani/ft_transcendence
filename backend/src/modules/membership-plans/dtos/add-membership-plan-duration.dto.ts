@@ -11,7 +11,7 @@ export class AddMembershipPlanDurationDto {
   membershipPlanId!: string;
 
   // * Duration
-  @IsNumber()
+  @IsInt()
   @IsPositive()
   durationDays!: number;
 

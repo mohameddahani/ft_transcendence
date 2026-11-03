@@ -17,7 +17,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { NotificationsService } from './notifications.service';
 
-@Controller('api/members/notifications')
+@Controller('members/notifications')
 // * Make Authorazation Golbal on this route
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])

@@ -27,14 +27,17 @@ export class MembershipPlansService {
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if membership plan already exist
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
-        AND: [{ adminId: adminId }, { planName: data.planName }],
+        adminId_planName: {
+          adminId: adminId,
+          planName: data.planName,
+        },
       },
     });
 
     if (membershipPlan) {
-      throw new UnauthorizedException('Membership Plan already exists');
+      throw new ConflictException('Membership Plan already exists');
     }
 
     // * Add membership plan to database
@@ -69,19 +72,17 @@ export class MembershipPlansService {
 
     // * Check if plan duration already exist
     const existingMembershipPlanDuration =
-      await this.prisma.membershipPlanDuration.findFirst({
+      await this.prisma.membershipPlanDuration.findUnique({
         where: {
-          AND: [
-            { membershipPlanId: data.membershipPlanId },
-            { durationDays: data.durationDays },
-            { price: data.price },
-          ],
+          membershipPlanId_durationDays_price: {
+            membershipPlanId: data.membershipPlanId,
+            durationDays: data.durationDays,
+            price: data.price,
+          },
         },
       });
     if (existingMembershipPlanDuration) {
-      throw new UnauthorizedException(
-        'Membership Plan Duration already exists',
-      );
+      throw new ConflictException('Membership Plan Duration already exists');
     }
 
     // * Add plan duration to database
@@ -175,30 +176,33 @@ export class MembershipPlansService {
     // * check if Duration is Duplicate in Plan
     if (data.durationDays !== undefined && data.price !== undefined) {
       const existingMembershipPlanDuration =
-        await this.prisma.membershipPlanDuration.findFirst({
+        await this.prisma.membershipPlanDuration.findUnique({
           where: {
-            AND: [
-              { membershipPlanId: data.membershipPlanId },
-              { durationDays: data.durationDays },
-              { price: data.price },
-            ],
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: data.durationDays,
+              price: data.price,
+            },
           },
         });
 
-      if (existingMembershipPlanDuration) {
+      if (
+        existingMembershipPlanDuration &&
+        existingMembershipPlanDuration.id !== id
+      ) {
         throw new UnauthorizedException(
           'Membership Plan Duration is Duplicate',
         );
       }
     } else if (data.price !== undefined) {
       const existingMembershipPlanDuration =
-        await this.prisma.membershipPlanDuration.findFirst({
+        await this.prisma.membershipPlanDuration.findUnique({
           where: {
-            AND: [
-              { membershipPlanId: data.membershipPlanId },
-              { durationDays: duration.durationDays },
-              { price: data.price },
-            ],
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: duration.durationDays,
+              price: data.price,
+            },
           },
         });
 
@@ -209,13 +213,13 @@ export class MembershipPlansService {
       }
     } else if (data.durationDays !== undefined) {
       const existingMembershipPlanDuration =
-        await this.prisma.membershipPlanDuration.findFirst({
+        await this.prisma.membershipPlanDuration.findUnique({
           where: {
-            AND: [
-              { membershipPlanId: data.membershipPlanId },
-              { durationDays: data.durationDays },
-              { price: duration.price },
-            ],
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: data.durationDays,
+              price: duration.price,
+            },
           },
         });
 

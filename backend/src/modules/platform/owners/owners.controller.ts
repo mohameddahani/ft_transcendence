@@ -15,7 +15,7 @@ import { Throttle } from '@nestjs/throttler';
 import { OwnersService } from './owners.service';
 import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-token-auth.guard';
 
-@Controller('/api/owners')
+@Controller('owners')
 // * Check if user has valid token and is a owner not normal user
 @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
 // * Set owner roles in this route

@@ -23,7 +23,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import { UpdateProfileMemberDto } from './dtos/update-profile-member.dto';
 import { RequestEmailChangeMemberDto } from './dtos/request-email-change-member.dto';
 
-@Controller('/api/users/members')
+@Controller('users/members')
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])
 export class MemberProfilesController {

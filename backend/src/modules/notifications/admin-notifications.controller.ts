@@ -17,7 +17,7 @@ import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { NotificationsService } from './notifications.service';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 
-@Controller('api/admins/notifications')
+@Controller('admins/notifications')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])
