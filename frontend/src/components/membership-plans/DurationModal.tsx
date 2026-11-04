@@ -83,10 +83,10 @@ export default function DurationModal({
   if (!isOpen || !plan) return null;
 
   const presets = [
-    { label: "1 Month", days: 30 },
-    { label: "3 Months", days: 90 },
-    { label: "6 Months", days: 180 },
-    { label: "1 Year", days: 365 },
+    { key: "oneMonth", days: 30 },
+    { key: "threeMonths", days: 90 },
+    { key: "sixMonths", days: 180 },
+    { key: "oneYear", days: 365 },
   ];
 
   const onSubmit = async (values: DurationFormValues) => {
@@ -181,7 +181,7 @@ export default function DurationModal({
                   onClick={() => setValue("durationDays", preset.days)}
                   className="px-2 py-1.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold transition-all cursor-pointer text-center"
                 >
-                  {preset.days} {t("days")}
+                  {t(preset.key)}
                 </button>
               ))}
             </div>

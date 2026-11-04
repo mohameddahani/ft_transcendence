@@ -87,6 +87,17 @@ function AdminStaffDashboardView() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const s = (status || "").toUpperCase();
+    if (s === "ACTIVE") return t("active");
+    if (s === "PENDING") return t("pending");
+    if (s === "BANNED") return t("banned");
+    if (s === "EXPIRED") return t("expired");
+    if (s === "CANCELLED") return t("cancelled");
+    if (s === "INACTIVE") return t("inactive");
+    return status;
+  };
+
   return (
     <div className="space-y-6 max-w-container-max mx-auto">
       {/* Welcome & Overview Header */}
@@ -153,10 +164,10 @@ function AdminStaffDashboardView() {
                 {totalMembers}
               </span>
             )}
-            <span className="text-xs text-on-surface-variant">Live from API</span>
+            <span className="text-xs text-on-surface-variant">{t("liveFromApi")}</span>
           </div>
           <p className="text-xs text-on-surface-variant mt-2">
-            Registered in this gym account
+            {t("registeredInGym")}
           </p>
         </div>
 
@@ -322,7 +333,7 @@ function AdminStaffDashboardView() {
                     firstMembership?.membershipPlan?.planName ||
                     firstMembership?.membershipPlan?.name ||
                     matchedPlan?.planName ||
-                    (firstMembership ? "Standard Plan" : "—");
+                    (firstMembership ? t("standardPlan") : "—");
 
                   const joinedDate = member.createdAt ? new Date(member.createdAt).toLocaleDateString() : "—";
 
@@ -366,7 +377,7 @@ function AdminStaffDashboardView() {
                             statusText
                           )}`}
                         >
-                          {statusText}
+                          {getStatusLabel(statusText)}
                         </span>
                       </td>
                       <td className="px-6 py-3.5 text-on-surface font-medium">
@@ -374,7 +385,7 @@ function AdminStaffDashboardView() {
                           <span>{activePlan}</span>
                           {firstMembership?.expiresAt && (
                             <span className="block text-[10px] text-on-surface-variant font-normal">
-                              Exp: {new Date(firstMembership.expiresAt).toLocaleDateString()}
+                              {t("expiryDate")}: {new Date(firstMembership.expiresAt).toLocaleDateString()}
                             </span>
                           )}
                         </div>

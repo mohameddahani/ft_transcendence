@@ -84,9 +84,9 @@ export default function MemberFeedbackDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between p-5 sm:p-6 border-b border-outline-variant/50 bg-surface-container-low/40 shrink-0">
           <div className="flex items-center gap-3">
-            {detail.member.profileImage || detail.member.photo ? (
+            {detail.member.profileImageUrl || detail.member.photo ? (
               <img
-                src={(detail.member.profileImage || detail.member.photo) as string}
+                src={(detail.member.profileImageUrl || detail.member.photo) as string}
                 alt={memberName}
                 className="w-11 h-11 rounded-2xl object-cover ring-2 ring-primary/20 shadow-2xs"
               />

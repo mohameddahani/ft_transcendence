@@ -52,7 +52,7 @@ export default function ResolveFeedbackModal({
   const member = feedback.member;
   const fullName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || "Member";
   const initials = `${(member.firstName || "")[0] || ""}${(member.lastName || "")[0] || ""}`.toUpperCase() || "M";
-  const photo = member.photo || member.profileImage;
+  const photo = member.profileImageUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +122,7 @@ export default function ResolveFeedbackModal({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/50">
-                {photo && photo !== "default-image.jpg" ? (
+                {photo ? (
                    
                   <img
                     src={photo}
@@ -136,20 +136,6 @@ export default function ResolveFeedbackModal({
 
               <div>
                 <h4 className="font-bold text-sm text-on-surface">{fullName}</h4>
-                <div className="flex items-center gap-3 text-[11px] text-on-surface-variant">
-                  {member.phoneNumber && (
-                    <span className="flex items-center gap-1" dir="ltr">
-                      <Phone className="w-3 h-3 text-primary" />
-                      {member.phoneNumber}
-                    </span>
-                  )}
-                  {member.email && (
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-3 h-3 text-primary" />
-                      {member.email}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
 

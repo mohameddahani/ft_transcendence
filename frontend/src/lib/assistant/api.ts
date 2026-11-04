@@ -3,6 +3,12 @@ const BASE = "/api"; // the app's own server route adds the login token (app/api
 export type Role = "ADMIN" | "STAFF" | "MEMBER";
 export type Me = { role: Role; gym_name: string };
 export type SavedMessage = { role: "user" | "model"; text: string };
+export type ThreadSummary = {
+  thread_id: string;
+  title: string;
+  updated_at: string;
+  message_count?: number;
+};
 export type DocumentInfo = { filename: string; visibility: "member" | "staff"; chunks: number };
 
 export class ApiError extends Error {
@@ -42,12 +48,52 @@ async function call(path: string, init: RequestInit = {}): Promise<Response> {
   return response;
 }
 
-export async function getMe(): Promise<Me> {
-  return (await call("/ai/me")).json();
+export async function getMe(): Promise<Me | null> {
+  try {
+    const res = await call("/ai/me");
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return null;
+  }
 }
 
 export async function getThread(threadId: string): Promise<SavedMessage[]> {
-  return (await call(`/ai/threads/${threadId}`)).json();
+  try {
+    const res = await call(`/ai/threads/${threadId}`);
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return [];
+  }
+}
+
+export async function listThreads(): Promise<ThreadSummary[] | null> {
+  try {
+    const res = await call("/ai/threads");
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return null;
+  }
+}
+
+export async function deleteThreadApi(threadId: string): Promise<boolean> {
+  try {
+    await call(`/ai/threads/${threadId}`, { method: "DELETE" });
+    return true;
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return false;
+  }
 }
 
 export async function listDocuments(): Promise<DocumentInfo[]> {

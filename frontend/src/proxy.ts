@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import axios from "axios";
 import { parseJwtPayload, isTokenExpired, isAdminOrStaffUser, isMemberUser } from "@/lib/auth";
+import {
+  performTokenRefresh,
+  setAuthCookies,
+  clearAuthCookies,
+} from "@/lib/server-auth";
 
 // Protected routes that require authentication
 const protectedRoutes = [
@@ -59,8 +63,6 @@ const authRoutes = [
   "/members/login",
 ];
 
-const API_URL = process.env.API_URL || "http://localhost:3000";
-
 function hasAdminOrStaffAccess(token?: string): boolean {
   if (!token) return false;
   const payload = parseJwtPayload(token);
@@ -82,38 +84,15 @@ export async function proxy(request: NextRequest) {
     );
 
   let newAccessToken: string | undefined = undefined;
+  let newRefreshToken: string | undefined = undefined;
 
   // If visiting protected route and access token is missing or expired, attempt refresh
   if (isProtectedRoute && (!token || isTokenExpired(token)) && refreshToken) {
-    try {
-      const tokenPayload = parseJwtPayload(refreshToken);
-      const role = (tokenPayload?.role || "").toUpperCase();
-      const refreshPath =
-        role === "MEMBER"
-          ? "/api/auth/members/refresh"
-          : role === "STAFF"
-          ? "/api/auth/staffs/refresh"
-          : "/api/auth/admins/refresh";
-
-      const refreshRes = await axios.post(
-        `${API_URL}${refreshPath}`,
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Cookie: `refresh_token=${refreshToken}`,
-          },
-          validateStatus: (status) => status >= 200 && status < 300,
-        }
-      );
-
-      const data = refreshRes.data;
-      if (data?.accessToken && hasAdminOrStaffAccess(data.accessToken)) {
-        newAccessToken = data.accessToken;
-        token = newAccessToken;
-      }
-    } catch {
-      // Backend unavailable or refresh failed
+    const refreshResult = await performTokenRefresh(refreshToken);
+    if (refreshResult.newAccessToken && hasAdminOrStaffAccess(refreshResult.newAccessToken)) {
+      newAccessToken = refreshResult.newAccessToken;
+      newRefreshToken = refreshResult.newRefreshToken;
+      token = newAccessToken;
     }
   }
 
@@ -131,13 +110,10 @@ export async function proxy(request: NextRequest) {
         : "/login";
       const loginUrl = new URL(targetLogin, request.url);
       loginUrl.searchParams.set("from", pathname);
+      loginUrl.searchParams.set("error", "session_expired");
 
       const response = NextResponse.redirect(loginUrl);
-      if (token) {
-        response.cookies.delete("auth_token");
-        response.cookies.delete("refresh_token");
-        loginUrl.searchParams.set("error", "session_expired");
-      }
+      clearAuthCookies(response);
       return response;
     }
 
@@ -174,13 +150,10 @@ export async function proxy(request: NextRequest) {
 
   const response = NextResponse.next();
 
-  if (newAccessToken) {
-    response.cookies.set("auth_token", newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 60 * 15,
+  if (newAccessToken || newRefreshToken) {
+    setAuthCookies(response, {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     });
   }
 

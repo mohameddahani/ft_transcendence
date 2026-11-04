@@ -379,7 +379,7 @@ export default function MembershipPlansPage() {
 
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-surface-container-low text-on-surface-variant border border-outline-variant">
                       <Clock className="w-3.5 h-3.5 text-secondary" />
-                      <span>{durations.length} {t("durationsCount")}</span>
+                      <span>{t("durationsOptionCount", { count: durations.length })}</span>
                     </span>
                   </div>
 

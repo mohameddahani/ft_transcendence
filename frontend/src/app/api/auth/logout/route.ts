@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { parseJwtPayload } from "@/lib/auth";
+import { clearAuthCookies } from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -52,31 +53,5 @@ export async function POST(req: NextRequest) {
     { status: 200 }
   );
 
-  response.cookies.delete("auth_token");
-  response.cookies.set("auth_token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: 0,
-  });
-
-  response.cookies.delete("refresh_token");
-  response.cookies.set("refresh_token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: 0,
-  });
-
-  response.cookies.set("refresh_token", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/api/auth",
-    maxAge: 0,
-  });
-
-  return response;
+  return clearAuthCookies(response);
 }
