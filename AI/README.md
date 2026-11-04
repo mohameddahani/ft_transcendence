@@ -36,7 +36,6 @@ Fill in `.env`:
 | `JWT_*_ACCESS_SECRET` | **exactly** the same three values as in `backend/.env` |
 | `INTERNAL_API_KEY` | a random string, shared with the backend: `openssl rand -hex 32` |
 | `GEMINI_API_KEY` | your Gemini key |
-| `FRONTEND_URL` | the address of the chat page, `http://localhost:3000` by default |
 
 ## 2. Start the database and the service
 
@@ -266,7 +265,6 @@ WHERE u.company_name = 'Atlas Fitness Agadir' AND ms.start_date >= date_trunc('m
 |---|---|
 | "Invalid or expired token" | tokens last 15 minutes: make a new one |
 | every login fails | the `JWT_*_ACCESS_SECRET` values differ from `backend/.env` |
-| "CORS" error in the browser console | `FRONTEND_URL` in `AI/.env` must be the page's exact address; then `docker compose up -d` |
 | a change to `.env` has no effect | use `docker compose up -d` (a `restart` keeps the old values) |
 | `role "admin" does not exist`, or prisma `P1000` after a reset | the terminal still exports an old `POSTGRES_USER`, and compose prefers it to `.env`: run `set -a; source .env; set +a` (or open a new terminal), then do §3 again from the start |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` changed | they must match `DATABASE_URL` in `backend/.env`, and only take effect on a new database (`docker compose down -v`) |

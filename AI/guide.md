@@ -37,7 +37,6 @@ AI_DB_PASSWORD	any password for the read-only user, also written in AI_DATABASE_
 JWT_*_ACCESS_SECRET	exactly the same three values as in backend/.env — if they differ, every token is refused (401)
 INTERNAL_API_KEY	a random string, shared with the backend: openssl rand -hex 32
 GEMINI_API_KEY	your Gemini key (https://aistudio.google.com/apikey)
-FRONTEND_URL	http://localhost:3001 (your app's address)
 2.2 Start
 docker compose up -d --build
 curl localhost:8000/health     # → {"status":"ok"}

@@ -14,8 +14,6 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 CHAT_MODEL = os.environ.get("GEMINI_CHAT_MODEL", "gemini-2.5-flash")
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-
 # files on the /data volume
 MEMORY_DB = "/data/memory.db"
 VECTORS_DIR = "/data/vectors"
