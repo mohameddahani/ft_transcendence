@@ -9,7 +9,7 @@ export class SentimentCron {
     private readonly prisma: PrismaService,
     private readonly externalApiService: ExternalApiService,
   ) {}
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_HOUR)
   // * Check the feedback that has no sentiment and try to get his sentimet
   async getSentiment() {
     const feedbacks = await this.prisma.feedback.findMany({
@@ -32,7 +32,7 @@ export class SentimentCron {
           where: { id: feedback.id },
           data: {
             sentiment: response.sentiment,
-            sentimentScore: response.sentimentScore,
+            sentimentScore: response.score,
           },
         });
       }

@@ -17,7 +17,7 @@ import { Roles } from '@/core/decorators/user-role.decorator';
 import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
 import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
 
-@Controller('/api/staffs/attendances')
+@Controller('staffs/attendances')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])

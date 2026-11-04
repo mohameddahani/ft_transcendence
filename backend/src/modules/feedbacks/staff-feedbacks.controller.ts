@@ -19,7 +19,7 @@ import { Role } from '@/generated/prisma/enums';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 
-@Controller('/api/staffs/feedbacks')
+@Controller('staffs/feedbacks')
 // * Make Authorazation Golbal on this route
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])

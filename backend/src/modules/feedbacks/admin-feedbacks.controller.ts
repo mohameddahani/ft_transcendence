@@ -19,7 +19,7 @@ import { Role } from '@/generated/prisma/enums';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 
-@Controller('/api/admins/feedbacks')
+@Controller('admins/feedbacks')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])

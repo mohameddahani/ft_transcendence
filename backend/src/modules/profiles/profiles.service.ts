@@ -32,6 +32,8 @@ import { RequestEmailChangeUserDto } from './dtos/request-email-change-user.dto'
 import { RequestEmailChangeMemberDto } from './dtos/request-email-change-member.dto';
 import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
 import { isAfter, subYears } from 'date-fns';
+import { AccessesService } from '@/core/access/access.service';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 
 @Injectable()
 export class ProfilesService {
@@ -40,6 +42,7 @@ export class ProfilesService {
     private readonly cloudinaryService: CloudinaryService,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
+    private readonly accessesService: AccessesService,
   ) {}
 
   /* 
@@ -414,6 +417,10 @@ export class ProfilesService {
 
   // * Update data of member
   async updateProfileMember(memberId: string, data: UpdateProfileMemberDto) {
+    // * Get AdminId from MemberId
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
     // * Check if phone number is already used by another member
     if (data.phoneNumber !== undefined) {
       const existingPhoneNumber = await this.prisma.member.findFirst({
@@ -421,6 +428,7 @@ export class ProfilesService {
           id: {
             not: memberId,
           },
+          adminId: adminId,
           phoneNumber: data.phoneNumber,
         },
         select: {
@@ -448,6 +456,7 @@ export class ProfilesService {
       const member = await this.prisma.member.findUnique({
         where: {
           id: memberId,
+          adminId: adminId,
         },
       });
 
@@ -482,7 +491,7 @@ export class ProfilesService {
     if (!isPasswordChanged) {
       // * Save new data to member
       return await this.prisma.member.update({
-        where: { id: memberId },
+        where: { id: memberId, adminId: adminId },
         data: profileData,
         select: privateMemberSelect,
       });
@@ -781,7 +790,18 @@ export class ProfilesService {
   }
 
   // * Update data of staff
-  async updateProfileStaff(staffId: string, data: UpdateProfileStaffDto) {
+  async updateProfileStaff(
+    accessTokenPayload: AccessTokenPayload,
+    data: UpdateProfileStaffDto,
+  ) {
+    // * Get AdminId from Staff
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const staffId = accessTokenPayload.id;
+
     // * Check if phone number is already used by another staff
     if (data.phoneNumber !== undefined) {
       const existingPhoneNumber = await this.prisma.staff.findFirst({
@@ -789,6 +809,7 @@ export class ProfilesService {
           id: {
             not: staffId,
           },
+          adminId: adminId,
           phoneNumber: data.phoneNumber,
         },
         select: {
@@ -816,6 +837,7 @@ export class ProfilesService {
       const staff = await this.prisma.staff.findUnique({
         where: {
           id: staffId,
+          adminId: adminId,
         },
       });
 
@@ -850,7 +872,7 @@ export class ProfilesService {
     if (!isPasswordChanged) {
       // * Save new data to staff
       return await this.prisma.staff.update({
-        where: { id: staffId },
+        where: { id: staffId, adminId: adminId },
         data: profileData,
         select: privateStaffSelect,
       });

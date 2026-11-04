@@ -17,7 +17,7 @@ import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 
-@Controller('/api/members/attendances')
+@Controller('members/attendances')
 // * Make Authorazation Golbal on this route
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])

@@ -20,7 +20,7 @@ import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-a
 import { VisitsService } from './visits.service';
 import { CreateVisitDto } from './dtos/create-visit.dto';
 
-@Controller('/api/members/visits')
+@Controller('members/visits')
 // * Make Authorazation Golbal on this route
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])

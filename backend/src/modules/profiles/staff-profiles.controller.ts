@@ -23,7 +23,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import { UpdateProfileStaffDto } from './dtos/update-profile-staff.dto';
 import { RequestEmailChangeStaffDto } from './dtos/request-email-change-staff.dto';
 
-@Controller('/api/users/staffs')
+@Controller('users/staffs')
 @UseGuards(StaffAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.STAFF])
 export class StaffProfilesController {
@@ -51,7 +51,7 @@ export class StaffProfilesController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: UpdateProfileStaffDto,
   ) {
-    return this.profilesService.updateProfileStaff(accessTokenPayload.id, body);
+    return this.profilesService.updateProfileStaff(accessTokenPayload, body);
   }
 
   // * Request email change

@@ -22,7 +22,7 @@ import { WorkingHoursService } from './working-hours.service';
 import { AddWorkingHourDto } from './dtos/add-working-hour.dto';
 import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
 
-@Controller('/api/admins/working-hours')
+@Controller('admins/working-hours')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])

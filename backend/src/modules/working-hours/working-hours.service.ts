@@ -55,11 +55,6 @@ export class WorkingHoursService {
       throw new ForbiddenException('This Day Already Added');
     }
 
-    const key = `admin:${adminId}:working-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Add Working Hour
     return await this.prisma.workingHour.create({
       data: {
@@ -125,13 +120,8 @@ export class WorkingHoursService {
       throw new ConflictException('Day Of Week already exists');
     }
 
-    const key = `admin:${adminId}:working-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Save New Data
-    return await this.prisma.workingHour.update({
+    const updatedWorkingHour = await this.prisma.workingHour.update({
       where: { id: workingHourId },
       data: {
         dayOfWeek: dayOfWeek,
@@ -140,6 +130,13 @@ export class WorkingHoursService {
         isClosed: isClosed,
       },
     });
+
+    const key = `admin:${adminId}:working-hours:${workingHourId}`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
+    return updatedWorkingHour;
   }
 
   // * Get All Working Hours By (Admin / Staff)
@@ -154,17 +151,6 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
-    // * Check if Data is already store in caching
-    const key = `admin:${adminId}:working-hours:page:${page}:limit:${limit}`;
-
-    // * Get data from redis server
-    const cachedWorkingHours = await this.cache.get(key);
-
-    // * Check if redis store Data
-    if (cachedWorkingHours) {
-      return cachedWorkingHours;
-    }
-
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
@@ -172,9 +158,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    // * Set Data in Redis
-    await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
 
     return workingHours;
   }
@@ -191,7 +174,7 @@ export class WorkingHoursService {
       );
 
     // * Check if Data is already store in caching
-    const key = `admin:${adminId}:working-hours`;
+    const key = `admin:${adminId}:working-hours:${workingHourId}`;
 
     // * Get data from redis server
     const cachedWorkingHour = await this.cache.get(key);
@@ -236,17 +219,6 @@ export class WorkingHoursService {
       adminId,
     );
 
-    // * Check if Data is already store in caching
-    const key = `admin:${adminId}:working-hours:page:${page}:limit:${limit}`;
-
-    // * Get data from redis server
-    const cachedWorkingHours = await this.cache.get(key);
-
-    // * Check if redis store Data
-    if (cachedWorkingHours) {
-      return cachedWorkingHours;
-    }
-
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
@@ -254,9 +226,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    // * Set Data in Redis
-    await this.cache.set(key, workingHours, 300_000); // * ttl: 5min
 
     return workingHours;
   }
@@ -277,7 +246,7 @@ export class WorkingHoursService {
     );
 
     // * Check if Data is already store in caching
-    const key = `admin:${adminId}:working-hours`;
+    const key = `admin:${adminId}:working-hours:${workingHourId}`;
 
     // * Get data from redis server
     const cachedWorkingHour = await this.cache.get(key);
@@ -326,7 +295,7 @@ export class WorkingHoursService {
       },
     });
 
-    const key = `admin:${adminId}:working-hours`;
+    const key = `admin:${adminId}:working-hours:${workingHourId}`;
 
     // * Delete from Cache Redis
     await this.cache.del(key);
@@ -431,11 +400,6 @@ export class WorkingHoursService {
         );
       }
     }
-
-    const key = `admin:${adminId}:special-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
 
     // * Add Working Hour
     return await this.prisma.specialHour.create({
@@ -549,13 +513,8 @@ export class WorkingHoursService {
       throw new ConflictException('This special hour already exists.');
     }
 
-    const key = `admin:${adminId}:special-hours`;
-
-    // * Delete from Cache Redis
-    await this.cache.del(key);
-
     // * Update Special Hour
-    return await this.prisma.specialHour.update({
+    const updatedSpecialHour = await this.prisma.specialHour.update({
       where: {
         id: specialHourId,
       },
@@ -566,6 +525,13 @@ export class WorkingHoursService {
         endTime: endTimeValue,
       },
     });
+
+    const key = `admin:${adminId}:special-hours:${specialHourId}`;
+
+    // * Delete from Cache Redis
+    await this.cache.del(key);
+
+    return updatedSpecialHour;
   }
 
   // * Get All Special Hours (Admin / Staff)
@@ -580,17 +546,6 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
-    // * Check if Data is already store in caching
-    const key = `admin:${adminId}:special-hours:page:${page}:limit:${limit}`;
-
-    // * Get data from redis server
-    const cachedSpecialHours = await this.cache.get(key);
-
-    // * Check if redis store Data
-    if (cachedSpecialHours) {
-      return cachedSpecialHours;
-    }
-
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
@@ -598,9 +553,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    // * Set Data in Redis
-    await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
 
     return specialHours;
   }
@@ -617,7 +569,7 @@ export class WorkingHoursService {
       );
 
     // * Check if Data is already store in caching
-    const key = `admin:${adminId}:special-hours`;
+    const key = `admin:${adminId}:special-hours:${specialHourId}`;
 
     // * Get data from redis server
     const cachedSpecialHour = await this.cache.get(key);
@@ -662,17 +614,6 @@ export class WorkingHoursService {
       adminId,
     );
 
-    // * Check if Data is already store in caching
-    const key = `admin:${adminId}:special-hours:page:${page}:limit:${limit}`;
-
-    // * Get data from redis server
-    const cachedSpecialgHours = await this.cache.get(key);
-
-    // * Check if redis store Data
-    if (cachedSpecialgHours) {
-      return cachedSpecialgHours;
-    }
-
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
@@ -680,9 +621,6 @@ export class WorkingHoursService {
       skip: (page - 1) * limit,
       take: limit,
     });
-
-    // * Set Data in Redis
-    await this.cache.set(key, specialHours, 300_000); // * ttl: 5min
 
     return specialHours;
   }
@@ -703,7 +641,7 @@ export class WorkingHoursService {
     );
 
     // * Check if Data is already store in caching
-    const key = `admin:${adminId}:special-hours`;
+    const key = `admin:${adminId}:special-hours:${specialHourId}`;
 
     // * Get data from redis server
     const cachedSpecialgHour = await this.cache.get(key);
@@ -752,7 +690,7 @@ export class WorkingHoursService {
       },
     });
 
-    const key = `admin:${adminId}:special-hours`;
+    const key = `admin:${adminId}:special-hours:${specialHourId}`;
 
     // * Delete from Cache Redis
     await this.cache.del(key);

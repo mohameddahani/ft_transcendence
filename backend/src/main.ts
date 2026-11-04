@@ -10,6 +10,14 @@ import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // * Add a global prefix to all routes.
+  // * Example: /members becomes /api/members.
+  app.setGlobalPrefix('api');
+
+  // * Trust the first reverse proxy in front of the app, such as Nginx.
+  // * This allows NestJS/Express to use forwarded client information,
+  // * including the original client IP from X-Forwarded-For.
   app.set('trust proxy', 1);
 
   // * app.useGlobalPipes() is used to apply pipes globally to the entire application.
@@ -62,7 +70,7 @@ async function bootstrap() {
       .setVersion('1.0')
       .build();
     const documentation = SwaggerModule.createDocument(app, swagger); // * create document
-    SwaggerModule.setup('api-docs', app, documentation); // * setup documentation on domain/swagger
+    SwaggerModule.setup('api/api-docs', app, documentation); // * setup documentation on domain/swagger
 
     // // * Count how many endpoints in this project
     // let totalEndpoints = 0;

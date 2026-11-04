@@ -56,7 +56,7 @@ export class FeedbacksService {
         content: data.content,
         rating: data.rating,
         sentiment: response?.sentiment ?? null,
-        sentimentScore: response?.sentimentScore ?? null,
+        sentimentScore: response?.score ?? null,
       },
     });
   }
@@ -103,6 +103,16 @@ export class FeedbacksService {
           },
         },
 
+        // * Check if current member liked this feedback
+        likes: {
+          where: {
+            memberId: memberId,
+          },
+          select: {
+            id: true,
+          },
+        },
+
         createdAt: true,
         updatedAt: true,
       },
@@ -111,7 +121,15 @@ export class FeedbacksService {
       },
     });
 
-    return feedbacks;
+    return feedbacks.map((feedback) => {
+      const { likes, _count, ...feedbackData } = feedback;
+
+      return {
+        feedbackData,
+        likeCount: _count.likes,
+        isLiked: likes.length > 0,
+      };
+    });
   }
 
   // * Get One Feedback (Member)
@@ -150,6 +168,16 @@ export class FeedbacksService {
           },
         },
 
+        // * Check if current member liked this feedback
+        likes: {
+          where: {
+            memberId: memberId,
+          },
+          select: {
+            id: true,
+          },
+        },
+
         createdAt: true,
         updatedAt: true,
       },
@@ -159,7 +187,14 @@ export class FeedbacksService {
       throw new NotFoundException('Feedback Not Found');
     }
 
-    return feedback;
+    // * Format the result
+    const { likes, _count, ...feedbackData } = feedback;
+
+    return {
+      feedbackData,
+      likeCount: _count.likes,
+      isLiked: likes.length > 0,
+    };
   }
 
   // * Like a Feedback (Member)
@@ -235,7 +270,7 @@ export class FeedbacksService {
     const feedback = await this.findOneFeedbackByMember(memberId, feedbackId);
 
     // * check if this feedback is belong to this member
-    if (feedback.member.id !== memberId) {
+    if (feedback.feedbackData.member.id !== memberId) {
       throw new ForbiddenException('You Cannot Delte this feedback');
     }
 
@@ -278,6 +313,8 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
+        sentiment: true,
+        sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
         resolvedBy: true,
@@ -331,6 +368,8 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
+        sentiment: true,
+        sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
         resolvedBy: true,

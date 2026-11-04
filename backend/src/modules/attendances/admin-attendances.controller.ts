@@ -17,7 +17,7 @@ import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
 import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
 
-@Controller('/api/admins/attendances')
+@Controller('admins/attendances')
 // * Make Authorazation Golbal on this route
 @UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.ADMIN])

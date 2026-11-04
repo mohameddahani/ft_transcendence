@@ -16,7 +16,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 
-@Controller('/api/members/membership-plans')
+@Controller('members/membership-plans')
 // * Make Authorazation Golbal on this route
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])
