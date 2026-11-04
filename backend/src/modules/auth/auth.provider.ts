@@ -65,7 +65,7 @@ export class AuthProvider {
       }
 
       if (existingUser.phoneNumber === data.phoneNumber) {
-        throw new UnauthorizedException('Phone number already exists');
+        throw new ConflictException('Phone number already exists');
       }
     }
 

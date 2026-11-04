@@ -413,11 +413,17 @@ export class FeedbacksService {
       },
       data: {
         feedbackStatus: data.feedbackStatus,
-        resolutionNote: data.resolutionNote,
-        ...(data.feedbackStatus === FeedbackStatus.RESOLVED && {
-          resolvedAt: new Date(),
-          resolvedBy: accessTokenPayload.id,
-        }),
+        ...(data.feedbackStatus === FeedbackStatus.RESOLVED
+          ? {
+              resolvedAt: new Date(),
+              resolvedBy: accessTokenPayload.id,
+              resolutionNote: data.resolutionNote ?? null,
+            }
+          : {
+              resolvedAt: null,
+              resolvedBy: null,
+              resolutionNote: null,
+            }),
       },
     });
   }
