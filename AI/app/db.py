@@ -79,7 +79,7 @@ def list_threads(user_id: str, limit: int = 30) -> list[dict]:
         GROUP BY thread_id
         ORDER BY max(id) DESC
         LIMIT ?""", (user_id, limit))
-    return [{"thread_id": t, "title": (title or "")[:60], "last_at": at} for t, title, at in rows]
+    return [{"thread_id": t, "title": title[:60], "last_at": at} for t, title, at in rows]
 
 
 # returns how many messages were deleted; another user's thread id deletes nothing
