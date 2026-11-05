@@ -7,13 +7,18 @@ export class LoggerMiddleware implements NestMiddleware {
 
   use(req: Request, res: Response, next: NextFunction): void {
     const { method, originalUrl, ip } = req;
-    const userAgent = req.get('user-agent') || '';
+    const userAgent = req.get('user-agent') ?? 'unknown';
 
-    this.logger.log(`[+] Incoming Request: ${method} ${originalUrl} - IP: ${ip} [${userAgent}]`);
+    this.logger.log(
+      `[+] Incoming Request: ${method} ${originalUrl} - IP: ${ip} [${userAgent}]`,
+    );
 
+    // * runs when the response has finished.
     res.on('finish', () => {
       const { statusCode } = res;
-      this.logger.log(`[+] Outgoing Response: ${method} ${originalUrl} - Status: ${statusCode}`);
+      this.logger.log(
+        `[+] Outgoing Response: ${method} ${originalUrl} - Status: ${statusCode}`,
+      );
     });
 
     next();
