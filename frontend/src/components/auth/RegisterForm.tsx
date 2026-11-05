@@ -23,6 +23,8 @@ import {
 import { registerSchema, RegisterFormValues } from "@/schemas/auth";
 import { registerAdmin } from "@/lib/api/auth";
 import { Gender } from "@/types/auth";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -62,7 +64,7 @@ export default function RegisterForm() {
   };
 
   const strength = getPasswordStrength(passwordValue);
-  const strengthColors = ["#EF4444", "#F59E0B", "#10B981", "#3525cd"];
+  const strengthColors = ["#EF4444", "#F59E0B", "#10B981", "#6366f1"];
   const strengthLabels = [
     t("weak", "Weak"),
     t("fair", "Fair"),
@@ -122,7 +124,15 @@ export default function RegisterForm() {
   };
 
   return (
-    <main className="flex min-h-screen w-full">
+    <main className="flex min-h-screen w-full relative bg-surface">
+      {/* Top right quick actions (Language & Theme) */}
+      <div className="fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 flex items-center gap-2">
+        <LanguageSwitcher />
+        <div className="p-1 rounded-xl bg-surface-container-high/80 backdrop-blur-md border border-outline-variant/60 shadow-xs flex items-center justify-center">
+          <ThemeToggle />
+        </div>
+      </div>
+
       {/* Left Side: Brand Visual & Testimonial */}
       <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden brand-gradient select-none">
         <div
@@ -182,17 +192,9 @@ export default function RegisterForm() {
       </section>
 
       {/* Right Side: Registration Form */}
-      <section className="w-full lg:w-1/2 bg-[#ffffff] flex justify-center items-center py-12 px-6 sm:px-12 lg:px-16 overflow-y-auto">
+      <section className="w-full lg:w-1/2 bg-surface brand-mesh flex justify-center items-center py-12 px-6 sm:px-12 lg:px-16 overflow-y-auto">
         <div className="w-full max-w-xl my-auto">
           <header className="mb-8 pt-8 lg:pt-0">
-            <div className="flex items-center gap-2 mb-2 lg:hidden">
-              {/* <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center">
-                <Zap className="w-5 h-5 fill-white text-white" />
-              </div> */}
-              {/* <span className="font-bold text-xl text-on-surface font-headline">
-                {t("brandName", "GymFlow")}
-              </span> */}
-            </div>
             <h2 className="text-3xl font-bold text-on-surface tracking-tight font-headline mb-1">
               {t("adminSignUp", "Admin Sign Up")}
             </h2>
@@ -219,11 +221,11 @@ export default function RegisterForm() {
                   type="text"
                   placeholder={t("enterFirstName", "Enter first name")}
                   {...register("firstName")}
-                  className={`w-full px-4 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.firstName
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-error font-medium mt-1">
@@ -244,11 +246,11 @@ export default function RegisterForm() {
                   type="text"
                   placeholder={t("enterLastName", "Enter last name")}
                   {...register("lastName")}
-                  className={`w-full px-4 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.lastName
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                 />
                 {errors.lastName && (
                   <p className="text-xs text-error font-medium mt-1">
@@ -271,17 +273,17 @@ export default function RegisterForm() {
                   id="gender"
                   defaultValue=""
                   {...register("gender")}
-                  className={`w-full px-4 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.gender
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
                   } form-input-focus transition-all text-sm text-on-surface`}
                 >
-                  <option disabled value="">
+                  <option disabled value="" className="bg-surface-container-lowest text-on-surface">
                     {t("selectGender", "Select Gender")}
                   </option>
-                  <option value="MALE">{t("male", "Male")}</option>
-                  <option value="FEMALE">{t("female", "Female")}</option>
+                  <option value="MALE" className="bg-surface-container-lowest text-on-surface">{t("male", "Male")}</option>
+                  <option value="FEMALE" className="bg-surface-container-lowest text-on-surface">{t("female", "Female")}</option>
                 </select>
                 {errors.gender && (
                   <p className="text-xs text-error font-medium mt-1">
@@ -301,7 +303,7 @@ export default function RegisterForm() {
                   id="birth_date"
                   type="date"
                   {...register("birthDate")}
-                  className={`w-full px-4 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.birthDate
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
@@ -335,11 +337,11 @@ export default function RegisterForm() {
                     "e.g. Iron Gate Enterprise"
                   )}
                   {...register("companyName")}
-                  className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.companyName
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                 />
               </div>
               {errors.companyName && (
@@ -361,27 +363,27 @@ export default function RegisterForm() {
                 <div className="flex">
                   <select
                     {...register("countryCode")}
-                    className="w-24 px-2 py-2.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg bg-surface-container border-y border-l rtl:border-l-0 rtl:border-r border-outline-variant text-sm font-medium text-on-surface focus:outline-none"
+                    className="w-24 px-2 py-2.5 rounded-l-xl rtl:rounded-l-none rtl:rounded-r-xl bg-surface-container border-y border-l rtl:border-l-0 rtl:border-r border-outline-variant text-sm font-medium text-on-surface focus:outline-none"
                   >
-                    <option value="+212">+212 (MA)</option>
-                    <option value="+1">+1 (US)</option>
-                    <option value="+44">+44 (UK)</option>
-                    <option value="+33">+33 (FR)</option>
-                    <option value="+49">+49 (DE)</option>
-                    <option value="+61">+61 (AU)</option>
-                    <option value="+971">+971 (AE)</option>
-                    <option value="+966">+966 (SA)</option>
+                    <option value="+212" className="bg-surface-container text-on-surface">+212 (MA)</option>
+                    <option value="+1" className="bg-surface-container text-on-surface">+1 (US)</option>
+                    <option value="+44" className="bg-surface-container text-on-surface">+44 (UK)</option>
+                    <option value="+33" className="bg-surface-container text-on-surface">+33 (FR)</option>
+                    <option value="+49" className="bg-surface-container text-on-surface">+49 (DE)</option>
+                    <option value="+61" className="bg-surface-container text-on-surface">+61 (AU)</option>
+                    <option value="+971" className="bg-surface-container text-on-surface">+971 (AE)</option>
+                    <option value="+966" className="bg-surface-container text-on-surface">+966 (SA)</option>
                   </select>
                   <input
                     id="phone"
                     type="tel"
                     placeholder="555-0123"
                     {...register("phone")}
-                    className={`w-full px-4 py-2.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg bg-surface-bright border ${
+                    className={`w-full px-4 py-2.5 rounded-r-xl rtl:rounded-r-none rtl:rounded-l-xl bg-surface-container-lowest border ${
                       errors.phone
                         ? "border-error focus:ring-error"
                         : "border-outline-variant"
-                    } form-input-focus transition-all text-sm text-on-surface`}
+                    } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                   />
                 </div>
                 {errors.phone && (
@@ -403,11 +405,11 @@ export default function RegisterForm() {
                   type="email"
                   placeholder={t("enterEmail", "admin@yourgym.com")}
                   {...register("email")}
-                  className={`w-full px-4 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.email
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                 />
                 {errors.email && (
                   <p className="text-xs text-error font-medium mt-1">
@@ -436,11 +438,11 @@ export default function RegisterForm() {
                   {...register("password", {
                     onChange: (e) => setPasswordValue(e.target.value),
                   })}
-                  className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-2.5 rounded-lg bg-surface-bright border ${
+                  className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-2.5 rounded-xl bg-surface-container-lowest border ${
                     errors.password
                       ? "border-error focus:ring-error"
                       : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
                 />
                 <button
                   type="button"
@@ -461,23 +463,27 @@ export default function RegisterForm() {
                 {[0, 1, 2, 3].map((index) => (
                   <div
                     key={index}
-                    className="strength-meter-segment flex-1"
+                    className={`strength-meter-segment flex-1 h-1.5 rounded-full transition-all ${
+                      index < strength ? "" : "bg-surface-container-highest"
+                    }`}
                     style={{
                       backgroundColor:
                         index < strength
                           ? strengthColors[strength - 1]
-                          : "#e1e2e4",
+                          : undefined,
                     }}
                   />
                 ))}
               </div>
               <p
-                className="text-xs mt-1 transition-colors"
+                className={`text-xs mt-1 transition-colors ${
+                  strength > 0 ? "" : "text-on-surface-variant"
+                }`}
                 style={{
                   color:
                     strength > 0
                       ? strengthColors[strength - 1]
-                      : "#464555",
+                      : undefined,
                 }}
               >
                 {strength > 0
@@ -502,7 +508,7 @@ export default function RegisterForm() {
                 id="terms"
                 type="checkbox"
                 {...register("termsAccepted")}
-                className="mt-1 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer accent-[#3525cd]"
+                className="mt-1 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer accent-primary"
               />
               <label
                 htmlFor="terms"

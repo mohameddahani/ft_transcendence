@@ -241,7 +241,7 @@ export default function CheckInPage() {
                 {t("navCheckIn") || "Front Desk & Check-in"}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
-                Live Terminal
+                {t("liveTerminal")}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
@@ -286,11 +286,11 @@ export default function CheckInPage() {
           <div className="text-2xl font-bold font-headline text-on-surface">
             {stats.total}
             <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              Members Booked
+              {t("membersBooked")}
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant">
-            All reservations recorded for today
+            {t("allReservationsToday")}
           </p>
         </div>
 
@@ -305,12 +305,12 @@ export default function CheckInPage() {
           <div className="text-2xl font-bold font-headline text-amber-600 dark:text-amber-400">
             {stats.ready}
             <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              Pending Entry
+              {t("pendingEntry")}
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            <span>Ready for 1-click or QR approval</span>
+            <span>{t("readyForApproval")}</span>
           </p>
         </div>
 
@@ -325,12 +325,12 @@ export default function CheckInPage() {
           <div className="text-2xl font-bold font-headline text-emerald-600 dark:text-emerald-400">
             {stats.checkedIn}
             <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              Verified Entries
+              {t("verifiedEntries")}
             </span>
           </div>
           <p className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Active on gym floor</span>
+            <span>{t("activeOnFloor")}</span>
           </p>
         </div>
       </div>
@@ -344,7 +344,7 @@ export default function CheckInPage() {
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by member name, phone, email..."
+              placeholder={t("searchCheckInPlaceholder")}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -365,9 +365,9 @@ export default function CheckInPage() {
               }}
               className="w-full px-3 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none cursor-pointer"
             >
-              <option value="ALL">All Visits ({allVisits.length})</option>
-              <option value="READY">Awaiting Check-in ({stats.ready})</option>
-              <option value="CHECKED_IN">Checked In ({stats.checkedIn})</option>
+              <option value="ALL">{t("allVisitsCount", { count: allVisits.length })}</option>
+              <option value="READY">{t("awaitingCheckInCount", { count: stats.ready })}</option>
+              <option value="CHECKED_IN">{t("checkedInCount", { count: stats.checkedIn })}</option>
             </select>
           </div>
         </div>
@@ -378,11 +378,11 @@ export default function CheckInPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-outline-variant/50 bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <th className="py-3.5 px-4 sm:px-6">Member</th>
-                  <th className="py-3.5 px-4">Membership Plan</th>
-                  <th className="py-3.5 px-4">Arrival Window</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right">Action</th>
+                  <th className="py-3.5 px-4 sm:px-6">{t("member")}</th>
+                  <th className="py-3.5 px-4">{t("membershipPlan")}</th>
+                  <th className="py-3.5 px-4">{t("arrivalWindow")}</th>
+                  <th className="py-3.5 px-4">{t("status")}</th>
+                  <th className="py-3.5 px-4 sm:px-6 text-right rtl:text-left">{t("action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/20 text-xs">
@@ -391,7 +391,7 @@ export default function CheckInPage() {
                     <td colSpan={5} className="py-12 text-center text-on-surface-variant">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-                        <p className="font-semibold text-on-surface">Loading today&apos;s visits...</p>
+                        <p className="font-semibold text-on-surface">{t("loadingTodayVisits")}</p>
                       </div>
                     </td>
                   </tr>
@@ -400,11 +400,11 @@ export default function CheckInPage() {
                     <td colSpan={5} className="py-12 text-center text-on-surface-variant">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <Users className="w-8 h-8 opacity-40" />
-                        <p className="font-semibold text-on-surface">No visits found</p>
+                        <p className="font-semibold text-on-surface">{t("noVisitsFound")}</p>
                         <p className="text-[11px] max-w-sm text-on-surface-variant/80">
                           {searchTerm
-                            ? "No scheduled member visits match your current search query."
-                            : "There are no member visits scheduled for today yet."}
+                            ? t("noMatchingSearchVisits")
+                            : t("noVisitsScheduledToday")}
                         </p>
                       </div>
                     </td>
@@ -475,10 +475,10 @@ export default function CheckInPage() {
                         {/* Membership Plan */}
                         <td className="py-3.5 px-4">
                           <div className="font-semibold text-on-surface">
-                            {visit.membership?.plan?.planName || "Standard Membership"}
+                            {visit.membership?.plan?.planName || t("standardPlan")}
                           </div>
                           <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                            {visit.membership?.status || "Active Plan"}
+                            {visit.membership?.status || t("activePlanText")}
                           </div>
                         </td>
 
@@ -511,16 +511,16 @@ export default function CheckInPage() {
                               }`}
                             />
                             {visit.visitStatus === "READY"
-                              ? "Awaiting Check-in"
+                              ? t("awaitingCheckIn")
                               : visit.visitStatus === "CHECKED_IN"
-                              ? "Checked In"
-                              : "Cancelled"}
+                              ? t("checkedIn")
+                              : t("cancelled")}
                           </span>
                         </td>
 
                         {/* Action Buttons */}
-                        <td className="py-3.5 px-4 sm:px-6 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="py-3.5 px-4 sm:px-6 text-right rtl:text-left">
+                          <div className="flex items-center justify-end rtl:justify-start gap-2">
                             {/* Inspect Details Button */}
                             <button
                               type="button"
@@ -540,14 +540,14 @@ export default function CheckInPage() {
                                 className="px-3 py-1.5 rounded-lg primary-gradient text-white text-xs font-bold shadow-xs hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>{isSubmitting ? "Checking..." : "Check In"}</span>
+                                <span>{isSubmitting ? t("checkingAction") : t("checkInAction")}</span>
                               </button>
                             )}
 
                             {isCheckedIn && (
                               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span>Admitted</span>
+                                <span>{t("admitted")}</span>
                               </span>
                             )}
                           </div>

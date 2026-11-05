@@ -8,12 +8,21 @@ import {
   AlertCircle,
   Lock,
   MessageSquare,
-  Phone,
-  Mail,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
-import { FeedbackItem, FeedbackStatus } from "@/types/feedback";
+import { FeedbackItem, FeedbackStatus, SentimentType } from "@/types/feedback";
 import { useTranslation } from "react-i18next";
+
+const SENTIMENT_STYLES: Record<SentimentType, string> = {
+  POSITIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  NEUTRAL: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  NEGATIVE: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+};
+
+const starsDisagree = (f: FeedbackItem) =>
+  (f.rating >= 4 && f.sentiment === "NEGATIVE") ||
+  (f.rating <= 2 && f.sentiment === "POSITIVE");
 
 interface ResolveFeedbackModalProps {
   isOpen: boolean;
@@ -52,7 +61,7 @@ export default function ResolveFeedbackModal({
   const member = feedback.member;
   const fullName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || "Member";
   const initials = `${(member.firstName || "")[0] || ""}${(member.lastName || "")[0] || ""}`.toUpperCase() || "M";
-  const photo = member.photo || member.profileImage;
+  const photo = member.profileImageUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +131,7 @@ export default function ResolveFeedbackModal({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/50">
-                {photo && photo !== "default-image.jpg" ? (
+                {photo ? (
                    
                   <img
                     src={photo}
@@ -136,38 +145,52 @@ export default function ResolveFeedbackModal({
 
               <div>
                 <h4 className="font-bold text-sm text-on-surface">{fullName}</h4>
-                <div className="flex items-center gap-3 text-[11px] text-on-surface-variant">
-                  {member.phoneNumber && (
-                    <span className="flex items-center gap-1" dir="ltr">
-                      <Phone className="w-3 h-3 text-primary" />
-                      {member.phoneNumber}
-                    </span>
-                  )}
-                  {member.email && (
-                    <span className="flex items-center gap-1">
-                      <Mail className="w-3 h-3 text-primary" />
-                      {member.email}
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
 
-            {/* Rating Stars */}
-            <div className="flex items-center gap-1 bg-surface-bright px-2.5 py-1 rounded-lg border border-outline-variant/50">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`w-3.5 h-3.5 ${
-                    star <= feedback.rating
-                      ? "text-amber-400 fill-amber-400"
-                      : "text-outline-variant"
+            {/* Rating Stars, Mismatch Warning & Sentiment Badge */}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <div className="flex items-center gap-1 bg-surface-bright px-2.5 py-1 rounded-lg border border-outline-variant/50">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-3.5 h-3.5 ${
+                      star <= feedback.rating
+                        ? "text-amber-400 fill-amber-400"
+                        : "text-outline-variant"
+                    }`}
+                  />
+                ))}
+                <span className="text-xs font-bold text-on-surface ml-1">
+                  {feedback.rating}.0
+                </span>
+              </div>
+
+              {starsDisagree(feedback) && (
+                <span
+                  title={t("starsDisagreeHint")}
+                  className="px-2 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1"
+                >
+                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                  <span>{t("starsDisagreeHint")}</span>
+                </span>
+              )}
+
+              {feedback.sentiment ? (
+                <span
+                  title={t("sentimentConfidenceHint")}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                    SENTIMENT_STYLES[feedback.sentiment]
                   }`}
-                />
-              ))}
-              <span className="text-xs font-bold text-on-surface ml-1">
-                {feedback.rating}.0
-              </span>
+                >
+                  {t(`sentiment_${feedback.sentiment}`)} ·{" "}
+                  {Math.round(Number(feedback.sentimentScore ?? 0) * 100)}%
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-outline-variant text-on-surface-variant">
+                  {t("sentimentNotAnalysed")}
+                </span>
+              )}
             </div>
           </div>
 

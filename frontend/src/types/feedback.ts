@@ -9,7 +9,7 @@ export interface FeedbackMember {
   email?: string;
   phoneNumber?: string;
   photo?: string | null;
-  profileImage?: string | null;
+  profileImageUrl?: string | null;
   gender?: string;
 }
 

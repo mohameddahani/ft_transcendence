@@ -88,7 +88,11 @@ export default function VisitDetailsModal({
                     : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30"
                 }`}
               >
-                {visit.visitStatus}
+                {isReady
+                  ? t("awaitingCheckIn")
+                  : isCheckedIn
+                  ? t("checkedIn")
+                  : t("cancelled")}
               </span>
             </div>
             <h3 className="font-headline text-lg font-bold text-on-surface mt-1">
@@ -160,10 +164,10 @@ export default function VisitDetailsModal({
               <span>{t("membershipPlan") || "Membership Plan"}</span>
             </div>
             <p className="text-sm font-bold text-on-surface truncate">
-              {visit.membership?.plan?.planName || "Active Membership"}
+              {visit.membership?.plan?.planName || t("standardPlan")}
             </p>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-              {visit.membership?.status || "In Good Standing"}
+              {visit.membership?.status || t("inGoodStanding")}
             </p>
           </div>
         </div>

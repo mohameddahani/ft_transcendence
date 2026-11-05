@@ -339,7 +339,7 @@ Thank you for training with ${companyName || "us"}!
             {overdueCount}
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-error text-xs font-semibold">
-            <span>{overdueCount > 0 ? "Requires attention" : "All settled"}</span>
+            <span>{overdueCount > 0 ? t("requiresAttention") : t("allSettled")}</span>
           </div>
         </div>
       </div>
@@ -373,8 +373,8 @@ Thank you for training with ${companyName || "us"}!
           <option value="ALL">{t("allStatuses")}</option>
           <option value="PAID">{t("paid")}</option>
           <option value="PENDING">{t("pending")}</option>
-          <option value="PARTIAL">Partial</option>
-          <option value="OVERDUE">Overdue</option>
+          <option value="PARTIAL">{t("partial")}</option>
+          <option value="OVERDUE">{t("overdue")}</option>
         </select>
 
         {/* Clear Filter */}
@@ -504,7 +504,15 @@ Thank you for training with ${companyName || "us"}!
                               : "bg-surface-variant text-on-surface-variant border-outline-variant/40"
                           }`}
                         >
-                          {status === "PAID" ? t("paid") : status === "PENDING" ? t("pending") : status}
+                          {status === "PAID"
+                            ? t("paid")
+                            : status === "PENDING"
+                            ? t("pending")
+                            : status === "PARTIAL"
+                            ? t("partial")
+                            : status === "OVERDUE"
+                            ? t("overdue")
+                            : status}
                         </span>
                       </td>
 
@@ -645,6 +653,10 @@ Thank you for training with ${companyName || "us"}!
                       ? t("paid")
                       : getEffectivePaymentStatus(selectedPayment) === "PENDING"
                       ? t("pending")
+                      : getEffectivePaymentStatus(selectedPayment) === "PARTIAL"
+                      ? t("partial")
+                      : getEffectivePaymentStatus(selectedPayment) === "OVERDUE"
+                      ? t("overdue")
                       : getEffectivePaymentStatus(selectedPayment)}
                   </span>
                 </div>
@@ -661,13 +673,19 @@ Thank you for training with ${companyName || "us"}!
                       <span className="text-on-surface-variant">{t("planName")}</span>
                       <span className="font-bold text-on-surface">
                         {selectedPayment.member.memberships[0].membershipPlan?.planName ||
-                          "Standard Plan"}
+                          t("standardPlan")}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-on-surface-variant">{t("status")}</span>
                       <span className="font-bold uppercase text-secondary">
-                        {selectedPayment.member.memberships[0].membershipStatus || t("active")}
+                        {selectedPayment.member.memberships[0].membershipStatus === "ACTIVE"
+                          ? t("active")
+                          : selectedPayment.member.memberships[0].membershipStatus === "EXPIRED"
+                          ? t("expired")
+                          : selectedPayment.member.memberships[0].membershipStatus === "CANCELLED"
+                          ? t("cancelled")
+                          : selectedPayment.member.memberships[0].membershipStatus || t("active")}
                       </span>
                     </div>
                     {selectedPayment.member.memberships[0].expiresAt && (

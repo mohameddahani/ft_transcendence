@@ -23,9 +23,9 @@ export default function AuthLayoutShell({
   return (
     <main className="flex min-h-screen w-screen overflow-x-hidden">
       {/* Top right quick actions (Language & Theme) */}
-      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+      <div className="fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 flex items-center gap-2">
         <LanguageSwitcher />
-        <div className="p-1 rounded-xl bg-surface-container-high border border-outline-variant/60 shadow-xs">
+        <div className="p-1 rounded-xl bg-surface-container-high/80 backdrop-blur-md border border-outline-variant/60 shadow-xs flex items-center justify-center">
           <ThemeToggle />
         </div>
       </div>

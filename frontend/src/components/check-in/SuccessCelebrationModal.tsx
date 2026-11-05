@@ -73,13 +73,13 @@ export default function SuccessCelebrationModal({
         <div>
           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            {method === "QR" ? "QR Pass Validated" : "Manual Entry Approved"}
+            {method === "QR" ? t("qrPassValidated") : t("manualEntryApproved")}
           </span>
           <h3 className="font-headline text-xl font-black text-on-surface mt-1.5">
-            Welcome, {member.firstName || fullName}!
+            {t("welcomeMember", { name: member.firstName || fullName })}
           </h3>
           <p className="text-xs text-on-surface-variant mt-0.5 font-medium">
-            {visit.membership?.plan?.planName || "Active Membership"} • Facility Access Granted
+            {(visit.membership?.plan?.planName || t("standardPlan"))} • {t("facilityAccessGranted")}
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default function SuccessCelebrationModal({
           onClick={onClose}
           className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
         >
-          {t("done") || "Done"}
+          {t("done")}
         </button>
       </div>
     </div>

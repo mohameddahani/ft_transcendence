@@ -2,7 +2,13 @@ const BASE = "/api"; // the app's own server route adds the login token (app/api
 
 export type Role = "ADMIN" | "STAFF" | "MEMBER";
 export type Me = { role: Role; gym_name: string };
-export type SavedMessage = { role: "user" | "model"; text: string };
+export type SavedMessage = { role: "user" | "model"; text: string; created_at?: string };
+export type ThreadInfo = {
+  thread_id: string;
+  title: string;
+  last_at: string;
+};
+export type ThreadSummary = ThreadInfo;
 export type DocumentInfo = { filename: string; visibility: "member" | "staff"; chunks: number };
 
 export class ApiError extends Error {
@@ -18,11 +24,38 @@ export class ApiError extends Error {
   }
 }
 
+const LOGIN_PAGE: Record<Role, string> = {
+  ADMIN: "/login",
+  STAFF: "/staff/login",
+  MEMBER: "/member/login",
+};
+
 // after a 401 the session is really over (the route already tried a refresh)
-export function toLogin() {
+export function toLogin(role?: Role) {
   if (typeof window !== "undefined") {
+    let targetRole: Role | undefined = role;
+    if (!targetRole) {
+      try {
+        const stored =
+          localStorage.getItem("kinetic_user") || localStorage.getItem("gym_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const r = (parsed?.role || parsed?.user?.role)?.toUpperCase();
+          if (r === "ADMIN" || r === "STAFF" || r === "MEMBER") {
+            targetRole = r as Role;
+          }
+        }
+      } catch {
+        // ignore
+      }
+      if (!targetRole) {
+        if (window.location.pathname.startsWith("/member")) targetRole = "MEMBER";
+        else if (window.location.pathname.startsWith("/staff")) targetRole = "STAFF";
+      }
+    }
+    const page = targetRole ? LOGIN_PAGE[targetRole] || "/login" : "/login";
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.href = `/login?from=${encodeURIComponent(location.pathname)}&error=session_expired`;
+    window.location.href = `${page}?from=${encodeURIComponent(location.pathname)}&error=session_expired`;
   }
 }
 
@@ -43,11 +76,49 @@ async function call(path: string, init: RequestInit = {}): Promise<Response> {
 }
 
 export async function getMe(): Promise<Me> {
-  return (await call("/ai/me")).json();
+  const res = await call("/ai/me");
+  return await res.json();
 }
 
 export async function getThread(threadId: string): Promise<SavedMessage[]> {
-  return (await call(`/ai/threads/${threadId}`)).json();
+  try {
+    const res = await call(`/ai/threads/${threadId}`);
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return [];
+  }
+}
+
+export async function listThreads(): Promise<ThreadInfo[]> {
+  try {
+    const res = await call("/ai/threads");
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return [];
+  }
+}
+
+export async function deleteThread(threadId: string): Promise<void> {
+  await call(`/ai/threads/${threadId}`, { method: "DELETE" });
+}
+
+// Keep deleteThreadApi alias for backward compatibility
+export async function deleteThreadApi(threadId: string): Promise<boolean> {
+  try {
+    await deleteThread(threadId);
+    return true;
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      throw err;
+    }
+    return false;
+  }
 }
 
 export async function listDocuments(): Promise<DocumentInfo[]> {

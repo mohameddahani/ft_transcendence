@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { parseJwtPayload } from "@/lib/auth";
+import {
+  extractRefreshTokenFromResponse,
+  setAuthCookies,
+} from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -9,16 +12,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const memberBody = {
-      userName: (body.userName || body.email || "").trim(),
+      userName: (body.userName || body.username || "").trim(),
       password: body.password,
     };
 
-    const backendRes = await axios.post(`${API_URL}/api/auth/members/login`, memberBody, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      validateStatus: () => true, // Forward all status codes
-    });
+    // Forward login request to backend member authentication endpoint
+    const backendRes = await axios.post(
+      `${API_URL}/api/auth/members/login`,
+      memberBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        validateStatus: () => true,
+      }
+    );
 
     const data = backendRes.data;
 
@@ -28,15 +36,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Normalize user object so Member accounts provide user profile
-    if (data?.member && !data?.user) {
-      data.user = data.member;
-    }
-
-    // Check user role from backend user object and JWT accessToken payload
-    const jwtPayload = data?.accessToken ? parseJwtPayload(data.accessToken) : null;
-    const role = (data?.user?.role || jwtPayload?.role || "").toUpperCase();
-    if (role !== "MEMBER") {
+    const userRole = data?.member?.role || data?.user?.role;
+    if (userRole !== "MEMBER") {
       return NextResponse.json(
         {
           message: "Access denied. Only Member accounts are authorized on this endpoint.",
@@ -49,48 +50,10 @@ export async function POST(req: NextRequest) {
       status: 200,
     });
 
-    // Forward any set-cookie headers from backend
-    const rawCookies = backendRes.headers["set-cookie"];
-    if (rawCookies) {
-      const setCookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies];
-      for (const cookie of setCookies) {
-        res.headers.append("set-cookie", cookie);
-      }
-    }
+    const accessToken = data?.accessToken;
+    const refreshToken = extractRefreshTokenFromResponse(backendRes);
 
-    // Set secure HTTP-only auth_token cookie with accessToken
-    if (data?.accessToken) {
-      res.cookies.set("auth_token", data.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 15,
-      });
-    }
-
-    // Ensure refresh_token is accessible at path "/" for Next.js API routes & middleware
-    let refreshToken = data?.refreshToken;
-    if (!refreshToken && rawCookies) {
-      const setCookies = Array.isArray(rawCookies) ? rawCookies : [rawCookies];
-      for (const cookieStr of setCookies) {
-        const match = cookieStr.match(/refresh_token=([^;]+)/);
-        if (match) {
-          refreshToken = match[1];
-          break;
-        }
-      }
-    }
-
-    if (refreshToken) {
-      res.cookies.set("refresh_token", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
-    }
+    setAuthCookies(res, { accessToken, refreshToken });
 
     return res;
   } catch (error: unknown) {

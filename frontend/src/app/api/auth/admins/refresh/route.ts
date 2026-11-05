@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
 import { parseJwtPayload } from "@/lib/auth";
-
-const API_URL = process.env.API_URL || "http://localhost:3000";
+import {
+  performTokenRefresh,
+  setAuthCookies,
+  clearAuthCookies,
+} from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Determine if token belongs to Staff or Admin and forward to correct backend endpoint
+    // 2. Reject Owner accounts if attempting admin portal
     const tokenPayload = parseJwtPayload(refreshToken);
     const roleUpper = (tokenPayload?.role || "").toUpperCase();
 
@@ -34,96 +36,29 @@ export async function POST(req: NextRequest) {
         { message: "Owner accounts are not permitted on this platform." },
         { status: 403 }
       );
-      response.cookies.delete("auth_token");
-      response.cookies.delete("refresh_token");
-      return response;
+      return clearAuthCookies(response);
     }
 
-    const isStaff = roleUpper === "STAFF";
-    const refreshPath = isStaff ? "/api/auth/staffs/refresh" : "/api/auth/admins/refresh";
+    // 3. Concurrency-safe token refresh with shared in-flight promise and grace period
+    const result = await performTokenRefresh(refreshToken);
 
-    const backendRes = await axios
-      .post(
-        `${API_URL}${refreshPath}`,
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Cookie: `refresh_token=${refreshToken}`,
-          },
-          validateStatus: () => true,
-        }
-      )
-      .catch((err) => {
-        console.error("Backend refresh request error:", err);
-        return null;
-      });
-
-    if (!backendRes) {
-      return NextResponse.json(
-        { message: "Backend authentication service is unavailable" },
-        { status: 503 }
+    if (result.error || !result.newAccessToken) {
+      const response = NextResponse.json(
+        { message: "Failed to refresh session or token expired" },
+        { status: 401 }
       );
+      return clearAuthCookies(response);
     }
 
-    if (backendRes.status >= 400) {
-      const errorData = backendRes.data || { message: "Failed to refresh session" };
-      const response = NextResponse.json(errorData, { status: backendRes.status });
+    const response = NextResponse.json(
+      { accessToken: result.newAccessToken, success: true },
+      { status: 200 }
+    );
 
-      // Refresh token is invalid/revoked/expired -> clear cookies
-      response.cookies.delete("auth_token");
-      response.cookies.delete("refresh_token");
-      return response;
-    }
-
-    const data = backendRes.data;
-    const response = NextResponse.json(data, { status: 200 });
-
-    // Forward any Set-Cookie headers from backend (e.g. if refresh token rotated)
-    const rawCookies = backendRes.headers["set-cookie"];
-    const setCookies = Array.isArray(rawCookies)
-      ? rawCookies
-      : typeof rawCookies === "string"
-      ? [rawCookies]
-      : [];
-    for (const cookie of setCookies) {
-      response.headers.append("set-cookie", cookie);
-    }
-
-    // Update auth_token cookie with the new accessToken
-    if (data?.accessToken) {
-      response.cookies.set("auth_token", data.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 15,
-      });
-    }
-
-    // If backend returned rotated refresh token, ensure it's saved at path "/"
-    let newRefreshToken = data?.refreshToken;
-    if (!newRefreshToken) {
-      for (const cookie of setCookies) {
-        const match = cookie.match(/refresh_token=([^;]+)/);
-        if (match) {
-          newRefreshToken = match[1];
-          break;
-        }
-      }
-    }
-
-    if (newRefreshToken) {
-      response.cookies.set("refresh_token", newRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      });
-    }
-
-    return response;
+    return setAuthCookies(response, {
+      accessToken: result.newAccessToken,
+      refreshToken: result.newRefreshToken,
+    });
   } catch (error) {
     console.error("Error in refresh route handler:", error);
     return NextResponse.json(

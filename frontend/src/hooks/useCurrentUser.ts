@@ -130,6 +130,10 @@ export function useCurrentUser() {
     } finally {
       localStorage.removeItem("gym_user");
       localStorage.removeItem("kinetic_user");
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("assistant_thread_id");
+        sessionStorage.removeItem("thread_id");
+      }
       window.location.href =
         role === "Member" ? "/member/login" : role === "Staff" ? "/staff/login" : "/login";
     }

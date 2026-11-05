@@ -78,9 +78,11 @@ export default function OperatingHoursPage() {
     setIsLoading(true);
     try {
       const [whData, shData] = await Promise.all([
-        (forMember ? fetchMemberWorkingHours(1, 50) : fetchWorkingHours(1, 50)).catch(() => []),
+        (forMember ? fetchMemberWorkingHours(1, 7) : fetchWorkingHours(1, 7)).catch(() => []),
         (forMember ? fetchMemberSpecialHours(1, 50) : fetchSpecialHours(1, 50)).catch(() => []),
       ]);
+      console.log("whData", whData);
+      console.log("shData", shData);
       setWorkingHours(whData);
       setSpecialHours(shData);
     } catch (err: unknown) {
@@ -173,8 +175,8 @@ export default function OperatingHoursPage() {
     if (activeSpecial) {
       return {
         isOpen: false,
-        reason: "Special Closure in effect today",
-        badge: "Closed (Special Event)",
+        reason: t("specialClosureInEffect"),
+        badge: t("closedSpecialEvent"),
       };
     }
 
@@ -182,16 +184,16 @@ export default function OperatingHoursPage() {
     if (!todayHour) {
       return {
         isOpen: false,
-        reason: "Schedule not configured for today",
-        badge: "Schedule Unset",
+        reason: t("scheduleNotConfiguredToday"),
+        badge: t("scheduleUnsetBadge"),
       };
     }
 
     if (todayHour.isClosed) {
       return {
         isOpen: false,
-        reason: "Facility regularly closed today",
-        badge: "Closed Today",
+        reason: t("facilityRegularlyClosed"),
+        badge: t("closedTodayBadge"),
       };
     }
 
@@ -203,25 +205,25 @@ export default function OperatingHoursPage() {
     ) {
       return {
         isOpen: true,
-        reason: `Open until ${todayHour.endTime}`,
-        badge: "Open Now",
+        reason: t("openUntilTime", { time: todayHour.endTime }),
+        badge: t("openNow"),
       };
     }
 
     if (todayHour.startTime && currentHourMin < todayHour.startTime) {
       return {
         isOpen: false,
-        reason: `Opens at ${todayHour.startTime}`,
-        badge: "Closed (Opens Later)",
+        reason: t("opensAtTime", { time: todayHour.startTime }),
+        badge: t("closedOpensLater"),
       };
     }
 
     return {
       isOpen: false,
-      reason: "Closed for the night",
-      badge: "Closed",
+      reason: t("facilityClosed"),
+      badge: t("closed"),
     };
-  }, [workingHoursByDay, specialHours]);
+  }, [workingHoursByDay, specialHours, t]);
 
   // Filtered Special Hours
   const filteredSpecialHours = useMemo(() => {
@@ -372,7 +374,7 @@ export default function OperatingHoursPage() {
         <div className="bg-surface-bright p-5 rounded-2xl border border-outline-variant/60 shadow-xs relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-              Live Facility Status
+              {t("liveFacilityStatus")}
             </span>
             <div
               className={`w-9 h-9 rounded-xl flex items-center justify-center ${
@@ -418,7 +420,7 @@ export default function OperatingHoursPage() {
               {workingHours.filter((wh) => !wh.isClosed).length} / 7
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              {configuredDayNumbers.length} days configured in weekly schedule
+              {t("daysConfiguredWeekly", { count: configuredDayNumbers.length })}
             </p>
           </div>
         </div>
@@ -441,7 +443,7 @@ export default function OperatingHoursPage() {
                 : ""}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Across all open scheduled days
+              {t("acrossAllOpenDays")}
             </p>
           </div>
         </div>
@@ -461,7 +463,7 @@ export default function OperatingHoursPage() {
               {specialHours.length}
             </div>
             <p className="text-xs text-on-surface-variant mt-1">
-              Holidays & maintenance scheduled
+              {t("holidaysMaintenanceScheduled")}
             </p>
           </div>
         </div>
@@ -520,12 +522,12 @@ export default function OperatingHoursPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              <span>7-Day Standard Weekly Schedule</span>
+              <span>{t("sevenDayStandardSchedule")}</span>
             </h2>
             <span className="text-xs text-on-surface-variant">
               {configuredDayNumbers.length < 7
-                ? `${7 - configuredDayNumbers.length} days pending configuration`
-                : "All days configured"}
+                ? t("daysPendingConfig", { count: 7 - configuredDayNumbers.length })
+                : t("allDaysConfigured")}
             </span>
           </div>
 
@@ -546,11 +548,11 @@ export default function OperatingHoursPage() {
                       </span>
                       <div className="mt-3">
                         <span className="text-xs px-2 py-1 rounded-md bg-surface-container text-on-surface-variant">
-                          Unset
+                          {t("unset")}
                         </span>
                       </div>
                       <p className="text-xs text-on-surface-variant/70 mt-3 leading-relaxed">
-                        No hours set for this day.
+                        {t("noHoursSetForDay")}
                       </p>
                     </div>
 
@@ -605,10 +607,10 @@ export default function OperatingHoursPage() {
                           <Moon className="w-4 h-4" />
                         </div>
                         <p className="text-xs font-bold text-on-surface mt-2">
-                          Facility Closed
+                          {t("facilityClosed")}
                         </p>
                         <p className="text-[11px] text-on-surface-variant">
-                          All day long
+                          {t("allDayLong")}
                         </p>
                       </div>
                     ) : (
@@ -620,7 +622,7 @@ export default function OperatingHoursPage() {
                           </span>
                         </div>
                         <p className="text-[11px] text-on-surface-variant font-medium">
-                          Gym is open for check-ins
+                          {t("gymOpenForCheckins")}
                         </p>
                       </div>
                     )}
@@ -646,7 +648,7 @@ export default function OperatingHoursPage() {
                             id: wh.id,
                             name: `${dayItem.name} (${
                               wh.isClosed
-                                ? "Closed"
+                                ? t("closed")
                                 : `${wh.startTime} - ${wh.endTime}`
                             })`,
                           })
@@ -667,10 +669,7 @@ export default function OperatingHoursPage() {
           <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 flex items-start gap-3">
             <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <p className="text-xs text-on-surface-variant leading-relaxed">
-              <strong>Tip:</strong> Regular weekly hours apply cyclically. If a
-              special holiday or temporary maintenance occurs, schedule a{" "}
-              <strong>Special Closure</strong> in the second tab so members are
-              automatically informed without losing your weekly presets.
+              {t("operatingHoursTip")}
             </p>
           </div>
         </div>
@@ -686,7 +685,7 @@ export default function OperatingHoursPage() {
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search closures by date (e.g. 2026-10)..."
+                placeholder={t("searchClosuresPlaceholder")}
                 value={searchDate}
                 onChange={(e) => setSearchDate(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-on-surface-variant/60"
@@ -764,20 +763,20 @@ export default function OperatingHoursPage() {
                               : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                           }`}
                         >
-                          {isAllDay ? "All-Day Closure" : "Partial Closure"}
+                          {isAllDay ? t("allDayClosure") : t("partialClosureBadge")}
                         </span>
 
                         {isCurrent ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white animate-pulse">
-                            Active Today
+                            {t("activeToday")}
                           </span>
                         ) : isPast ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">
-                            Past
+                            {t("past")}
                           </span>
                         ) : (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                            Upcoming
+                            {t("upcoming")}
                           </span>
                         )}
                       </div>
@@ -798,13 +797,13 @@ export default function OperatingHoursPage() {
                       <div className="mt-2">
                         {isAllDay ? (
                           <p className="text-xs text-on-surface-variant">
-                            Entire facility closed for all check-ins
+                            {t("entireFacilityClosed")}
                           </p>
                         ) : (
                           <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-semibold">
                             <Clock className="w-3.5 h-3.5" />
                             <span>
-                              Closed: {sh.startTime} – {sh.endTime}
+                              {t("closedTimeRange", { start: sh.startTime, end: sh.endTime })}
                             </span>
                           </div>
                         )}

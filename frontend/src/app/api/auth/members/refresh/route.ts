@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import axios from "axios";
-
-const API_URL = process.env.API_URL || "http://localhost:3000";
+import {
+  performTokenRefresh,
+  setAuthCookies,
+  clearAuthCookies,
+} from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,84 +25,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const backendRes = await axios
-      .post(
-        `${API_URL}/api/auth/members/refresh`,
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Cookie: `refresh_token=${refreshToken}`,
-          },
-          validateStatus: () => true,
-        }
-      )
-      .catch((err) => {
-        console.error("Backend member refresh request error:", err);
-        return null;
-      });
+    const result = await performTokenRefresh(refreshToken);
 
-    if (!backendRes) {
-      return NextResponse.json(
-        { message: "Backend authentication service is unavailable" },
-        { status: 503 }
+    if (result.error || !result.newAccessToken) {
+      const response = NextResponse.json(
+        { message: "Failed to refresh member session or token expired" },
+        { status: 401 }
       );
+      return clearAuthCookies(response);
     }
 
-    if (backendRes.status >= 400) {
-      const errorData = backendRes.data || { message: "Failed to refresh member session" };
-      const response = NextResponse.json(errorData, { status: backendRes.status });
+    const response = NextResponse.json(
+      { accessToken: result.newAccessToken, success: true },
+      { status: 200 }
+    );
 
-      response.cookies.delete("auth_token");
-      response.cookies.delete("refresh_token");
-      return response;
-    }
-
-    const data = backendRes.data;
-    const response = NextResponse.json(data, { status: 200 });
-
-    const rawCookies = backendRes.headers["set-cookie"];
-    const setCookies = Array.isArray(rawCookies)
-      ? rawCookies
-      : typeof rawCookies === "string"
-      ? [rawCookies]
-      : [];
-    for (const cookie of setCookies) {
-      response.headers.append("set-cookie", cookie);
-    }
-
-    if (data?.accessToken) {
-      response.cookies.set("auth_token", data.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 15,
-      });
-    }
-
-    let nextRefreshToken = data?.refreshToken;
-    if (!nextRefreshToken && rawCookies) {
-      for (const cookieStr of setCookies) {
-        const match = cookieStr.match(/refresh_token=([^;]+)/);
-        if (match) {
-          nextRefreshToken = match[1];
-          break;
-        }
-      }
-    }
-
-    if (nextRefreshToken) {
-      response.cookies.set("refresh_token", nextRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      });
-    }
-
-    return response;
+    return setAuthCookies(response, {
+      accessToken: result.newAccessToken,
+      refreshToken: result.newRefreshToken,
+    });
   } catch (error: unknown) {
     console.error("Member refresh proxy handler error:", error);
     return NextResponse.json(

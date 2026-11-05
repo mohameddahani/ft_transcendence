@@ -25,6 +25,8 @@ import {
 
 import { memberLoginSchema, MemberLoginFormValues } from "@/schemas/auth";
 import { loginMember } from "@/lib/api/auth";
+import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function MemberLoginForm() {
   const router = useRouter();
@@ -98,7 +100,15 @@ export default function MemberLoginForm() {
   };
 
   return (
-    <main className="flex h-screen w-screen overflow-hidden">
+    <main className="flex h-screen w-screen overflow-hidden relative">
+      {/* Top right quick actions (Language & Theme) */}
+      <div className="fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 flex items-center gap-2">
+        <LanguageSwitcher />
+        <div className="p-1 rounded-xl bg-surface-container-high/80 backdrop-blur-md border border-outline-variant/60 shadow-xs flex items-center justify-center">
+          <ThemeToggle />
+        </div>
+      </div>
+
       {/* Left Side: Member Fitness Experience Imagery (Desktop Only) */}
       <section className="hidden lg:flex lg:w-7/12 relative h-full bg-on-surface overflow-hidden select-none">
         <div

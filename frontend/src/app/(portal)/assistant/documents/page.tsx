@@ -81,11 +81,11 @@ export default function AssistantDocumentsPage() {
   const handleFileSelect = (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
     if (!ext || !["md", "txt", "pdf"].includes(ext)) {
-      toast.error("Only .md, .txt and .pdf files are accepted");
+      toast.error(t("onlyAllowedFileTypes") || "Only .md, .txt and .pdf files are accepted");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("The file is larger than 10 MB");
+      toast.error(t("fileTooLarge") || "The file is larger than 10 MB");
       return;
     }
     setSelectedFile(file);
@@ -104,6 +104,16 @@ export default function AssistantDocumentsPage() {
     e.preventDefault();
     if (!selectedFile || isUploading) return;
 
+    // Check if replacing an existing document
+    const alreadyExists = documents.some((d) => d.filename === selectedFile.name);
+    if (alreadyExists) {
+      const confirmed = window.confirm(
+        t("documentOverwriteConfirm", { filename: selectedFile.name }) ||
+          `This will replace the existing ${selectedFile.name}. Do you want to continue?`
+      );
+      if (!confirmed) return;
+    }
+
     try {
       setIsUploading(true);
       const res = await uploadDocument(selectedFile, visibility);
@@ -120,7 +130,7 @@ export default function AssistantDocumentsPage() {
       if (err instanceof ApiError && err.detail) {
         toast.error(err.detail);
       } else {
-        toast.error("Failed to upload document. Please try again.");
+        toast.error(t("documentUploadFailed") || "Failed to upload document. Please try again.");
       }
     } finally {
       setIsUploading(false);
@@ -144,7 +154,7 @@ export default function AssistantDocumentsPage() {
       if (err instanceof ApiError && err.detail) {
         toast.error(err.detail);
       } else {
-        toast.error("Failed to delete document");
+        toast.error(t("documentDeleteFailed") || "Failed to delete document");
       }
     } finally {
       setIsDeleting(false);

@@ -207,7 +207,7 @@ export default function QrScannerModal({
               {isProcessing && (
                 <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center space-y-2 text-white z-20">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-xs font-bold">Verifying QR Token...</p>
+                  <p className="text-xs font-bold">{t("verifyingQrToken")}</p>
                 </div>
               )}
 
@@ -218,9 +218,9 @@ export default function QrScannerModal({
                     <AlertCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Camera Offline</h4>
+                    <h4 className="text-xs font-bold text-white">{t("cameraOffline")}</h4>
                     <p className="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">
-                      Please allow camera permission or switch to the USB scanner tab to enter the token.
+                      {t("cameraPermissionPrompt")}
                     </p>
                   </div>
                   <button
@@ -228,14 +228,14 @@ export default function QrScannerModal({
                     onClick={() => setActiveTab("manual")}
                     className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-95 transition-opacity"
                   >
-                    Switch to Manual / USB
+                    {t("switchToManualUsb")}
                   </button>
                 </div>
               )}
             </div>
 
             <p className="text-center text-[11px] text-on-surface-variant">
-              💡 Position member QR pass clearly inside the viewfinder.
+              {t("positionQrGuide")}
             </p>
           </div>
         )}
@@ -246,7 +246,7 @@ export default function QrScannerModal({
             <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5 text-xs">
               <strong className="text-on-surface font-semibold flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-primary" />
-                Handheld USB Scanner Ready
+                {t("usbScannerReady")}
               </strong>
               <p className="text-on-surface-variant leading-relaxed text-[11px]">
                 If using a handheld USB barcode gun, click inside the input below and pull the scanner trigger. It will auto-submit.

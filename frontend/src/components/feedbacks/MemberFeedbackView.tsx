@@ -585,9 +585,9 @@ export default function MemberFeedbackView() {
                 {/* Card Top: Author, Date & Status */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {item.member.profileImage || item.member.photo ? (
+                    {item.member.profileImageUrl ? (
                       <img
-                        src={(item.member.profileImage || item.member.photo) as string}
+                        src={(item.member.profileImageUrl || item.member.photo) as string}
                         alt={memberName}
                         className="w-10 h-10 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0"
                       />
@@ -698,7 +698,6 @@ export default function MemberFeedbackView() {
                       <span>{t("viewDetails") || "Details"}</span>
                     </button>
 
-                    {/* Delete button (only for own feedback) */}
                     {isOwn && (
                       <button
                         type="button"

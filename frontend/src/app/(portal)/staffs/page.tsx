@@ -490,7 +490,7 @@ export default function StaffsPage() {
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
                           <UserCheck className="w-3 h-3" />
-                          <span>{staff.role || "STAFF"}</span>
+                          <span>{(staff.role || "").toUpperCase() === "ADMIN" ? t("admin") : t("staff")}</span>
                         </span>
                       </td>
 
@@ -505,7 +505,7 @@ export default function StaffsPage() {
                               : "bg-error-container/30 text-error border-error-container/40"
                           }`}
                         >
-                          {status}
+                          {status === "ACTIVE" ? t("active") : status === "PENDING" ? t("pending") : status === "BANNED" ? t("banned") : status}
                         </span>
                       </td>
 
@@ -517,9 +517,9 @@ export default function StaffsPage() {
                       {/* Gender */}
                       <td className="px-6 py-4 text-xs font-medium text-on-surface-variant">
                         {staff.gender === "MALE"
-                          ? "Male"
+                          ? t("male")
                           : staff.gender === "FEMALE"
-                          ? "Female"
+                          ? t("female")
                           : staff.gender || "—"}
                       </td>
 
