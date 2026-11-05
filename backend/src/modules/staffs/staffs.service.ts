@@ -50,11 +50,11 @@ export class StaffsService {
     });
     if (existingStaff) {
       if (existingStaff.email === data.email) {
-        throw new UnauthorizedException('Email already exists');
+        throw new ConflictException('Email already exists');
       }
 
       if (existingStaff.phoneNumber === data.phoneNumber) {
-        throw new UnauthorizedException('Phone number already exists');
+        throw new ConflictException('Phone number already exists');
       }
     }
 

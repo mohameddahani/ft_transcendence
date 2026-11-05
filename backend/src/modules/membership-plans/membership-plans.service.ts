@@ -5,7 +5,6 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
 import { MembershipStatus } from '@/generated/prisma/enums';
@@ -190,9 +189,7 @@ export class MembershipPlansService {
         existingMembershipPlanDuration &&
         existingMembershipPlanDuration.id !== id
       ) {
-        throw new UnauthorizedException(
-          'Membership Plan Duration is Duplicate',
-        );
+        throw new ConflictException('Membership Plan Duration is Duplicate');
       }
     } else if (data.price !== undefined) {
       const existingMembershipPlanDuration =
@@ -207,9 +204,7 @@ export class MembershipPlansService {
         });
 
       if (existingMembershipPlanDuration) {
-        throw new UnauthorizedException(
-          'Membership Plan Duration is Duplicate',
-        );
+        throw new ConflictException('Membership Plan Duration is Duplicate');
       }
     } else if (data.durationDays !== undefined) {
       const existingMembershipPlanDuration =
@@ -224,9 +219,7 @@ export class MembershipPlansService {
         });
 
       if (existingMembershipPlanDuration) {
-        throw new UnauthorizedException(
-          'Membership Plan Duration is Duplicate',
-        );
+        throw new ConflictException('Membership Plan Duration is Duplicate');
       }
     }
 

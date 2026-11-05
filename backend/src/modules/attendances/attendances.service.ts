@@ -185,7 +185,7 @@ export class AttendancesService {
     });
 
     if (!attendance) {
-      throw new NotFoundException('There is No Attendance To Show');
+      throw new NotFoundException('Attendance record not found.');
     }
 
     return attendance;

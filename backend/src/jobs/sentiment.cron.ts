@@ -16,6 +16,12 @@ export class SentimentCron {
       where: {
         OR: [{ sentiment: null }, { sentimentScore: null }],
       },
+
+      orderBy: {
+        createdAt: 'asc',
+      },
+
+      take: 50,
     });
 
     if (feedbacks.length === 0) {
