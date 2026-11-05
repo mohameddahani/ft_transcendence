@@ -33,6 +33,10 @@ server {
 		return 302 https://status.${DOMAIN};
 	}
 
+	location /blockchain-api/ {
+		proxy_pass http://blockchain:3000/;
+	}
+
 	# superadmin platform
 	location ^~ /superadmin {
 		proxy_pass http://superadmin:3000;
