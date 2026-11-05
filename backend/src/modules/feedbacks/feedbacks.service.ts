@@ -271,7 +271,7 @@ export class FeedbacksService {
 
     // * check if this feedback is belong to this member
     if (feedback.feedbackData.member.id !== memberId) {
-      throw new ForbiddenException('You Cannot Delte this feedback');
+      throw new ForbiddenException('You Cannot Delete this feedback');
     }
 
     // * Delete the Feedback

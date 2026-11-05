@@ -150,6 +150,9 @@ export class PlansService {
       throw new NotFoundException('Duration Plan Not Found!');
     }
 
+    // * Check duration if already exist in this plan
+    await this.checkIfDurationAlreadyExistInPlan(duration.id, data.planId);
+
     // * Get the final values after applying the update.
     const finalPlanId = data.planId ?? duration.planId;
 
@@ -271,7 +274,7 @@ export class PlansService {
 
     if (!existingPlanDuration) {
       throw new UnauthorizedException(
-        'Plan Duration is Not exists in This Plan',
+        'The selected duration does not belong to this plan.',
       );
     }
   }
