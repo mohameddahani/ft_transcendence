@@ -101,6 +101,18 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Toota Design Tokens */
+  --color-toota-side: var(--toota-side);
+  --color-toota-main: var(--toota-main);
+  --color-toota-card: var(--toota-card);
+  --color-toota-inner: var(--toota-inner);
+  --color-toota-ink: var(--toota-ink);
+  --color-toota-muted: var(--toota-muted);
+  --color-toota-pill: var(--toota-pill);
+  --color-toota-green: var(--toota-green);
+  --color-toota-red: var(--toota-red);
+  --color-toota-lime: var(--toota-lime);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -214,9 +226,21 @@
   --sidebar-accent-foreground: #191c1e;
   --sidebar-border: #c7c4d8;
   --sidebar-ring: #3525cd;
+
+  /* Toota Design Tokens (Light) */
+  --toota-side: #1b1f23;
+  --toota-main: #e8e8e8;
+  --toota-card: rgba(255, 255, 255, 0.62);
+  --toota-inner: rgba(255, 255, 255, 0.72);
+  --toota-ink: #16191c;
+  --toota-muted: #7a8087;
+  --toota-pill: #ffffff;
+  --toota-green: #22c55e;
+  --toota-red: #ef4444;
+  --toota-lime: #a3e635;
 }
 
-.dark {
+.dark, :root[data-theme="dark"] {
   /* DARK MODE (High-Tech Charcoal & Electric Indigo Command Center) */
   --primary: #c0c1ff;
   --primary-container: #8083ff;
@@ -298,6 +322,14 @@
   --sidebar-accent-foreground: #e5e2e1;
   --sidebar-border: #464554;
   --sidebar-ring: #c0c1ff;
+
+  /* Toota Design Tokens (Dark) */
+  --toota-main: #2a2f34;
+  --toota-card: rgba(255, 255, 255, 0.07);
+  --toota-inner: rgba(255, 255, 255, 0.08);
+  --toota-ink: #f1f3f4;
+  --toota-muted: #9aa1a8;
+  --toota-pill: #3a4046;
 }
 
 @layer base {
@@ -555,4 +587,109 @@
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   vertical-align: middle;
+}
+
+/* =========================================================================
+   TOOTA DESIGN SYSTEM UTILITIES
+   ========================================================================= */
+.toota-card {
+  background: var(--toota-card);
+  border-radius: 26px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.toota-inner {
+  background: var(--toota-inner);
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.toota-pill {
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 9999px;
+  background: var(--toota-pill);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--toota-ink);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toota-pill.active,
+.toota-pill.on {
+  background: #1b1f23;
+  color: #ffffff;
+}
+
+.dark .toota-pill.active,
+.dark .toota-pill.on,
+[data-theme="dark"] .toota-pill.active,
+[data-theme="dark"] .toota-pill.on {
+  background: #ffffff;
+  color: #000000;
+}
+
+.toota-seg {
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 4px;
+}
+
+.toota-seg button {
+  flex: 1;
+  height: 38px;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.toota-seg button.on {
+  background: #ffffff;
+  color: #000000;
+}
+
+.toota-track {
+  position: relative;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--toota-inner);
+  margin-bottom: 18px;
+}
+
+.toota-fill {
+  height: 100%;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #fca5a5, #fcd34d 45%, #4ade80);
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  font-size: 14px;
+  color: #222222;
+  font-weight: 500;
+}
+
+.toota-mark {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 36px;
+  border-radius: 4px;
+  background: #000000;
+}
+
+.dark .toota-mark,
+[data-theme="dark"] .toota-mark {
+  background: #ffffff;
 }

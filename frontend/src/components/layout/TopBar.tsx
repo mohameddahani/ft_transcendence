@@ -4,18 +4,16 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  HelpCircle,
   Menu,
   X,
   LogOut,
   ShieldCheck,
   User,
   ChevronRight,
-  ChevronDown,
+  Search,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationDropdown from "@/components/notifications/NotificationDropdown";
 import { useTranslation } from "react-i18next";
 
@@ -58,10 +56,10 @@ export default function TopBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Compute breadcrumbs dynamically based on pathname (Logo & brand are strictly in SideBar)
+  // Compute breadcrumbs dynamically based on pathname
   const breadcrumb = useMemo(() => {
     if (!pathname || pathname === "/dashboard") {
-      return { section: null, title: t("navDashboard") || "Dashboard" };
+      return { section: null, title: t("navDashboard") || "Overview" };
     }
     if (pathname.startsWith("/check-in")) {
       return {
@@ -92,14 +90,20 @@ export default function TopBar({
     }
     if (pathname.startsWith("/visits")) {
       return {
-        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("frontDesk") || "Front desk"),
-        title: t("navVisits") || "Visits & Attendances",
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("frontDesk") || "Front desk",
+        title: t("navVisVisits") || "Visits & Attendances",
       };
     }
     if (pathname.startsWith("/operating-hours")) {
       return {
-        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("gymSetup") || "Gym setup"),
-        title: t("navOpeningHours") || "Opening hours",
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("gymSetup") || "Gym setup",
+        title: t("navOpeningHours") || "Gym hours",
       };
     }
     if (pathname.startsWith("/staffs")) {
@@ -110,25 +114,34 @@ export default function TopBar({
     }
     if (pathname.startsWith("/feedbacks")) {
       return {
-        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("insight") || "Insight"),
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("insight") || "Insight",
         title: t("navFeedback") || "Feedback",
       };
     }
     if (pathname.startsWith("/marketplace")) {
       return {
-        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("frontDesk") || "Front desk"),
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("frontDesk") || "Front desk",
         title: t("navMarketplace") || "Marketplace",
       };
     }
     if (pathname.startsWith("/gymflow-subscription")) {
       return {
         section: t("account") || "Account",
-        title: t("navGymflowSubscription") || "GymFlow subscription",
+        title: t("navGymflowSubscription") || "Subscription",
       };
     }
     if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
       return {
-        section: role === "Member" ? (t("memberPortal") || "Member portal") : (t("account") || "Account"),
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("account") || "Account",
         title: t("navProfile") || "Profile",
       };
     }
@@ -139,16 +152,18 @@ export default function TopBar({
     return { section: null, title: formatted };
   }, [pathname, t, role]);
 
+  const isDashboard = !pathname || pathname === "/dashboard";
+
   return (
-    <header className="flex justify-between items-center w-full px-4 sm:px-6 h-16 sticky top-0 z-30 bg-surface-container-lowest/80 dark:bg-surface-container-lowest/80 backdrop-blur-md border-b border-outline-variant/50 transition-colors">
-      {/* Left: Mobile hamburger toggle & Desktop contextual breadcrumb (No duplicate logo) */}
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 w-full px-6 py-4 bg-toota-main/80 backdrop-blur-md transition-colors flex items-center justify-between gap-4 border-b border-black/5 dark:border-white/5">
+      {/* Left: Mobile hamburger toggle & contextual heading */}
+      <div className="flex items-center gap-3 min-w-0">
         {/* Mobile Sidebar Hamburger Toggle */}
         <button
           type="button"
           onClick={onToggleMobileSidebar}
           aria-label="Toggle Navigation Menu"
-          className="p-2 lg:hidden rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer"
+          className="p-2 lg:hidden rounded-full text-toota-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
         >
           {isMobileSidebarOpen ? (
             <X className="w-5 h-5" />
@@ -157,126 +172,93 @@ export default function TopBar({
           )}
         </button>
 
-        {/* Desktop Breadcrumb Navigation */}
-        <div className="hidden lg:flex items-center gap-2 text-xs">
-          {breadcrumb.section && (
-            <>
-              <span className="text-on-surface-variant/75 font-medium tracking-wide">
-                {breadcrumb.section}
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-outline-variant/70 rtl:rotate-180" />
-            </>
-          )}
-          <span className="font-headline font-semibold text-on-surface text-sm tracking-tight">
-            {breadcrumb.title}
-          </span>
+        {/* Heading & Subtitle */}
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            {breadcrumb.section && !isDashboard && (
+              <>
+                <span className="text-xs font-medium text-toota-muted hidden sm:inline">
+                  {breadcrumb.section}
+                </span>
+                <ChevronRight className="w-3 h-3 text-toota-muted rtl:rotate-180 hidden sm:inline" />
+              </>
+            )}
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-toota-ink truncate">
+              {breadcrumb.title}
+            </h1>
+          </div>
+          <p className="text-xs text-toota-muted truncate mt-0.5">
+            {isDashboard
+              ? t("dashboardSubtitle") ||
+                "This Lot Offers Uncompromising Performance"
+              : companyName || "Facility Portal"}
+          </p>
         </div>
       </div>
 
-      {/* Right: Actions, Theme, Language & User Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      {/* Right: Search Pill, Notifications, Language & User Avatar */}
+      <div className="flex items-center gap-3 shrink-0">
+        {/* Toota Search Pill Input */}
+        <label className="hidden md:flex items-center gap-2.5 bg-toota-pill text-toota-ink rounded-full h-[46px] px-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] w-48 lg:w-64 transition-all focus-within:ring-2 focus-within:ring-[#84cc16]">
+          <Search className="w-4 h-4 text-toota-muted shrink-0" />
+          <input
+            type="text"
+            placeholder={t("search") || "Search"}
+            aria-label="Search"
+            className="border-0 bg-transparent outline-none w-full text-xs font-normal text-toota-ink placeholder:text-toota-muted"
+          />
+        </label>
+
         {/* Notifications Dropdown */}
         <NotificationDropdown />
 
-        {/* Help Button */}
-        <button
-          type="button"
-          title={t("help")}
-          aria-label={t("help")}
-          className="w-9 h-9 items-center justify-center rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-all cursor-pointer hidden sm:flex"
-        >
-          <HelpCircle className="w-4 h-4" />
-        </button>
-
-        {/* Dark / Light Theme Toggle */}
-        <ThemeToggle />
-
-        {/* TopBar Integrated Language Switcher */}
+        {/* Language Switcher */}
         <LanguageSwitcher inline />
 
-        {/* Vertical Divider */}
-        <div className="h-6 w-[1px] bg-outline-variant/50 mx-1 sm:mx-1.5" />
-
-        {/* Quick Log Out Button */}
-        <button
-          type="button"
-          onClick={logout}
-          title={t("logOut")}
-          aria-label={t("logOut")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-error hover:bg-error/10 border border-error/20 transition-all text-xs font-semibold cursor-pointer active:scale-95"
-        >
-          <LogOut className="w-3.5 h-3.5 text-error" />
-          <span className="hidden sm:inline">{t("logOut")}</span>
-        </button>
-
-        {/* User Profile Dropdown */}
+        {/* User Avatar with Profile Dropdown */}
         <div ref={profileRef} className="relative">
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2.5 hover:opacity-90 transition-all rounded-xl p-1 sm:px-2 sm:py-1 cursor-pointer hover:bg-surface-container-low"
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer p-0.5 rounded-full"
             aria-expanded={isProfileOpen}
             aria-haspopup="menu"
+            title={fullName}
           >
-            <div className="text-right hidden sm:block">
-              {isLoading ? (
-                <div className="flex flex-col items-end gap-1">
-                  <div className="h-3 w-16 bg-surface-container-high rounded animate-pulse" />
-                  <div className="h-2.5 w-10 bg-surface-container rounded animate-pulse" />
-                </div>
-              ) : (
-                <>
-                  <p className="font-headline text-xs font-bold leading-tight text-on-surface">
-                    {fullName}
-                  </p>
-                  <p className="text-[11px] text-on-surface-variant font-medium leading-tight">
-                    {role}{companyName ? ` • ${companyName}` : ""}
-                  </p>
-                </>
-              )}
-            </div>
-
             {isLoading ? (
-              <div className="w-9 h-9 rounded-full bg-surface-container-high animate-pulse shadow-2xs" />
+              <div className="w-11 h-11 rounded-full bg-black/10 dark:bg-white/10 animate-pulse shadow-sm" />
             ) : photo ? (
               <img
-                className="w-9 h-9 rounded-full ring-2 ring-primary/20 object-cover shadow-2xs"
+                className="w-11 h-11 rounded-full object-cover shadow-[0_1px_3px_rgba(0,0,0,0.08)] ring-1 ring-black/10 dark:ring-white/10"
                 alt={fullName}
                 src={photo}
               />
             ) : (
-              <div className="w-9 h-9 rounded-full ring-2 ring-primary/20 bg-primary/10 text-primary flex items-center justify-center font-headline font-bold text-xs shadow-2xs select-none">
+              <div className="w-11 h-11 rounded-full bg-[#475569] text-white flex items-center justify-center font-semibold text-xs shadow-[0_1px_3px_rgba(0,0,0,0.08)] select-none">
                 {initials}
               </div>
             )}
-
-            <ChevronDown className="w-3.5 h-3.5 text-on-surface-variant hidden sm:block" />
           </button>
 
           {/* User Profile Popup Menu */}
           {isProfileOpen && (
             <div
               role="menu"
-              className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-60 rounded-2xl bg-surface-container-lowest/95 backdrop-blur-xl border border-outline-variant/60 shadow-xl z-50 p-2 animate-in fade-in-0 zoom-in-95 duration-150"
+              className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-64 rounded-2xl bg-toota-pill text-toota-ink shadow-xl z-50 p-2.5 border border-black/5 dark:border-white/10 animate-in fade-in-0 zoom-in-95 duration-150"
             >
-              <div className="px-3 py-2.5 border-b border-outline-variant/50 mb-1">
-                <p className="font-headline font-bold text-sm text-on-surface">
+              <div className="px-3 py-2 border-b border-black/5 dark:border-white/10 mb-1.5">
+                <p className="font-bold text-sm text-toota-ink truncate">
                   {fullName}
                 </p>
                 {user?.email && (
-                  <p className="text-xs text-on-surface-variant truncate">
+                  <p className="text-xs text-toota-muted truncate mt-0.5">
                     {user.email}
                   </p>
                 )}
-                {companyName && (
-                  <p className="text-xs text-primary font-medium truncate mt-0.5">
-                    {companyName}
-                  </p>
-                )}
                 <div className="flex items-center gap-1.5 mt-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">
-                    {role} {t("workspace")}
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#22c55e]" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-toota-muted">
+                    {role} Workspace
                   </span>
                 </div>
               </div>
@@ -284,10 +266,10 @@ export default function TopBar({
               <Link
                 href="/profile"
                 onClick={() => setIsProfileOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-toota-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               >
-                <User className="w-4 h-4 text-on-surface-variant" />
-                <span>{t("navProfile") || "Profile"}</span>
+                <User className="w-4 h-4 text-toota-muted" />
+                <span>{t("navProfile") || "Profile & Settings"}</span>
               </Link>
 
               <button
@@ -296,9 +278,9 @@ export default function TopBar({
                   setIsProfileOpen(false);
                   logout();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-error hover:bg-error/10 transition-colors text-left rtl:text-right cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors text-left rtl:text-right cursor-pointer mt-1"
               >
-                <LogOut className="w-4 h-4 text-error" />
+                <LogOut className="w-4 h-4 text-rose-500" />
                 <span>{t("logOut")}</span>
               </button>
             </div>

@@ -12,19 +12,30 @@ import {
   Download,
   Lock,
   ChevronRight,
-  Phone,
-  Mail,
   TrendingUp,
   Loader2,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-import { FeedbackItem, FeedbackStatus } from "@/types/feedback";
+import { FeedbackItem, FeedbackStatus, SentimentType } from "@/types/feedback";
 import { fetchAllFeedbacks, updateFeedbackStatus } from "@/lib/api/feedbacks";
 import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
+
+const SENTIMENT_STYLES: Record<SentimentType, string> = {
+  POSITIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  NEUTRAL: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  NEGATIVE: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+};
+
+// 5 stars with an angry text, or 1 star with a happy one: worth a second look
+const starsDisagree = (f: FeedbackItem) =>
+  (f.rating >= 4 && f.sentiment === "NEGATIVE") ||
+  (f.rating <= 2 && f.sentiment === "POSITIVE");
 
 function AdminStaffFeedbackView() {
   const { t } = useTranslation();
@@ -37,6 +48,7 @@ function AdminStaffFeedbackView() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | FeedbackStatus>("ALL");
   const [ratingFilter, setRatingFilter] = useState<number | "ALL">("ALL");
+  const [sentimentFilter, setSentimentFilter] = useState<"ALL" | "NONE" | SentimentType>("ALL");
 
   // Modal state
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(null);
@@ -49,7 +61,6 @@ function AdminStaffFeedbackView() {
     try {
       const data = await fetchAllFeedbacks(1, 100);
       setFeedbacks(data);
-      console.log(data)
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -68,8 +79,31 @@ function AdminStaffFeedbackView() {
   // Statistics calculation
   const stats = useMemo(() => {
     const total = feedbacks.length;
+    const bySentiment = { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0, NONE: 0 };
+    for (const f of feedbacks) {
+      if (f.sentiment && bySentiment[f.sentiment] !== undefined) {
+        bySentiment[f.sentiment] += 1;
+      } else {
+        bySentiment.NONE += 1;
+      }
+    }
+    const analysedCount =
+      bySentiment.POSITIVE + bySentiment.NEUTRAL + bySentiment.NEGATIVE;
+    const positivePercent =
+      analysedCount > 0
+        ? Math.round((bySentiment.POSITIVE / analysedCount) * 100)
+        : null;
+
     if (total === 0) {
-      return { total: 0, averageRating: 5.0, openCount: 0, resolvedCount: 0, positivePercent: 100 };
+      return {
+        total: 0,
+        averageRating: "5.0",
+        openCount: 0,
+        resolvedCount: 0,
+        positivePercent: null,
+        analysedCount: 0,
+        bySentiment,
+      };
     }
 
     const sumRating = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
@@ -79,14 +113,19 @@ function AdminStaffFeedbackView() {
       (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
     ).length;
 
-    const resolvedCount = feedbacks.filter((f) => f.feedbackStatus === "RESOLVED").length;
-
-    const positiveCount = feedbacks.filter(
-      (f) => f.rating >= 4 || f.sentiment === "POSITIVE"
+    const resolvedCount = feedbacks.filter(
+      (f) => f.feedbackStatus === "RESOLVED"
     ).length;
-    const positivePercent = Math.round((positiveCount / total) * 100);
 
-    return { total, averageRating, openCount, resolvedCount, positivePercent };
+    return {
+      total,
+      averageRating,
+      openCount,
+      resolvedCount,
+      positivePercent,
+      analysedCount,
+      bySentiment,
+    };
   }, [feedbacks]);
 
   // Filtered List
@@ -120,9 +159,19 @@ function AdminStaffFeedbackView() {
         return false;
       }
 
+      // Sentiment matching ("NONE" = not analysed yet)
+      if (sentimentFilter === "NONE" && f.sentiment) return false;
+      if (
+        sentimentFilter !== "ALL" &&
+        sentimentFilter !== "NONE" &&
+        f.sentiment !== sentimentFilter
+      ) {
+        return false;
+      }
+
       return true;
     });
-  }, [feedbacks, searchTerm, statusFilter, ratingFilter]);
+  }, [feedbacks, searchTerm, statusFilter, ratingFilter, sentimentFilter]);
 
   // Handle Update Status & Resolution Note
   const handleSaveResolution = async (
@@ -161,6 +210,7 @@ function AdminStaffFeedbackView() {
       "Member Name",
       "Rating",
       "Sentiment",
+      "Sentiment Confidence",
       "Status",
       "Member Feedback",
       "Resolution Note",
@@ -171,7 +221,8 @@ function AdminStaffFeedbackView() {
     const rows = filteredFeedbacks.map((f) => [
       `"${f.member.firstName || ""} ${f.member.lastName || ""}"`,
       f.rating,
-      f.sentiment || "NEUTRAL",
+      f.sentiment ?? "",
+      f.sentimentScore ?? "",
       f.feedbackStatus,
       `"${f.content.replace(/"/g, '""')}"`,
       `"${(f.resolutionNote || "").replace(/"/g, '""')}"`,
@@ -323,25 +374,54 @@ function AdminStaffFeedbackView() {
             <TrendingUp className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-bold font-headline text-primary">
-            {stats.positivePercent}%
+            {stats.positivePercent === null ? "—" : `${stats.positivePercent}%`}
             <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              {t("happyMembers")}
+              {t("ofAnalysedComments", { count: stats.analysedCount })}
             </span>
           </div>
           {/* Visual bar */}
           <div className="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden mt-1">
             <div
               className="bg-primary h-full rounded-full transition-all"
-              style={{ width: `${stats.positivePercent}%` }}
+              style={{ width: `${stats.positivePercent ?? 0}%` }}
             />
+          </div>
+          {/* Sentiment split breakdown links */}
+          <div className="flex items-center gap-2 pt-1 text-[10px] font-semibold flex-wrap">
+            <button
+              type="button"
+              onClick={() => setSentimentFilter("POSITIVE")}
+              className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+              title={t("positiveOnly")}
+            >
+              {stats.bySentiment.POSITIVE} {t("sentiment_POSITIVE")?.toLowerCase()}
+            </button>
+            <span className="text-outline-variant/60">•</span>
+            <button
+              type="button"
+              onClick={() => setSentimentFilter("NEUTRAL")}
+              className="text-slate-600 dark:text-slate-400 hover:underline cursor-pointer"
+              title={t("neutralOnly")}
+            >
+              {stats.bySentiment.NEUTRAL} {t("sentiment_NEUTRAL")?.toLowerCase()}
+            </button>
+            <span className="text-outline-variant/60">•</span>
+            <button
+              type="button"
+              onClick={() => setSentimentFilter("NEGATIVE")}
+              className="text-red-600 dark:text-red-400 hover:underline cursor-pointer"
+              title={t("negativeOnly")}
+            >
+              {stats.bySentiment.NEGATIVE} {t("sentiment_NEGATIVE")?.toLowerCase()}
+            </button>
           </div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-surface-container-lowest p-4 rounded-2xl shadow-xs border border-outline-variant">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 bg-surface-container-lowest p-4 rounded-2xl shadow-xs border border-outline-variant">
         {/* Search Input */}
-        <div className="md:col-span-6 relative">
+        <div className="lg:col-span-4 relative">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
           <input
             type="text"
@@ -353,7 +433,7 @@ function AdminStaffFeedbackView() {
         </div>
 
         {/* Status Filter */}
-        <div className="md:col-span-3 flex items-center gap-2">
+        <div className="lg:col-span-3 flex items-center gap-2">
           <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
           <select
             value={statusFilter}
@@ -371,7 +451,7 @@ function AdminStaffFeedbackView() {
         </div>
 
         {/* Rating Filter */}
-        <div className="md:col-span-3 flex items-center gap-2">
+        <div className="lg:col-span-2 flex items-center gap-2">
           <Star className="w-4 h-4 text-on-surface-variant shrink-0" />
           <select
             value={ratingFilter}
@@ -388,6 +468,32 @@ function AdminStaffFeedbackView() {
             <option value={3}>{t("threeStars")}</option>
             <option value={2}>{t("twoStars")}</option>
             <option value={1}>{t("oneStarOnly")}</option>
+          </select>
+        </div>
+
+        {/* Sentiment Filter */}
+        <div className="lg:col-span-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-on-surface-variant shrink-0" />
+          <select
+            value={sentimentFilter}
+            onChange={(e) =>
+              setSentimentFilter(e.target.value as typeof sentimentFilter)
+            }
+            className="w-full px-3 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none cursor-pointer"
+          >
+            <option value="ALL">{t("allSentiments")}</option>
+            <option value="NEGATIVE">
+              {t("negativeOnly")} ({stats.bySentiment.NEGATIVE})
+            </option>
+            <option value="NEUTRAL">
+              {t("neutralOnly")} ({stats.bySentiment.NEUTRAL})
+            </option>
+            <option value="POSITIVE">
+              {t("positiveOnly")} ({stats.bySentiment.POSITIVE})
+            </option>
+            <option value="NONE">
+              {t("sentimentNotAnalysed")} ({stats.bySentiment.NONE})
+            </option>
           </select>
         </div>
       </div>
@@ -411,7 +517,10 @@ function AdminStaffFeedbackView() {
                 {t("noFeedbackSubmissions")}
               </p>
               <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1">
-                {searchTerm || statusFilter !== "ALL" || ratingFilter !== "ALL"
+                {searchTerm ||
+                statusFilter !== "ALL" ||
+                ratingFilter !== "ALL" ||
+                sentimentFilter !== "ALL"
                   ? t("noMatchingFilterReviews")
                   : t("emptyFeedbackPortalHint")}
               </p>
@@ -473,8 +582,8 @@ function AdminStaffFeedbackView() {
                     </div>
                   </div>
 
-                  {/* Rating Stars & Status Badge */}
-                  <div className="flex items-center gap-2.5 self-start sm:self-auto">
+                  {/* Rating Stars, Mismatch Warning, Sentiment Badge & Status Pill */}
+                  <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
                     {/* Stars */}
                     <div className="flex items-center gap-0.5 bg-surface-container-low px-2 py-1 rounded-lg border border-outline-variant/40">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -491,6 +600,34 @@ function AdminStaffFeedbackView() {
                         {item.rating}.0
                       </span>
                     </div>
+
+                    {/* Mismatch Warning Icon (when stars and sentiment disagree) */}
+                    {starsDisagree(item) && (
+                      <span
+                        title={t("starsDisagreeHint")}
+                        className="px-2 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 cursor-help"
+                      >
+                        <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                        <span className="hidden sm:inline">{t("starsDisagreeHint")}</span>
+                      </span>
+                    )}
+
+                    {/* Sentiment Badge */}
+                    {item.sentiment ? (
+                      <span
+                        title={t("sentimentConfidenceHint")}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border cursor-help ${
+                          SENTIMENT_STYLES[item.sentiment]
+                        }`}
+                      >
+                        {t(`sentiment_${item.sentiment}`)} ·{" "}
+                        {Math.round(Number(item.sentimentScore ?? 0) * 100)}%
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-outline-variant text-on-surface-variant">
+                        {t("sentimentNotAnalysed")}
+                      </span>
+                    )}
 
                     {/* Status Pill */}
                     <span

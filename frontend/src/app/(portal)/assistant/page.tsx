@@ -56,8 +56,50 @@ interface ChatMessage {
 export interface ChatThread {
   id: string;
   title: string;
-  updatedAt: string;
+  lastAt: string;
   messageCount?: number;
+}
+
+function formatMessageTime(isoStr?: string): string {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    const datePart = d.toLocaleDateString([], { day: "numeric", month: "short" });
+    const timePart = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return `${datePart}, ${timePart}`;
+  } catch {
+    return "";
+  }
+}
+
+function formatThreadDate(isoStr?: string): string {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString([], { day: "numeric", month: "short" });
+  } catch {
+    return "";
+  }
 }
 
 interface SidebarContentProps {
@@ -116,7 +158,15 @@ function SidebarContent({
     ];
 
     filteredThreads.forEach((th) => {
-      const time = new Date(th.updatedAt).getTime();
+      if (!th.lastAt) {
+        groups[3].items.push(th);
+        return;
+      }
+      const time = new Date(th.lastAt).getTime();
+      if (isNaN(time)) {
+        groups[3].items.push(th);
+        return;
+      }
       if (time >= todayStart) {
         groups[0].items.push(th);
       } else if (time >= yesterdayStart) {
@@ -131,15 +181,6 @@ function SidebarContent({
     return groups.filter((g) => g.items.length > 0);
   }, [filteredThreads, t]);
 
-  const formatThreadDate = (isoStr: string) => {
-    try {
-      const d = new Date(isoStr);
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return "";
-    }
-  };
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Sidebar Header */}
@@ -147,7 +188,7 @@ function SidebarContent({
         <div className="flex items-center gap-2 min-w-0">
           <MessageSquare className="w-4 h-4 text-primary shrink-0" />
           <span className="font-semibold text-xs uppercase tracking-wider text-on-surface truncate" suppressHydrationWarning>
-            {t("conversations") || "conversations"}
+            {t("conversations") || "Conversations"}
           </span>
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant shrink-0">
             {threads.length}
@@ -284,12 +325,12 @@ function SidebarContent({
                             {th.title}
                           </p>
                           <span className="text-[10px] text-on-surface-variant/70 block">
-                            {formatThreadDate(th.updatedAt)}
+                            {formatThreadDate(th.lastAt)}
                           </span>
                         </div>
                       </div>
 
-                      {/* Delete button (shows on hover or active) */}
+                      {/* Delete button */}
                       <button
                         type="button"
                         onClick={(e) => onDeleteThread(e, th.id)}
@@ -330,29 +371,13 @@ function SidebarContent({
 export default function AssistantPage() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === "ar";
-  const { user, role: userRole, companyName } = useCurrentUser();
+  const { role: userRole, companyName } = useCurrentUser();
 
-  const [role, setRole] = useState<Role>("ADMIN");
+  // Role initialized as null to prevent role flashing
+  const [role, setRole] = useState<Role | null>(null);
   const [gymName, setGymName] = useState<string>("Gym");
   const [loadingMe, setLoadingMe] = useState(true);
   const [isAiConnected, setIsAiConnected] = useState<boolean | null>(null);
-
-  // Sync role and gym name with user session
-  useEffect(() => {
-    if (userRole) {
-      const normalizedRole = userRole.toUpperCase();
-      if (
-        normalizedRole === "ADMIN" ||
-        normalizedRole === "STAFF" ||
-        normalizedRole === "MEMBER"
-      ) {
-        setRole(normalizedRole as Role);
-      }
-    }
-    if (companyName) {
-      setGymName(companyName);
-    }
-  }, [userRole, companyName]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -371,13 +396,6 @@ export default function AssistantPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const threadIdRef = useRef<string | null>(null);
 
-  // Storage key scoped to authenticated user
-  const storageKey = useMemo(() => {
-    if (user?.id) return `gym_ai_threads_${user.id}`;
-    if (user?.email) return `gym_ai_threads_${user.email}`;
-    return `gym_ai_threads_${role}`;
-  }, [user?.id, user?.email, role]);
-
   // Keep threadIdRef in sync
   useEffect(() => {
     threadIdRef.current = threadId;
@@ -392,132 +410,113 @@ export default function AssistantPage() {
     scrollToBottom();
   }, [messages, isStreaming, scrollToBottom]);
 
-  // Persist helper for threads
-  const persistThreads = useCallback(
-    (updated: ChatThread[]) => {
-      setThreads(updated);
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(updated));
-      } catch {
-        // ignore storage errors
-      }
-    },
-    [storageKey]
-  );
+  // Fetch threads list from backend without overwriting existing timestamps
+  const fetchThreads = useCallback(async () => {
+    try {
+      const backendThreads = await listThreads();
+      if (Array.isArray(backendThreads)) {
+        setThreads((prevThreads) => {
+          const prevMap = new Map<string, ChatThread>();
+          prevThreads.forEach((th) => {
+            if (th.id) prevMap.set(th.id, th);
+          });
 
-  // Load User Info, threads registry and active thread on mount
-  useEffect(() => {
-    let ignore = false;
+          return backendThreads.map((bth) => {
+            const bthAny = bth as Record<string, unknown>;
+            const tid = (bth.thread_id || bthAny.id || "") as string;
+            const existing = prevMap.get(tid);
 
-    async function init() {
-      try {
-        const me = await getMe();
-        if (ignore) return;
-        if (me) {
-          setRole(me.role);
-          if (me.gym_name) setGymName(me.gym_name);
-          setIsAiConnected(true);
-        } else {
-          setIsAiConnected(false);
-        }
+            // Extract the actual timestamp from whatever property the backend or cache sent
+            const rawTime = (bth.last_at ||
+              bthAny.lastAt ||
+              bthAny.updated_at ||
+              bthAny.updatedAt ||
+              bthAny.created_at ||
+              bthAny.createdAt) as string | undefined;
 
-        // 1. Load threads from localStorage
-        let localThreads: ChatThread[] = [];
-        try {
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) localThreads = parsed;
-          }
-        } catch {
-          // ignore parsing error
-        }
+            // Preserve existing thread timestamp; only use fallback if genuinely new and unknown
+            const validTime =
+              typeof rawTime === "string" && rawTime.trim()
+                ? rawTime
+                : existing?.lastAt || new Date().toISOString();
 
-        // 2. Fetch remote threads if available
-        const threadMap = new Map<string, ChatThread>();
-        localThreads.forEach((th) => {
-          if (th.id) threadMap.set(th.id, th);
+            return {
+              id: tid,
+              title: bth.title || existing?.title || "Conversation",
+              lastAt: validTime,
+              messageCount:
+                (bthAny.message_count as number | undefined) ||
+                existing?.messageCount,
+            };
+          });
         });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
-        try {
-          const backendThreads = await listThreads();
-          if (Array.isArray(backendThreads)) {
-            backendThreads.forEach((bth) => {
-              if (bth.thread_id) {
-                const existing = threadMap.get(bth.thread_id);
-                threadMap.set(bth.thread_id, {
-                  id: bth.thread_id,
-                  title: existing?.title || bth.title || "Conversation",
-                  updatedAt:
-                    bth.updated_at ||
-                    existing?.updatedAt ||
-                    new Date().toISOString(),
-                  messageCount:
-                    bth.message_count || existing?.messageCount || 1,
-                });
-              }
-            });
-          }
-        } catch {
-          // Fall back gracefully to local storage
+  // Initialize role and check AI connectivity
+  const init = useCallback(async () => {
+    setLoadingMe(true);
+    try {
+      const me = await getMe();
+      if (me && me.role) {
+        setRole(me.role);
+        if (me.gym_name) {
+          setGymName(me.gym_name);
+        } else if (companyName) {
+          setGymName(companyName);
         }
+        setIsAiConnected(true);
 
-        const merged = Array.from(threadMap.values()).sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
+        // Fetch remote threads for caller
+        await fetchThreads();
 
-        if (!ignore) {
-          setThreads(merged);
-          try {
-            localStorage.setItem(storageKey, JSON.stringify(merged));
-          } catch {
-            // ignore
-          }
-        }
-
-        // 3. Check for tab session thread
+        // Restore tab session thread if one exists
         const savedThreadId = sessionStorage.getItem("assistant_thread_id");
         if (savedThreadId) {
           setThreadId(savedThreadId);
           const threadMessages = await getThread(savedThreadId);
-          if (
-            !ignore &&
-            Array.isArray(threadMessages) &&
-            threadMessages.length > 0
-          ) {
+          if (Array.isArray(threadMessages) && threadMessages.length > 0) {
             setMessages(
-              threadMessages.map((msg: SavedMessage, idx: number) => ({
-                id: `saved-${idx}-${Date.now()}`,
-                role: msg.role,
-                text: msg.text,
-                timestamp: new Date().toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              }))
+              threadMessages.map((msg: SavedMessage, idx: number) => {
+                const msgAny = msg as Record<string, unknown>;
+                const rawCreatedAt = (msg.created_at ||
+                  msgAny.createdAt ||
+                  msgAny.timestamp ||
+                  msgAny.updated_at) as string | undefined;
+                return {
+                  id: `saved-${idx}-${Date.now()}`,
+                  role: msg.role,
+                  text: msg.text,
+                  timestamp: formatMessageTime(rawCreatedAt),
+                };
+              })
             );
           }
         }
-      } catch (err: unknown) {
-        if (!ignore) {
-          if (err instanceof ApiError && err.status === 401) {
-            toLogin();
-            return;
-          }
-          setIsAiConnected(false);
-        }
-      } finally {
-        if (!ignore) setLoadingMe(false);
+      } else {
+        setIsAiConnected(false);
+        setRole(null);
       }
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 401) {
+        const resolvedRole =
+          userRole ? (userRole.toUpperCase() as Role) : undefined;
+        toLogin(resolvedRole);
+        return;
+      }
+      setIsAiConnected(false);
+      setRole(null);
+    } finally {
+      setLoadingMe(false);
     }
+  }, [companyName, userRole, fetchThreads]);
 
+  useEffect(() => {
     void init();
-
-    return () => {
-      ignore = true;
-    };
-  }, [storageKey]);
+  }, [init]);
 
   // Textarea auto-resize
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -573,15 +572,19 @@ export default function AssistantPage() {
       const threadMessages = await getThread(selectedId);
       if (Array.isArray(threadMessages) && threadMessages.length > 0) {
         setMessages(
-          threadMessages.map((msg: SavedMessage, idx: number) => ({
-            id: `saved-${idx}-${selectedId}`,
-            role: msg.role,
-            text: msg.text,
-            timestamp: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-          }))
+          threadMessages.map((msg: SavedMessage, idx: number) => {
+            const msgAny = msg as Record<string, unknown>;
+            const rawCreatedAt = (msg.created_at ||
+              msgAny.createdAt ||
+              msgAny.timestamp ||
+              msgAny.updated_at) as string | undefined;
+            return {
+              id: `saved-${idx}-${selectedId}`,
+              role: msg.role,
+              text: msg.text,
+              timestamp: formatMessageTime(rawCreatedAt),
+            };
+          })
         );
       } else {
         setMessages([]);
@@ -594,7 +597,7 @@ export default function AssistantPage() {
   };
 
   // Delete a specific thread
-  const handleDeleteThread = (e: React.MouseEvent, targetId: string) => {
+  const handleDeleteThread = async (e: React.MouseEvent, targetId: string) => {
     e.stopPropagation();
     const confirmed = window.confirm(
       t("deleteConversationConfirm") ||
@@ -602,11 +605,13 @@ export default function AssistantPage() {
     );
     if (!confirmed) return;
 
-    // Best-effort remote deletion
-    void deleteThreadApi(targetId);
+    try {
+      await deleteThreadApi(targetId);
+    } catch {
+      // ignore
+    }
 
-    const updated = threads.filter((th) => th.id !== targetId);
-    persistThreads(updated);
+    setThreads((prev) => prev.filter((th) => th.id !== targetId));
 
     if (targetId === threadId) {
       sessionStorage.removeItem("assistant_thread_id");
@@ -618,7 +623,7 @@ export default function AssistantPage() {
   };
 
   // Clear all thread history
-  const handleClearAllHistory = () => {
+  const handleClearAllHistory = async () => {
     if (threads.length === 0) return;
     const confirmed = window.confirm(
       t("clearAllChatsConfirm") ||
@@ -626,11 +631,15 @@ export default function AssistantPage() {
     );
     if (!confirmed) return;
 
-    threads.forEach((th) => {
-      void deleteThreadApi(th.id);
-    });
+    for (const th of threads) {
+      try {
+        await deleteThreadApi(th.id);
+      } catch {
+        // ignore
+      }
+    }
 
-    persistThreads([]);
+    setThreads([]);
     sessionStorage.removeItem("assistant_thread_id");
     setThreadId(null);
     setMessages([]);
@@ -659,10 +668,7 @@ export default function AssistantPage() {
       textareaRef.current.style.height = "auto";
     }
 
-    const nowFormatted = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const nowFormatted = formatMessageTime(new Date().toISOString());
     const userMsgId = `user-${Date.now()}`;
     const modelMsgId = `model-${Date.now()}`;
 
@@ -680,6 +686,7 @@ export default function AssistantPage() {
     ]);
 
     setIsStreaming(true);
+    let hasReceivedTokens = false;
 
     try {
       await streamChat(q, threadIdRef.current, (event, data) => {
@@ -695,7 +702,7 @@ export default function AssistantPage() {
             if (exists) {
               nextList = prev.map((th) =>
                 th.id === tid
-                  ? { ...th, updatedAt: new Date().toISOString() }
+                  ? { ...th, lastAt: new Date().toISOString() }
                   : th
               );
             } else {
@@ -704,20 +711,10 @@ export default function AssistantPage() {
               const newThread: ChatThread = {
                 id: tid,
                 title: cleanTitle,
-                updatedAt: new Date().toISOString(),
+                lastAt: new Date().toISOString(),
                 messageCount: 2,
               };
               nextList = [newThread, ...prev];
-            }
-            nextList.sort(
-              (a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime()
-            );
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(nextList));
-            } catch {
-              // ignore
             }
             return nextList;
           });
@@ -729,6 +726,7 @@ export default function AssistantPage() {
             )
           );
         } else if (event === "token" && data.text) {
+          hasReceivedTokens = true;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === modelMsgId
@@ -737,7 +735,10 @@ export default function AssistantPage() {
             )
           );
         } else if (event === "error") {
-          const errorMsg =
+          const interruptedNotice =
+            t("streamInterrupted") ||
+            "The answer was interrupted. Please try again.";
+          const genericError =
             data.message ||
             t("assistantUnavailable") ||
             "Assistant unavailable.";
@@ -746,7 +747,9 @@ export default function AssistantPage() {
               m.id === modelMsgId
                 ? {
                     ...m,
-                    text: m.text ? m.text : errorMsg,
+                    text: m.text
+                      ? `${m.text}\n\n${interruptedNotice}`
+                      : genericError,
                     isStreaming: false,
                     tool: null,
                   }
@@ -760,34 +763,43 @@ export default function AssistantPage() {
             )
           );
 
-          // Update latest activity timestamp
-          setThreads((prev) => {
-            const tid = threadIdRef.current;
-            if (!tid) return prev;
-            const nextList = prev.map((th) =>
-              th.id === tid
-                ? { ...th, updatedAt: new Date().toISOString() }
-                : th
-            );
-            try {
-              localStorage.setItem(storageKey, JSON.stringify(nextList));
-            } catch {
-              // ignore
-            }
-            return nextList;
-          });
+          // Refresh threads from backend
+          void fetchThreads();
         }
       });
     } catch (err: unknown) {
-      // Revert optimistic messages and restore user question
-      setMessages((prev) =>
-        prev.filter((m) => m.id !== userMsgId && m.id !== modelMsgId)
-      );
-      setInput(q);
+      if (hasReceivedTokens) {
+        // If partial text has already arrived, retain it and append the interrupted notice
+        const interruptedNotice =
+          t("streamInterrupted") ||
+          "The answer was interrupted. Please try again.";
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === modelMsgId
+              ? {
+                  ...m,
+                  text: m.text
+                    ? `${m.text}\n\n${interruptedNotice}`
+                    : interruptedNotice,
+                  isStreaming: false,
+                  tool: null,
+                }
+              : m
+          )
+        );
+      } else {
+        // Revert optimistic messages and restore user question
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== userMsgId && m.id !== modelMsgId)
+        );
+        setInput(q);
+      }
 
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          toLogin();
+          const resolvedRole =
+            role || (userRole ? (userRole.toUpperCase() as Role) : undefined);
+          toLogin(resolvedRole);
           return;
         }
         if (err.status === 429) {
@@ -832,134 +844,191 @@ export default function AssistantPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Categorized suggestions for human-crafted SaaS look
-  const categorizedSuggestions =
-    role === "ADMIN"
-      ? [
-          {
-            category: t("catOperationsAttendance"),
-            icon: Activity,
-            items: [
-              {
-                title: t("suggestion1_admin") || "How is the gym doing today?",
-                subtitle: t("subHowGymDoing"),
-                icon: Building2,
-              },
-              {
-                title: t("suggestion2_admin") || "Who expires this week?",
-                subtitle: t("subWhoExpiresWeek"),
-                icon: Layers,
-              },
-            ],
-          },
-          {
-            category: t("catFinancialsPolicies"),
-            icon: DollarSign,
-            items: [
-              {
-                title:
-                  t("suggestion3_admin") || "How much did we make last month?",
-                subtitle: t("subHowMuchMade"),
-                icon: DollarSign,
-              },
-              {
-                title:
-                  t("suggestion4_admin") ||
-                  "How many days notice do members need to cancel?",
-                subtitle: t("subCancellationDays"),
-                icon: BookOpen,
-              },
-            ],
-          },
-        ]
-      : role === "STAFF"
-      ? [
-          {
-            category: t("catFrontDeskRenewals"),
-            icon: CalendarCheck,
-            items: [
-              {
-                title: t("suggestion1_staff") || "Who expires this week?",
-                subtitle: t("subMembersExpiringSoon"),
-                icon: Layers,
-              },
-              {
-                title:
-                  t("suggestion2_staff") || "Who hasn't come for 3 weeks?",
-                subtitle: t("subSpotInactiveMembers"),
-                icon: Clock,
-              },
-            ],
-          },
-          {
-            category: t("catProceduresInquiries"),
-            icon: HelpCircle,
-            items: [
-              {
-                title:
-                  t("suggestion3_staff") || "Show me the negative feedback",
-                subtitle: t("subShowNegativeFeedback"),
-                icon: MessageSquare,
-              },
-              {
-                title:
-                  t("suggestion4_staff") ||
-                  "What discount can I give at reception?",
-                subtitle: t("subFrontDeskDiscount"),
-                icon: ShieldCheck,
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            category: t("catMyMembership"),
-            icon: User,
-            items: [
-              {
-                title:
-                  t("suggestion1_member") || "When does my membership end?",
-                subtitle: t("subWhenMembershipEnds"),
-                icon: Clock,
-              },
-              {
-                title:
-                  t("suggestion2_member") ||
-                  "How many times did I come this month?",
-                subtitle: t("subHowManyTimesCame"),
-                icon: Activity,
-              },
-            ],
-          },
-          {
-            category: t("catClubGuidelines"),
-            icon: BookOpen,
-            items: [
-              {
-                title:
-                  t("suggestion3_member") ||
-                  "What are the opening hours on Sunday?",
-                subtitle: t("subSundayOpeningHours"),
-                icon: Clock,
-              },
-              {
-                title: t("suggestion4_member") || "Can I bring a friend?",
-                subtitle: t("subBringFriendPolicy"),
-                icon: User,
-              },
-            ],
-          },
-        ];
+  // Categorized suggestions
+  const categorizedSuggestions = useMemo(() => {
+    if (role === "ADMIN") {
+      return [
+        {
+          category: t("catOperationsAttendance") || "Operations & Attendance",
+          icon: Activity,
+          items: [
+            {
+              title: t("suggestion1_admin") || "How is the gym doing today?",
+              subtitle: t("subHowGymDoing") || "Real-time member status and today's check-ins",
+              icon: Building2,
+            },
+            {
+              title: t("suggestion2_admin") || "Who expires this week?",
+              subtitle: t("subWhoExpiresWeek") || "Members with plans ending within 7 days",
+              icon: Layers,
+            },
+          ],
+        },
+        {
+          category: t("catFinancialsPolicies") || "Financials & Policies",
+          icon: DollarSign,
+          items: [
+            {
+              title:
+                t("suggestion3_admin") || "How much did we make last month?",
+              subtitle: t("subHowMuchMade") || "Aggregated monthly billing totals",
+              icon: DollarSign,
+            },
+            {
+              title:
+                t("suggestion4_admin") ||
+                "How many days notice do members need to cancel?",
+              subtitle: t("subCancellationDays") || "Extracted from gym policy documents",
+              icon: BookOpen,
+            },
+          ],
+        },
+      ];
+    }
 
-  const placeholderText =
-    role === "ADMIN"
-      ? t("askPlaceholderAdmin") ||
-        "Ask about members, expiring plans, revenue, or documents..."
-      : role === "STAFF"
-      ? t("askPlaceholderStaff") ||
-        "Ask about members, expiring memberships, or reception procedures..."
-      : t("askPlaceholderMember") ||
-        "Ask about your membership, visits, payments, or gym rules...";
+    if (role === "STAFF") {
+      return [
+        {
+          category: t("catFrontDeskRenewals") || "Front Desk & Renewals",
+          icon: CalendarCheck,
+          items: [
+            {
+              title: t("suggestion1_staff") || "Who expires this week?",
+              subtitle: t("subMembersExpiringSoon") || "Members with renewals due soon",
+              icon: Layers,
+            },
+            {
+              title:
+                t("suggestion2_staff") || "Who hasn't come for 3 weeks?",
+              subtitle: t("subSpotInactiveMembers") || "Spot inactive members needing retention",
+              icon: Clock,
+            },
+          ],
+        },
+        {
+          category: t("catProceduresInquiries") || "Procedures & Inquiries",
+          icon: HelpCircle,
+          items: [
+            {
+              title:
+                t("suggestion3_staff") || "Show me the negative feedback",
+              subtitle: t("subShowNegativeFeedback") || "Member dissatisfaction tickets to address",
+              icon: MessageSquare,
+            },
+            {
+              title:
+                t("suggestion4_staff") ||
+                "What discount can I give at reception?",
+              subtitle: t("subFrontDeskDiscount") || "Standard front-desk policy guidance",
+              icon: ShieldCheck,
+            },
+          ],
+        },
+      ];
+    }
+
+    // MEMBER suggestions
+    return [
+      {
+        category: t("catMyMembership") || "My Membership",
+        icon: User,
+        items: [
+          {
+            title:
+              t("suggestion1_member") || "When does my membership end?",
+            subtitle: t("subWhenMembershipEnds") || "Your active plan expiry date",
+            icon: Clock,
+          },
+          {
+            title:
+              t("suggestion2_member") ||
+              "How many times did I come this month?",
+            subtitle: t("subHowManyTimesCame") || "Your workout check-in history",
+            icon: Activity,
+          },
+        ],
+      },
+      {
+        category: t("catClubGuidelines") || "Club Guidelines",
+        icon: BookOpen,
+        items: [
+          {
+            title:
+              t("suggestion3_member") ||
+              "What are the opening hours on Sunday?",
+            subtitle: t("subSundayOpeningHours") || "Facility schedule and hours",
+            icon: Clock,
+          },
+          {
+            title: t("suggestion4_member") || "Can I bring a friend?",
+            subtitle: t("subBringFriendPolicy") || "Guest pass and visitor policy",
+            icon: User,
+          },
+        ],
+      },
+    ];
+  }, [role, t]);
+
+  const placeholderText = useMemo(() => {
+    if (role === "ADMIN") {
+      return (
+        t("askPlaceholderAdmin") ||
+        "Ask about gym members, expiring memberships, revenue, or documents..."
+      );
+    }
+    if (role === "STAFF") {
+      return (
+        t("askPlaceholderStaff") ||
+        "Ask about gym members, expiring memberships, or documents..."
+      );
+    }
+    return (
+      t("askPlaceholderMember") ||
+      "Ask about your membership, visits, payments, or gym rules..."
+    );
+  }, [role, t]);
+
+  // Loading spinner on initial load
+  if (loadingMe) {
+    return (
+      <div className="w-full flex items-center justify-center h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] rounded-2xl border border-outline-variant/70 bg-surface-container-lowest p-6 shadow-2xs">
+        <div className="flex flex-col items-center gap-3 text-on-surface-variant text-sm">
+          <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <span>{t("connectingToAssistant") || "Connecting to assistant..."}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Offline Fallback Card if AI Service is unreachable
+  if (isAiConnected === false || role === null) {
+    return (
+      <div className="w-full flex items-center justify-center h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] rounded-2xl border border-outline-variant/70 bg-surface-container-lowest p-6 shadow-2xs">
+        <div className="max-w-md w-full p-6 sm:p-8 rounded-2xl bg-surface-container-low border border-outline-variant text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="font-headline font-bold text-lg sm:text-xl text-on-surface">
+            {t("assistantUnavailable") || "The assistant is unavailable right now."}
+          </h2>
+          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
+            {t("assistantUnavailableCard") ||
+              "The assistant is unavailable right now. Please try again later."}
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => void init()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all cursor-pointer shadow-2xs active:scale-95"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>{t("tryAgain") || "Try again"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] overflow-hidden rounded-2xl border border-outline-variant/70 bg-surface-container-lowest shadow-2xs relative">
@@ -1022,7 +1091,6 @@ export default function AssistantPage() {
         {/* Top Header Bar */}
         <header className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2.5 border-b border-outline-variant/70 shrink-0 bg-surface-container-lowest">
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Sidebar Toggle Buttons */}
             {/* Desktop Toggle (shows when collapsed) */}
             {!isSidebarOpen && (
               <button
@@ -1057,17 +1125,10 @@ export default function AssistantPage() {
                 <h1 className="font-headline font-bold text-base sm:text-lg text-on-surface truncate">
                   {gymName} {t("navAiAssistant") || "Assistant"}
                 </h1>
-                {isAiConnected === false ? (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                    {t("serviceOffline")}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {t("connected")}
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {t("connected") || "Connected"}
+                </span>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant border border-outline-variant/50 uppercase tracking-wider">
                   {role}
                 </span>
@@ -1084,12 +1145,12 @@ export default function AssistantPage() {
 
           {/* Action Controls & Navigation */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Segmented Knowledge Documents Link (Admin Only) */}
+            {/* Knowledge Documents Link (Admin Only) */}
             {role === "ADMIN" && (
               <Link
                 href="/assistant/documents"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 text-on-surface transition-colors cursor-pointer"
-                title="Manage Knowledge Base Documents"
+                title={t("manageDocuments") || "Knowledge Documents"}
               >
                 <BookOpen className="w-3.5 h-3.5 text-primary" />
                 <span className="hidden sm:inline">
@@ -1114,29 +1175,14 @@ export default function AssistantPage() {
           </div>
         </header>
 
-        {/* Offline Warning Banner */}
-        {isAiConnected === false && (
-          <div className="mx-3 mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-              <span>{t("assistantUnavailable")}</span>
-            </div>
-            <span className="text-[10px] font-mono opacity-80 shrink-0">
-              AI Service Offline
-            </span>
-          </div>
-        )}
-
         {/* Main Chat Stream Container */}
         <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 min-h-0">
-          {loadingMe || isLoadingThread ? (
+          {isLoadingThread ? (
             <div className="h-full flex items-center justify-center">
               <div className="flex flex-col items-center gap-3 text-on-surface-variant text-sm">
                 <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                 <span>
-                  {isLoadingThread
-                    ? t("loadingConversation") || "Loading conversation..."
-                    : `Connecting to ${gymName} database...`}
+                  {t("loadingConversation") || "Loading conversation..."}
                 </span>
               </div>
             </div>
@@ -1264,27 +1310,27 @@ export default function AssistantPage() {
                       </div>
                     )}
 
-                    {/* Assistant Footer Controls */}
+                    {/* Assistant Footer Controls: Advisory Disclaimer & Copy Action */}
                     {!isUser && msg.text && !msg.isStreaming && (
                       <div className="mt-2.5 pt-1.5 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">
                         <span className="text-[10px] opacity-60">
-                          Verified database response
+                          {t("aiDisclaimer") || "AI answer: check important numbers"}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleCopy(msg.text, msg.id)}
                           className="inline-flex items-center gap-1 hover:text-on-surface transition-colors cursor-pointer"
-                          title="Copy answer"
+                          title={t("copy") || "Copy answer"}
                         >
                           {copiedId === msg.id ? (
                             <>
                               <Check className="w-3 h-3 text-emerald-500" />
-                              <span className="text-emerald-500">Copied</span>
+                              <span className="text-emerald-500">{t("copied") || "Copied"}</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3 h-3" />
-                              <span>Copy</span>
+                              <span>{t("copy") || "Copy"}</span>
                             </>
                           )}
                         </button>
@@ -1342,13 +1388,13 @@ export default function AssistantPage() {
                   onClick={() => handleSend()}
                   disabled={!input.trim() || isStreaming}
                   className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary text-xs font-semibold disabled:opacity-40 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:cursor-not-allowed"
-                  aria-label="Send message"
+                  aria-label={t("send") || "Send message"}
                 >
                   {isStreaming ? (
                     <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
                   ) : (
                     <>
-                      <span>Send</span>
+                      <span>{t("send") || "Send"}</span>
                       <Send className="w-3.5 h-3.5 rtl:rotate-180" />
                     </>
                   )}
