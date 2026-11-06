@@ -92,6 +92,10 @@ function hasAdminOrStaffAccess(token?: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // logging request
+  const { method, nextUrl } = request;
+  console.log(`[frontend] ${method} ${nextUrl.pathname}${nextUrl.search}`);
+
   let token = request.cookies.get("auth_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;

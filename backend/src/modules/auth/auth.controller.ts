@@ -136,6 +136,7 @@ export class AuthController {
   // * Activate user account
   @Post('email-verification')
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  @HttpCode(HttpStatus.OK)
   activateAccount(@Query() rawToken: QueryTokenDto) {
     return this.authService.activateAccount(rawToken.token);
   }
@@ -151,6 +152,7 @@ export class AuthController {
   // * Password reset
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @HttpCode(HttpStatus.OK)
   resetPassword(
     @Query() rawToken: QueryTokenDto,
     @Body() body: ResetPasswordUserDto,
@@ -357,6 +359,7 @@ export class AuthController {
   // * Set Password (Staff)
   @Post('staffs/set-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
   setPasswordStaff(
     @Query() rawToken: QueryTokenDto,
     @Body() body: SetPasswordStaffDto,
@@ -447,6 +450,7 @@ export class AuthController {
   // * Set Password (Member)
   @Post('members/set-password')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
   setPasswordMember(
     @Query() rawToken: QueryTokenDto,
     @Body() body: SetPasswordMemberDto,

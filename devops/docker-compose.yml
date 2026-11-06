@@ -51,6 +51,13 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GYMTOKEN_ADDRESS: ${NEXT_PUBLIC_GYMTOKEN_ADDRESS}
+        NEXT_PUBLIC_FORWARDER_ADDRESS: ${NEXT_PUBLIC_FORWARDER_ADDRESS}
+        NEXT_PUBLIC_API_URL_RELAYER: ${NEXT_PUBLIC_API_URL_RELAYER}
+        NEXT_PUBLIC_FETCH_PLANS_URL: ${NEXT_PUBLIC_FETCH_PLANS_URL}
+        NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER: ${NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER}
+        NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN: ${NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN}
     image: frontend:latest
     container_name: frontend
     restart: unless-stopped
@@ -74,6 +81,8 @@ services:
     build:
       context: ../owner-platform
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     image: superadmin:latest
     container_name: superadmin
     restart: unless-stopped

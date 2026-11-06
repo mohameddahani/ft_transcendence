@@ -28,6 +28,8 @@ import { HealthModule } from './modules/health/health.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { SentimentCron } from './jobs/sentiment.cron';
 import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
+import { NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { LoggerMiddleware } from './logger.middleware';
 
 @Module({
   imports: [
@@ -101,4 +103,8 @@ import { ExternalApiModule } from './infrastructure/external-api/external-api.mo
     SentimentCron,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes('*'); // 👈 '*' ensures it runs on every endpoint
+  }
+}

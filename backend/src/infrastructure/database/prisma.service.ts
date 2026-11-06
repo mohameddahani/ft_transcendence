@@ -5,10 +5,10 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PrismaService extends PrismaClient {
-  constructor(private readonly Config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     // * Create this adapter to communicate with postgres
     const adapter = new PrismaPg({
-      connectionString: Config.get<string>('DATABASE_URL'),
+      connectionString: config.getOrThrow<string>('DATABASE_URL'),
     });
     super({ adapter });
   }

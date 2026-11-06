@@ -4,25 +4,15 @@ import uuid
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Form, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from app import agent, config, db, rag, sentiment
+from app import agent, db, rag, sentiment
 from app.auth import User, current_user, rate_limited_user, require_api_key
 
 log = logging.getLogger(__name__)
 
 app = FastAPI(title="Gym AI service")
-
-# the frontend runs on another origin, so the browser needs permission to call us
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[config.FRONTEND_URL],
-    allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-    expose_headers=["Retry-After"],  # so the page can show how long to wait after a 429
-)
 
 db.init_memory()
 

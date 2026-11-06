@@ -163,6 +163,9 @@ export class VisitsService {
             gte: startOfToday,
             lte: endOfToday,
           },
+          visitStatus: {
+            not: VisitStatus.CANCELLED,
+          },
         },
       });
 

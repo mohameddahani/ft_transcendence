@@ -12,7 +12,7 @@ import { UpdateWorkingHourDto } from './dtos/update-working-hour.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AddSpecialHourDto } from './dtos/add-special-hour.dto';
 import { UpdateSpecialHourDto } from './dtos/update-special-hour.dto';
-import { format, parse } from 'date-fns';
+import { areIntervalsOverlapping, format, parse } from 'date-fns';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { AccessesService } from '@/core/access/access.service';
@@ -333,13 +333,26 @@ export class WorkingHoursService {
     }
 
     // * Validate the complete date/time range
-    if (data.startTime && data.endTime) {
-      const start = new Date(`${data.startDate}T${data.startTime}`);
-      const end = new Date(`${data.endDate}T${data.endTime}`);
+    let newStartDateTime: Date | null = null;
+    let newEndDateTime: Date | null = null;
 
-      if (start > end) {
+    if (data.startTime && data.endTime) {
+      newStartDateTime = parse(
+        `${data.startDate} ${data.startTime}`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      newEndDateTime = parse(
+        `${data.endDate} ${data.endTime}`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      // * Start must be strictly before end.
+      if (newStartDateTime >= newEndDateTime) {
         throw new BadRequestException(
-          'Start date and time cannot be after end date and time.',
+          'Start date and time must be before end date and time.',
         );
       }
     }
@@ -383,6 +396,11 @@ export class WorkingHoursService {
         );
       }
 
+      // * At this point both the existing and new closures have start/end times.
+      if (!newStartDateTime || !newEndDateTime) {
+        continue;
+      }
+
       // * Check if the time ranges overlap
       // * Example:
       // * Existing: 08:00 → 12:00
@@ -390,11 +408,37 @@ export class WorkingHoursService {
       // *
       // * '08:00' < '14:00' && '12:00' > '10:00'
       // * true && true = overlap
-      const timeOverlap =
-        existingSpecialHour.startTime < data.endTime &&
-        existingSpecialHour.endTime > data.startTime;
+      // * Build the existing complete start date/time.
+      const existingStartDateTime = parse(
+        `${format(existingSpecialHour.startDate, 'yyyy-MM-dd')} ${
+          existingSpecialHour.startTime
+        }`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
 
-      if (timeOverlap) {
+      // * Build the existing complete end date/time.
+      const existingEndDateTime = parse(
+        `${format(existingSpecialHour.endDate, 'yyyy-MM-dd')} ${
+          existingSpecialHour.endTime
+        }`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      // * Check if the complete date/time ranges overlap.
+      const isOverlap = areIntervalsOverlapping(
+        {
+          start: existingStartDateTime,
+          end: existingEndDateTime,
+        },
+        {
+          start: newStartDateTime,
+          end: newEndDateTime,
+        },
+      );
+
+      if (isOverlap) {
         throw new ConflictException(
           'The special hour overlaps with an existing closure.',
         );
@@ -468,24 +512,37 @@ export class WorkingHoursService {
       throw new BadRequestException('Start date cannot be after end date.');
     }
 
-    // * Validate that both times are provided or both are omitted
+    // * Validate that both times are provided or both are omitted.
     if (
-      (startTimeValue && !endTimeValue) ||
-      (!startTimeValue && endTimeValue)
+      (startTimeValue !== null && endTimeValue === null) ||
+      (startTimeValue === null && endTimeValue !== null)
     ) {
       throw new BadRequestException(
         'startTime and endTime must be provided together.',
       );
     }
 
-    // * Validate the complete date/time range
-    if (startTimeValue && endTimeValue) {
-      const start = new Date(`${startDateValue}T${startTimeValue}`);
-      const end = new Date(`${endDateValue}T${endTimeValue}`);
+    // * Validate the complete date/time range.
+    let newStartDateTime: Date | null = null;
+    let newEndDateTime: Date | null = null;
 
-      if (start > end) {
+    if (startTimeValue !== null && endTimeValue !== null) {
+      newStartDateTime = parse(
+        `${startDateValue} ${startTimeValue}`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      newEndDateTime = parse(
+        `${endDateValue} ${endTimeValue}`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      // * Start must be strictly before end.
+      if (newStartDateTime >= newEndDateTime) {
         throw new BadRequestException(
-          'Start date and time cannot be after end date and time.',
+          'Start date and time must be before end date and time.',
         );
       }
     }
@@ -494,23 +551,75 @@ export class WorkingHoursService {
     const startDate = this.parseDateOnly(startDateValue);
     const endDate = this.parseDateOnly(endDateValue);
 
-    // * Check if another special hour with the same dates and times exists
-    // * Exclude the current record from the search
-    const duplicateSpecialHour = await this.prisma.specialHour.findFirst({
+    // * Find other special hours whose date range overlaps the updated range.
+    const existingSpecialHours = await this.prisma.specialHour.findMany({
       where: {
         id: {
           not: specialHourId,
         },
-        adminId: adminId,
-        startDate: startDate,
-        endDate: endDate,
-        startTime: startTimeValue ?? null,
-        endTime: endTimeValue ?? null,
+        adminId,
+        startDate: {
+          lte: endDate,
+        },
+        endDate: {
+          gte: startDate,
+        },
       },
     });
 
-    if (duplicateSpecialHour) {
-      throw new ConflictException('This special hour already exists.');
+    for (const existingHour of existingSpecialHours) {
+      // * Existing special hour closes the entire date range.
+      if (existingHour.startTime === null || existingHour.endTime === null) {
+        throw new ConflictException(
+          'The gym is already closed during this date range.',
+        );
+      }
+
+      // * Updated special hour closes the entire date range.
+      if (startTimeValue === null && endTimeValue === null) {
+        throw new ConflictException(
+          'The selected date range already contains a special closure.',
+        );
+      }
+
+      // * Both closures have start/end times at this point.
+      if (!newStartDateTime || !newEndDateTime) {
+        continue;
+      }
+
+      // * Build the existing complete start date/time.
+      const existingStartDateTime = parse(
+        `${format(existingHour.startDate, 'yyyy-MM-dd')} ${
+          existingHour.startTime
+        }`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      // * Build the existing complete end date/time.
+      const existingEndDateTime = parse(
+        `${format(existingHour.endDate, 'yyyy-MM-dd')} ${existingHour.endTime}`,
+        'yyyy-MM-dd HH:mm',
+        new Date(),
+      );
+
+      // * Check if the complete date/time ranges overlap.
+      const isOverlap = areIntervalsOverlapping(
+        {
+          start: existingStartDateTime,
+          end: existingEndDateTime,
+        },
+        {
+          start: newStartDateTime,
+          end: newEndDateTime,
+        },
+      );
+
+      if (isOverlap) {
+        throw new ConflictException(
+          'The special hour overlaps with an existing closure.',
+        );
+      }
     }
 
     // * Update Special Hour

@@ -271,7 +271,7 @@ export class FeedbacksService {
 
     // * check if this feedback is belong to this member
     if (feedback.feedbackData.member.id !== memberId) {
-      throw new ForbiddenException('You Cannot Delte this feedback');
+      throw new ForbiddenException('You Cannot Delete this feedback');
     }
 
     // * Delete the Feedback
@@ -413,11 +413,17 @@ export class FeedbacksService {
       },
       data: {
         feedbackStatus: data.feedbackStatus,
-        resolutionNote: data.resolutionNote,
-        ...(data.feedbackStatus === FeedbackStatus.RESOLVED && {
-          resolvedAt: new Date(),
-          resolvedBy: accessTokenPayload.id,
-        }),
+        ...(data.feedbackStatus === FeedbackStatus.RESOLVED
+          ? {
+              resolvedAt: new Date(),
+              resolvedBy: accessTokenPayload.id,
+              resolutionNote: data.resolutionNote ?? null,
+            }
+          : {
+              resolvedAt: null,
+              resolvedBy: null,
+              resolutionNote: null,
+            }),
       },
     });
   }
