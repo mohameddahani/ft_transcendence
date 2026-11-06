@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { animate, useMotionValue } from "framer-motion";
 import {
   Wallet,
   Clock,
@@ -25,12 +26,61 @@ import { BackendPayment } from "@/types/payment";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
 import Pagination from "@/components/ui/Pagination";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 
 function getEffectivePaymentStatus(p: BackendPayment): string {
   if (p.paymentStatus) return p.paymentStatus.toUpperCase();
   if (p.paidAt) return "PAID";
   if (p.dueDate && new Date(p.dueDate).getTime() < Date.now()) return "OVERDUE";
   return "PENDING";
+}
+
+/**
+ * Animated counter that smoothly increments from 0 to the target number
+ * using framer-motion's animate and useMotionValue.
+ */
+function AnimatedRevenue({ value }: { value: number }) {
+  const count = useMotionValue(0);
+  const [displayValue, setDisplayValue] = useState("0.00");
+
+  useEffect(() => {
+    const controls = animate(count, value, {
+      duration: 1.4,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (latest) => {
+        setDisplayValue(
+          latest.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        );
+      },
+    });
+    return () => controls.stop();
+  }, [value, count]);
+
+  return <span>${displayValue}</span>;
 }
 
 export default function PaymentsPage() {
@@ -251,292 +301,521 @@ Thank you for training with ${companyName || "us"}!
     toast.success("Invoice downloaded!");
   };
 
+  const getStatusBadgeVariant = (
+    status: string
+  ):
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "success"
+    | "warning"
+    | "danger"
+    | "muted" => {
+    switch (status.toUpperCase()) {
+      case "PAID":
+        return "success";
+      case "PENDING":
+      case "UNPAID":
+      case "PARTIAL":
+        return "warning";
+      case "OVERDUE":
+      case "FAILED":
+        return "danger";
+      case "CANCELLED":
+        return "muted";
+      default:
+        return "outline";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const s = (status || "").toUpperCase();
+    if (s === "PAID") return t("paid") || "Paid";
+    if (s === "PENDING") return t("pending") || "Pending";
+    if (s === "PARTIAL") return t("partial") || "Partial";
+    if (s === "OVERDUE") return t("overdue") || "Overdue";
+    if (s === "FAILED") return t("failed") || "Failed";
+    if (s === "CANCELLED") return t("cancelled") || "Cancelled";
+    return status;
+  };
+
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+    const first = firstName?.[0] || "";
+    const last = lastName?.[0] || "";
+    return (first + last).toUpperCase() || "M";
+  };
+
   return (
-    <div className="space-y-8 max-w-container-max mx-auto pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-headline text-3xl font-bold text-on-surface tracking-tight">
-            {t("navPayments")}
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-1">
-            {t("paymentsSubtitle")}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={loadPayments}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-            <span>{t("refresh")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-on-surface-variant" />
-            <span>{t("export")} CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Grid (3 Bento Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Total Collected */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-              {t("totalRevenue")}
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center">
-              <Wallet className="w-5 h-5" />
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Top Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <Badge
+                variant="outline"
+                className="rounded-full px-3 py-1 text-xs font-semibold border-border/60 text-toota-ink bg-toota-inner"
+              >
+                <Wallet className="size-3.5 me-1.5" />
+                {t("navPayments") || "Payments"}
+              </Badge>
+              <Badge
+                variant="secondary"
+                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+              >
+                {totalItems} {t("total") || "Total"}
+              </Badge>
             </div>
-          </div>
-          <div className="font-headline text-3xl font-bold text-on-surface">
-            ${totalCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-secondary text-xs font-semibold">
-            <TrendingUp className="w-4 h-4" />
-            <span>{t("successfulTransactions")}</span>
-          </div>
-        </div>
 
-        {/* Outstanding */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-              {t("pendingPayments")}
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="font-headline text-3xl font-bold text-on-surface">
-            ${outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-on-surface-variant text-xs">
-            <span>{pendingCount} {t("pending")}</span>
-          </div>
-        </div>
-
-        {/* Overdue Count */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm border-l-4 border-l-error hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-error">
-              {t("failedPayments")}
-            </span>
-            <div className="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="font-headline text-3xl font-bold text-error">
-            {overdueCount}
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-error text-xs font-semibold">
-            <span>{overdueCount > 0 ? t("requiresAttention") : t("allSettled")}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant shadow-sm flex flex-wrap items-center gap-4">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[260px]">
-          <Search className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-          <input
-            className="w-full pl-10 rtl:pl-4 rtl:pr-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"
-            placeholder={`${t("search")}...`}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
-
-        {/* Status Dropdown */}
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="bg-surface-container-low border border-outline-variant rounded-xl px-4 py-2.5 text-xs font-semibold text-on-surface outline-none focus:ring-2 focus:ring-primary-container"
-        >
-          <option value="ALL">{t("allStatuses")}</option>
-          <option value="PAID">{t("paid")}</option>
-          <option value="PENDING">{t("pending")}</option>
-          <option value="PARTIAL">{t("partial")}</option>
-          <option value="OVERDUE">{t("overdue")}</option>
-        </select>
-
-        {/* Clear Filter */}
-        <button
-          type="button"
-          onClick={() => {
-            setSearchTerm("");
-            setStatusFilter("ALL");
-            setCurrentPage(1);
-          }}
-          className="px-4 py-2.5 bg-surface-container-high hover:bg-surface-variant text-on-surface font-bold text-xs rounded-xl transition-all cursor-pointer"
-        >
-          {t("clearFilters")}
-        </button>
-      </div>
-
-      {/* Data Table */}
-      <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">{t("savingChanges")}</p>
-          </div>
-        ) : paginatedPayments.length === 0 ? (
-          <div className="py-20 text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center mx-auto mb-4 text-on-surface-variant">
-              <Receipt className="w-7 h-7" />
-            </div>
-            <h4 className="font-headline font-bold text-lg text-on-surface">
-              {t("noPaymentsRecorded")}
-            </h4>
-            <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1 leading-relaxed">
-              {t("adjustFilter")}
+            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-toota-ink">
+              {t("navPayments") || "Payments"}
+            </h1>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t("paymentsSubtitle") ||
+                "Manage gym finances, transaction logs, and billing invoices."}
             </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left rtl:text-right border-collapse">
-              <thead className="bg-surface-container-low border-b border-outline-variant">
-                <tr>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("member")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("amount")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("paymentDate")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("status")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider text-right rtl:text-left">
-                    {t("actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/60">
-                {
-                paginatedPayments.map((payment) => {
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadPayments}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <RefreshCw
+                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>{t("refresh") || "Refresh"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <Download className="size-3.5 me-2" />
+              <span>{t("export") || "Export"} CSV</span>
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* 3 Existing Stat Cards (Redesigned in Toota Dashboard Bento Style) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Total Revenue (Collected) with Framer Motion Animated Counter */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("totalRevenue") || "Total Revenue"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <Wallet className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-green" />
+              ) : (
+                <div className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  <AnimatedRevenue value={totalCollected} />
+                </div>
+              )}
+              <Badge
+                variant="success"
+                className="rounded-full text-[11px] font-semibold"
+              >
+                {t("liveFromApi") || "Live"}
+              </Badge>
+            </div>
+            <p className="text-xs text-toota-muted mt-2 flex items-center gap-1.5">
+              <TrendingUp className="size-3.5 text-toota-green" />
+              <span>{t("successfulTransactions") || "Successful transactions"}</span>
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-green transition-all"
+                style={{ width: "100%" }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 2: Pending / Outstanding Total */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("pendingPayments") || "Pending Payments"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+              <Clock className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-amber-500" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  ${outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              )}
+              <Badge
+                variant="warning"
+                className="rounded-full text-[11px] font-semibold"
+              >
+                {pendingCount} {t("pending") || "Pending"}
+              </Badge>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {pendingCount} {t("pending") || "pending invoices"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all"
+                style={{
+                  width: `${
+                    totalCollected + outstandingTotal > 0
+                      ? Math.min(
+                          100,
+                          Math.round(
+                            (outstandingTotal / (totalCollected + outstandingTotal)) * 100
+                          )
+                        )
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Overdue / Failed Payments */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("failedPayments") || "Failed / Overdue"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
+              <AlertTriangle className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-red" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {overdueCount}
+                </span>
+              )}
+              <Badge
+                variant={overdueCount > 0 ? "danger" : "muted"}
+                className="rounded-full text-[11px] font-semibold"
+              >
+                {overdueCount > 0
+                  ? t("requiresAttention") || "Action needed"
+                  : t("allSettled") || "Settled"}
+              </Badge>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {overdueCount > 0
+                ? t("requiresAttention") || "Requires immediate attention"
+                : t("allSettled") || "All accounts settled"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  overdueCount > 0 ? "bg-toota-red" : "bg-toota-muted"
+                }`}
+                style={{
+                  width: `${
+                    payments.length > 0
+                      ? Math.min(100, Math.round((overdueCount / payments.length) * 100))
+                      : 0
+                  }%`,
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter & Search Bar Card */}
+      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col gap-4">
+        {/* Quick Filter Status Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+          {[
+            { id: "ALL", label: t("allStatuses") || "All Payments", count: payments.length },
+            {
+              id: "PAID",
+              label: t("paid") || "Paid",
+              count: payments.filter((p) => getEffectivePaymentStatus(p) === "PAID").length,
+            },
+            {
+              id: "PENDING",
+              label: t("pending") || "Pending",
+              count: pendingCount,
+            },
+            {
+              id: "OVERDUE",
+              label: t("overdue") || "Overdue",
+              count: overdueCount,
+            },
+          ].map((tab) => {
+            const isSelected = statusFilter.toUpperCase() === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
+                  isSelected
+                    ? "active font-bold shadow-xs"
+                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isSelected
+                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
+                      : "bg-toota-inner text-toota-muted"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search & Select Controls */}
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full min-w-[240px]">
+            <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder={`${t("search") || "Search"}...`}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+            />
+          </div>
+
+          {/* Status Select Dropdown */}
+          <div className="w-full md:w-52 shrink-0">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              aria-label={t("status") || "Status"}
+              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+            >
+              <option value="ALL">{t("allStatuses") || "All Statuses"}</option>
+              <option value="PAID">{t("paid") || "Paid"}</option>
+              <option value="PENDING">{t("pending") || "Pending"}</option>
+              <option value="PARTIAL">{t("partial") || "Partial"}</option>
+              <option value="OVERDUE">{t("overdue") || "Overdue"}</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isFiltering}
+            onClick={() => {
+              setSearchTerm("");
+              setStatusFilter("ALL");
+              setCurrentPage(1);
+            }}
+            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
+          >
+            <X className="size-3.5 me-1.5" />
+            <span>{t("clearFilters") || "Clear Filters"}</span>
+          </Button>
+        </div>
+      </Card>
+
+      {/* Payments Ledger Table Card */}
+      <Card className="toota-card border-none p-0 overflow-hidden">
+        <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg font-medium text-toota-ink">
+              {t("navPayments") || "Payments Ledger"}
+            </CardTitle>
+            <Badge
+              variant="outline"
+              className="rounded-full text-xs font-semibold px-2.5 py-0.5 border-border/50 text-toota-muted"
+            >
+              {totalItems} {isFiltering ? (t("filtered") || "filtered") : (t("total") || "total")}
+            </Badge>
+          </div>
+
+          {isPageLoading && (
+            <div className="flex items-center gap-2 text-xs text-toota-muted">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>{t("loading") || "Updating..."}</span>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Global Loading State */}
+          {isLoading && (
+            <div className="py-20 text-center text-toota-muted flex flex-col items-center justify-center gap-2">
+              <Loader2 className="size-6 animate-spin text-toota-ink" />
+              <p className="text-xs">Loading payments...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && paginatedPayments.length === 0 && (
+            <div className="py-20 text-center px-4">
+              <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
+                <Receipt className="size-7" />
+              </div>
+              <h4 className="font-medium text-base text-toota-ink">
+                {t("noPaymentsRecorded") || "No payment records found"}
+              </h4>
+              <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
+                {t("adjustFilter") || "Try adjusting your search query or status filter."}
+              </p>
+            </div>
+          )}
+
+          {/* Populated Table */}
+          {!isLoading && paginatedPayments.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
+                  <TableHead className="px-6 py-3.5">
+                    {t("member") || "Member"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("amount") || "Amount"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("paymentDate") || "Payment Date"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("status") || "Status"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5 text-right rtl:text-left">
+                    {t("actions") || "Actions"}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border/40 text-xs">
+                {paginatedPayments.map((payment) => {
                   const member = payment.member;
-                  const memberName = `${member?.firstName || ""} ${member?.lastName || ""}`.trim() || member?.userName || t("member");
-                  const memberInitials = ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() || "M";
+                  const memberName =
+                    `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
+                    member?.userName ||
+                    t("member") ||
+                    "Member";
+                  const memberInitials = getInitials(member?.firstName, member?.lastName);
                   const avatarUrl = member?.profileImageUrl || member?.photo;
-                  const hasPhoto = avatarUrl && !avatarUrl.includes("default-");
+                  const hasPhoto = Boolean(
+                    avatarUrl &&
+                      !avatarUrl.includes("default-member") &&
+                      !avatarUrl.includes("default-image") &&
+                      !avatarUrl.includes("avatars-default")
+                  );
 
                   const status = getEffectivePaymentStatus(payment);
-                  const isOverdue = status === "OVERDUE" || status === "FAILED";
-
                   const paidDateStr = payment.paidAt
                     ? new Date(payment.paidAt).toLocaleDateString()
                     : "—";
 
                   return (
-                    <tr
+                    <TableRow
                       key={payment.id}
                       onClick={() => setSelectedPayment(payment)}
-                      className={`hover:bg-primary-container/[0.03] transition-colors cursor-pointer group ${
-                        isOverdue ? "border-l-4 rtl:border-l-0 rtl:border-r-4 border-l-error rtl:border-r-error bg-error/[0.02]" : ""
-                      }`}
+                      className="border-border/40 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
                     >
-                      {/* Member */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3.5">
-                          {hasPhoto ? (
-                            <img
-                              className="w-10 h-10 rounded-full object-cover border border-outline-variant/60 shadow-xs"
-                              alt={memberName}
-                              src={avatarUrl!}
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full primary-gradient text-white flex items-center justify-center font-bold text-xs select-none shadow-xs">
+                      {/* Member Info */}
+                      <TableCell className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
+                            {hasPhoto && (
+                              <AvatarImage
+                                src={avatarUrl!}
+                                alt={memberName}
+                              />
+                            )}
+                            <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
                               {memberInitials}
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors">
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium text-toota-ink group-hover:underline truncate">
                               {memberName}
-                            </div>
-                            <div className="text-[11px] font-mono text-on-surface-variant">
+                            </p>
+                            <p className="text-[11px] font-mono text-toota-muted truncate">
                               #INV-{payment.id.slice(0, 8)}
-                            </div>
+                            </p>
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
 
                       {/* Amount */}
-                      <td className="px-6 py-4 font-headline text-sm font-bold text-on-surface">
+                      <TableCell className="px-6 py-3.5 font-semibold text-toota-ink text-sm">
                         ${Number(payment.amount).toFixed(2)}
-                      </td>
+                      </TableCell>
 
                       {/* Paid Date */}
-                      <td className="px-6 py-4 text-xs font-medium text-on-surface-variant">
+                      <TableCell className="px-6 py-3.5 text-toota-muted">
                         {paidDateStr}
-                      </td>
+                      </TableCell>
 
                       {/* Status */}
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full border tracking-wider ${
-                            status === "PAID"
-                              ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
-                              : status === "OVERDUE"
-                              ? "bg-error-container/30 text-error border-error-container/40"
-                              : status === "PARTIAL"
-                              ? "bg-amber-100 text-amber-800 border-amber-200"
-                              : "bg-surface-variant text-on-surface-variant border-outline-variant/40"
-                          }`}
+                      <TableCell className="px-6 py-3.5">
+                        <Badge
+                          variant={getStatusBadgeVariant(status)}
+                          className="rounded-full text-[10px] font-semibold uppercase tracking-wider"
                         >
-                          {status === "PAID"
-                            ? t("paid")
-                            : status === "PENDING"
-                            ? t("pending")
-                            : status === "PARTIAL"
-                            ? t("partial")
-                            : status === "OVERDUE"
-                            ? t("overdue")
-                            : status}
-                        </span>
-                      </td>
+                          {getStatusLabel(status)}
+                        </Badge>
+                      </TableCell>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 text-right rtl:text-left">
-                        <button
+                      <TableCell className="px-6 py-3.5 text-right rtl:text-left">
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedPayment(payment);
                           }}
-                          className="px-3 py-1.5 rounded-lg border border-outline-variant/60 hover:bg-surface-container text-xs font-bold text-on-surface flex items-center gap-1.5 ml-auto rtl:ml-0 rtl:mr-auto transition-colors cursor-pointer"
+                          className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5 text-primary" />
-                          <span>{t("details")}</span>
-                        </button>
-                      </td>
-                    </tr>
+                          <Eye className="size-3.5 me-1.5" />
+                          <span>{t("details") || "Details"}</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
 
         {/* Pagination Footer */}
         {totalItems > 0 && (
@@ -550,83 +829,89 @@ Thank you for training with ${companyName || "us"}!
             itemLabel={t("payments") || "payments"}
           />
         )}
-      </div>
+      </Card>
 
-      {/* Side Panel (Payment Detail Slide-out Drawer) */}
+      {/* Slide-out Payment Detail Side Panel */}
       {selectedPayment && (
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 transition-opacity animate-in fade-in duration-200"
             onClick={() => setSelectedPayment(null)}
           />
 
           {/* Drawer Canvas */}
-          <div className="fixed top-0 right-0 rtl:right-auto rtl:left-0 h-screen w-full sm:w-[440px] bg-surface-container-lowest border-l rtl:border-l-0 rtl:border-r border-outline-variant shadow-2xl z-50 flex flex-col animate-in slide-in-from-right rtl:slide-in-from-left duration-300">
+          <div className="fixed top-0 right-0 rtl:right-auto rtl:left-0 h-screen w-full sm:w-[440px] bg-card/95 backdrop-blur-xl border-s border-border/50 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right rtl:slide-in-from-left duration-300">
             {/* Drawer Header */}
-            <div className="p-6 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/70">
+            <div className="p-5 border-b border-border/40 flex justify-between items-center bg-toota-inner/40">
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-primary" />
-                <h3 className="font-headline text-lg font-bold text-on-surface">
-                  {t("details")}
+                <Receipt className="size-5 text-toota-ink" />
+                <h3 className="font-medium text-base text-toota-ink">
+                  {t("details") || "Payment Details"}
                 </h3>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setSelectedPayment(null)}
-                className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-full transition-colors cursor-pointer"
+                className="size-8 rounded-full text-toota-muted hover:text-toota-ink hover:bg-toota-inner cursor-pointer"
+                aria-label="Close"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
             {/* Drawer Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {/* Member Summary */}
               <section className="space-y-4">
-                <div className="flex items-center gap-4">
-                  {selectedPayment.member?.profileImageUrl &&
-                  !selectedPayment.member.profileImageUrl.includes("default-") ? (
-                    <img
-                      className="w-16 h-16 rounded-2xl object-cover border border-outline-variant shadow-sm"
-                      alt={selectedPayment.member.firstName}
-                      src={selectedPayment.member.profileImageUrl}
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-2xl primary-gradient text-white flex items-center justify-center font-bold text-xl select-none shadow-sm">
-                      {((selectedPayment.member?.firstName?.[0] || "") +
-                        (selectedPayment.member?.lastName?.[0] || "")).toUpperCase() || "M"}
-                    </div>
-                  )}
-                  <div>
-                    <h4 className="font-headline text-lg font-bold text-on-surface leading-tight">
+                <div className="flex items-center gap-3.5">
+                  <Avatar className="size-14 ring-1 ring-border/40 shrink-0">
+                    {selectedPayment.member?.profileImageUrl &&
+                      !selectedPayment.member.profileImageUrl.includes("default-") && (
+                        <AvatarImage
+                          src={selectedPayment.member.profileImageUrl}
+                          alt={selectedPayment.member.firstName || ""}
+                        />
+                      )}
+                    <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-sm">
+                      {getInitials(
+                        selectedPayment.member?.firstName,
+                        selectedPayment.member?.lastName
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-base text-toota-ink truncate">
                       {selectedPayment.member?.firstName}{" "}
                       {selectedPayment.member?.lastName}
                     </h4>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
+                    <p className="text-xs text-toota-muted truncate">
                       {selectedPayment.member?.email}
                     </p>
-                    <p className="text-[11px] text-on-surface-variant mt-1 font-mono">
+                    <p className="text-[11px] text-toota-muted font-mono mt-0.5">
                       @{selectedPayment.member?.userName || "member"}
                     </p>
                   </div>
                 </div>
 
-                {/* Amount & Invoice Info Cards */}
-                <div className="grid grid-cols-2 gap-3 p-4 bg-surface-container-low rounded-xl border border-outline-variant/60">
+                {/* Amount & Invoice Info Box */}
+                <div className="grid grid-cols-2 gap-3 p-4 bg-toota-inner rounded-2xl border border-border/40">
                   <div>
-                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">
-                      {t("transactionId")}
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-toota-muted block">
+                      {t("transactionId") || "Invoice"}
                     </span>
-                    <p className="font-mono text-xs font-bold text-on-surface mt-0.5">
+                    <p className="font-mono text-xs font-semibold text-toota-ink mt-0.5">
                       #INV-{selectedPayment.id.slice(0, 8)}
                     </p>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">
-                      {t("amount")}
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-toota-muted block">
+                      {t("amount") || "Amount"}
                     </span>
-                    <p className="font-headline text-base font-bold text-primary mt-0.5">
+                    <p className="text-lg font-semibold text-toota-green mt-0.5">
                       ${Number(selectedPayment.amount).toFixed(2)}
                     </p>
                   </div>
@@ -635,63 +920,56 @@ Thank you for training with ${companyName || "us"}!
 
               {/* Status Section */}
               <section className="space-y-2">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">
-                  {t("status")}
-                </label>
-                <div className="p-3.5 bg-surface-container-low rounded-xl border border-outline-variant/60 flex items-center justify-between">
-                  <span className="text-xs font-medium text-on-surface">{t("status")}</span>
-                  <span
-                    className={`px-3 py-1 text-[11px] font-bold uppercase rounded-full border ${
-                      getEffectivePaymentStatus(selectedPayment) === "PAID"
-                        ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
-                        : getEffectivePaymentStatus(selectedPayment) === "OVERDUE"
-                        ? "bg-error-container/30 text-error border-error-container/40"
-                        : "bg-amber-100 text-amber-800 border-amber-200"
-                    }`}
-                  >
-                    {getEffectivePaymentStatus(selectedPayment) === "PAID"
-                      ? t("paid")
-                      : getEffectivePaymentStatus(selectedPayment) === "PENDING"
-                      ? t("pending")
-                      : getEffectivePaymentStatus(selectedPayment) === "PARTIAL"
-                      ? t("partial")
-                      : getEffectivePaymentStatus(selectedPayment) === "OVERDUE"
-                      ? t("overdue")
-                      : getEffectivePaymentStatus(selectedPayment)}
+                <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider block">
+                  {t("status") || "Status"}
+                </span>
+                <div className="p-3.5 bg-toota-inner rounded-2xl border border-border/40 flex items-center justify-between">
+                  <span className="text-xs font-medium text-toota-ink">
+                    {t("status") || "Payment Status"}
                   </span>
+                  <Badge
+                    variant={getStatusBadgeVariant(
+                      getEffectivePaymentStatus(selectedPayment)
+                    )}
+                    className="rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                  >
+                    {getStatusLabel(getEffectivePaymentStatus(selectedPayment))}
+                  </Badge>
                 </div>
               </section>
 
               {/* Plan & Duration Details */}
               {selectedPayment.member?.memberships?.[0] && (
                 <section className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">
-                    {t("planName")}
-                  </label>
-                  <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/60 space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">{t("planName")}</span>
-                      <span className="font-bold text-on-surface">
+                  <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider block">
+                    {t("planName") || "Plan Details"}
+                  </span>
+                  <div className="p-4 bg-toota-inner rounded-2xl border border-border/40 space-y-2.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-toota-muted">{t("planName") || "Plan"}</span>
+                      <span className="font-medium text-toota-ink">
                         {selectedPayment.member.memberships[0].membershipPlan?.planName ||
-                          t("standardPlan")}
+                          t("standardPlan") ||
+                          "Standard"}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-on-surface-variant">{t("status")}</span>
-                      <span className="font-bold uppercase text-secondary">
-                        {selectedPayment.member.memberships[0].membershipStatus === "ACTIVE"
-                          ? t("active")
-                          : selectedPayment.member.memberships[0].membershipStatus === "EXPIRED"
-                          ? t("expired")
-                          : selectedPayment.member.memberships[0].membershipStatus === "CANCELLED"
-                          ? t("cancelled")
-                          : selectedPayment.member.memberships[0].membershipStatus || t("active")}
-                      </span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-toota-muted">{t("status") || "Status"}</span>
+                      <Badge
+                        variant={getStatusBadgeVariant(
+                          selectedPayment.member.memberships[0].membershipStatus || "ACTIVE"
+                        )}
+                        className="rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                      >
+                        {selectedPayment.member.memberships[0].membershipStatus || "ACTIVE"}
+                      </Badge>
                     </div>
                     {selectedPayment.member.memberships[0].expiresAt && (
-                      <div className="flex justify-between">
-                        <span className="text-on-surface-variant">{t("nextExpiry")}</span>
-                        <span className="font-medium text-on-surface">
+                      <div className="flex justify-between items-center">
+                        <span className="text-toota-muted">
+                          {t("nextExpiry") || "Next Expiry"}
+                        </span>
+                        <span className="font-medium text-toota-ink">
                           {new Date(
                             selectedPayment.member.memberships[0].expiresAt
                           ).toLocaleDateString()}
@@ -704,19 +982,19 @@ Thank you for training with ${companyName || "us"}!
 
               {/* Payment Timeline */}
               <section className="space-y-3">
-                <h5 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                  {t("paymentHistory")}
-                </h5>
-                <div className="space-y-4 relative pl-6 rtl:pl-0 rtl:pr-6 border-l-2 rtl:border-l-0 rtl:border-r-2 border-outline-variant ml-2 rtl:ml-0 rtl:mr-2">
+                <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider block">
+                  {t("paymentHistory") || "Timeline"}
+                </span>
+                <div className="space-y-4 relative ps-6 border-s border-border/50 ms-2">
                   {/* Generated */}
                   <div className="relative">
-                    <div className="absolute -left-[31px] rtl:-left-auto rtl:-right-[31px] top-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white shadow-xs">
-                      <Receipt className="w-3 h-3" />
+                    <div className="absolute -start-[31px] top-0 size-5 rounded-full bg-toota-inner border border-border/50 flex items-center justify-center text-toota-ink shadow-xs">
+                      <Receipt className="size-3" />
                     </div>
-                    <div className="text-xs font-bold text-on-surface">
-                      {t("invoicesRecorded")}
+                    <div className="text-xs font-semibold text-toota-ink">
+                      {t("invoicesRecorded") || "Invoice Generated"}
                     </div>
-                    <div className="text-[11px] text-on-surface-variant">
+                    <div className="text-[11px] text-toota-muted">
                       {new Date(selectedPayment.createdAt).toLocaleString()}
                     </div>
                   </div>
@@ -724,13 +1002,13 @@ Thank you for training with ${companyName || "us"}!
                   {/* Due Date */}
                   {selectedPayment.dueDate && (
                     <div className="relative">
-                      <div className="absolute -left-[31px] rtl:-left-auto rtl:-right-[31px] top-0 w-5 h-5 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant">
-                        <Calendar className="w-3 h-3" />
+                      <div className="absolute -start-[31px] top-0 size-5 rounded-full bg-toota-inner border border-border/50 flex items-center justify-center text-toota-muted">
+                        <Calendar className="size-3" />
                       </div>
-                      <div className="text-xs font-bold text-on-surface">
-                        {t("expiryDate")}
+                      <div className="text-xs font-semibold text-toota-ink">
+                        {t("expiryDate") || "Due Date"}
                       </div>
-                      <div className="text-[11px] text-on-surface-variant">
+                      <div className="text-[11px] text-toota-muted">
                         {new Date(selectedPayment.dueDate).toLocaleDateString()}
                       </div>
                     </div>
@@ -739,24 +1017,24 @@ Thank you for training with ${companyName || "us"}!
                   {/* Settlement */}
                   <div className="relative">
                     <div
-                      className={`absolute -left-[31px] rtl:-left-auto rtl:-right-[31px] top-0 w-5 h-5 rounded-full flex items-center justify-center text-white shadow-xs ${
+                      className={`absolute -start-[31px] top-0 size-5 rounded-full flex items-center justify-center text-white shadow-xs ${
                         (selectedPayment.paymentStatus || "").toUpperCase() === "PAID"
-                          ? "bg-secondary"
+                          ? "bg-toota-green text-white"
                           : (selectedPayment.paymentStatus || "").toUpperCase() === "OVERDUE"
-                          ? "bg-error"
-                          : "bg-amber-500"
+                          ? "bg-toota-red text-white"
+                          : "bg-amber-500 text-white"
                       }`}
                     >
-                      <CheckCircle2 className="w-3 h-3" />
+                      <CheckCircle2 className="size-3" />
                     </div>
-                    <div className="text-xs font-bold text-on-surface">
+                    <div className="text-xs font-semibold text-toota-ink">
                       {(selectedPayment.paymentStatus || "").toUpperCase() === "PAID"
-                        ? t("successfulTransactions")
+                        ? t("successfulTransactions") || "Payment Settled"
                         : (selectedPayment.paymentStatus || "").toUpperCase() === "OVERDUE"
-                        ? t("failedPayments")
-                        : t("pendingPayments")}
+                        ? t("failedPayments") || "Payment Overdue"
+                        : t("pendingPayments") || "Awaiting Settlement"}
                     </div>
-                    <div className="text-[11px] text-on-surface-variant">
+                    <div className="text-[11px] text-toota-muted">
                       {selectedPayment.paidAt
                         ? new Date(selectedPayment.paidAt).toLocaleString()
                         : "—"}
@@ -767,22 +1045,28 @@ Thank you for training with ${companyName || "us"}!
             </div>
 
             {/* Drawer Footer Actions */}
-            <div className="p-6 border-t border-outline-variant bg-surface-container-low/70 flex flex-col gap-2.5">
-              <button
+            <div className="p-5 border-t border-border/40 bg-toota-inner/40 flex flex-col gap-2.5">
+              <Button
                 type="button"
                 onClick={() => handleDownloadInvoice(selectedPayment)}
-                className="w-full primary-gradient text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-primary/20 transition-all cursor-pointer active:scale-[0.98]"
+                className="toota-pill h-11 w-full text-xs font-semibold justify-center cursor-pointer"
               >
-                <Download className="w-4 h-4" />
-                <span>{t("export")} ({t("details")})</span>
-              </button>
+                <Download className="size-4 me-2" />
+                <span>{t("export") || "Export"} ({t("details") || "Invoice"})</span>
+              </Button>
 
               <Link
                 href={`/members/${selectedPayment.member?.id}`}
-                className="w-full bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer text-center"
+                className="w-full"
               >
-                <User className="w-4 h-4 text-primary" />
-                <span>{t("viewProfile")}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="toota-pill h-11 w-full text-xs font-semibold justify-center border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                >
+                  <User className="size-4 me-2" />
+                  <span>{t("viewProfile") || "View Member Profile"}</span>
+                </Button>
               </Link>
             </div>
           </div>

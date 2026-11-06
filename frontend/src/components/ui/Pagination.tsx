@@ -67,16 +67,16 @@ export default function Pagination({
 
   return (
     <div
-      className={`px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-bright border-t border-outline-variant ${className}`}
+      className={`px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/40 bg-transparent ${className}`}
     >
       {/* Range text */}
-      <p className="text-xs text-on-surface-variant">
+      <p className="text-xs text-toota-muted">
         {t("showing") || "Showing"}{" "}
-        <span className="font-bold text-on-surface">
+        <span className="font-semibold text-toota-ink">
           {startItem} - {endItem}
         </span>{" "}
         {t("of") || "of"}{" "}
-        <span className="font-bold text-on-surface">{totalItems}</span>{" "}
+        <span className="font-semibold text-toota-ink">{totalItems}</span>{" "}
         {itemLabel || ""}
       </p>
 
@@ -88,9 +88,9 @@ export default function Pagination({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1 || isLoading}
           aria-label={t("previousPage") || "Previous Page"}
-          className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="size-8 rounded-full border border-border/40 hover:bg-toota-inner transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center text-toota-ink"
         >
-          <ChevronLeft className="w-4 h-4 text-on-surface rtl:rotate-180" />
+          <ChevronLeft className="size-4 rtl:rotate-180" />
         </button>
 
         {/* 5 Sliding Page Buttons */}
@@ -104,10 +104,10 @@ export default function Pagination({
                 onClick={() => onPageChange(page)}
                 disabled={isLoading}
                 aria-current={isActive ? "page" : undefined}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`size-8 flex items-center justify-center rounded-full text-xs font-medium transition-all cursor-pointer ${
                   isActive
-                    ? "primary-gradient text-white shadow-xs scale-105"
-                    : "border border-outline-variant hover:bg-surface-container text-on-surface-variant hover:text-on-surface"
+                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
+                    : "border border-border/40 hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
                 }`}
               >
                 {page}
@@ -122,9 +122,9 @@ export default function Pagination({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages || isLoading}
           aria-label={t("nextPage") || "Next Page"}
-          className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+          className="size-8 rounded-full border border-border/40 hover:bg-toota-inner transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center text-toota-ink"
         >
-          <ChevronRight className="w-4 h-4 text-on-surface rtl:rotate-180" />
+          <ChevronRight className="size-4 rtl:rotate-180" />
         </button>
       </div>
     </div>

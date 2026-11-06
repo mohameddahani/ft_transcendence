@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-import { FeedbackItem } from "@/types/feedback";
+import { FeedbackItem, RawMemberFeedbackResponse } from "@/types/feedback";
 import {
   fetchMemberFeedbacks,
   deleteMemberFeedback,
@@ -75,8 +75,34 @@ export default function MemberFeedbackView() {
   const loadFeedbacks = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      const data = await fetchMemberFeedbacks(1, 100);
-      setFeedbacks(data);
+      const rawData = await fetchMemberFeedbacks(1, 100);
+      const normalizedData: FeedbackItem[] = (Array.isArray(rawData) ? rawData : []).map(
+        (item: RawMemberFeedbackResponse) => {
+          const base = item?.feedbackData ? item.feedbackData : item;
+          const isLiked = Boolean(item?.isLiked ?? base?.isLiked ?? false);
+          const likeCount = item?.likeCount ?? base?.likeCount ?? base?._count?.likes ?? 0;
+          return {
+            ...(base as FeedbackItem),
+            isLiked,
+            likeCount,
+            _count: {
+              ...base?._count,
+              likes: likeCount,
+            },
+          };
+        }
+      );
+
+      setFeedbacks(normalizedData);
+
+      // Track liked IDs from backend
+      const liked = new Set<string>();
+      normalizedData.forEach((item) => {
+        if (item.isLiked && item.id) {
+          liked.add(item.id);
+        }
+      });
+      setLikedIds(liked);
     } catch {
       toast.error(
         t("failedToLoadFeedbacks") || "Failed to load member feedback roster."
@@ -92,7 +118,8 @@ export default function MemberFeedbackView() {
 
   // Handle Like / Unlike with optimistic UI
   const handleToggleLike = async (feedbackId: string) => {
-    const isCurrentlyLiked = likedIds.has(feedbackId);
+    const targetItem = feedbacks.find((item) => item.id === feedbackId);
+    const isCurrentlyLiked = targetItem ? Boolean(targetItem.isLiked) : likedIds.has(feedbackId);
     const nextLiked = new Set(likedIds);
 
     // Optimistic state updates
@@ -109,16 +136,19 @@ export default function MemberFeedbackView() {
       // ignore
     }
 
-    // Optimistically update feedback likes count
+    // Optimistically update feedback likes count and isLiked flag
     setFeedbacks((prev) =>
       prev.map((item) => {
         if (item.id === feedbackId) {
-          const currentCount = item._count?.likes ?? 0;
+          const currentCount = item.likeCount ?? item._count?.likes ?? 0;
+          const newCount = Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1));
           return {
             ...item,
+            isLiked: !isCurrentlyLiked,
+            likeCount: newCount,
             _count: {
               ...item._count,
-              likes: Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1)),
+              likes: newCount,
             },
           };
         }
@@ -129,12 +159,15 @@ export default function MemberFeedbackView() {
     // Update detail modal if open
     setSelectedFeedback((prev) => {
       if (prev && prev.id === feedbackId) {
-        const currentCount = prev._count?.likes ?? 0;
+        const currentCount = prev.likeCount ?? prev._count?.likes ?? 0;
+        const newCount = Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1));
         return {
           ...prev,
+          isLiked: !isCurrentlyLiked,
+          likeCount: newCount,
           _count: {
             ...prev._count,
-            likes: Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1)),
+            likes: newCount,
           },
         };
       }
@@ -204,7 +237,7 @@ export default function MemberFeedbackView() {
     const sumRating = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
     const averageRating = (sumRating / total).toFixed(1);
 
-    const myCount = feedbacks.filter((f) => user?.id && f.member.id === user.id).length;
+    const myCount = feedbacks.filter((f) => user?.id && f.member?.id === user.id).length;
     const positiveCount = feedbacks.filter((f) => (f.rating || 0) >= 4).length;
     const positivePercent = Math.round((positiveCount / total) * 100);
 
@@ -223,14 +256,14 @@ export default function MemberFeedbackView() {
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter((f) => {
       // Scope tab filter
-      if (activeTab === "mine" && (!user?.id || f.member.id !== user.id)) {
+      if (activeTab === "mine" && (!user?.id || f.member?.id !== user.id)) {
         return false;
       }
 
       // Search term filter
       if (searchTerm) {
         const query = searchTerm.toLowerCase();
-        const memberName = `${f.member.firstName || ""} ${f.member.lastName || ""}`.toLowerCase();
+        const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
         const content = (f.content || "").toLowerCase();
         const resolutionNote = (f.resolutionNote || "").toLowerCase();
         if (
@@ -565,11 +598,12 @@ export default function MemberFeedbackView() {
       ) : (
         /* Feedbacks Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredFeedbacks.map((item) => {
-            const isOwn = Boolean(user?.id && item.member.id === user.id);
-            const memberName = `${item.member.firstName || ""} ${item.member.lastName || ""}`.trim() || "Gym Member";
-            const initials = (item.member.firstName?.[0] || "") + (item.member.lastName?.[0] || "") || "M";
-            const isLiked = likedIds.has(item.id);
+          {filteredFeedbacks.map((item, idx) => {
+            const isOwn = Boolean(user?.id && item.member?.id === user.id);
+            const memberName = `${item.member?.firstName || ""} ${item.member?.lastName || ""}`.trim() || "Gym Member";
+            const initials = (item.member?.firstName?.[0] || "") + (item.member?.lastName?.[0] || "") || "M";
+            const isLiked = Boolean(item.isLiked ?? likedIds.has(item.id));
+            const likeCount = item.likeCount ?? item._count?.likes ?? 0;
             const isResolved = item.feedbackStatus === "RESOLVED";
             const formattedDate = new Date(item.createdAt).toLocaleDateString(undefined, {
               month: "short",
@@ -579,15 +613,15 @@ export default function MemberFeedbackView() {
 
             return (
               <div
-                key={item.id}
+                key={item.id || `feedback-${idx}`}
                 className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/50 hover:border-primary/30 transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between group space-y-4"
               >
                 {/* Card Top: Author, Date & Status */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {item.member.profileImageUrl ? (
+                    {item.member?.profileImageUrl ? (
                       <img
-                        src={(item.member.profileImageUrl || item.member.photo) as string}
+                        src={(item.member?.profileImageUrl || item.member?.photo) as string}
                         alt={memberName}
                         className="w-10 h-10 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0"
                       />
@@ -681,7 +715,7 @@ export default function MemberFeedbackView() {
                         isLiked ? "fill-rose-500 text-rose-500 scale-110" : ""
                       }`}
                     />
-                    <span>{item._count?.likes ?? 0}</span>
+                    <span>{likeCount}</span>
                   </button>
 
                   <div className="flex items-center gap-2">
@@ -731,9 +765,9 @@ export default function MemberFeedbackView() {
           setSelectedFeedback(null);
         }}
         feedback={selectedFeedback}
-        isLiked={Boolean(selectedFeedback && likedIds.has(selectedFeedback.id))}
+        isLiked={Boolean(selectedFeedback && (selectedFeedback.isLiked ?? likedIds.has(selectedFeedback.id)))}
         onToggleLike={handleToggleLike}
-        isOwnFeedback={Boolean(user?.id && selectedFeedback && selectedFeedback.member.id === user.id)}
+        isOwnFeedback={Boolean(user?.id && selectedFeedback?.member?.id === user.id)}
         onDeleteRequest={(item) => {
           setIsDetailModalOpen(false);
           setDeletingFeedback(item);

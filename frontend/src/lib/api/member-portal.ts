@@ -7,7 +7,11 @@ import {
 } from "@/types/member-portal";
 import { WorkingHour, SpecialHour } from "@/types/working-hours";
 import { AdminNotification } from "@/types/notification";
-import { FeedbackItem, CreateMemberFeedbackInput } from "@/types/feedback";
+import {
+  FeedbackItem,
+  CreateMemberFeedbackInput,
+  RawMemberFeedbackResponse,
+} from "@/types/feedback";
 
 /* =========================================================================
    Member Profile APIs
@@ -219,18 +223,44 @@ export async function fetchMemberFeedbacks(
   limit: number = 50
 ): Promise<FeedbackItem[]> {
   try {
-    const response = await axios.get<FeedbackItem[]>(
+    const response = await axios.get<RawMemberFeedbackResponse[]>(
       `/api/members/feedbacks?page=${page}&limit=${limit}`
     );
-    return Array.isArray(response.data) ? response.data : [];
+    const rawList = Array.isArray(response.data) ? response.data : [];
+    return rawList.map((item: RawMemberFeedbackResponse) => {
+      const base = item?.feedbackData ? item.feedbackData : item;
+      const isLiked = Boolean(item?.isLiked ?? base?.isLiked ?? false);
+      const likeCount = item?.likeCount ?? base?.likeCount ?? base?._count?.likes ?? 0;
+      return {
+        ...(base as FeedbackItem),
+        isLiked,
+        likeCount,
+        _count: {
+          ...base?._count,
+          likes: likeCount,
+        },
+      };
+    });
   } catch {
     return [];
   }
 }
 
 export async function fetchMemberFeedbackById(id: string): Promise<FeedbackItem> {
-  const response = await axios.get<FeedbackItem>(`/api/members/feedbacks/${id}`);
-  return response.data;
+  const response = await axios.get<RawMemberFeedbackResponse>(`/api/members/feedbacks/${id}`);
+  const item = response.data;
+  const base = item?.feedbackData ? item.feedbackData : item;
+  const isLiked = Boolean(item?.isLiked ?? base?.isLiked ?? false);
+  const likeCount = item?.likeCount ?? base?.likeCount ?? base?._count?.likes ?? 0;
+  return {
+    ...(base as FeedbackItem),
+    isLiked,
+    likeCount,
+    _count: {
+      ...base?._count,
+      likes: likeCount,
+    },
+  };
 }
 
 export async function createMemberFeedback(

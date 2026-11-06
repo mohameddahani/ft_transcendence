@@ -63,6 +63,28 @@ const authRoutes = [
   "/members/login",
 ];
 
+// Public authentication, password management, and verification routes
+const publicAuthActionRoutes = [
+  "/register",
+  "/email-verification",
+  "/email-change",
+  "/forgot-password",
+  "/reset-password",
+  "/admin/forgot-password",
+  "/member/forgot-password",
+  "/member/reset-password",
+  "/member/set-password",
+  "/members/forgot-password",
+  "/members/reset-password",
+  "/members/set-password",
+  "/staff/forgot-password",
+  "/staff/reset-password",
+  "/staff/set-password",
+  "/staffs/forgot-password",
+  "/staffs/reset-password",
+  "/staffs/set-password",
+];
+
 function hasAdminOrStaffAccess(token?: string): boolean {
   if (!token) return false;
   const payload = parseJwtPayload(token);
@@ -77,8 +99,19 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = authRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
+  const isPublicAuthAction =
+    publicAuthActionRoutes.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    ) ||
+    pathname.includes("/set-password") ||
+    pathname.includes("/reset-password") ||
+    pathname.includes("/forgot-password") ||
+    pathname.includes("/email-verification") ||
+    pathname.includes("/email-change");
+
   const isProtectedRoute =
     !isAuthRoute &&
+    !isPublicAuthAction &&
     protectedRoutes.some(
       (route) => pathname === route || pathname.startsWith(`${route}/`)
     );

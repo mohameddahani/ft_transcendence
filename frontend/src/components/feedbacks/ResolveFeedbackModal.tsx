@@ -59,9 +59,9 @@ export default function ResolveFeedbackModal({
   if (!isOpen || !feedback) return null;
 
   const member = feedback.member;
-  const fullName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || "Member";
-  const initials = `${(member.firstName || "")[0] || ""}${(member.lastName || "")[0] || ""}`.toUpperCase() || "M";
-  const photo = member.profileImageUrl;
+  const fullName = `${member?.firstName || ""} ${member?.lastName || ""}`.trim() || "Member";
+  const initials = `${(member?.firstName || "")[0] || ""}${(member?.lastName || "")[0] || ""}`.toUpperCase() || "M";
+  const photo = member?.profileImageUrl;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

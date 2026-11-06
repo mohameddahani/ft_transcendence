@@ -23,7 +23,7 @@ export interface FeedbackItem {
   resolvedAt?: string | null;
   resolvedBy?: string | null;
   resolutionNote?: string | null;
-  member: FeedbackMember;
+  member?: FeedbackMember | null;
   admin?: {
     id: string;
     firstName: string;
@@ -39,8 +39,16 @@ export interface FeedbackItem {
   _count?: {
     likes?: number;
   };
+  isLiked?: boolean;
+  likeCount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RawMemberFeedbackResponse extends Partial<FeedbackItem> {
+  feedbackData?: FeedbackItem;
+  isLiked?: boolean;
+  likeCount?: number;
 }
 
 export interface UpdateFeedbackStatusInput {

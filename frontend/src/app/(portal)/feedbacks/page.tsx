@@ -61,6 +61,7 @@ function AdminStaffFeedbackView() {
     try {
       const data = await fetchAllFeedbacks(1, 100);
       setFeedbacks(data);
+      console.log(data)
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -131,11 +132,11 @@ function AdminStaffFeedbackView() {
   // Filtered List
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter((f) => {
-      const memberName = `${f.member.firstName || ""} ${f.member.lastName || ""}`.toLowerCase();
+      const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
       const content = (f.content || "").toLowerCase();
       const note = (f.resolutionNote || "").toLowerCase();
-      const email = (f.member.email || "").toLowerCase();
-      const phone = (f.member.phoneNumber || "").toLowerCase();
+      const email = (f.member?.email || "").toLowerCase();
+      const phone = (f.member?.phoneNumber || "").toLowerCase();
 
       // Search matching
       if (
@@ -219,7 +220,7 @@ function AdminStaffFeedbackView() {
     ];
 
     const rows = filteredFeedbacks.map((f) => [
-      `"${f.member.firstName || ""} ${f.member.lastName || ""}"`,
+      `"${f.member?.firstName || ""} ${f.member?.lastName || ""}"`,
       f.rating,
       f.sentiment ?? "",
       f.sentimentScore ?? "",
@@ -530,12 +531,12 @@ function AdminStaffFeedbackView() {
           filteredFeedbacks.map((item) => {
             const member = item.member;
             const fullName =
-              `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
+              `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
               "Member";
             const initials =
-              `${(member.firstName || "")[0] || ""}${(member.lastName || "")[0] || ""}`.toUpperCase() ||
+              `${(member?.firstName || "")[0] || ""}${(member?.lastName || "")[0] || ""}`.toUpperCase() ||
               "M";
-            const photo = member.profileImageUrl;
+            const photo = member?.profileImageUrl;
 
             const isResolved = item.feedbackStatus === "RESOLVED";
             const isOpen = item.feedbackStatus === "OPEN";
