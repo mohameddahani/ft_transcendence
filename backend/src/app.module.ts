@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { PrismaModule } from './infrastructure/database/prisma.module';
@@ -29,7 +29,7 @@ import { RedisModule } from './infrastructure/redis/redis.module';
 import { SentimentCron } from './jobs/sentiment.cron';
 import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
-import { LoggerMiddleware } from './logger.middleware';
+import { LoggerMiddleware } from './core/middlewares/logger.middleware';
 
 @Module({
   imports: [
@@ -103,8 +103,14 @@ import { LoggerMiddleware } from './logger.middleware';
     SentimentCron,
   ],
 })
+
+// * registration/configuration side of NestJS middleware.
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*'); // 👈 '*' ensures it runs on every endpoint
+    consumer
+      // * register middlewares.
+      .apply(LoggerMiddleware)
+      // * routes should use middlewares
+      .forRoutes({ path: '*', method: RequestMethod.ALL }); // '*' ensures it runs on every endpoint
   }
 }
