@@ -59,13 +59,16 @@ def list_inactive_members(user: User, days=21) -> dict:
     return {"total": len(rows), "members": rows[:25]}
 
 
-# returns the gym's members whose name contains `name` (total + first 25)
+# returns the gym's members whose name contains `name` (total + first 25), each with the end of their
+# latest membership: the valid one if there is one, otherwise the most recent (expired)
 def search_members(user: User, name: str) -> dict:
     rows = db.fetch_all(f"""
         SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
                m.account_status AS account,
-               (SELECT max(ms.expires_at)::date FROM memberships ms
-                 WHERE ms.member_id = m.id AND {VALID}) AS membership_ends
+               (SELECT ms.expires_at::date FROM memberships ms WHERE ms.member_id = m.id
+                 ORDER BY ({VALID}) DESC, ms.expires_at DESC LIMIT 1) AS membership_ends,
+               EXISTS (SELECT 1 FROM memberships ms
+                 WHERE ms.member_id = m.id AND {VALID}) AS membership_valid
         FROM members m
         WHERE m.admin_id = %s AND m.first_name || ' ' || m.last_name ILIKE %s
         ORDER BY name""", (user.admin_id, f"%{name.strip()[:100]}%"))
@@ -142,14 +145,17 @@ def my_payments(user: User) -> dict:
     return {"payments": rows}
 
 
-# returns how many times the user came in the last `days` days, and their last visit
+# returns how many times the user came in the last `days` days and since the 1st of this month,
+# and their last visit
 def my_attendance(user: User, days=30) -> dict:
     return db.fetch_one("""
         SELECT
           (SELECT count(*) FROM attendances WHERE member_id = %(me)s
              AND checked_in_at >= now() - %(days)s * interval '1 day') AS visits,
-          (SELECT max(checked_in_at)::date FROM attendances WHERE member_id = %(me)s) AS last_visit,
-          %(days)s AS in_last_days
+          %(days)s AS in_last_days,
+          (SELECT count(*) FROM attendances WHERE member_id = %(me)s
+             AND checked_in_at >= date_trunc('month', now())) AS visits_this_month,
+          (SELECT max(checked_in_at)::date FROM attendances WHERE member_id = %(me)s) AS last_visit
         """, {"me": user.id, "days": _clamp(days)})
 
 
@@ -193,7 +199,8 @@ TOOLS = {
     },
     "search_members": {
         "description": "Find members by first or last name. Returns phone, email, account "
-                       "status and when their current membership ends.",
+                       "status, when their latest membership ends, and membership_valid (false "
+                       "means it has expired, or they never had one).",
         "parameters": {"type": "object",
                        "properties": {"name": {"type": "string", "description": "Part of the name."}},
                        "required": ["name"]},
@@ -236,7 +243,8 @@ TOOLS = {
         "roles": ["MEMBER"],
     },
     "my_attendance": {
-        "description": "How many times the user visited the gym in the last N days, and their last visit.",
+        "description": "How many times the user visited the gym in the last N days and since the "
+                       "1st of this month (visits_this_month), and their last visit.",
         "parameters": _days_param("How many days back. Default 30."),
         "function": my_attendance,
         "roles": ["MEMBER"],
