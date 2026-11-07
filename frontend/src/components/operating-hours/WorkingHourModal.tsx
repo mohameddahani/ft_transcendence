@@ -31,6 +31,7 @@ interface WorkingHourModalProps {
   onSuccess?: () => void;
   initialData?: WorkingHour | null;
   configuredDays?: number[];
+  defaultDay?: number;
 }
 
 const PRESET_HOURS = [
@@ -46,6 +47,7 @@ export default function WorkingHourModal({
   onSuccess,
   initialData,
   configuredDays = [],
+  defaultDay,
 }: WorkingHourModalProps) {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,7 +103,9 @@ export default function WorkingHourModal({
         });
       } else {
         const nextDay =
-          daysList.find((d) => !configuredDays.includes(d.value))?.value || 1;
+          defaultDay !== undefined
+            ? defaultDay
+            : daysList.find((d) => !configuredDays.includes(d.value))?.value || 1;
         reset({
           dayOfWeek: nextDay,
           startTime: "07:00",
@@ -110,7 +114,7 @@ export default function WorkingHourModal({
         });
       }
     }
-  }, [isOpen, initialData, reset, configuredDays, daysList]);
+  }, [isOpen, initialData, reset, configuredDays, daysList, defaultDay]);
 
   if (!isOpen) return null;
 

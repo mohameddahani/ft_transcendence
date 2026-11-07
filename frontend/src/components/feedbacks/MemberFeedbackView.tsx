@@ -2,24 +2,23 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  MessageSquare,
+  MessageSquareQuote,
   Star,
   Plus,
   RefreshCw,
   Search,
-  CheckCircle2,
-  Clock,
   Heart,
   Trash2,
-  Sparkles,
   UserCheck,
   ShieldCheck,
-  Calendar,
   Eye,
+  Loader2,
+  Inbox,
+  Filter,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-import { FeedbackItem, RawMemberFeedbackResponse } from "@/types/feedback";
+import { FeedbackItem } from "@/types/feedback";
 import {
   fetchMemberFeedbacks,
   deleteMemberFeedback,
@@ -30,18 +29,34 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import CreateFeedbackModal from "./CreateFeedbackModal";
 import MemberFeedbackDetailModal from "./MemberFeedbackDetailModal";
 import DeleteFeedbackModal from "./DeleteFeedbackModal";
+import Pagination from "@/components/ui/Pagination";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default function MemberFeedbackView() {
   const { t } = useTranslation();
-  const { user } = useCurrentUser();
+  const { user, companyName } = useCurrentUser();
 
   // Storage key for user likes
   const likedStorageKey = `member_liked_feedbacks_${user?.id || "default"}`;
 
-  // State
+  // Data state
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+  const [pagedFeedbacks, setPagedFeedbacks] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+
+  // Pagination (10 elements per page)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
 
   // Filters
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
@@ -71,33 +86,23 @@ export default function MemberFeedbackView() {
     }
   }, [likedStorageKey]);
 
-  // Load Feedbacks
+  // Load Feedbacks from server
   const loadFeedbacks = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      const rawData = await fetchMemberFeedbacks(1, 100);
-      const normalizedData: FeedbackItem[] = (Array.isArray(rawData) ? rawData : []).map(
-        (item: RawMemberFeedbackResponse) => {
-          const base = item?.feedbackData ? item.feedbackData : item;
-          const isLiked = Boolean(item?.isLiked ?? base?.isLiked ?? false);
-          const likeCount = item?.likeCount ?? base?.likeCount ?? base?._count?.likes ?? 0;
-          return {
-            ...(base as FeedbackItem),
-            isLiked,
-            likeCount,
-            _count: {
-              ...base?._count,
-              likes: likeCount,
-            },
-          };
-        }
-      );
+      // Fetch full set (for statistics and client search) and first page (10 elements)
+      const [allData, pageData] = await Promise.all([
+        fetchMemberFeedbacks(1, 1000).catch(() => []),
+        fetchMemberFeedbacks(1, pageSize).catch(() => []),
+      ]);
 
-      setFeedbacks(normalizedData);
+      setFeedbacks(allData);
+      setPagedFeedbacks(pageData);
+      setCurrentPage(1);
 
-      // Track liked IDs from backend
+      // Track liked IDs
       const liked = new Set<string>();
-      normalizedData.forEach((item) => {
+      allData.forEach((item) => {
         if (item.isLiked && item.id) {
           liked.add(item.id);
         }
@@ -110,7 +115,7 @@ export default function MemberFeedbackView() {
     } finally {
       if (showLoading) setIsLoading(false);
     }
-  }, [t]);
+  }, [t, pageSize]);
 
   useEffect(() => {
     loadFeedbacks();
@@ -122,7 +127,6 @@ export default function MemberFeedbackView() {
     const isCurrentlyLiked = targetItem ? Boolean(targetItem.isLiked) : likedIds.has(feedbackId);
     const nextLiked = new Set(likedIds);
 
-    // Optimistic state updates
     if (isCurrentlyLiked) {
       nextLiked.delete(feedbackId);
     } else {
@@ -136,27 +140,26 @@ export default function MemberFeedbackView() {
       // ignore
     }
 
-    // Optimistically update feedback likes count and isLiked flag
-    setFeedbacks((prev) =>
-      prev.map((item) => {
-        if (item.id === feedbackId) {
-          const currentCount = item.likeCount ?? item._count?.likes ?? 0;
-          const newCount = Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1));
-          return {
-            ...item,
-            isLiked: !isCurrentlyLiked,
-            likeCount: newCount,
-            _count: {
-              ...item._count,
-              likes: newCount,
-            },
-          };
-        }
-        return item;
-      })
-    );
+    const updateItemLikes = (item: FeedbackItem) => {
+      if (item.id === feedbackId) {
+        const currentCount = item.likeCount ?? item._count?.likes ?? 0;
+        const newCount = Math.max(0, currentCount + (isCurrentlyLiked ? -1 : 1));
+        return {
+          ...item,
+          isLiked: !isCurrentlyLiked,
+          likeCount: newCount,
+          _count: {
+            ...item._count,
+            likes: newCount,
+          },
+        };
+      }
+      return item;
+    };
 
-    // Update detail modal if open
+    setFeedbacks((prev) => prev.map(updateItemLikes));
+    setPagedFeedbacks((prev) => prev.map(updateItemLikes));
+
     setSelectedFeedback((prev) => {
       if (prev && prev.id === feedbackId) {
         const currentCount = prev.likeCount ?? prev._count?.likes ?? 0;
@@ -174,7 +177,6 @@ export default function MemberFeedbackView() {
       return prev;
     });
 
-    // Fire API request
     try {
       if (isCurrentlyLiked) {
         await removeLikeMemberFeedback(feedbackId);
@@ -183,17 +185,12 @@ export default function MemberFeedbackView() {
       }
     } catch (err: unknown) {
       const errorStatus = (err as { response?: { status?: number } })?.response?.status;
-      // If 409 conflict (e.g. backend already registered the state), keep local state in sync
-      if (errorStatus === 409) {
-        // Ignored as harmless race condition
-        return;
-      }
+      if (errorStatus === 409) return;
       toast.error(
         isCurrentlyLiked
           ? "Failed to remove like. Please try again."
           : "Failed to like feedback. Please try again."
       );
-      // Revert if unexpected error
       loadFeedbacks(false);
     }
   };
@@ -208,6 +205,7 @@ export default function MemberFeedbackView() {
         t("feedbackDeletedSuccess") || "Your feedback has been deleted."
       );
       setFeedbacks((prev) => prev.filter((item) => item.id !== deletingFeedback.id));
+      setPagedFeedbacks((prev) => prev.filter((item) => item.id !== deletingFeedback.id));
       setDeletingFeedback(null);
       if (selectedFeedback?.id === deletingFeedback.id) {
         setIsDetailModalOpen(false);
@@ -252,15 +250,18 @@ export default function MemberFeedbackView() {
     };
   }, [feedbacks, user?.id]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm, ratingFilter, statusFilter]);
+
   // Filtered List
   const filteredFeedbacks = useMemo(() => {
     return feedbacks.filter((f) => {
-      // Scope tab filter
       if (activeTab === "mine" && (!user?.id || f.member?.id !== user.id)) {
         return false;
       }
 
-      // Search term filter
       if (searchTerm) {
         const query = searchTerm.toLowerCase();
         const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
@@ -275,12 +276,10 @@ export default function MemberFeedbackView() {
         }
       }
 
-      // Rating filter
       if (ratingFilter !== "ALL" && f.rating !== ratingFilter) {
         return false;
       }
 
-      // Status filter
       if (statusFilter === "RESOLVED" && f.feedbackStatus !== "RESOLVED") {
         return false;
       }
@@ -292,472 +291,567 @@ export default function MemberFeedbackView() {
     });
   }, [feedbacks, activeTab, searchTerm, ratingFilter, statusFilter, user?.id]);
 
+  const isFiltering = Boolean(
+    activeTab !== "all" ||
+    searchTerm ||
+    ratingFilter !== "ALL" ||
+    statusFilter !== "ALL"
+  );
+
+  const totalItems = isFiltering ? filteredFeedbacks.length : feedbacks.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  // Display only 10 elements on the page
+  const displayFeedbacks = useMemo(() => {
+    if (isFiltering) {
+      const start = (currentPage - 1) * pageSize;
+      return filteredFeedbacks.slice(start, start + pageSize);
+    }
+    return pagedFeedbacks;
+  }, [isFiltering, filteredFeedbacks, pagedFeedbacks, currentPage, pageSize]);
+
+  // Handle page change by explicitly calling the endpoint
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    if (!isFiltering) {
+      setIsPageLoading(true);
+      try {
+        const pageData = await fetchMemberFeedbacks(newPage, pageSize);
+        setPagedFeedbacks(pageData);
+      } catch {
+        // fail gracefully
+      } finally {
+        setIsPageLoading(false);
+      }
+    }
+  };
+
+  // Crisp Outlined Micro-Badge Renderer
+  const renderStatusBadge = (statusStr: string) => {
+    const s = (statusStr || "").toUpperCase();
+    if (s === "RESOLVED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{t("statusResolved") || "Resolved"}</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+        <span>{t("statusUnderReview") || "Under Review"}</span>
+      </span>
+    );
+  };
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Hero Header Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs relative overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{t("communityVoices") || "Athlete Community Voices"}</span>
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 select-none">
+      {/* 1. Header Card (shadcn Card with Baseline Metric) */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("memberFeedbacksTitle") || "Member Feedback & Reviews"}
+              </h1>
+              {companyName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {companyName}
+                </span>
+              )}
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {stats.total} {t("total") || "total"}
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t("memberFeedbacksSubtitle") ||
+                "Share your workout experience, suggest improvements, and browse facility reviews."}
+            </p>
           </div>
-          <h1 className="font-headline font-extrabold text-2xl sm:text-3xl text-on-surface tracking-tight">
-            {t("memberFeedbacksTitle") || "Facility Feedback & Reviews"}
-          </h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant mt-2 leading-relaxed">
-            {t("memberFeedbacksSubtitle") ||
-              "Share your workout experience, give kudos to coaches, suggest improvements, and see responses from facility management."}
-          </p>
+
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => loadFeedbacks(true)}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+            >
+              <RefreshCw className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`} />
+              <span>{t("refresh") || "Refresh"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="size-3.5 me-1.5" />
+              <span>{t("shareFeedback") || "Share Feedback"}</span>
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        <div className="relative z-10 flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => loadFeedbacks(true)}
-            title={t("refresh") || "Refresh"}
-            aria-label={t("refresh") || "Refresh"}
-            className="p-3 rounded-2xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/50 transition-all cursor-pointer shadow-2xs"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl primary-gradient text-white text-xs sm:text-sm font-bold shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t("shareFeedback") || "Share Feedback"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Modern Metric Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* 1. Average Rating */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+      {/* 2. Live Operational Metrics (4 Bento Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Metric 1: Average Facility Rating */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("averageRating") || "Facility Rating"}
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-on-surface tracking-tight">
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+              <Star className="size-5 fill-amber-400 text-amber-400" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-4xl font-semibold tracking-tight text-toota-ink">
                 {stats.averageRating}
               </span>
-              <span className="text-xs text-on-surface-variant font-medium">/ 5.0</span>
+              <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                <Star className="size-3 fill-amber-400 text-amber-400" />
+                <span>/ 5.0</span>
+              </span>
             </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-400/10 text-amber-500 flex items-center justify-center ring-2 ring-amber-400/20 shadow-2xs">
-            <Star className="w-6 h-6 fill-amber-400" />
-          </div>
-        </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {stats.total} {t("communityReviews") || "community ratings recorded"}
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* 2. Total Reviews */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        {/* Metric 2: Total Community Reviews */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("totalReviews") || "Community Reviews"}
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-on-surface tracking-tight">
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+              <MessageSquareQuote className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-4xl font-semibold tracking-tight text-toota-ink">
                 {stats.total}
               </span>
-              <span className="text-xs text-on-surface-variant font-medium">
-                {t("submissions") || "posts"}
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                Total
               </span>
             </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center ring-2 ring-primary/20 shadow-2xs">
-            <MessageSquare className="w-5 h-5" />
-          </div>
-        </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {stats.totalLikes} {t("likes") || "community likes received"}
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* 3. My Submissions */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        {/* Metric 3: My Submissions */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("myReviews") || "My Submissions"}
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-on-surface tracking-tight">
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <UserCheck className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-4xl font-semibold tracking-tight text-toota-ink">
                 {stats.myCount}
               </span>
-              <span className="text-xs text-on-surface-variant font-medium">
-                {t("published") || "published"}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>Published</span>
               </span>
             </div>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center ring-2 ring-emerald-500/20 shadow-2xs">
-            <UserCheck className="w-5 h-5" />
-          </div>
-        </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("submittedByYou") || "Reviews published under your account"}
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* 4. Community Likes */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
+        {/* Metric 4: Athlete Satisfaction */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("positiveExperience") || "Satisfaction"}
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-headline font-black text-2xl sm:text-3xl text-on-surface tracking-tight">
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <Heart className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-4xl font-semibold tracking-tight text-toota-ink">
                 {stats.positivePercent}%
               </span>
-              <span className="text-xs text-emerald-500 font-bold">★ 4+ rating</span>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>Positive</span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              Rated 4 or 5 stars by members
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-green transition-all"
+                style={{ width: `${Math.min(100, Math.max(0, stats.positivePercent))}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 3. Filter & Search Toolbar Card */}
+      <Card className="toota-card border-none">
+        <div className="space-y-4">
+          {/* Top Row: Scope Tabs & Search Box */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Scope Switch */}
+            <div className="flex items-center gap-2 p-1 rounded-2xl bg-toota-inner w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setActiveTab("all")}
+                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                  activeTab === "all"
+                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
+                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                }`}
+              >
+                <span>{t("allFeedbacks") || "All Reviews"}</span>
+                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
+                  ({stats.total})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("mine")}
+                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                  activeTab === "mine"
+                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
+                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                }`}
+              >
+                <span>{t("myFeedbacks") || "My Reviews"}</span>
+                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
+                  ({stats.myCount})
+                </span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none rtl:left-auto rtl:right-3.5" />
+              <Input
+                type="text"
+                placeholder={
+                  t("searchFeedbacksPlaceholder") ||
+                  "Search reviews, member names, or resolution notes..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400 rtl:pl-4 rtl:pr-10"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-toota-muted hover:text-toota-ink cursor-pointer rtl:right-auto rtl:left-3"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center ring-2 ring-rose-500/20 shadow-2xs">
-            <Heart className="w-5 h-5 fill-rose-500/20" />
-          </div>
-        </div>
-      </div>
 
-      {/* Filter & Search Toolbar */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs space-y-4">
-        {/* Top Filter Row: Tabs & Search */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Scope Segmented Switch */}
-          <div className="flex items-center p-1 rounded-2xl bg-surface-container-low border border-outline-variant/40 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => setActiveTab("all")}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "all"
-                  ? "bg-surface-container-lowest text-on-surface shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              <span>{t("allFeedbacks") || "All Community Feedback"}</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-surface-container text-[10px] font-semibold">
-                {stats.total}
+          {/* Bottom Row: Rating & Status Filters */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/40 text-xs">
+            {/* Rating Filter */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-semibold text-toota-muted me-1">
+                {t("ratingFilter") || "Rating:"}
               </span>
-            </button>
+              {(["ALL", 5, 4, 3, 2, 1] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRatingFilter(r)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    ratingFilter === r
+                      ? "bg-toota-ink text-background dark:bg-white dark:text-black shadow-2xs"
+                      : "bg-toota-inner border border-border/40 text-toota-muted hover:text-toota-ink"
+                  }`}
+                >
+                  {r === "ALL" ? t("all") || "All" : `${r} ★`}
+                </button>
+              ))}
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab("mine")}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "mine"
-                  ? "bg-surface-container-lowest text-on-surface shadow-xs"
-                  : "text-on-surface-variant hover:text-on-surface"
-              }`}
-            >
-              <span>{t("myFeedbacks") || "My Feedback"}</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                {stats.myCount}
+            {/* Status Filter */}
+            <div className="flex items-center gap-1.5">
+              <Filter className="size-3.5 text-toota-muted shrink-0" />
+              <span className="text-[11px] font-semibold text-toota-muted me-1">
+                {t("status") || "Status:"}
               </span>
-            </button>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={
-                t("searchFeedbacksPlaceholder") ||
-                "Search reviews, member names, or resolution notes..."
-              }
-              className="w-full pl-9 pr-4 rtl:pl-4 rtl:pr-9 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-hidden focus:border-primary transition-all"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2 text-xs text-on-surface-variant hover:text-on-surface"
-              >
-                Clear
-              </button>
-            )}
+              {(["ALL", "RESOLVED", "OPEN"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    statusFilter === s
+                      ? "bg-toota-ink text-background dark:bg-white dark:text-black shadow-2xs"
+                      : "bg-toota-inner border border-border/40 text-toota-muted hover:text-toota-ink"
+                  }`}
+                >
+                  {s === "ALL"
+                    ? t("all") || "All"
+                    : s === "RESOLVED"
+                    ? t("statusResolved") || "Resolved"
+                    : t("statusUnderReview") || "Under Review"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+      </Card>
 
-        {/* Bottom Filter Row: Rating & Status Pills */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-outline-variant/40 text-xs">
-          {/* Star Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-bold text-on-surface-variant mr-1">
-              {t("ratingFilter") || "Rating:"}
-            </span>
-            {(["ALL", 5, 4, 3, 2, 1] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRatingFilter(r)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
-                  ratingFilter === r
-                    ? "bg-primary text-white shadow-xs"
-                    : "bg-surface-container-low text-on-surface-variant hover:text-on-surface border border-outline-variant/40"
-                }`}
-              >
-                {r === "ALL" ? t("all") || "All" : `${r} ★`}
-              </button>
-            ))}
-          </div>
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-on-surface-variant mr-1">
-              {t("status") || "Status:"}
-            </span>
-            {(["ALL", "RESOLVED", "OPEN"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStatusFilter(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
-                  statusFilter === s
-                    ? "bg-surface-container-high text-on-surface border border-outline-variant font-bold shadow-2xs"
-                    : "bg-surface-container-low text-on-surface-variant hover:text-on-surface border border-outline-variant/40"
-                }`}
-              >
-                {s === "ALL"
-                  ? t("all") || "All"
-                  : s === "RESOLVED"
-                  ? t("statusResolved") || "Resolved"
-                  : t("statusUnderReview") || "Under Review"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Feedback Cards Feed */}
+      {/* 4. Feedback Feed Roster (Displaying exactly 10 items for the current page) */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/50 space-y-4 animate-pulse"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-surface-container-high" />
-                <div className="space-y-1.5 flex-1">
-                  <div className="h-4 w-32 bg-surface-container-high rounded" />
-                  <div className="h-3 w-20 bg-surface-container rounded" />
-                </div>
-              </div>
-              <div className="h-4 w-28 bg-surface-container rounded" />
-              <div className="h-14 w-full bg-surface-container rounded-xl" />
-              <div className="h-9 w-full bg-surface-container rounded-xl" />
-            </div>
-          ))}
-        </div>
-      ) : filteredFeedbacks.length === 0 ? (
-        /* Empty State */
-        <div className="p-12 text-center rounded-3xl bg-surface-container-lowest border border-outline-variant/50 shadow-2xs space-y-4 max-w-lg mx-auto">
-          <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-xs ring-4 ring-primary/5">
-            <MessageSquare className="w-8 h-8" />
+        <Card className="toota-card border-none p-16 text-center">
+          <Loader2 className="size-8 animate-spin text-toota-ink mx-auto mb-3" />
+          <p className="font-medium text-toota-ink text-sm">
+            {t("loadingFeedback") || "Loading member feedback roster..."}
+          </p>
+        </Card>
+      ) : displayFeedbacks.length === 0 ? (
+        <Card className="toota-card border-none p-16 text-center space-y-3">
+          <div className="size-14 rounded-2xl bg-toota-inner flex items-center justify-center mx-auto text-toota-muted">
+            <Inbox className="size-7 opacity-50" />
           </div>
           <div>
-            <h3 className="font-headline font-bold text-base text-on-surface">
+            <p className="font-semibold text-toota-ink text-base">
               {activeTab === "mine"
                 ? t("noPersonalFeedback") || "You haven't submitted any feedback yet"
-                : searchTerm || ratingFilter !== "ALL" || statusFilter !== "ALL"
+                : isFiltering
                 ? t("noMatchingFeedback") || "No reviews match your filter criteria"
                 : t("noFeedbackYet") || "No community reviews published yet"}
-            </h3>
-            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+            </p>
+            <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1">
               {activeTab === "mine"
                 ? t("shareYourFirstReview") ||
-                  "Share your opinion about facility equipment, locker rooms, or coaching to help improve the gym."
+                  "Share your opinion about facility equipment, cleanliness, or trainers."
                 : t("beTheFirstToReview") ||
                   "Be the first member to share your workout experience with the community!"}
             </p>
           </div>
 
           <div className="pt-2">
-            {searchTerm || ratingFilter !== "ALL" || statusFilter !== "ALL" ? (
-              <button
+            {isFiltering ? (
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   setSearchTerm("");
                   setRatingFilter("ALL");
                   setStatusFilter("ALL");
+                  setActiveTab("all");
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors cursor-pointer"
+                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer"
               >
                 {t("resetFilters") || "Reset Filters"}
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl primary-gradient text-white text-xs font-bold shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer"
+                className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="size-3.5 me-1.5" />
                 <span>{t("shareFeedback") || "Share Feedback"}</span>
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Card>
       ) : (
-        /* Feedbacks Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredFeedbacks.map((item, idx) => {
+          {displayFeedbacks.map((item, idx) => {
             const isOwn = Boolean(user?.id && item.member?.id === user.id);
-            const memberName = `${item.member?.firstName || ""} ${item.member?.lastName || ""}`.trim() || "Gym Member";
-            const initials = (item.member?.firstName?.[0] || "") + (item.member?.lastName?.[0] || "") || "M";
+            const memberName =
+              `${item.member?.firstName || ""} ${item.member?.lastName || ""}`.trim() ||
+              item.member?.userName ||
+              "Gym Member";
+            const initials =
+              ((item.member?.firstName?.[0] || "") + (item.member?.lastName?.[0] || "")).toUpperCase() ||
+              item.member?.userName?.slice(0, 2).toUpperCase() ||
+              "M";
+
+            const rawPhoto = item.member?.profileImageUrl || item.member?.photo;
+            const isPlaceholder =
+              !rawPhoto ||
+              rawPhoto === "default-image.jpg" ||
+              rawPhoto === "default-member-image.jpg";
+            const photo = !isPlaceholder ? rawPhoto : null;
+
             const isLiked = Boolean(item.isLiked ?? likedIds.has(item.id));
             const likeCount = item.likeCount ?? item._count?.likes ?? 0;
-            const isResolved = item.feedbackStatus === "RESOLVED";
-            const formattedDate = new Date(item.createdAt).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            });
+            const formattedDate = item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "—";
 
             return (
-              <div
+              <Card
                 key={item.id || `feedback-${idx}`}
-                className="p-5 sm:p-6 rounded-3xl bg-surface-container-lowest border border-outline-variant/50 hover:border-primary/30 transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between group space-y-4"
+                className="toota-card border-none flex flex-col justify-between"
               >
-                {/* Card Top: Author, Date & Status */}
-                <div className="flex items-start justify-between gap-3">
+                <CardHeader className="p-0 pb-3 flex flex-row items-start justify-between gap-3 space-y-0">
                   <div className="flex items-center gap-3 min-w-0">
-                    {item.member?.profileImageUrl ? (
-                      <img
-                        src={(item.member?.profileImageUrl || item.member?.photo) as string}
-                        alt={memberName}
-                        className="w-10 h-10 rounded-2xl object-cover ring-2 ring-primary/20 shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary font-bold flex items-center justify-center ring-2 ring-primary/20 shrink-0 select-none">
+                    <Avatar className="size-10 ring-1 ring-border/40 shrink-0">
+                      {photo && <AvatarImage src={photo} alt={memberName} />}
+                      <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
                         {initials}
-                      </div>
-                    )}
+                      </AvatarFallback>
+                    </Avatar>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-headline font-bold text-sm text-on-surface truncate">
+                        <p className="text-xs font-semibold text-toota-ink truncate">
                           {memberName}
-                        </span>
+                        </p>
                         {isOwn && (
-                          <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider shrink-0">
+                          <span className="inline-flex items-center rounded-md px-1.5 py-0.2 text-[10px] font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
                             {t("you") || "You"}
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-on-surface-variant flex items-center gap-1 mt-0.5">
-                        <Calendar className="w-3 h-3 opacity-60" />
+                      <p className="text-[11px] text-toota-muted mt-0.5">
                         {formattedDate}
-                      </span>
+                      </p>
                     </div>
                   </div>
 
-                  {/* Status Pill */}
-                  {isResolved ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold shrink-0">
-                      <CheckCircle2 className="w-3 h-3" />
-                      <span>{t("statusResolved") || "Resolved"}</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[11px] font-semibold shrink-0">
-                      <Clock className="w-3 h-3" />
-                      <span>{t("statusUnderReview") || "Under Review"}</span>
-                    </span>
-                  )}
-                </div>
+                  {renderStatusBadge(item.feedbackStatus)}
+                </CardHeader>
 
-                {/* Stars Rating */}
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-4 h-4 ${
-                        star <= item.rating
-                          ? "fill-amber-400 text-amber-400 drop-shadow-2xs"
-                          : "text-outline-variant/40"
-                      }`}
-                    />
-                  ))}
-                  <span className="text-xs font-bold text-on-surface-variant ms-1.5">
-                    {item.rating}.0
-                  </span>
-                </div>
-
-                {/* Feedback Content Text */}
-                <p className="text-xs sm:text-sm text-on-surface leading-relaxed line-clamp-4 whitespace-pre-line italic">
-                  &ldquo;{item.content}&rdquo;
-                </p>
-
-                {/* Management Resolution Note Snippet (If resolved) */}
-                {item.resolutionNote && (
-                  <div className="p-3 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1">
-                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      {t("managementResponse") || "Management Response"}
+                <CardContent className="p-0 py-2 space-y-2.5 flex-1">
+                  {/* Star Rating */}
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`size-3.5 ${
+                          star <= item.rating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                    <span className="text-xs font-mono font-semibold text-toota-ink ms-1">
+                      {item.rating}.0
                     </span>
-                    <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
-                      {item.resolutionNote}
-                    </p>
                   </div>
-                )}
 
-                {/* Card Action Footer */}
-                <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-2">
+                  {/* Quoted Feedback Text */}
+                  <p className="text-xs text-toota-ink italic leading-relaxed line-clamp-3">
+                    &ldquo;{item.content}&rdquo;
+                  </p>
+
+                  {/* Management Response Snippet if resolved */}
+                  {item.resolutionNote && (
+                    <div className="p-3 rounded-xl bg-toota-inner border border-emerald-500/20 space-y-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <ShieldCheck className="size-3.5 shrink-0" />
+                        <span>{t("managementResponse") || "Management Response"}</span>
+                      </div>
+                      <p className="text-xs text-toota-muted line-clamp-2">
+                        {item.resolutionNote}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+
+                <CardFooter className="p-0 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
                   {/* Like Button */}
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleToggleLike(item.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer active:scale-95 ${
+                    className={`toota-pill h-8 px-3 text-xs font-semibold cursor-pointer ${
                       isLiked
-                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold"
-                        : "bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/40"
+                        ? "border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20"
+                        : "border-border/40 text-toota-muted hover:text-toota-ink hover:bg-toota-inner"
                     }`}
                   >
                     <Heart
-                      className={`w-3.5 h-3.5 transition-transform ${
-                        isLiked ? "fill-rose-500 text-rose-500 scale-110" : ""
-                      }`}
+                      className={`size-3.5 me-1.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`}
                     />
                     <span>{likeCount}</span>
-                  </button>
+                  </Button>
 
-                  <div className="flex items-center gap-2">
-                    {/* View Details Button */}
-                    <button
+                  <div className="flex items-center gap-1.5">
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setSelectedFeedback(item);
                         setIsDetailModalOpen(true);
                       }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                      className="h-8 px-2.5 text-xs font-semibold text-toota-ink hover:bg-toota-inner rounded-full cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="size-3.5 me-1" />
                       <span>{t("viewDetails") || "Details"}</span>
-                    </button>
+                    </Button>
 
                     {isOwn && (
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setDeletingFeedback(item)}
-                        title={t("deleteFeedback") || "Delete your review"}
-                        className="p-1.5 rounded-xl text-error/70 hover:text-error hover:bg-error/10 transition-colors cursor-pointer"
+                        className="h-8 w-8 p-0 text-toota-muted hover:text-toota-red hover:bg-destructive/10 rounded-full cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <Trash2 className="size-3.5" />
+                      </Button>
                     )}
                   </div>
-                </div>
-              </div>
+                </CardFooter>
+              </Card>
             );
           })}
         </div>
       )}
 
-      {/* Create Feedback Modal */}
+      {/* 5. Pagination Footer (Exactly 10 per page) */}
+      {totalItems > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          isLoading={isPageLoading}
+          itemLabel={t("feedbacks") || "reviews"}
+        />
+      )}
+
+      {/* Modals */}
       <CreateFeedbackModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => loadFeedbacks(false)}
       />
 
-      {/* Member Feedback Detail Modal */}
       <MemberFeedbackDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => {
@@ -774,7 +868,6 @@ export default function MemberFeedbackView() {
         }}
       />
 
-      {/* Delete Confirmation Modal */}
       <DeleteFeedbackModal
         isOpen={Boolean(deletingFeedback)}
         onClose={() => setDeletingFeedback(null)}

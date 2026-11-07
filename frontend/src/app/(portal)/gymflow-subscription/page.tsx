@@ -15,9 +15,9 @@ import {
   Copy,
   Check,
   Sparkles,
-  Filter,
   Search,
-  Layers,
+  Loader2,
+  Headphones,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -26,6 +26,16 @@ import { GymflowSubscription } from "@/types/subscription";
 import { fetchMySubscription, fetchAllSubscriptions } from "@/lib/api/subscriptions";
 import { fetchMembers } from "@/lib/api/members";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 
 export default function GymflowSubscriptionPage() {
   const { t } = useTranslation();
@@ -48,15 +58,24 @@ export default function GymflowSubscriptionPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [currentSub, allSubs, members] = await Promise.all([
+      const [currentSub, allSubs, allMembers] = await Promise.all([
         fetchMySubscription().catch(() => null),
-        fetchAllSubscriptions(1, 50).catch(() => []),
-        fetchMembers(1, 1).then((res) => (Array.isArray(res) ? res.length : 0)).catch(() => 0),
+        fetchAllSubscriptions(1, 100).catch(() => []),
+        fetchMembers(1, 1000).catch(() => []),
       ]);
 
-      setActiveSubscription(currentSub);
+      // Resolve true member count from actual member records
+      const actualCount = Array.isArray(allMembers) ? allMembers.length : 0;
+      setMemberCount(actualCount);
+
+      // Prioritize active subscription; fallback to first active in ledger, or latest ledger record
+      const resolvedSub =
+        currentSub ||
+        allSubs.find((s) => s.subscriptionStatus === "ACTIVE") ||
+        (allSubs.length > 0 ? allSubs[0] : null);
+
+      setActiveSubscription(resolvedSub);
       setAllSubscriptions(allSubs);
-      setMemberCount(members);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -80,30 +99,138 @@ export default function GymflowSubscriptionPage() {
     setTimeout(() => setIsCopied(null), 2500);
   };
 
+  // Cycle duration calculation (from planDuration or difference between dates)
+  const cycleDays = useMemo(() => {
+    if (!activeSubscription) return 30;
+    if (activeSubscription.planDuration?.durationDays) {
+      return activeSubscription.planDuration.durationDays;
+    }
+    if (activeSubscription.startedAt && activeSubscription.expiresAt) {
+      const start = new Date(activeSubscription.startedAt).getTime();
+      const end = new Date(activeSubscription.expiresAt).getTime();
+      const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+      if (diff > 0) return diff;
+    }
+    return 30;
+  }, [activeSubscription]);
+
   // Expiry & Countdown Calculation
   const expiryAnalysis = useMemo(() => {
     if (!activeSubscription?.expiresAt) return null;
     const now = new Date();
     const expiryDate = new Date(activeSubscription.expiresAt);
     const diffMs = expiryDate.getTime() - now.getTime();
-    const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const rawDaysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
     const startDate = activeSubscription.startedAt
       ? new Date(activeSubscription.startedAt).toLocaleDateString()
       : "--";
     const formattedExpiry = expiryDate.toLocaleDateString();
 
-    const isExpiringSoon = daysLeft > 0 && daysLeft <= 7;
-    const isExpired = daysLeft <= 0;
+    const isExpired =
+      rawDaysLeft <= 0 || activeSubscription.subscriptionStatus === "EXPIRED";
+    const isExpiringSoon = !isExpired && rawDaysLeft > 0 && rawDaysLeft <= 7;
 
     return {
-      daysLeft,
+      daysLeft: Math.max(0, rawDaysLeft),
       startDate,
       formattedExpiry,
       isExpiringSoon,
       isExpired,
     };
   }, [activeSubscription]);
+
+  // Quota and capacity metrics
+  const maxCapacity = activeSubscription?.plan?.maxMembers || 0;
+  const capacityPercent =
+    maxCapacity > 0 ? Math.min(100, Math.round((memberCount / maxCapacity) * 100)) : 0;
+  const slotsLeft = Math.max(0, maxCapacity - memberCount);
+
+  const subAmount = Number(
+    activeSubscription?.amount ?? activeSubscription?.planDuration?.price ?? 0
+  );
+  const dailyRate = cycleDays > 0 ? (subAmount / cycleDays).toFixed(2) : "0.00";
+
+  // License Status Badge Helper (Crisp Outlined Micro-Badge)
+  const renderLicenseStatusBadge = () => {
+    if (!activeSubscription) return null;
+    const status = activeSubscription.subscriptionStatus;
+
+    if (status === "ACTIVE" && !expiryAnalysis?.isExpired) {
+      if (expiryAnalysis?.isExpiringSoon) {
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>
+              {t("expiringSoon") || `Expiring in ${expiryAnalysis.daysLeft} days`}
+            </span>
+          </span>
+        );
+      }
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{t("activeLicense") || "Active"}</span>
+        </span>
+      );
+    }
+
+    if (status === "EXPIRED" || expiryAnalysis?.isExpired) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span>{t("licenseExpired") || "Expired"}</span>
+        </span>
+      );
+    }
+
+    const label = status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : "";
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+        <span>{label}</span>
+      </span>
+    );
+  };
+
+  const renderHistoryStatusBadge = (status: string) => {
+    const s = (status || "").toUpperCase();
+    const label =
+      s === "ACTIVE"
+        ? t("active") || "Active"
+        : s === "EXPIRED"
+        ? t("expired") || "Expired"
+        : s === "CANCELLED"
+        ? t("cancelled") || "Cancelled"
+        : status
+        ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+        : "";
+
+    if (s === "ACTIVE") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "EXPIRED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+        <span>{label}</span>
+      </span>
+    );
+  };
 
   // Filtered History Ledger
   const filteredHistory = useMemo(() => {
@@ -150,15 +277,24 @@ export default function GymflowSubscriptionPage() {
       "Expires At",
     ];
 
-    const rows = filteredHistory.map((sub) => [
-      `"${sub.plan?.planName || "Standard"}"`,
-      sub.plan?.maxMembers || 0,
-      sub.planDuration?.durationDays || 30,
-      `"${sub.amount || 0}"`,
-      sub.subscriptionStatus,
-      sub.startedAt ? sub.startedAt.split("T")[0] : "",
-      sub.expiresAt ? sub.expiresAt.split("T")[0] : "",
-    ]);
+    const rows = filteredHistory.map((sub) => {
+      let subDurationDays = sub.planDuration?.durationDays;
+      if (!subDurationDays && sub.startedAt && sub.expiresAt) {
+        const s = new Date(sub.startedAt).getTime();
+        const e = new Date(sub.expiresAt).getTime();
+        const diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+        if (diff > 0) subDurationDays = diff;
+      }
+      return [
+        `"${sub.plan?.planName || "Core Plan"}"`,
+        sub.plan?.maxMembers || 0,
+        subDurationDays || 30,
+        `"${Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)}"`,
+        sub.subscriptionStatus,
+        sub.startedAt ? new Date(sub.startedAt).toLocaleDateString() : "",
+        sub.expiresAt ? new Date(sub.expiresAt).toLocaleDateString() : "",
+      ];
+    });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -179,225 +315,205 @@ export default function GymflowSubscriptionPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-container-max mx-auto pb-16">
-      {/* Top Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl primary-gradient text-white flex items-center justify-center shadow-md shadow-primary/20">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
-                  {t("gymflowSubscriptionTitle") || "GymFlow Subscription"}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
-                  Enterprise Core
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Overview & Action Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("gymflowSubscriptionTitle") || "Platform Subscription"}
+              </h1>
+              {activeSubscription?.plan?.planName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {activeSubscription.plan.planName} Tier
                 </span>
-              </div>
-              <p className="text-xs sm:text-sm text-on-surface-variant mt-1">
-                {t("gymflowSubscriptionSubtitle") ||
-                  "Manage your core GymFlow platform license, allocated capacity, and complete billing ledger."}
-              </p>
+              )}
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {allSubscriptions.length} {t("allRecords") || "records"}
+              </span>
             </div>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t("gymflowSubscriptionSubtitle") ||
+                "Manage your core GymFlow platform license, allocated capacity, and complete billing ledger."}
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadData}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <RefreshCw
+                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>{t("refresh") || "Refresh"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <Download className="size-3.5 me-2" />
+              <span>{t("export") || "Export"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => setIsContactModalOpen(true)}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer"
+            >
+              <Sparkles className="size-3.5 me-2" />
+              <span>{t("contactSupport") || "Upgrade Plan"}</span>
+            </Button>
           </div>
         </div>
-
-        {/* Global Header Actions */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
-            />
-            <span>{t("refresh")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-on-surface-variant" />
-            <span>{t("export")}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsContactModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{t("contactSupport") || "Upgrade / Contact Platform"}</span>
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* ========================================================================= */}
       {/* HERO SECTION: Current Active Platform License Showcase                    */}
       {/* ========================================================================= */}
       {activeSubscription ? (
-        <div className="relative rounded-3xl bg-surface-bright border border-outline-variant/60 shadow-xl overflow-hidden p-6 sm:p-8 transition-all">
-          {/* Subtle Dynamic Ambient Glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
-          <div className="relative z-10 space-y-6">
+        <Card className="toota-card border-none p-6 sm:p-7">
+          <div className="space-y-6">
             {/* Top Bar of the Card */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-outline-variant/40">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center font-black shadow-inner border border-primary/20">
-                  <Zap className="w-6 h-6" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/40">
+              <div className="flex items-center gap-3.5">
+                <div className="size-12 rounded-2xl bg-toota-inner text-toota-ink flex items-center justify-center font-bold shadow-xs">
+                  <Zap className="size-6 text-toota-ink" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                      {t("currentActivePlan") || "Active Platform License"}
+                    <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+                      {t("currentActivePlan") || "Platform License"}
                     </span>
                     {companyName && (
-                      <span className="text-[11px] text-on-surface-variant/80 font-medium">
+                      <span className="text-xs text-toota-muted font-normal">
                         • {companyName}
                       </span>
                     )}
                   </div>
-                  <h2 className="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight mt-0.5">
-                    {activeSubscription.plan?.planName || "Enterprise"} Tier
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-toota-ink tracking-tight mt-0.5">
+                    {activeSubscription.plan?.planName || "Core"} Tier
                   </h2>
                 </div>
               </div>
 
-              {/* Status Pill with Pulsating Radar */}
+              {/* Dynamic Status Pill */}
               <div className="flex items-center gap-2 self-start sm:self-auto">
-                <div className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2 shadow-xs">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                  </span>
-                  <span>{t("activeLicense") || "Active & In Good Standing"}</span>
-                </div>
+                {renderLicenseStatusBadge()}
               </div>
             </div>
 
-            {/* Metrics Quad: 4 High-Density Operational Pillars */}
+            {/* Metrics Quad: 4 Real Pillars */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Metric 1: Capacity Limit */}
-              <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-on-surface-variant">
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
+                <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
                     {t("memberCapacityQuota") || "Member Capacity"}
                   </span>
-                  <Users className="w-4 h-4 text-primary" />
+                  <Users className="size-4 text-toota-ink" />
                 </div>
-                <div className="text-2xl font-bold font-headline text-on-surface">
-                  {activeSubscription.plan?.maxMembers || 0}
-                  <span className="text-xs font-normal text-on-surface-variant ml-1.5">
+                <div className="text-2xl font-bold tracking-tight text-toota-ink">
+                  {maxCapacity}
+                  <span className="text-xs font-normal text-toota-muted ms-1.5">
                     Max Members
                   </span>
                 </div>
                 {/* Visual meter bar */}
-                <div className="w-full bg-surface-container-high h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-border/40 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-primary h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        activeSubscription.plan?.maxMembers
-                          ? Math.round(
-                              (memberCount / activeSubscription.plan.maxMembers) * 100
-                            )
-                          : 35
-                      )}%`,
-                    }}
+                    className="bg-toota-ink h-full rounded-full transition-all"
+                    style={{ width: `${capacityPercent}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-on-surface-variant flex items-center justify-between">
-                  <span>Registered: {memberCount}</span>
-                  <span className="text-primary font-bold">
-                    {Math.max(
-                      0,
-                      (activeSubscription.plan?.maxMembers || 0) - memberCount
-                    )}{" "}
-                    {t("slotsRemaining") || "slots left"}
+                <p className="text-[11px] text-toota-muted flex items-center justify-between">
+                  <span>Registered: <strong className="text-toota-ink font-semibold">{memberCount}</strong></span>
+                  <span className="text-toota-ink font-semibold">
+                    {slotsLeft} {t("slotsRemaining") || "slots left"}
                   </span>
                 </p>
               </div>
 
               {/* Metric 2: Plan Price & Cycle */}
-              <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-on-surface-variant">
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
+                <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
                     {t("planPrice") || "Plan Investment"}
                   </span>
-                  <CreditCard className="w-4 h-4 text-emerald-500" />
+                  <CreditCard className="size-4 text-toota-green" />
                 </div>
-                <div className="text-2xl font-bold font-headline text-on-surface">
-                  ${Number(activeSubscription.amount || activeSubscription.planDuration?.price || 0).toFixed(2)}
-                  <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-                    / {activeSubscription.planDuration?.durationDays || 30} days
+                <div className="text-2xl font-bold tracking-tight text-toota-ink">
+                  ${subAmount.toFixed(2)}
+                  <span className="text-xs font-normal text-toota-muted ms-1.5">
+                    / {cycleDays} days
                   </span>
                 </div>
-                <div className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <div className="text-[11px] text-toota-muted flex items-center gap-1.5">
+                  <span className="size-1.5 rounded-full bg-toota-green" />
                   <span>
-                    ≈ $
-                    {(
-                      Number(activeSubscription.amount || activeSubscription.planDuration?.price || 0) /
-                      (activeSubscription.planDuration?.durationDays || 30)
-                    ).toFixed(2)}
-                    /day platform license
+                    ≈ ${dailyRate}/day license
                   </span>
                 </div>
               </div>
 
               {/* Metric 3: Active Window */}
-              <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-on-surface-variant">
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
+                <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
                     {t("billingPeriod") || "Billing Window"}
                   </span>
-                  <Calendar className="w-4 h-4 text-cyan-500" />
+                  <Calendar className="size-4 text-toota-ink" />
                 </div>
-                <div className="text-sm font-bold text-on-surface">
+                <div className="text-sm font-semibold text-toota-ink">
                   {expiryAnalysis?.startDate} → {expiryAnalysis?.formattedExpiry}
                 </div>
-                <div className="text-[11px] text-on-surface-variant">
-                  Duration: {activeSubscription.planDuration?.durationDays || 30} Days Total
+                <div className="text-[11px] text-toota-muted">
+                  Duration: {cycleDays} Days Cycle
                 </div>
               </div>
 
               {/* Metric 4: Days Remaining / Renewal Countdown */}
               <div
                 className={`p-4 rounded-2xl border space-y-2 ${
-                  expiryAnalysis?.isExpiringSoon
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-100"
-                    : "bg-surface-container-lowest border border-outline-variant/40"
+                  expiryAnalysis?.isExpired
+                    ? "bg-toota-red/10 border-toota-red/30"
+                    : expiryAnalysis?.isExpiringSoon
+                    ? "bg-amber-500/10 border-amber-500/30"
+                    : "bg-toota-inner border-border/40"
                 }`}
               >
-                <div className="flex items-center justify-between text-xs text-on-surface-variant">
+                <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
                     {t("renewingIn") || "Renewal Timeline"}
                   </span>
                   <Clock
-                    className={`w-4 h-4 ${
-                      expiryAnalysis?.isExpiringSoon
+                    className={`size-4 ${
+                      expiryAnalysis?.isExpired
+                        ? "text-toota-red"
+                        : expiryAnalysis?.isExpiringSoon
                         ? "text-amber-500"
-                        : "text-primary"
+                        : "text-toota-ink"
                     }`}
                   />
                 </div>
-                <div className="text-2xl font-bold font-headline text-on-surface">
-                  {Math.max(0, expiryAnalysis?.daysLeft || 0)}
-                  <span className="text-xs font-normal text-on-surface-variant ml-1.5">
+                <div className="text-2xl font-bold tracking-tight text-toota-ink">
+                  {expiryAnalysis?.daysLeft ?? 0}
+                  <span className="text-xs font-normal text-toota-muted ms-1.5">
                     {t("durationDaysCount") || "Days Remaining"}
                   </span>
                 </div>
-                <p className="text-[11px] text-on-surface-variant">
-                  {expiryAnalysis?.isExpiringSoon
+                <p className="text-[11px] text-toota-muted">
+                  {expiryAnalysis?.isExpired
+                    ? "⚠️ License expired. Upgrade or renew to continue full access."
+                    : expiryAnalysis?.isExpiringSoon
                     ? "⚠️ Renewal window approaching soon"
                     : "Automatic license continuity active"}
                 </p>
@@ -405,275 +521,283 @@ export default function GymflowSubscriptionPage() {
             </div>
 
             {/* Included Platform Capabilities Ribbon */}
-            <div className="p-4 rounded-2xl bg-surface-container-low/70 border border-outline-variant/40 space-y-2.5">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <div className="p-4 rounded-2xl bg-toota-inner/60 border border-border/40 space-y-2.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-toota-muted flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-toota-ink" />
                 {t("planFeaturesTitle") || "Included Platform Capabilities"}
               </span>
 
+              {activeSubscription.plan?.description ? (
+                <p className="text-xs text-toota-ink font-normal leading-relaxed">
+                  {activeSubscription.plan.description}
+                </p>
+              ) : null}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
+                  <CheckCircle2 className="size-4 text-toota-green shrink-0" />
                   <span>Uncapped Member QR Check-Ins</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
+                  <CheckCircle2 className="size-4 text-toota-green shrink-0" />
                   <span>Staff Roles & Roster Controls</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
+                  <CheckCircle2 className="size-4 text-toota-green shrink-0" />
                   <span>Automated Revenue Tracking</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-on-surface">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>99.9% Cloud Synchronization</span>
+                <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
+                  <CheckCircle2 className="size-4 text-toota-green shrink-0" />
+                  <span>Full Data Integrity & Export</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       ) : (
         /* Empty / No Active Subscription Hero Card */
-        <div className="p-8 sm:p-12 rounded-3xl bg-surface-bright border border-outline-variant/60 shadow-lg text-center flex flex-col items-center justify-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-500/20">
-            <AlertTriangle className="w-8 h-8" />
+        <Card className="toota-card border-none p-8 sm:p-12 text-center flex flex-col items-center justify-center space-y-4">
+          <div className="size-16 rounded-3xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+            <AlertTriangle className="size-8" />
           </div>
           <div className="max-w-md">
-            <h2 className="font-headline text-xl font-bold text-on-surface">
+            <h2 className="text-xl font-semibold text-toota-ink">
               {t("noActiveLicense") || "No Active License Assigned"}
             </h2>
-            <p className="text-xs sm:text-sm text-on-surface-variant mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-sm text-toota-muted mt-1.5 leading-relaxed">
               {t("noActiveLicenseDesc") ||
                 "Your gym currently does not have an active GymFlow platform license. Contact your platform administrator to activate your plan."}
             </p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => setIsContactModalOpen(true)}
-            className="mt-2 flex items-center gap-2 px-5 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md hover:opacity-95 transition-all cursor-pointer"
+            className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="size-3.5 me-2" />
             <span>{t("contactSupport") || "Request Plan Activation"}</span>
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       {/* ========================================================================= */}
       {/* SUBSCRIPTION HISTORY & BILLING LEDGER SECTION                             */}
       {/* ========================================================================= */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="font-headline text-xl font-bold text-on-surface flex items-center gap-2">
-              <Layers className="w-5 h-5 text-primary" />
-              <span>{t("subscriptionHistory") || "Billing & Subscription History"}</span>
-            </h3>
-            <p className="text-xs text-on-surface-variant mt-0.5">
-              Historical ledger of all platform subscriptions associated with your facility.
-            </p>
+        {/* Filter Card */}
+        <Card className="toota-card border-none p-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 w-full">
+              <Search className="size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+              <input
+                type="text"
+                placeholder={t("searchSubscriptions") || "Search ledger by plan tier, date, or amount..."}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-10 ps-10 pe-4 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-ring transition-all"
+              />
+            </div>
+
+            {/* Status Filter Dropdown */}
+            <div className="w-full sm:w-48 shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value as "ALL" | "ACTIVE" | "EXPIRED" | "CANCELLED"
+                  )
+                }
+                aria-label="Filter status"
+                className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+              >
+                <option value="ALL">{t("allRecords") || "All Statuses"}</option>
+                <option value="ACTIVE">{t("activeOnly") || "Active"}</option>
+                <option value="EXPIRED">{t("expiredOnly") || "Expired"}</option>
+                <option value="CANCELLED">{t("cancelledOnly") || "Cancelled"}</option>
+              </select>
+            </div>
           </div>
+        </Card>
 
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant border border-outline-variant/60 self-start sm:self-auto">
-            {filteredHistory.length} {t("allRecords") || "Records"}
-          </span>
-        </div>
+        {/* History Table Card */}
+        <Card className="toota-card border-none p-0 overflow-hidden">
+          <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
+            <div className="flex items-baseline gap-2">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("subscriptionHistory") || "Billing & Subscription History"}
+              </CardTitle>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {filteredHistory.length} {t("allRecords") || "records"}
+              </span>
+            </div>
 
-        {/* Filter & Search Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-surface-container-lowest p-4 rounded-2xl shadow-xs border border-outline-variant">
-          {/* Search Input */}
-          <div className="md:col-span-8 relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search history by plan tier, date, or amount..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"
-            />
-          </div>
+            {isLoading && (
+              <div className="flex items-center gap-2 text-xs text-toota-muted">
+                <Loader2 className="size-3.5 animate-spin" />
+                <span>{t("loading") || "Updating..."}</span>
+              </div>
+            )}
+          </CardHeader>
 
-          {/* Status Filter */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value as "ALL" | "ACTIVE" | "EXPIRED" | "CANCELLED"
-                )
-              }
-              className="w-full px-3 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none cursor-pointer"
-            >
-              <option value="ALL">{t("allRecords") || "All Statuses"}</option>
-              <option value="ACTIVE">{t("activeOnly") || "Active"}</option>
-              <option value="EXPIRED">{t("expiredOnly") || "Expired"}</option>
-              <option value="CANCELLED">{t("cancelledOnly") || "Cancelled"}</option>
-            </select>
-          </div>
-        </div>
-
-        {/* History Table */}
-        <div className="bg-surface-bright rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-outline-variant/50 bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <th className="py-3.5 px-4 sm:px-6">Plan & Tier</th>
-                  <th className="py-3.5 px-4">Member Limit</th>
-                  <th className="py-3.5 px-4">Billing Window</th>
-                  <th className="py-3.5 px-4">Amount Billed</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right">Reference</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/20 text-xs">
-                {filteredHistory.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-on-surface-variant">
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <CreditCard className="w-8 h-8 opacity-40" />
-                        <p className="font-semibold text-on-surface">No subscription records found</p>
-                        <p className="text-[11px] max-w-sm text-on-surface-variant/80">
-                          When your gym renews or updates plans, every transaction will be logged in this ledger.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredHistory.map((sub, index) => {
+          <CardContent className="p-0">
+            {filteredHistory.length === 0 ? (
+              <div className="py-16 text-center px-4">
+                <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
+                  <CreditCard className="size-7" />
+                </div>
+                <h4 className="font-medium text-base text-toota-ink">
+                  {allSubscriptions.length === 0
+                    ? t("noSubscriptionsYet") || "No subscription records found"
+                    : t("noMatchingRecords") || "No matching subscription records"}
+                </h4>
+                <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
+                  {allSubscriptions.length === 0
+                    ? "When your facility activates or renews platform tiers, records will appear here automatically."
+                    : "Try adjusting your search query or status filter to see other records."}
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
+                    <TableHead className="px-6 py-3.5">Plan & Tier</TableHead>
+                    <TableHead className="px-6 py-3.5">Member Limit</TableHead>
+                    <TableHead className="px-6 py-3.5">Billing Window</TableHead>
+                    <TableHead className="px-6 py-3.5">Amount Billed</TableHead>
+                    <TableHead className="px-6 py-3.5">Status</TableHead>
+                    <TableHead className="px-6 py-3.5 text-right rtl:text-left">Reference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border/40 text-xs">
+                  {filteredHistory.map((sub, index) => {
                     const status = sub.subscriptionStatus;
-                    const isActive = status === "ACTIVE";
-                    const isExpired = status === "EXPIRED";
 
-                    const startDate = sub.startedAt ? sub.startedAt.split("T")[0] : "--";
-                    const endDate = sub.expiresAt ? sub.expiresAt.split("T")[0] : "--";
-                    const refId = `GF-SUB-${startDate.replace(/-/g, "")}-${index + 101}`;
+                    const startDate = sub.startedAt
+                      ? new Date(sub.startedAt).toLocaleDateString()
+                      : "--";
+                    const endDate = sub.expiresAt
+                      ? new Date(sub.expiresAt).toLocaleDateString()
+                      : "--";
+
+                    let subDurationDays = sub.planDuration?.durationDays;
+                    if (!subDurationDays && sub.startedAt && sub.expiresAt) {
+                      const s = new Date(sub.startedAt).getTime();
+                      const e = new Date(sub.expiresAt).getTime();
+                      const diff = Math.round((e - s) / (1000 * 60 * 60 * 24));
+                      if (diff > 0) subDurationDays = diff;
+                    }
+
+                    const refId = sub.id
+                      ? `#SUB-${sub.id.slice(0, 8)}`
+                      : `GF-SUB-${index + 101}`;
 
                     return (
-                      <tr
-                        key={index}
-                        className="hover:bg-surface-container/40 transition-colors"
+                      <TableRow
+                        key={sub.id || index}
+                        className="border-border/40 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
                       >
                         {/* Plan & Tier */}
-                        <td className="py-4 px-4 sm:px-6 font-medium text-on-surface">
+                        <TableCell className="px-6 py-3.5 font-medium text-toota-ink">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                              <Zap className="w-4 h-4" />
+                            <div className="size-8 rounded-lg bg-toota-inner flex items-center justify-center text-toota-ink shrink-0">
+                              <Zap className="size-4" />
                             </div>
                             <div>
-                              <div className="font-bold text-on-surface">
+                              <div className="font-semibold text-toota-ink">
                                 {sub.plan?.planName || "Core Plan"}
                               </div>
-                              <div className="text-[11px] text-on-surface-variant">
-                                {sub.planDuration?.durationDays || 30} Days Cycle
+                              <div className="text-[11px] text-toota-muted">
+                                {subDurationDays || 30} Days Cycle
                               </div>
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Member Limit */}
-                        <td className="py-4 px-4 text-on-surface font-semibold">
-                          <span className="inline-flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5 text-on-surface-variant" />
+                        <TableCell className="px-6 py-3.5 text-toota-ink font-semibold">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Users className="size-3.5 text-toota-muted" />
                             {sub.plan?.maxMembers || 0} Members
                           </span>
-                        </td>
+                        </TableCell>
 
                         {/* Billing Window */}
-                        <td className="py-4 px-4 text-on-surface">
-                          <div className="font-medium">
-                            {startDate} <span className="text-on-surface-variant">→</span> {endDate}
-                          </div>
-                        </td>
+                        <TableCell className="px-6 py-3.5 text-toota-muted font-medium">
+                          {startDate} <span className="text-toota-muted/60">→</span> {endDate}
+                        </TableCell>
 
                         {/* Amount Billed */}
-                        <td className="py-4 px-4 font-bold text-on-surface">
-                          ${Number(sub.amount || sub.planDuration?.price || 0).toFixed(2)}
-                        </td>
+                        <TableCell className="px-6 py-3.5 font-bold text-toota-ink">
+                          ${Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)}
+                        </TableCell>
 
                         {/* Status */}
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 ${
-                              isActive
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : isExpired
-                                ? "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
-                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isActive
-                                  ? "bg-emerald-500"
-                                  : isExpired
-                                  ? "bg-on-surface-variant"
-                                  : "bg-rose-500"
-                              }`}
-                            />
-                            {status}
-                          </span>
-                        </td>
+                        <TableCell className="px-6 py-3.5">
+                          {renderHistoryStatusBadge(status)}
+                        </TableCell>
 
                         {/* Reference / Copy */}
-                        <td className="py-4 px-4 sm:px-6 text-right">
-                          <button
+                        <TableCell className="px-6 py-3.5 text-right rtl:text-left">
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleCopyReceipt(refId)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/50 text-[11px] font-mono text-on-surface transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-toota-inner hover:bg-toota-card text-[11px] font-mono text-toota-ink cursor-pointer border border-border/40"
                             title={t("copyReceiptId") || "Copy Reference ID"}
                           >
                             <span>{refId}</span>
                             {isCopied === refId ? (
-                              <Check className="w-3 h-3 text-emerald-500" />
+                              <Check className="size-3 text-toota-green" />
                             ) : (
-                              <Copy className="w-3 h-3 text-on-surface-variant" />
+                              <Copy className="size-3 text-toota-muted" />
                             )}
-                          </button>
-                        </td>
-                      </tr>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* ========================================================================= */}
       {/* ENTERPRISE TRUST & CONTINUITY RIBBON                                      */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/50 space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wide">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+        <Card className="toota-card border-none p-4 space-y-1.5">
+          <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
+            <CheckCircle2 className="size-4 text-toota-green" />
             <span>Continuous Local Caching</span>
           </div>
-          <p className="text-xs text-on-surface-variant leading-relaxed">
+          <p className="text-xs text-toota-muted leading-relaxed">
             Member check-ins and attendance validation stay operational even during intermittent platform connectivity.
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/50 space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wide">
-            <ShieldCheck className="w-4 h-4 text-primary" />
+        <Card className="toota-card border-none p-4 space-y-1.5">
+          <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
+            <ShieldCheck className="size-4 text-toota-ink" />
             <span>Strict Tenant Isolation</span>
           </div>
-          <p className="text-xs text-on-surface-variant leading-relaxed">
+          <p className="text-xs text-toota-muted leading-relaxed">
             Your gym member database, financial records, and staff credentials reside in dedicated isolated data partitions.
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/50 space-y-1.5 shadow-xs">
-          <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wide">
-            <HeadphonesIcon className="w-4 h-4 text-cyan-500" />
+        <Card className="toota-card border-none p-4 space-y-1.5">
+          <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
+            <Headphones className="size-4 text-toota-ink" />
             <span>Dedicated Platform Concierge</span>
           </div>
-          <p className="text-xs text-on-surface-variant leading-relaxed">
+          <p className="text-xs text-toota-muted leading-relaxed">
             24/7 technical assistance for subscription scaling, API integrations, and facility hardware synchronization.
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* ========================================================================= */}
@@ -686,17 +810,17 @@ export default function GymflowSubscriptionPage() {
             onClick={() => setIsContactModalOpen(false)}
           />
 
-          <div className="relative w-full max-w-lg bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/40 p-6 sm:p-8 z-10 animate-in zoom-in-95 duration-200">
+          <Card className="toota-card border-none relative w-full max-w-lg shadow-2xl overflow-hidden p-6 sm:p-7 z-10 animate-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl primary-gradient text-white flex items-center justify-center shadow-md">
-                  <Sparkles className="w-5 h-5" />
+                <div className="size-10 rounded-xl bg-toota-inner text-toota-ink flex items-center justify-center shadow-xs">
+                  <Sparkles className="size-5" />
                 </div>
                 <div>
-                  <h3 className="font-headline text-lg font-bold text-on-surface">
+                  <h3 className="text-lg font-semibold text-toota-ink">
                     Upgrade GymFlow Subscription
                   </h3>
-                  <p className="text-xs text-on-surface-variant">
+                  <p className="text-xs text-toota-muted">
                     Expand member capacity or extend your facility license
                   </p>
                 </div>
@@ -704,64 +828,55 @@ export default function GymflowSubscriptionPage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-primary">
+              <div className="p-4 rounded-xl bg-toota-inner border border-border/40 space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-toota-ink">
                   How Licensing Works
                 </h4>
-                <p className="text-xs text-on-surface-variant leading-relaxed">
-                  GymFlow subscriptions are managed and provisioned directly by your Platform Administrator / GymFlow Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.
+                <p className="text-xs text-toota-muted leading-relaxed">
+                  GymFlow subscriptions are provisioned directly by the Platform Administrator / GymFlow Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.
                 </p>
               </div>
 
               <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/40">
-                  <span className="font-bold text-on-surface">Current Capacity Limit:</span>
-                  <span className="font-bold text-primary">
-                    {activeSubscription?.plan?.maxMembers || 100} Members
+                <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
+                  <span className="font-semibold text-toota-ink">Current Capacity Limit:</span>
+                  <span className="font-bold text-toota-ink">
+                    {maxCapacity || 100} Members
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/40">
-                  <span className="font-bold text-on-surface">Next Tier Quota:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                    500+ / Unlimited Members
+                <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
+                  <span className="font-semibold text-toota-ink">Active Registered Members:</span>
+                  <span className="font-bold text-toota-green">
+                    {memberCount} Members
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
+                  <span className="font-semibold text-toota-ink">Next Tier Quota:</span>
+                  <span className="font-bold text-toota-green">
+                    {maxCapacity ? `${maxCapacity * 2}+ Members` : "500+ / Unlimited Members"}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary leading-relaxed">
+              <div className="p-4 rounded-xl bg-toota-inner border border-border/40 text-xs text-toota-ink leading-relaxed">
                 <strong>Need immediate quota extension?</strong> Reach out to your account executive or email{" "}
                 <span className="font-mono font-semibold underline">support@gymflow.io</span> with your Gym ID.
               </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setIsContactModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant text-xs font-bold hover:bg-surface-container transition-colors cursor-pointer"
+                className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
               >
                 Close
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
-  );
-}
-
-function HeadphonesIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
-    </svg>
   );
 }

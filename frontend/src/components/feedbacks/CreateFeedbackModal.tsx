@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   X,
   Star,
-  MessageSquare,
   Sparkles,
   Loader2,
   AlertCircle,
@@ -13,6 +12,7 @@ import {
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { createMemberFeedback } from "@/lib/api/member-portal";
+import { Button } from "@/components/ui/button";
 
 interface CreateFeedbackModalProps {
   isOpen: boolean;
@@ -22,32 +22,27 @@ interface CreateFeedbackModalProps {
 
 const RATING_DESCRIPTIONS: Record<
   number,
-  { label: string; tone: string; color: string }
+  { label: string; tone: string }
 > = {
   1: {
     label: "Poor",
     tone: "Experienced significant issues that need immediate attention.",
-    color: "text-rose-500",
   },
   2: {
     label: "Fair",
     tone: "Below expectations, noticeable room for facility improvements.",
-    color: "text-amber-500",
   },
   3: {
     label: "Good",
     tone: "Standard satisfactory workout session, decent facilities.",
-    color: "text-yellow-500",
   },
   4: {
     label: "Very Good",
     tone: "High quality gear, clean workout floor, friendly staff.",
-    color: "text-emerald-500",
   },
   5: {
     label: "Exceptional",
     tone: "Peak fitness environment, immaculate facility & top equipment!",
-    color: "text-primary",
   },
 };
 
@@ -125,62 +120,62 @@ export default function CreateFeedbackModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-feedback-title"
-        className="w-full max-w-lg bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-outline-variant/50 bg-surface-container-low/40 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center shadow-xs">
-              <MessageSquare className="w-5 h-5" />
-            </div>
-            <div>
+        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
+          <div>
+            <div className="flex items-baseline gap-2">
               <h2
                 id="create-feedback-title"
-                className="font-headline font-bold text-lg text-on-surface tracking-tight"
+                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
               >
                 {t("shareYourFeedback") || "Share Your Feedback"}
               </h2>
-              <p className="text-xs text-on-surface-variant font-medium">
-                {t("feedbackHelpCommunity") ||
-                  "Tell us about your workout experience and facility quality."}
-              </p>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {currentActiveRating}.0 ★
+              </span>
             </div>
+            <p className="text-xs text-toota-muted mt-0.5">
+              {t("feedbackHelpCommunity") ||
+                "Tell us about your workout experience and facility quality."}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-5">
           {errorMsg && (
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-error/10 border border-error/20 text-error text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {/* Star Rating Section */}
-          <div className="space-y-2.5">
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-toota-muted uppercase tracking-wider">
               {t("overallRating") || "Your Experience Rating"}
             </label>
 
-            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 flex flex-col items-center gap-2.5 text-center">
+            <div className="p-4 rounded-xl bg-toota-inner border border-border/40 flex flex-col items-center gap-2 text-center">
               {/* Stars */}
               <div
                 className="flex items-center gap-2"
@@ -194,15 +189,15 @@ export default function CreateFeedbackModal({
                       type="button"
                       onClick={() => setRating(starValue)}
                       onMouseEnter={() => setHoveredRating(starValue)}
-                      className="p-1.5 rounded-xl hover:scale-115 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
+                      className="p-1.5 rounded-lg hover:scale-110 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
                       title={`${starValue} Star`}
                       aria-label={`${starValue} Star`}
                     >
                       <Star
-                        className={`w-7 h-7 transition-colors ${
+                        className={`size-6 transition-colors ${
                           isFilled
-                            ? "fill-amber-400 text-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.4)]"
-                            : "text-outline-variant/70 hover:text-outline-variant"
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-zinc-300 dark:text-zinc-700"
                         }`}
                       />
                     </button>
@@ -212,10 +207,10 @@ export default function CreateFeedbackModal({
 
               {/* Dynamic Rating Label */}
               <div className="flex flex-col items-center gap-0.5">
-                <span className={`text-sm font-bold tracking-tight ${ratingInfo.color}`}>
+                <span className="text-xs font-semibold text-toota-ink">
                   {currentActiveRating} / 5 • {ratingInfo.label}
                 </span>
-                <span className="text-[11px] text-on-surface-variant max-w-xs">
+                <span className="text-[11px] text-toota-muted max-w-xs">
                   {ratingInfo.tone}
                 </span>
               </div>
@@ -224,8 +219,8 @@ export default function CreateFeedbackModal({
 
           {/* Quick Suggestions / Topics */}
           <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-on-surface-variant flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-toota-muted flex items-center gap-1.5">
+              <Sparkles className="size-3 text-amber-500" />
               {t("suggestedTopics") || "Tap to mention specific topics:"}
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -234,7 +229,7 @@ export default function CreateFeedbackModal({
                   key={topic}
                   type="button"
                   onClick={() => handleTopicClick(topic)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-surface-container-low hover:bg-surface-container border border-outline-variant/50 text-on-surface-variant hover:text-on-surface transition-all cursor-pointer active:scale-95"
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-toota-inner hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40 text-toota-muted hover:text-toota-ink transition-all cursor-pointer active:scale-95"
                 >
                   + {topic}
                 </button>
@@ -243,30 +238,30 @@ export default function CreateFeedbackModal({
           </div>
 
           {/* Feedback Content Textarea */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label
                 htmlFor="feedback-content"
-                className="text-xs font-bold uppercase tracking-wider text-on-surface-variant"
+                className="text-xs font-semibold text-toota-muted uppercase tracking-wider"
               >
                 {t("yourReview") || "Your Feedback"}
               </label>
               <span
-                className={`text-[11px] font-medium ${
+                className={`font-mono text-[11px] tabular-nums ${
                   charCount > 1000
-                    ? "text-error font-bold"
+                    ? "text-destructive font-semibold"
                     : charCount < 3
-                    ? "text-on-surface-variant"
-                    : "text-primary"
+                    ? "text-toota-muted"
+                    : "text-toota-green font-semibold"
                 }`}
               >
-                {charCount} / 1000 characters
+                {charCount} / 1000
               </span>
             </div>
 
             <textarea
               id="feedback-content"
-              rows={5}
+              rows={4}
               required
               minLength={3}
               maxLength={1000}
@@ -276,38 +271,39 @@ export default function CreateFeedbackModal({
                 t("feedbackPlaceholder") ||
                 "Describe what went well during your visit, cleanliness, workout equipment, or suggestions for the gym staff..."
               }
-              className="w-full px-4 py-3 rounded-2xl bg-surface-container-low border border-outline-variant/50 text-on-surface placeholder:text-on-surface-variant/50 focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/20 text-xs sm:text-sm leading-relaxed transition-all resize-none shadow-inner"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-toota-inner border border-border/40 text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-zinc-400 text-xs leading-relaxed transition-all resize-none"
             />
           </div>
 
           {/* Modal Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/40">
-            <button
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/40">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl border border-outline-variant/60 text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors cursor-pointer"
+              className="toota-pill h-9 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
             >
               {t("cancel") || "Cancel"}
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting || !isContentValid}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl primary-gradient text-white text-xs font-bold shadow-md hover:opacity-95 active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="size-3.5 animate-spin me-1.5" />
                   <span>{t("submitting") || "Publishing..."}</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="size-3.5 me-1.5" />
                   <span>{t("submitFeedback") || "Publish Feedback"}</span>
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -5,8 +5,6 @@ import {
   X,
   Star,
   Heart,
-  CheckCircle2,
-  Clock,
   Trash2,
   Calendar,
   Loader2,
@@ -15,6 +13,8 @@ import {
 import { useTranslation } from "react-i18next";
 import { FeedbackItem } from "@/types/feedback";
 import { fetchMemberFeedbackById } from "@/lib/api/member-portal";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface MemberFeedbackDetailModalProps {
   isOpen: boolean;
@@ -58,62 +58,71 @@ export default function MemberFeedbackDetailModal({
 
   if (!isOpen || !detail) return null;
 
-  const memberName = `${detail.member?.firstName || ""} ${detail.member?.lastName || ""}`.trim() || "Gym Member";
-  const initials = (detail.member?.firstName?.[0] || "") + (detail.member?.lastName?.[0] || "") || "M";
+  const memberName =
+    `${detail.member?.firstName || ""} ${detail.member?.lastName || ""}`.trim() ||
+    detail.member?.userName ||
+    "Gym Member";
+  const initials =
+    ((detail.member?.firstName?.[0] || "") + (detail.member?.lastName?.[0] || "")).toUpperCase() ||
+    detail.member?.userName?.slice(0, 2).toUpperCase() ||
+    "M";
+
+  const rawPhoto = detail.member?.profileImageUrl || detail.member?.photo;
+  const isPlaceholder =
+    !rawPhoto ||
+    rawPhoto === "default-image.jpg" ||
+    rawPhoto === "default-member-image.jpg";
+  const photo = !isPlaceholder ? rawPhoto : null;
+
   const formattedDate = new Date(detail.createdAt).toLocaleDateString(undefined, {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
+
   const isResolved = detail.feedbackStatus === "RESOLVED";
+  const likeCount = detail.likeCount ?? detail._count?.likes ?? 0;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="feedback-detail-title"
-        className="w-full max-w-xl bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 sm:p-6 border-b border-outline-variant/50 bg-surface-container-low/40 shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
           <div className="flex items-center gap-3">
-            {detail.member?.profileImageUrl || detail.member?.photo ? (
-              <img
-                src={(detail.member?.profileImageUrl || detail.member?.photo) as string}
-                alt={memberName}
-                className="w-11 h-11 rounded-2xl object-cover ring-2 ring-primary/20 shadow-2xs"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary font-bold flex items-center justify-center ring-2 ring-primary/20 shadow-2xs">
+            <Avatar className="size-10 ring-1 ring-border/40 shrink-0">
+              {photo && <AvatarImage src={photo} alt={memberName} />}
+              <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
                 {initials}
-              </div>
-            )}
+              </AvatarFallback>
+            </Avatar>
 
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-baseline gap-2">
                 <h3
                   id="feedback-detail-title"
-                  className="font-headline font-bold text-base text-on-surface"
+                  className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
                 >
                   {memberName}
                 </h3>
                 {isOwnFeedback && (
-                  <span className="px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center rounded-md px-1.5 py-0.2 text-[10px] font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
                     {t("you") || "You"}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5">
-                <Calendar className="w-3.5 h-3.5 opacity-60" />
+              <div className="flex items-center gap-1.5 text-[11px] text-toota-muted mt-0.5">
+                <Calendar className="size-3 shrink-0" />
                 <span>{formattedDate}</span>
-              </p>
+              </div>
             </div>
           </div>
 
@@ -121,131 +130,132 @@ export default function MemberFeedbackDetailModal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+        {/* Content Body */}
+        <div className="p-5 space-y-4 overflow-y-auto">
           {isLoading && (
-            <div className="flex items-center justify-center py-2">
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <div className="flex items-center gap-2 text-xs text-toota-muted">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>Updating review details...</span>
             </div>
           )}
 
-          {/* Rating & Status Bar */}
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/40">
-            {/* Stars */}
-            <div className="flex items-center gap-1.5">
+          {/* Status & Rating Bar */}
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-toota-inner border border-border/40">
+            <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                   key={star}
-                  className={`w-5 h-5 ${
+                  className={`size-4 ${
                     star <= detail.rating
-                      ? "fill-amber-400 text-amber-400 drop-shadow-xs"
-                      : "text-outline-variant/50"
+                      ? "fill-amber-400 text-amber-400"
+                      : "text-muted-foreground/30"
                   }`}
                 />
               ))}
-              <span className="text-sm font-bold text-on-surface ms-1.5">
+              <span className="font-mono text-xs font-semibold text-toota-ink ms-1">
                 {detail.rating}.0 / 5.0
               </span>
             </div>
 
-            {/* Status Badge */}
+            {/* Micro-Badge Status */}
             {isResolved ? (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                 <span>{t("statusResolved") || "Resolved"}</span>
-              </div>
+              </span>
             ) : (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{t("statusUnderReview") || "Under review"}</span>
-              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span>{t("statusUnderReview") || "Under Review"}</span>
+              </span>
             )}
           </div>
 
-          {/* Feedback Content */}
-          <div className="space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
-              {t("reviewDetails") || "Feedback Submission"}
+          {/* Review Message */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
+              {t("review") || "Review"}
             </span>
-            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 relative">
-              <p className="text-sm text-on-surface leading-relaxed whitespace-pre-line">
+            <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40">
+              <p className="text-xs text-toota-ink leading-relaxed">
                 &ldquo;{detail.content}&rdquo;
               </p>
             </div>
           </div>
 
-          {/* Administrative Resolution Note (If resolved) */}
+          {/* Management Resolution */}
           {detail.resolutionNote && (
-            <div className="p-4 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide text-[11px]">
-                  <ShieldCheck className="w-4 h-4" />
-                  {t("managementResponse") || "Gym Management Response"}
-                </span>
-                {detail.resolvedAt && (
-                  <span className="text-[10px] text-on-surface-variant">
-                    {new Date(detail.resolvedAt).toLocaleDateString()}
-                  </span>
-                )}
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
+                {t("managementResponse") || "Management Response"}
+              </span>
+              <div className="p-3.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <ShieldCheck className="size-3.5 shrink-0" />
+                  <span>Gym Management</span>
+                  {detail.resolvedAt && (
+                    <span className="text-[11px] text-toota-muted font-normal font-mono ms-auto">
+                      {new Date(detail.resolvedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-toota-ink/90 leading-relaxed">
+                  {detail.resolutionNote}
+                </p>
               </div>
-              <p className="text-xs text-on-surface leading-relaxed whitespace-pre-line">
-                {detail.resolutionNote}
-              </p>
             </div>
           )}
-
-          {/* Interaction Row: Likes & Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => onToggleLike(detail.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95 ${
-                isLiked
-                  ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
-                  : "bg-surface-container-low hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/40"
-              }`}
-            >
-              <Heart
-                className={`w-4 h-4 transition-transform ${
-                  isLiked ? "fill-rose-500 text-rose-500 scale-110" : ""
-                }`}
-              />
-              <span>
-                {detail.likeCount ?? detail._count?.likes ?? 0} {t("likes") || "Likes"}
-              </span>
-            </button>
-
-            {isOwnFeedback && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onDeleteRequest(detail);
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-error hover:bg-error/10 border border-error/20 transition-all cursor-pointer active:scale-95"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>{t("delete") || "Delete"}</span>
-              </button>
-            )}
-          </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 px-6 border-t border-outline-variant/40 bg-surface-container-low/30 flex justify-end shrink-0">
-          <button
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between p-4 border-t border-border/40 shrink-0">
+          <Button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors cursor-pointer"
+            variant="outline"
+            size="sm"
+            onClick={() => onToggleLike(detail.id)}
+            className={`toota-pill h-8 px-3 text-xs font-semibold cursor-pointer ${
+              isLiked
+                ? "border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20"
+                : "border-border/40 text-toota-muted hover:text-toota-ink hover:bg-toota-inner"
+            }`}
           >
-            {t("close") || "Close"}
-          </button>
+            <Heart
+              className={`size-3.5 me-1.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`}
+            />
+            <span>{likeCount} {t("likes") || "Likes"}</span>
+          </Button>
+
+          <div className="flex items-center gap-2">
+            {isOwnFeedback && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => onDeleteRequest(detail)}
+                className="toota-pill h-8 px-3 text-xs font-semibold cursor-pointer"
+              >
+                <Trash2 className="size-3.5 me-1.5" />
+                <span>{t("delete") || "Delete"}</span>
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="toota-pill h-8 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
+            >
+              {t("close") || "Close"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

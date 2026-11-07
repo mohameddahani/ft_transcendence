@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Loader2,
   RefreshCw,
-  Building,
   Star,
   MessageSquareQuote,
   ThumbsUp,
@@ -33,7 +32,6 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -119,36 +117,35 @@ function AdminStaffDashboardView() {
     if (!feedbacks || feedbacks.length === 0) {
       return [];
     }
-
     // Sort by rating (highest first), then by likes
     const sorted = [...feedbacks].sort((a, b) => {
-      const diff = (b.rating || 0) - (a.rating || 0);
+      const aRating = typeof a.rating === "number" ? a.rating : 0;
+      const bRating = typeof b.rating === "number" ? b.rating : 0;
+      const diff = bRating - aRating;
       if (diff !== 0) return diff;
-      return (b._count?.likes || 0) - (a._count?.likes || 0);
+      const aLikes = a.likeCount ?? a._count?.likes ?? 0;
+      const bLikes = b.likeCount ?? b._count?.likes ?? 0;
+      return bLikes - aLikes;
     });
 
     return sorted.map((f) => {
+      const member = f.member;
       const name =
-        `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.trim() ||
+        `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
+        member?.userName ||
         "Gym Member";
       const initials =
-        (f.member?.firstName?.[0] || "") + (f.member?.lastName?.[0] || "") ||
-        "M";
-      const avatarUrl = f.member?.profileImageUrl || f.member?.photo;
-      const hasPhoto = Boolean(
-        avatarUrl &&
-          !avatarUrl.includes("default-member") &&
-          !avatarUrl.includes("default-image") &&
-          !avatarUrl.includes("avatars-default")
-      );
+        (member?.firstName?.[0] || "") + (member?.lastName?.[0] || "") ||
+        (member?.userName?.[0] ? member.userName[0].toUpperCase() : "M");
+      const avatarUrl = member?.profileImageUrl || member?.photo || null;
 
       return {
         id: f.id,
         name,
-        avatarUrl: hasPhoto ? avatarUrl : null,
-        rating: f.rating || 5,
+        avatarUrl,
+        rating: typeof f.rating === "number" ? f.rating : Number(f.rating) || 5,
         content: f.content || "",
-        likes: f._count?.likes || 0,
+        likes: f.likeCount ?? f._count?.likes ?? 0,
         createdAt: f.createdAt,
         initials: initials.toUpperCase(),
       };
@@ -168,9 +165,12 @@ function AdminStaffDashboardView() {
         totalLikes: 0,
       };
     }
-    const sum = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
+    const sum = feedbacks.reduce(
+      (acc, f) => acc + (typeof f.rating === "number" ? f.rating : Number(f.rating) || 0),
+      0
+    );
     const avg = (sum / total).toFixed(1);
-    const positive = feedbacks.filter((f) => (f.rating || 0) >= 4).length;
+    const positive = feedbacks.filter((f) => (Number(f.rating) || 0) >= 4).length;
     const positivePct = Math.round((positive / total) * 100);
     const open = feedbacks.filter(
       (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
@@ -179,7 +179,7 @@ function AdminStaffDashboardView() {
       (f) => f.feedbackStatus === "RESOLVED"
     ).length;
     const likes = feedbacks.reduce(
-      (acc, f) => acc + (f._count?.likes || 0),
+      (acc, f) => acc + (f.likeCount ?? f._count?.likes ?? 0),
       0
     );
 
@@ -206,34 +206,6 @@ function AdminStaffDashboardView() {
     return leaderboardData.slice(3, 8);
   }, [leaderboardData]);
 
-  const getStatusBadgeVariant = (
-    status: string
-  ):
-    | "default"
-    | "secondary"
-    | "destructive"
-    | "outline"
-    | "success"
-    | "warning"
-    | "danger"
-    | "muted" => {
-    switch (status.toUpperCase()) {
-      case "ACTIVE":
-        return "success";
-      case "PENDING":
-        return "warning";
-      case "EXPIRED":
-        return "danger";
-      case "BANNED":
-        return "destructive";
-      case "CANCELLED":
-      case "INACTIVE":
-        return "muted";
-      default:
-        return "outline";
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     const s = (status || "").toUpperCase();
     if (s === "ACTIVE") return t("active") || "Active";
@@ -242,7 +214,55 @@ function AdminStaffDashboardView() {
     if (s === "EXPIRED") return t("expired") || "Expired";
     if (s === "CANCELLED") return t("cancelled") || "Cancelled";
     if (s === "INACTIVE") return t("inactive") || "Inactive";
-    return status;
+    return status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : "";
+  };
+
+  const renderStatusBadge = (status: string) => {
+    const s = (status || "").toUpperCase();
+    const label = getStatusLabel(status);
+
+    if (s === "ACTIVE") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "PENDING") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "EXPIRED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "BANNED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-600 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+        <span>{label}</span>
+      </span>
+    );
   };
 
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
@@ -257,27 +277,19 @@ function AdminStaffDashboardView() {
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("welcomeBack") || "Welcome back"}, {fullName}
+              </h1>
               {companyName && (
-                <Badge
-                  variant="outline"
-                  className="rounded-full px-3 py-1 text-xs font-semibold border-border/60 text-toota-ink bg-toota-inner"
-                >
-                  <Building className="size-3.5 me-1.5" />
-                  {companyName}
-                </Badge>
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {companyName}
+                </span>
               )}
-              <Badge
-                variant="secondary"
-                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                {role} {t("workspace") || "Workspace"}
-              </Badge>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {role}
+              </span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-toota-ink">
-              {t("welcomeBack") || "Welcome back"}, {fullName}
-            </h1>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("dashboardSubtitle") ||
                 "Real-time facility performance and live member insights."}
@@ -329,12 +341,9 @@ function AdminStaffDashboardView() {
                   {totalMembers}
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className="rounded-full text-[11px] font-medium border-border/50 text-toota-muted"
-              >
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
                 {t("liveFromApi") || "Live"}
-              </Badge>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("registeredInGym") || "Registered gym members"}
@@ -361,9 +370,10 @@ function AdminStaffDashboardView() {
                   {activeMembers}
                 </span>
               )}
-              <Badge variant="success" className="rounded-full text-[11px] font-semibold">
-                {totalMembers > 0 ? `${activePercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{totalMembers > 0 ? `${activePercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("totalActiveMembers") || "Total active members"}
@@ -396,9 +406,10 @@ function AdminStaffDashboardView() {
                   {inactiveOrOther}
                 </span>
               )}
-              <Badge variant="muted" className="rounded-full text-[11px] font-medium">
-                {totalMembers > 0 ? `${inactivePercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span>{totalMembers > 0 ? `${inactivePercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2 truncate">
               {expiredMembers > 0 || bannedMembers > 0
@@ -433,12 +444,9 @@ function AdminStaffDashboardView() {
                   {plans.length}
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className="rounded-full text-[11px] font-medium border-border/50 text-toota-muted"
-              >
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
                 Plans
-              </Badge>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               Available gym membership plans
@@ -459,11 +467,23 @@ function AdminStaffDashboardView() {
                     {feedbackStats.averageRating}
                   </span>
                   <div className="flex items-center gap-1 text-amber-500">
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400/50 text-amber-400/50" />
+                    {[1, 2, 3, 4, 5].map((starIndex) => {
+                      const avgNum = parseFloat(feedbackStats.averageRating);
+                      const isFull = starIndex <= Math.floor(avgNum);
+                      const isHalf = !isFull && starIndex <= Math.ceil(avgNum) && avgNum % 1 >= 0.25;
+                      return (
+                        <Star
+                          key={starIndex}
+                          className={`size-5 ${
+                            isFull
+                              ? "fill-amber-400 text-amber-400"
+                              : isHalf
+                              ? "fill-amber-400/50 text-amber-400/50"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
                 <p className="text-xs text-toota-muted mt-1.5 font-normal">
@@ -471,12 +491,10 @@ function AdminStaffDashboardView() {
                 </p>
               </div>
 
-              <Badge
-                variant="success"
-                className="rounded-full text-xs font-semibold px-3 py-1"
-              >
-                {feedbackStats.positivePercent}% Positive
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{feedbackStats.positivePercent}% Positive</span>
+              </span>
             </div>
 
             {/* Satisfaction Index Track */}
@@ -523,14 +541,58 @@ function AdminStaffDashboardView() {
             {feedbacks.length > 0 ? (
               <div className="p-3.5 rounded-xl bg-background/50 border border-border/40 flex items-start gap-3">
                 <MessageSquareQuote className="size-5 text-toota-muted shrink-0 mt-0.5" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {feedbacks[0].member?.profileImageUrl ? (
+                        <Avatar className="size-5 ring-1 ring-border/40 shrink-0">
+                          <AvatarImage
+                            src={feedbacks[0].member.profileImageUrl}
+                            alt={feedbacks[0].member.firstName || "Member"}
+                          />
+                          <AvatarFallback className="text-[9px]">
+                            {getInitials(
+                              feedbacks[0].member.firstName,
+                              feedbacks[0].member.lastName
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : null}
+                      <p className="text-xs font-semibold text-toota-ink truncate">
+                        {feedbacks[0].member?.firstName || ""}{" "}
+                        {feedbacks[0].member?.lastName || feedbacks[0].member?.userName || "Member"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Star className="size-3 fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-semibold text-toota-ink">
+                        {Number(feedbacks[0].rating ?? 5).toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
                   <p className="text-xs italic text-toota-ink line-clamp-2">
                     &quot;{feedbacks[0].content}&quot;
                   </p>
-                  <p className="text-[11px] text-toota-muted mt-1 font-medium">
-                    — {feedbacks[0].member?.firstName}{" "}
-                    {feedbacks[0].member?.lastName}
-                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-toota-muted mt-2">
+                    <span>
+                      {feedbacks[0].createdAt
+                        ? new Date(feedbacks[0].createdAt).toLocaleDateString()
+                        : "—"}
+                    </span>
+                    {feedbacks[0].sentiment ? (
+                      <span
+                        className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-full ${
+                          feedbacks[0].sentiment === "POSITIVE"
+                            ? "bg-toota-green/15 text-toota-green"
+                            : feedbacks[0].sentiment === "NEGATIVE"
+                            ? "bg-toota-red/15 text-toota-red"
+                            : "bg-toota-muted/15 text-toota-muted"
+                        }`}
+                      >
+                        {feedbacks[0].sentiment}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -558,7 +620,8 @@ function AdminStaffDashboardView() {
             </div>
 
             {/* Podium View (Top 3 Reviewed Members) */}
-            {leaderboardData.length > 0 ? (
+            {leaderboardData.length > 0 ? 
+            (
               <div className="flex justify-around items-end mb-6 pt-2 pb-1 border-b border-border/30">
                 {/* 2nd Place (Left) */}
                 {podium.second ? (
@@ -574,13 +637,10 @@ function AdminStaffDashboardView() {
                         {podium.second.initials}
                       </AvatarFallback>
                     </Avatar>
-                    <Badge
-                      variant="outline"
-                      className="rounded-full text-[10px] font-semibold mt-1 px-2 py-0 border-amber-500/40 text-amber-600 dark:text-amber-400 gap-0.5"
-                    >
+                    <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-mono font-medium ring-1 ring-inset ring-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 mt-1">
                       <Star className="size-2.5 fill-amber-400 text-amber-400" />
                       <span>{podium.second.rating.toFixed(1)}</span>
-                    </Badge>
+                    </span>
                     <span className="text-[11px] font-medium text-toota-ink truncate max-w-[75px]">
                       {podium.second.name.split(" ")[0]}
                     </span>
@@ -606,13 +666,10 @@ function AdminStaffDashboardView() {
                         {podium.first.initials}
                       </AvatarFallback>
                     </Avatar>
-                    <Badge
-                      variant="warning"
-                      className="rounded-full text-xs font-bold mt-1 px-2.5 py-0.5 gap-1 shadow-xs"
-                    >
+                    <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-amber-500/40 bg-amber-500/15 text-amber-800 dark:text-amber-200 mt-1 shadow-2xs">
                       <Star className="size-3 fill-amber-500 text-amber-500" />
                       <span>{podium.first.rating.toFixed(1)}</span>
-                    </Badge>
+                    </span>
                     <span className="text-xs font-bold text-toota-ink truncate max-w-[85px]">
                       {podium.first.name.split(" ")[0]}
                     </span>
@@ -636,13 +693,10 @@ function AdminStaffDashboardView() {
                         {podium.third.initials}
                       </AvatarFallback>
                     </Avatar>
-                    <Badge
-                      variant="outline"
-                      className="rounded-full text-[10px] font-semibold mt-1 px-2 py-0 border-amber-500/40 text-amber-600 dark:text-amber-400 gap-0.5"
-                    >
+                    <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-mono font-medium ring-1 ring-inset ring-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 mt-1">
                       <Star className="size-2.5 fill-amber-400 text-amber-400" />
                       <span>{podium.third.rating.toFixed(1)}</span>
-                    </Badge>
+                    </span>
                     <span className="text-[11px] font-medium text-toota-ink truncate max-w-[75px]">
                       {podium.third.name.split(" ")[0]}
                     </span>
@@ -686,13 +740,10 @@ function AdminStaffDashboardView() {
                   </p>
                 </div>
 
-                <Badge
-                  variant="outline"
-                  className="rounded-full text-[11px] font-semibold px-2 py-0.5 gap-1 shrink-0 border-amber-500/40 text-amber-600 dark:text-amber-400"
-                >
+                <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 shrink-0">
                   <Star className="size-2.5 fill-amber-400 text-amber-400" />
                   <span>{item.rating.toFixed(1)}</span>
-                </Badge>
+                </span>
               </li>
             ))}
           </ul>
@@ -702,21 +753,21 @@ function AdminStaffDashboardView() {
       {/* Real Members Data Table from GET /api/admins/members */}
       <Card className="toota-card border-none p-0 overflow-hidden">
         <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40">
-          <CardTitle className="text-lg font-medium text-toota-ink">
-            {t("recentMembers") || "Recent Members"}
-          </CardTitle>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-toota-muted">
-              {totalMembers} {t("navMembers") || "Members"}
+          <div className="flex items-baseline gap-2">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {t("recentMembers") || "Recent Members"}
+            </CardTitle>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {totalMembers} {t("navMembers") || "members"}
             </span>
-            <Link
-              href="/members"
-              className="text-xs font-semibold text-toota-ink hover:underline flex items-center gap-1"
-            >
-              <span>{t("viewAllMembers") || "View all"}</span>
-              <ArrowRight className="size-3.5 rtl:rotate-180" />
-            </Link>
           </div>
+          <Link
+            href="/members"
+            className="text-xs font-semibold text-toota-ink hover:underline flex items-center gap-1"
+          >
+            <span>{t("viewAllMembers") || "View all"}</span>
+            <ArrowRight className="size-3.5 rtl:rotate-180" />
+          </Link>
         </CardHeader>
 
         <CardContent className="p-0">
@@ -801,13 +852,7 @@ function AdminStaffDashboardView() {
                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
                     member.userName ||
                     "Member";
-                  const avatarUrl = member.profileImageUrl || member.photo;
-                  const hasPhoto = Boolean(
-                    avatarUrl &&
-                      !avatarUrl.includes("default-member") &&
-                      !avatarUrl.includes("default-image") &&
-                      !avatarUrl.includes("avatars-default")
-                  );
+                  const avatarUrl = member.profileImageUrl || member.photo || null;
 
                   const firstMembership = member.memberships?.[0];
                   const membershipStatus = firstMembership?.membershipStatus;
@@ -849,9 +894,9 @@ function AdminStaffDashboardView() {
                           className="flex items-center gap-3 group hover:opacity-90 transition-opacity"
                         >
                           <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
-                            {hasPhoto && (
+                            {avatarUrl && (
                               <AvatarImage
-                                src={avatarUrl!}
+                                src={avatarUrl}
                                 alt={memberName}
                               />
                             )}
@@ -876,12 +921,7 @@ function AdminStaffDashboardView() {
                         {member.phoneNumber || "—"}
                       </TableCell>
                       <TableCell className="px-6 py-3.5">
-                        <Badge
-                          variant={getStatusBadgeVariant(statusText)}
-                          className="rounded-full text-[10px] font-semibold uppercase tracking-wider"
-                        >
-                          {getStatusLabel(statusText)}
-                        </Badge>
+                        {renderStatusBadge(statusText)}
                       </TableCell>
                       <TableCell className="px-6 py-3.5 text-toota-ink font-normal">
                         <div>

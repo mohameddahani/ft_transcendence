@@ -10,8 +10,6 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
-  CheckCircle2,
-  Sparkles,
   CreditCard,
   Clock,
   MapPin,
@@ -20,6 +18,7 @@ import {
   Layers,
   Award,
   Building,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -36,7 +35,18 @@ import {
   formatMembershipDuration,
 } from "@/types/member-portal";
 import EmailChangeSection from "@/components/profile/EmailChangeSection";
-
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 export default function MemberProfileView() {
   const { t } = useTranslation();
@@ -57,6 +67,10 @@ export default function MemberProfileView() {
     try {
       const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
       const current = stored ? JSON.parse(stored) : {};
+      const isPlaceholder =
+        !updatedProfile.profileImageUrl ||
+        updatedProfile.profileImageUrl === "default-image.jpg" ||
+        updatedProfile.profileImageUrl === "default-member-image.jpg";
       const updated = {
         ...current,
         firstName: updatedProfile.firstName,
@@ -69,12 +83,7 @@ export default function MemberProfileView() {
           current.companyName ||
           "",
         role: "Member",
-        photo:
-          updatedProfile.profileImageUrl &&
-          updatedProfile.profileImageUrl !== "default-image.jpg" &&
-          updatedProfile.profileImageUrl !== "default-member-image.jpg"
-            ? updatedProfile.profileImageUrl
-            : null,
+        photo: !isPlaceholder ? updatedProfile.profileImageUrl : null,
       };
       localStorage.setItem("gym_user", JSON.stringify(updated));
       localStorage.removeItem("kinetic_user");
@@ -145,7 +154,7 @@ export default function MemberProfileView() {
 
   // Delete Photo Handler
   const handleDeletePhoto = async () => {
-    if (!profile?.profileImageUrl || profile.profileImageUrl === "default-member-image.jpg") {
+    if (!profile?.profileImageUrl || profile.profileImageUrl === "default-member-image.jpg" || profile.profileImageUrl === "default-image.jpg") {
       toast.info(t("noCustomPhoto") || "No custom profile photo to remove");
       return;
     }
@@ -165,13 +174,24 @@ export default function MemberProfileView() {
     }
   };
 
-  const hasCustomPhoto =
-    profile?.profileImageUrl &&
-    profile.profileImageUrl !== "default-image.jpg" &&
-    profile.profileImageUrl !== "default-member-image.jpg";
+  const rawPhoto = profile?.profileImageUrl;
+  const isPlaceholder =
+    !rawPhoto ||
+    rawPhoto === "default-image.jpg" ||
+    rawPhoto === "default-member-image.jpg";
+  const photoUrl = !isPlaceholder ? rawPhoto : null;
+
+  const fullName =
+    `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
+    profile?.userName ||
+    "Gym Member";
 
   const initials =
-    ((profile?.firstName?.[0] || "") + (profile?.lastName?.[0] || "")).toUpperCase() || "M";
+    ((profile?.firstName?.[0] || "") + (profile?.lastName?.[0] || "")).toUpperCase() ||
+    profile?.userName?.slice(0, 2).toUpperCase() ||
+    "M";
+
+  const facility = profile?.companyName || profile?.admin?.companyName || "";
 
   // Calculate days remaining
   const calculateDaysRemaining = (expiresAtStr: string) => {
@@ -184,8 +204,8 @@ export default function MemberProfileView() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-xs font-semibold text-on-surface-variant">
+        <Loader2 className="size-8 text-toota-ink animate-spin" />
+        <p className="text-xs text-toota-muted">
           {t("loadingProfile") || "Loading member profile..."}
         </p>
       </div>
@@ -193,7 +213,7 @@ export default function MemberProfileView() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-12">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -203,151 +223,191 @@ export default function MemberProfileView() {
         className="hidden"
       />
 
-      {/* Header Banner / Identity Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm p-6 sm:p-8">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-        <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          {/* Avatar with Camera Actions */}
+      {/* Top Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("memberProfileTitle") || "Member Profile & Membership"}
+              </h1>
+              {facility && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {facility}
+                </span>
+              )}
+              {profile?.userName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / @{profile.userName}
+                </span>
+              )}
+            </div>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t(
+                "memberProfileSubtitle",
+                "View your personal credentials, active membership plan, and facility assignment."
+              )}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={loadData}
+            disabled={isLoading}
+            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer self-start md:self-auto"
+          >
+            <RefreshCw
+              className={`size-3.5 me-2 ${isLoading ? "animate-spin text-toota-ink" : ""}`}
+            />
+            <span>{t("refresh") || "Refresh"}</span>
+          </Button>
+        </div>
+      </Card>
+
+      {/* Member Identity & Avatar Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          {/* Avatar Preview */}
           <div className="relative group shrink-0">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden ring-4 ring-primary/20 bg-surface-container flex items-center justify-center shadow-md">
-              {hasCustomPhoto ? (
-                <img
-                  src={profile?.profileImageUrl}
-                  alt={profile?.firstName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center text-3xl font-extrabold font-headline">
-                  {initials}
-                </div>
+            <Avatar className="size-24 md:size-28 ring-2 ring-border/40 shrink-0">
+              {photoUrl && (
+                <AvatarImage src={photoUrl} alt={fullName} />
               )}
-            </div>
+              <AvatarFallback className="bg-toota-inner text-toota-ink font-bold text-2xl md:text-3xl">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-            {/* Photo Action Overlay */}
-            <div className="absolute -bottom-2 -right-2 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto || isDeletingPhoto}
-                title={t("changePhoto") || "Change photo"}
-                className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center shadow-md hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {isUploadingPhoto ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4" />
-                )}
-              </button>
-
-              {hasCustomPhoto && (
-                <button
-                  type="button"
-                  onClick={handleDeletePhoto}
-                  disabled={isUploadingPhoto || isDeletingPhoto}
-                  title={t("removePhoto") || "Remove photo"}
-                  className="w-8 h-8 rounded-xl bg-surface-container-high text-error hover:bg-error/10 border border-outline-variant flex items-center justify-center shadow-sm active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isDeletingPhoto ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
-              )}
-            </div>
+            {isUploadingPhoto && (
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                <Loader2 className="size-6 text-white animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Member Details */}
           <div className="flex-1 text-center sm:text-left rtl:sm:text-right space-y-2">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold font-headline text-on-surface">
-                {profile?.firstName} {profile?.lastName}
-              </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                <Sparkles className="w-3 h-3" />
-                {t("roleGymMember") || "Gym Member"}
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {fullName}
+              </h2>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
+                <UserCheck className="size-3 text-zinc-500 shrink-0" />
+                <span>{t("roleGymMember") || "Gym Member"}</span>
               </span>
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  profile?.accountStatus === "ACTIVE"
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                }`}
-              >
-                <CheckCircle2 className="w-3 h-3" />
-                {profile?.accountStatus || "ACTIVE"}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{profile?.accountStatus || "Active"}</span>
               </span>
-              {(profile?.companyName || profile?.admin?.companyName) && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                  <Building className="w-3 h-3" />
-                  {profile?.companyName || profile?.admin?.companyName}
-                </span>
-              )}
             </div>
 
-            <p className="text-xs sm:text-sm text-on-surface-variant flex items-center justify-center sm:justify-start gap-1 font-mono">
-              @{profile?.userName}
-            </p>
+            {profile?.userName && (
+              <p className="text-xs text-toota-muted font-mono">
+                @{profile.userName}
+              </p>
+            )}
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-on-surface-variant pt-2">
-              <span className="inline-flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-primary" />
-                {profile?.email}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-primary" />
-                {profile?.phoneNumber}
-              </span>
+            {facility && (
+              <p className="text-xs text-toota-ink font-medium flex items-center justify-center sm:justify-start gap-1.5">
+                <Building className="size-3.5 text-toota-muted" />
+                <span>{facility}</span>
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-toota-muted pt-1">
+              {profile?.email && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail className="size-3.5 text-toota-muted" />
+                  <span>{profile.email}</span>
+                </span>
+              )}
+              {profile?.phoneNumber && (
+                <span className="inline-flex items-center gap-1.5 font-mono">
+                  <Phone className="size-3.5 text-toota-muted" />
+                  <span>{profile.phoneNumber}</span>
+                </span>
+              )}
               {profile?.birthDate && (
                 <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-primary" />
-                  {new Date(profile.birthDate).toLocaleDateString()}
+                  <Calendar className="size-3.5 text-toota-muted" />
+                  <span>{new Date(profile.birthDate).toLocaleDateString()}</span>
                 </span>
               )}
             </div>
-          </div>
 
-          {/* Refresh Action */}
-          <div className="shrink-0">
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold border border-outline-variant/60 transition-all cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              <span>{t("refresh") || "Refresh"}</span>
-            </button>
+            {/* Photo Action Buttons */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto || isDeletingPhoto}
+                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {isUploadingPhoto ? (
+                  <Loader2 className="size-3.5 animate-spin me-1.5" />
+                ) : (
+                  <Camera className="size-3.5 me-1.5" />
+                )}
+                <span>{t("changePhoto") || "Change Photo"}</span>
+              </Button>
+
+              {photoUrl && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDeletePhoto}
+                  disabled={isUploadingPhoto || isDeletingPhoto}
+                  className="toota-pill h-9 px-3 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingPhoto ? (
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
+                  ) : (
+                    <Trash2 className="size-3.5 me-1.5" />
+                  )}
+                  <span>{t("removePhoto") || "Remove"}</span>
+                </Button>
+              )}
+
+              <span className="text-[11px] font-mono text-toota-muted">
+                {t("maxPhotoSize", "Max 1MB (PNG, JPG, WebP)")}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
-        <button
+      <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+        <Button
           type="button"
+          variant={activeTab === "overview" ? "default" : "outline"}
           onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer ${
             activeTab === "overview"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+              ? ""
+              : "border-border/40 hover:bg-toota-inner text-toota-ink"
           }`}
         >
-          <Award className="w-4 h-4" />
+          <Award className="size-3.5 me-1.5" />
           <span>{t("activeMembership") || "Active Membership"}</span>
-        </button>
-        <button
+        </Button>
+
+        <Button
           type="button"
+          variant={activeTab === "history" ? "default" : "outline"}
           onClick={() => setActiveTab("history")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer ${
             activeTab === "history"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+              ? ""
+              : "border-border/40 hover:bg-toota-inner text-toota-ink"
           }`}
         >
-          <Layers className="w-4 h-4" />
-          <span>{t("membershipHistory") || "All Memberships"} ({allMemberships.length})</span>
-        </button>
+          <Layers className="size-3.5 me-1.5" />
+          <span>
+            {t("membershipHistory") || "All Memberships"} ({allMemberships.length})
+          </span>
+        </Button>
       </div>
 
       {/* Tab 1: Overview & Active Membership */}
@@ -355,204 +415,219 @@ export default function MemberProfileView() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Active Membership Spotlight Card (2 Cols) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-3xl bg-gradient-to-br from-surface-container-lowest to-surface-container-low border border-primary/20 shadow-sm p-6 sm:p-8 relative overflow-hidden">
-              <div className="flex items-center justify-between gap-4 mb-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
-                  <CreditCard className="w-3.5 h-3.5" />
-                  {t("currentTier") || "Current Tier Plan"}
-                </div>
-                {activeMembership && (
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold ${
-                      activeMembership.membershipStatus === "ACTIVE"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    {activeMembership.membershipStatus}
-                  </span>
-                )}
-              </div>
-
-              {activeMembership ? (
-                <div className="space-y-5">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold font-headline text-on-surface">
-                      {activeMembership.membershipPlan.planName}
-                    </h2>
-                    {activeMembership.membershipPlan.description && (
-                      <p className="text-xs sm:text-sm text-on-surface-variant mt-1 line-clamp-2">
-                        {activeMembership.membershipPlan.description}
-                      </p>
+            <Card className="toota-card border-none">
+              <CardHeader className="p-6 pb-4 border-b border-border/40">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-baseline gap-2">
+                    <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <CreditCard className="size-4 text-toota-ink" />
+                      <span>{t("currentTier") || "Current Tier Plan"}</span>
+                    </CardTitle>
+                    {activeMembership && (
+                      <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                        / {activeMembership.membershipPlan.planName}
+                      </span>
                     )}
                   </div>
 
-                  {/* Highlights Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                    <div className="p-3.5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                        {t("weeklyLimit") || "Weekly Visits"}
-                      </p>
-                      <p className="text-lg font-bold font-headline text-on-surface mt-0.5">
-                        {activeMembership.membershipPlan.weeklyVisitLimit} {t("sessions") || "sessions"}
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                        {t("planDuration") || "Duration"}
-                      </p>
-                      <p className="text-lg font-bold font-headline text-on-surface mt-0.5">
-                        {formatMembershipDuration(activeMembership.membershipPlanDuration)}
-                      </p>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 col-span-2 sm:col-span-1">
-                      <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
-                        {t("daysRemaining") || "Days Left"}
-                      </p>
-                      <p className="text-lg font-bold font-headline text-primary mt-0.5">
-                        {calculateDaysRemaining(activeMembership.expiresAt)} {t("days") || "days"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Validity Bar */}
-                  <div className="p-4 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-on-surface-variant">
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-primary" />
-                        {t("started") || "Started"}: {new Date(activeMembership.startDate).toLocaleDateString()}
-                      </span>
-                      <span>
-                        {t("expires") || "Expires"}: {new Date(activeMembership.expiresAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
+                  {activeMembership && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span>{activeMembership.membershipStatus}</span>
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <div className="py-8 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-                    <AlertCircle className="w-6 h-6" />
+              </CardHeader>
+
+              <CardContent className="p-6">
+                {activeMembership ? (
+                  <div className="space-y-5">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                        {activeMembership.membershipPlan.planName}
+                      </h2>
+                      {activeMembership.membershipPlan.description && (
+                        <p className="text-xs text-toota-muted mt-1 line-clamp-2">
+                          {activeMembership.membershipPlan.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Highlights Bento Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40">
+                        <p className="text-[10px] font-semibold text-toota-muted uppercase tracking-wider">
+                          {t("weeklyLimit") || "Weekly Visits"}
+                        </p>
+                        <p className="text-base font-semibold text-toota-ink mt-0.5 font-mono">
+                          {activeMembership.membershipPlan.weeklyVisitLimit} {t("sessions") || "sessions"}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40">
+                        <p className="text-[10px] font-semibold text-toota-muted uppercase tracking-wider">
+                          {t("planDuration") || "Duration"}
+                        </p>
+                        <p className="text-base font-semibold text-toota-ink mt-0.5">
+                          {formatMembershipDuration(activeMembership.membershipPlanDuration)}
+                        </p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40">
+                        <p className="text-[10px] font-semibold text-toota-muted uppercase tracking-wider">
+                          {t("daysRemaining") || "Days Left"}
+                        </p>
+                        <p className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">
+                          {calculateDaysRemaining(activeMembership.expiresAt)} {t("days") || "days"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Validity Bar */}
+                    <div className="p-4 rounded-xl bg-toota-inner border border-border/40">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-toota-muted">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="size-3.5 text-toota-ink" />
+                          <span>
+                            {t("started") || "Started"}: {new Date(activeMembership.startDate).toLocaleDateString()}
+                          </span>
+                        </span>
+                        <span className="font-mono">
+                          {t("expires") || "Expires"}: {new Date(activeMembership.expiresAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-headline font-bold text-base text-on-surface">
-                    {t("noActiveMembership") || "No Active Membership"}
-                  </h3>
-                  <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
-                    {t("noActiveMembershipHint") ||
-                      "You currently do not have an active gym membership. Please contact the front desk or gym administrator to activate your plan."}
-                  </p>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="py-8 text-center space-y-3">
+                    <div className="size-12 rounded-2xl bg-toota-inner text-amber-500 flex items-center justify-center mx-auto">
+                      <AlertCircle className="size-6" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-toota-ink">
+                      {t("noActiveMembership") || "No Active Membership"}
+                    </h3>
+                    <p className="text-xs text-toota-muted max-w-sm mx-auto">
+                      {t("noActiveMembershipHint") ||
+                        "You currently do not have an active gym membership. Please contact the front desk or gym administrator to activate your plan."}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Email Change Section for Member */}
+            <EmailChangeSection
+              role="member"
+              currentEmail={profile?.email || ""}
+            />
           </div>
 
           {/* Member Personal & Emergency Info (1 Col) */}
           <div className="space-y-6">
-            <div className="rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm p-6 space-y-4">
-              <h3 className="font-headline font-bold text-sm text-on-surface flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                {t("personalInfo") || "Personal Information"}
-              </h3>
+            <Card className="toota-card border-none">
+              <CardHeader className="p-6 pb-3 border-b border-border/40">
+                <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <User className="size-4 text-toota-ink" />
+                  <span>{t("personalInfo") || "Personal Information"}</span>
+                </CardTitle>
+              </CardHeader>
 
-              <div className="space-y-3 text-xs">
-                <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">
-                    {t("gender") || "Gender"}
-                  </span>
-                  <p className="font-semibold text-on-surface mt-0.5">
-                    {profile?.gender || "Not specified"}
-                  </p>
+              <CardContent className="p-6">
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 rounded-xl bg-toota-inner border border-border/40">
+                    <span className="text-[10px] uppercase font-semibold text-toota-muted block">
+                      {t("gender") || "Gender"}
+                    </span>
+                    <p className="font-medium text-toota-ink mt-0.5 capitalize">
+                      {profile?.gender?.toLowerCase() || "Not specified"}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-toota-inner border border-border/40">
+                    <span className="text-[10px] uppercase font-semibold text-toota-muted block">
+                      {t("residentialAddress") || "Residential Address"}
+                    </span>
+                    <p className="font-medium text-toota-ink mt-0.5 flex items-center gap-1.5">
+                      <MapPin className="size-3.5 text-toota-muted shrink-0" />
+                      <span className="truncate">{profile?.address || "No address on file"}</span>
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-toota-inner border border-border/40">
+                    <span className="text-[10px] uppercase font-semibold text-toota-muted block">
+                      {t("emergencyContact") || "Emergency Contact"}
+                    </span>
+                    <p className="font-medium text-toota-ink mt-0.5 flex items-center gap-1.5">
+                      <HeartHandshake className="size-3.5 text-toota-muted shrink-0" />
+                      <span>{profile?.emergencyContact || "No emergency contact"}</span>
+                    </p>
+                  </div>
                 </div>
-
-                <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">
-                    {t("residentialAddress") || "Residential Address"}
-                  </span>
-                  <p className="font-semibold text-on-surface mt-0.5 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="truncate">{profile?.address || "No address on file"}</span>
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant/40">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant">
-                    {t("emergencyContact") || "Emergency Contact"}
-                  </span>
-                  <p className="font-semibold text-on-surface mt-0.5 flex items-center gap-1.5">
-                    <HeartHandshake className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>{profile?.emergencyContact || "No emergency contact"}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Email Change Section for Member */}
-            <div className="lg:col-span-3">
-              <EmailChangeSection
-                role="member"
-                currentEmail={profile?.email || ""}
-              />
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
 
       {/* Tab 2: Membership History */}
       {activeTab === "history" && (
-        <div className="rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-outline-variant/60 flex items-center justify-between">
-            <h3 className="font-headline font-bold text-base text-on-surface">
-              {t("allMemberships") || "All Memberships"}
-            </h3>
-            <span className="text-xs text-on-surface-variant">
-              {allMemberships.length} {t("records") || "records"}
-            </span>
-          </div>
-
-          {allMemberships.length === 0 ? (
-            <div className="py-12 text-center text-xs text-on-surface-variant">
-              {t("noMembershipsFound") || "No membership records found."}
+        <Card className="toota-card border-none overflow-hidden">
+          <CardHeader className="p-6 pb-4 border-b border-border/40 flex flex-row items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("allMemberships") || "All Memberships"}
+              </CardTitle>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {allMemberships.length} {t("records") || "records"}
+              </span>
             </div>
-          ) : (
-            <div className="divide-y divide-outline-variant/40">
-              {allMemberships.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low/50 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-headline font-bold text-sm text-on-surface">
-                        {item.membershipPlan.planName}
-                      </h4>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                          item.membershipStatus === "ACTIVE"
-                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                            : "bg-surface-container-high text-on-surface-variant border border-outline-variant/60"
-                        }`}
-                      >
-                        {item.membershipStatus}
-                      </span>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            {allMemberships.length === 0 ? (
+              <div className="py-12 text-center text-xs text-toota-muted">
+                {t("noMembershipsFound") || "No membership records found."}
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40">
+                {allMemberships.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-sm text-toota-ink">
+                          {item.membershipPlan.planName}
+                        </h4>
+                        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              item.membershipStatus === "ACTIVE"
+                                ? "bg-emerald-500"
+                                : "bg-zinc-400"
+                            }`}
+                          />
+                          <span>{item.membershipStatus}</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-toota-muted">
+                        {t("duration") || "Duration"}: {formatMembershipDuration(item.membershipPlanDuration)} • {t("limit") || "Limit"}: {item.membershipPlan.weeklyVisitLimit} {t("visitsPerWeek") || "visits/week"}
+                      </p>
                     </div>
-                    <p className="text-xs text-on-surface-variant">
-                      {t("duration") || "Duration"}: {formatMembershipDuration(item.membershipPlanDuration)} • {t("limit") || "Limit"}: {item.membershipPlan.weeklyVisitLimit} {t("visitsPerWeek") || "visits/week"}
-                    </p>
-                  </div>
 
-                  <div className="text-xs text-on-surface-variant sm:text-right rtl:sm:text-left space-y-0.5 shrink-0">
-                    <p>
-                      <span className="font-semibold text-on-surface">{t("valid") || "Valid"}:</span>{" "}
-                      {new Date(item.startDate).toLocaleDateString()} → {new Date(item.expiresAt).toLocaleDateString()}
-                    </p>
+                    <div className="text-xs text-toota-muted sm:text-right rtl:sm:text-left space-y-0.5 shrink-0 font-mono">
+                      <p>
+                        <span>{t("valid") || "Valid"}:</span>{" "}
+                        {new Date(item.startDate).toLocaleDateString()} → {new Date(item.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

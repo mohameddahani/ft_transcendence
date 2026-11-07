@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
@@ -16,9 +16,9 @@ import {
   ShieldCheck,
   Clock,
   Ban,
-  ChevronLeft,
-  ChevronRight,
   UserCheck,
+  X,
+  UserX,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -29,12 +29,36 @@ import {
   banStaff,
 } from "@/lib/api/staffs";
 import { BackendStaff } from "@/types/staff";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useTranslation } from "react-i18next";
 import AddStaffModal from "@/components/staffs/AddStaffModal";
 import EditStaffModal from "@/components/staffs/EditStaffModal";
-import { useTranslation } from "react-i18next";
+import Pagination from "@/components/ui/Pagination";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 export default function StaffsPage() {
   const { t } = useTranslation();
+  const { companyName } = useCurrentUser();
   const [staffs, setStaffs] = useState<BackendStaff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -63,7 +87,7 @@ export default function StaffsPage() {
     setMounted(true);
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await fetchStaffs(1, 100);
@@ -72,16 +96,16 @@ export default function StaffsPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to load staff roster from server");
+        toast.error(t("loadStaffFailed") || "Failed to load staff roster from server");
       }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Close portal action menu on outside click, window resize, scroll, or Escape key
   useEffect(() => {
@@ -114,7 +138,27 @@ export default function StaffsPage() {
     };
   }, [menuAnchor]);
 
+  // Statistics calculation
+  const totalCount = staffs.length;
+  const activeCount = staffs.filter(
+    (s) => (s.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE"
+  ).length;
+  const pendingCount = staffs.filter(
+    (s) => (s.accountStatus || "").toUpperCase() === "PENDING"
+  ).length;
+  const bannedCount = staffs.filter(
+    (s) => (s.accountStatus || "").toUpperCase() === "BANNED"
+  ).length;
+
+  const activePercent =
+    totalCount > 0 ? Math.round((activeCount / totalCount) * 100) : 0;
+  const pendingPercent =
+    totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0;
+  const bannedPercent =
+    totalCount > 0 ? Math.round((bannedCount / totalCount) * 100) : 0;
+
   // Filtered staffs
+  const isFiltering = Boolean(searchTerm || selectedStatus);
   const filteredStaffs = useMemo(() => {
     return staffs.filter((staff) => {
       const fullName = `${staff.firstName || ""} ${staff.lastName || ""}`.toLowerCase();
@@ -144,30 +188,23 @@ export default function StaffsPage() {
     return filteredStaffs.slice(start, start + pageSize);
   }, [filteredStaffs, currentPage, pageSize]);
 
-  // Statistics calculation
-  const totalCount = staffs.length;
-  const activeCount = staffs.filter(
-    (s) => (s.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE"
-  ).length;
-  const pendingCount = staffs.filter(
-    (s) => (s.accountStatus || "").toUpperCase() === "PENDING"
-  ).length;
-  const bannedCount = staffs.filter(
-    (s) => (s.accountStatus || "").toUpperCase() === "BANNED"
-  ).length;
-
   // Status Action Handlers
   const handleMakeActive = async (staff: BackendStaff) => {
     setMenuAnchor(null);
     try {
       await activeStaff(staff.id);
-      toast.success(`Staff member "${staff.firstName} ${staff.lastName}" is now ACTIVE!`);
+      toast.success(
+        t("staffActivatedSuccess", {
+          name: `${staff.firstName} ${staff.lastName}`,
+          defaultValue: `Staff member "${staff.firstName} ${staff.lastName}" is now Active!`,
+        })
+      );
       await loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to activate staff member");
+        toast.error(t("activateStaffFailed") || "Failed to activate staff member");
       }
     }
   };
@@ -176,13 +213,18 @@ export default function StaffsPage() {
     setMenuAnchor(null);
     try {
       await pendingStaff(staff.id);
-      toast.info(`Staff member "${staff.firstName} ${staff.lastName}" status changed to PENDING.`);
+      toast.info(
+        t("staffPendingSuccess", {
+          name: `${staff.firstName} ${staff.lastName}`,
+          defaultValue: `Staff member "${staff.firstName} ${staff.lastName}" status changed to Pending.`,
+        })
+      );
       await loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to set staff member to pending");
+        toast.error(t("pendingStaffFailed") || "Failed to set staff member to pending");
       }
     }
   };
@@ -191,13 +233,18 @@ export default function StaffsPage() {
     setMenuAnchor(null);
     try {
       await banStaff(staff.id);
-      toast.error(`Staff member "${staff.firstName} ${staff.lastName}" has been BANNED.`);
+      toast.error(
+        t("staffBannedSuccess", {
+          name: `${staff.firstName} ${staff.lastName}`,
+          defaultValue: `Staff member "${staff.firstName} ${staff.lastName}" has been Banned.`,
+        })
+      );
       await loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to ban staff member");
+        toast.error(t("banStaffFailed") || "Failed to ban staff member");
       }
     }
   };
@@ -233,7 +280,7 @@ export default function StaffsPage() {
   // Export to CSV
   const handleExportCSV = () => {
     if (filteredStaffs.length === 0) {
-      toast.info("No staff records available to export.");
+      toast.info(t("noStaffToExport") || "No staff records available to export.");
       return;
     }
 
@@ -278,175 +325,473 @@ export default function StaffsPage() {
     link.click();
     document.body.removeChild(link);
 
-    toast.success("Staff list exported successfully to CSV!");
+    toast.success(t("staffExportSuccess") || "Staff list exported successfully to CSV!");
   };
 
+  const getInitials = (
+    firstName?: string | null,
+    lastName?: string | null,
+    userName?: string | null
+  ) => {
+    const first = firstName?.[0] || "";
+    const last = lastName?.[0] || "";
+    if (first || last) return (first + last).toUpperCase();
+    if (userName) return userName.slice(0, 2).toUpperCase();
+    return "S";
+  };
+
+  const renderStaffStatusBadge = (status: string) => {
+    const s = (status || "").toUpperCase();
+    if (s === "ACTIVE") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{t("active") || "Active"}</span>
+        </span>
+      );
+    }
+
+    if (s === "PENDING") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          <span>{t("pending") || "Pending"}</span>
+        </span>
+      );
+    }
+
+    if (s === "BANNED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-600 shrink-0" />
+          <span>{t("banned") || "Banned"}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+        <span>{status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : ""}</span>
+      </span>
+    );
+  };
+
+  const renderStaffRoleBadge = (role: string) => {
+    const r = (role || "").toUpperCase();
+    const isStaff = r === "STAFF";
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
+        <UserCheck className="size-3 text-zinc-500 shrink-0" />
+        <span>{isStaff ? (t("staff") || "Staff") : (t("admin") || "Admin")}</span>
+      </span>
+    );
+  };
+
+  const gymFacilityName =
+    companyName ||
+    staffs[0]?.companyName ||
+    staffs[0]?.admin?.companyName ||
+    "";
+
   return (
-    <div className="space-y-6 max-w-container-max mx-auto pb-16">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-headline text-3xl font-bold text-on-surface tracking-tight">
-            {t("staffManagement")}
-          </h1>
-          <p className="text-sm text-on-surface-variant mt-1">
-            {t("staffSubtitle")}
-          </p>
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Top Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("staffManagement") || "Staff Management"}
+              </h1>
+              {gymFacilityName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {gymFacilityName}
+                </span>
+              )}
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {totalCount} {t("total") || "total"}
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t("staffSubtitle") ||
+                "Manage gym staff, assign operational roles, and oversee staff roster."}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadData}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <RefreshCw
+                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>{t("refresh") || "Refresh"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <Download className="size-3.5 me-2" />
+              <span>{t("export") || "Export"} CSV</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer"
+            >
+              <UserPlus className="size-4 me-1.5" />
+              <span>{t("addNewStaff") || "Add New Staff"}</span>
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-            <span>{t("refresh")}</span>
-          </button>
+      {/* Live Operational Metrics Bento Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Metric 1: Total Staff */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("totalStaff") || "Total Staff"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+              <Users className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-ink" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {totalCount}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                {t("liveFromApi") || "Live"}
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("registeredStaff") || "Registered facility staff"}
+            </p>
+          </CardContent>
+        </Card>
 
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-4 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-on-surface-variant" />
-            <span>{t("export")}</span>
-          </button>
+        {/* Metric 2: Active Staff */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("totalActiveStaff") || "Active Staff"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <ShieldCheck className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-green" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {activeCount}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{totalCount > 0 ? `${activePercent}%` : "—"}</span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("activeStaffDesc") || "On-duty and verified staff"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-green transition-all"
+                style={{ width: `${Math.min(100, Math.max(0, activePercent))}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>{t("addNewStaff")}</span>
-          </button>
-        </div>
+        {/* Metric 3: Pending Approval */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("pendingApproval") || "Pending Staff"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+              <Clock className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-amber-500" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {pendingCount}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span>{totalCount > 0 ? `${pendingPercent}%` : "—"}</span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("pendingStaffDesc") || "Awaiting credentials review"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all"
+                style={{ width: `${Math.min(100, Math.max(0, pendingPercent))}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 4: Banned Staff */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              {t("bannedStaff") || "Banned Staff"}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
+              <UserX className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-red" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {bannedCount}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span>{totalCount > 0 ? `${bannedPercent}%` : "—"}</span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("bannedStaffDesc") || "Revoked facility access"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-red transition-all"
+                style={{ width: `${Math.min(100, Math.max(0, bannedPercent))}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filter & Search Bar Section */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-surface-container-lowest p-4 rounded-2xl shadow-sm border border-outline-variant">
-        {/* Search */}
-        <div className="md:col-span-7 relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-          <input
-            className="w-full pl-10 pr-4 py-2.5 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"
-            placeholder={t("searchStaffPlaceholder")}
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
+      {/* Filter & Search Bar Card */}
+      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col gap-4">
+        {/* Quick Filter Status Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+          {[
+            { id: "", label: t("allStatuses") || "All Staff", count: totalCount },
+            { id: "ACTIVE", label: t("active") || "Active", count: activeCount },
+            { id: "PENDING", label: t("pending") || "Pending", count: pendingCount },
+            { id: "BANNED", label: t("banned") || "Banned", count: bannedCount },
+          ].map((tab) => {
+            const isSelected = selectedStatus === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setSelectedStatus(tab.id);
+                  setCurrentPage(1);
+                }}
+                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
+                  isSelected
+                    ? "active font-bold shadow-xs"
+                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isSelected
+                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
+                      : "bg-toota-inner text-toota-muted"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Status Filter */}
-        <div className="md:col-span-3">
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full px-3 py-2.5 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none"
-          >
-            <option value="">{t("allStatuses")}</option>
-            <option value="ACTIVE">{t("active")}</option>
-            <option value="PENDING">{t("pending")}</option>
-            <option value="BANNED">{t("banned")}</option>
-          </select>
-        </div>
+        {/* Search & Select Controls */}
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full min-w-[240px]">
+            <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder={`${t("searchStaffPlaceholder") || "Search staff by name, email, username, or phone..."}`}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+            />
+          </div>
 
-        {/* Clear / Reset Filters */}
-        <div className="md:col-span-2">
-          <button
+          {/* Status Select Dropdown */}
+          <div className="w-full md:w-52 shrink-0">
+            <select
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setCurrentPage(1);
+              }}
+              aria-label={t("status") || "Status"}
+              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+            >
+              <option value="">{t("allStatuses") || "All Statuses"}</option>
+              <option value="ACTIVE">{t("active") || "Active"}</option>
+              <option value="PENDING">{t("pending") || "Pending"}</option>
+              <option value="BANNED">{t("banned") || "Banned"}</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <Button
             type="button"
+            variant="outline"
+            disabled={!isFiltering}
             onClick={() => {
               setSearchTerm("");
               setSelectedStatus("");
               setCurrentPage(1);
             }}
-            className="w-full py-2.5 bg-surface-container-high hover:bg-surface-variant text-on-surface font-bold text-xs rounded-xl transition-all cursor-pointer"
+            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
           >
-            {t("clearFilters")}
-          </button>
+            <X className="size-3.5 me-1.5" />
+            <span>{t("clearFilters") || "Clear Filters"}</span>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {/* Staff Table Container */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
-        {isLoading ? (
-          <div className="py-20 text-center text-on-surface-variant flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Loading...</p>
+      {/* Staff Ledger Table Card */}
+      <Card className="toota-card border-none p-0 overflow-hidden">
+        <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
+          <div className="flex items-baseline gap-2">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {t("staffManagement") || "Staff Roster"}
+            </CardTitle>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {totalItems} {isFiltering ? (t("filtered") || "filtered") : (t("total") || "total")}
+            </span>
           </div>
-        ) : paginatedStaffs.length === 0 ? (
-          <div className="py-20 text-center px-4">
-            <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center mx-auto mb-4 text-on-surface-variant">
-              <Users className="w-7 h-7" />
+
+          {isLoading && (
+            <div className="flex items-center gap-2 text-xs text-toota-muted">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>{t("loading") || "Updating..."}</span>
             </div>
-            <h4 className="font-headline font-bold text-lg text-on-surface">
-              {staffs.length === 0 ? t("noStaffYet") : t("noMatchingStaff")}
-            </h4>
-            <p className="text-xs text-on-surface-variant max-w-sm mx-auto mt-1 leading-relaxed">
-              {staffs.length === 0
-                ? t("clickAddStaff")
-                : t("adjustFilter")}
-            </p>
-            {staffs.length === 0 && (
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(true)}
-                className="mt-4 px-4 py-2 primary-gradient text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
-              >
-                {t("addFirstStaff")}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low border-b border-outline-variant">
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("staffMember")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("roleText")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("status")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("phone")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("gender")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    {t("joinedDate")}
-                  </th>
-                  <th className="px-6 py-4 font-label-sm text-[11px] font-bold text-on-surface-variant uppercase tracking-wider text-right rtl:text-left">
-                    {t("actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/60">
+          )}
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Global Loading State */}
+          {isLoading && (
+            <div className="py-20 text-center text-toota-muted flex flex-col items-center justify-center gap-2">
+              <Loader2 className="size-6 animate-spin text-toota-ink" />
+              <p className="text-xs">{t("loadingStaff") || "Loading staff roster..."}</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && paginatedStaffs.length === 0 && (
+            <div className="py-20 text-center px-4">
+              <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
+                <Users className="size-7" />
+              </div>
+              <h4 className="font-medium text-base text-toota-ink">
+                {staffs.length === 0
+                  ? t("noStaffYet") || "No staff members recorded yet"
+                  : t("noMatchingStaff") || "No staff matching your search filter"}
+              </h4>
+              <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
+                {staffs.length === 0
+                  ? t("clickAddStaff") || "Click 'Add New Staff' to invite team members."
+                  : t("adjustFilter") || "Try adjusting your search query or status filter."}
+              </p>
+              {staffs.length === 0 && (
+                <Button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer mt-4"
+                >
+                  <UserPlus className="size-4 me-1.5" />
+                  <span>{t("addFirstStaff") || "Add First Staff"}</span>
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Populated Table */}
+          {!isLoading && paginatedStaffs.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
+                  <TableHead className="px-6 py-3.5">
+                    {t("staffMember") || "Staff Member"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("roleText") || "Role"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("status") || "Status"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("phone") || "Phone"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("gender") || "Gender"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("joinedDate") || "Joined Date"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5 text-right rtl:text-left">
+                    {t("actions") || "Actions"}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border/40 text-xs">
                 {paginatedStaffs.map((staff) => {
                   const staffName =
                     `${staff.firstName || ""} ${staff.lastName || ""}`.trim() ||
                     staff.userName ||
                     "Staff Member";
-                  const staffInitials =
-                    ((staff.firstName?.[0] || "") + (staff.lastName?.[0] || "")).toUpperCase() ||
-                    "S";
-                  const avatarUrl = staff.profileImageUrl;
-                  const hasPhoto = avatarUrl && !avatarUrl.includes("default-");
+                  const staffInitials = getInitials(
+                    staff.firstName,
+                    staff.lastName,
+                    staff.userName
+                  );
+                  const isPlaceholder =
+                    !staff.profileImageUrl ||
+                    staff.profileImageUrl === "default-image.jpg" ||
+                    staff.profileImageUrl === "default-member-image.jpg";
+                  const avatarUrl = !isPlaceholder ? staff.profileImageUrl : null;
 
                   const status = (staff.accountStatus || "ACTIVE").toUpperCase();
-
                   const joinDate = staff.createdAt
                     ? new Date(staff.createdAt).toLocaleDateString()
                     : "—";
@@ -454,193 +799,106 @@ export default function StaffsPage() {
                   const isMenuOpen = menuAnchor?.staff.id === staff.id;
 
                   return (
-                    <tr
+                    <TableRow
                       key={staff.id}
-                      className="hover:bg-primary-container/[0.03] transition-colors group"
+                      className="border-border/40 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group"
                     >
-                      {/* Staff profile */}
-                      <td className="px-6 py-4">
+                      {/* Staff Member Info */}
+                      <TableCell className="px-6 py-3.5">
                         <Link
                           href={`/staffs/${staff.id}`}
-                          className="flex items-center gap-3.5 hover:opacity-90"
+                          className="flex items-center gap-3 group-hover:opacity-90"
                         >
-                          {hasPhoto ? (
-                            <img
-                              className="w-10 h-10 rounded-full object-cover border-2 border-primary-container/40 shadow-xs"
-                              alt={staffName}
-                              src={avatarUrl!}
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full primary-gradient text-white flex items-center justify-center font-bold text-xs select-none shadow-xs">
+                          <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
+                            {avatarUrl && (
+                              <AvatarImage
+                                src={avatarUrl}
+                                alt={staffName}
+                              />
+                            )}
+                            <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
                               {staffInitials}
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-bold text-sm text-on-surface group-hover:text-primary transition-colors flex items-center gap-1.5">
-                              <span>{staffName}</span>
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium text-toota-ink group-hover:underline truncate">
+                              {staffName}
                             </p>
-                            <p className="text-xs text-on-surface-variant font-medium">
+                            <p className="text-[11px] text-toota-muted truncate">
+                              {staff.userName ? `@${staff.userName} · ` : ""}
                               {staff.email}
                             </p>
                           </div>
                         </Link>
-                      </td>
+                      </TableCell>
 
                       {/* Role */}
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
-                          <UserCheck className="w-3 h-3" />
-                          <span>{(staff.role || "").toUpperCase() === "ADMIN" ? t("admin") : t("staff")}</span>
-                        </span>
-                      </td>
+                      <TableCell className="px-6 py-3.5">
+                        {renderStaffRoleBadge(staff.role)}
+                      </TableCell>
 
                       {/* Status */}
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full border tracking-wider ${
-                            status === "ACTIVE"
-                              ? "bg-secondary-container/20 text-on-secondary-container border-secondary-container/30"
-                              : status === "PENDING"
-                              ? "bg-tertiary-fixed/30 text-on-tertiary-fixed-variant border-tertiary-fixed/50"
-                              : "bg-error-container/30 text-error border-error-container/40"
-                          }`}
-                        >
-                          {status === "ACTIVE" ? t("active") : status === "PENDING" ? t("pending") : status === "BANNED" ? t("banned") : status}
-                        </span>
-                      </td>
+                      <TableCell className="px-6 py-3.5">
+                        {renderStaffStatusBadge(status)}
+                      </TableCell>
 
                       {/* Phone */}
-                      <td className="px-6 py-4 text-xs font-mono font-medium text-on-surface">
+                      <TableCell className="px-6 py-3.5 font-mono text-toota-muted">
                         {staff.phoneNumber || "—"}
-                      </td>
+                      </TableCell>
 
                       {/* Gender */}
-                      <td className="px-6 py-4 text-xs font-medium text-on-surface-variant">
+                      <TableCell className="px-6 py-3.5 text-toota-muted">
                         {staff.gender === "MALE"
-                          ? t("male")
+                          ? t("male") || "Male"
                           : staff.gender === "FEMALE"
-                          ? t("female")
+                          ? t("female") || "Female"
                           : staff.gender || "—"}
-                      </td>
+                      </TableCell>
 
                       {/* Join Date */}
-                      <td className="px-6 py-4 text-xs font-medium text-on-surface-variant">
+                      <TableCell className="px-6 py-3.5 text-toota-muted">
                         {joinDate}
-                      </td>
+                      </TableCell>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 text-right">
-                        <button
+                      <TableCell className="px-6 py-3.5 text-right rtl:text-left">
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => handleToggleMenu(e, staff)}
-                          className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                          className={`size-8 rounded-lg transition-colors cursor-pointer ${
                             isMenuOpen
-                              ? "bg-primary/10 text-primary"
-                              : "text-on-surface-variant hover:text-primary hover:bg-surface-container"
+                              ? "bg-toota-inner text-toota-ink"
+                              : "text-toota-muted hover:text-toota-ink hover:bg-toota-inner"
                           }`}
-                          title="Staff options"
+                          title={t("staffOptions") || "Staff options"}
                         >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
 
         {/* Pagination Footer */}
-        {filteredStaffs.length > 0 && (
-          <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-bright border-t border-outline-variant">
-            <p className="text-xs text-on-surface-variant">
-              {t("showing")}{" "}
-              <span className="font-bold text-on-surface">
-                {Math.min((currentPage - 1) * pageSize + 1, totalItems)} -{" "}
-                {Math.min(currentPage * pageSize, totalItems)}
-              </span>{" "}
-              {t("of")} <span className="font-bold text-on-surface">{totalItems}</span> {t("navStaffs")}
-            </p>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 hover:bg-surface-container rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      currentPage === page
-                        ? "bg-primary text-white shadow-xs"
-                        : "hover:bg-surface-container text-on-surface-variant"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-2 hover:bg-surface-container rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4 text-on-surface rtl:rotate-180" />
-              </button>
-            </div>
-          </div>
+        {totalItems > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            isLoading={isLoading}
+            itemLabel={t("staff") || "staff"}
+          />
         )}
-      </div>
-
-      {/* Summary Bento Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
-          <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-            {t("totalActiveStaff")}
-          </p>
-          <p className="font-headline text-2xl md:text-3xl font-bold text-secondary">
-            {activeCount}
-          </p>
-        </div>
-
-        <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
-          <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-            {t("pendingApproval")}
-          </p>
-          <p className="font-headline text-2xl md:text-3xl font-bold text-tertiary">
-            {pendingCount}
-          </p>
-        </div>
-
-        <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
-          <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-            {t("bannedStaff")}
-          </p>
-          <p className="font-headline text-2xl md:text-3xl font-bold text-error">
-            {bannedCount}
-          </p>
-        </div>
-
-        <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
-          <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-            {t("totalStaff")}
-          </p>
-          <p className="font-headline text-2xl md:text-3xl font-bold text-on-surface">
-            {totalCount}
-          </p>
-        </div>
-      </div>
+      </Card>
 
       {/* Modals */}
       <AddStaffModal
@@ -669,15 +927,15 @@ export default function StaffsPage() {
             right: menuAnchor.right,
             zIndex: 99999,
           }}
-          className="w-48 bg-surface-container-lowest border border-outline-variant/80 rounded-xl shadow-2xl py-1 text-left animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md"
+          className="w-48 bg-card/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl py-1 text-left rtl:text-right animate-in fade-in zoom-in-95 duration-150"
         >
           <Link
             href={`/staffs/${menuAnchor.staff.id}`}
             onClick={() => setMenuAnchor(null)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors"
+            className="flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-toota-ink hover:bg-toota-inner transition-colors"
           >
-            <Eye className="w-4 h-4 text-primary" />
-            <span>{t("viewProfile")}</span>
+            <Eye className="size-3.5 text-toota-muted" />
+            <span>{t("viewProfile") || "View Profile"}</span>
           </Link>
 
           <button
@@ -687,13 +945,13 @@ export default function StaffsPage() {
               setMenuAnchor(null);
               handleOpenEdit(s);
             }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-on-surface hover:bg-surface-container-low transition-colors cursor-pointer text-left rtl:text-right"
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer text-left rtl:text-right"
           >
-            <Edit className="w-4 h-4 text-on-surface-variant" />
-            <span>{t("editDetails")}</span>
+            <Edit className="size-3.5 text-toota-muted" />
+            <span>{t("editDetails") || "Edit Details"}</span>
           </button>
 
-          <div className="h-[1px] bg-outline-variant/40 my-1" />
+          <div className="h-[1px] bg-border/40 my-1" />
 
           {(menuAnchor.staff.accountStatus || "ACTIVE").toUpperCase() !== "ACTIVE" && (
             <button
@@ -703,10 +961,10 @@ export default function StaffsPage() {
                 setMenuAnchor(null);
                 handleMakeActive(s);
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-secondary hover:bg-secondary-container/20 transition-colors cursor-pointer text-left rtl:text-right"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer text-left rtl:text-right"
             >
-              <ShieldCheck className="w-4 h-4 text-secondary" />
-              <span>{t("activateStaff")}</span>
+              <ShieldCheck className="size-3.5 text-emerald-500" />
+              <span>{t("activateStaff") || "Activate Staff"}</span>
             </button>
           )}
 
@@ -718,10 +976,10 @@ export default function StaffsPage() {
                 setMenuAnchor(null);
                 handleMakePending(s);
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-tertiary hover:bg-tertiary-fixed/30 transition-colors cursor-pointer text-left rtl:text-right"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer text-left rtl:text-right"
             >
-              <Clock className="w-4 h-4 text-tertiary" />
-              <span>{t("setToPending")}</span>
+              <Clock className="size-3.5 text-amber-500" />
+              <span>{t("setToPending") || "Set to Pending"}</span>
             </button>
           )}
 
@@ -733,10 +991,10 @@ export default function StaffsPage() {
                 setMenuAnchor(null);
                 handleBan(s);
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-error hover:bg-error-container/20 transition-colors cursor-pointer text-left rtl:text-right"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer text-left rtl:text-right"
             >
-              <Ban className="w-4 h-4 text-error" />
-              <span>{t("banStaff")}</span>
+              <Ban className="size-3.5 text-rose-500" />
+              <span>{t("banStaff") || "Ban Staff"}</span>
             </button>
           )}
         </div>,

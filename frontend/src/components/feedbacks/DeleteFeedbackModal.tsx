@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { X, Trash2, Loader2 } from "lucide-react";
+import { X, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 
 interface DeleteFeedbackModalProps {
   isOpen: boolean;
@@ -25,77 +26,79 @@ export default function DeleteFeedbackModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-feedback-title"
-        className="w-full max-w-md bg-surface-container-lowest rounded-3xl border border-outline-variant/60 shadow-2xl p-6 overflow-hidden animate-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl p-5 overflow-hidden animate-in zoom-in-95 duration-150 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-error/10 text-error flex items-center justify-center shrink-0 ring-4 ring-error/5">
-            <Trash2 className="w-6 h-6" />
+          <div className="size-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+            <AlertTriangle className="size-5" />
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        <div className="mt-4">
+        <div>
           <h3
             id="delete-feedback-title"
-            className="text-base font-headline font-bold text-on-surface"
+            className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
           >
             {t("deleteFeedbackTitle") || "Delete Your Feedback"}
           </h3>
-          <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+          <p className="text-xs text-toota-muted mt-1 leading-relaxed">
             {t("deleteFeedbackWarning") ||
               "Are you sure you want to permanently delete this feedback? This action cannot be reversed."}
           </p>
 
           {contentSnippet && (
-            <div className="mt-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs italic text-on-surface-variant line-clamp-3">
+            <div className="mt-3 p-3 rounded-xl bg-toota-inner border border-border/40 text-xs italic text-toota-muted line-clamp-3">
               &ldquo;{contentSnippet}&rdquo;
             </div>
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <button
+        <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border/40">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+            className="toota-pill h-9 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
           >
             {t("cancel") || "Cancel"}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="button"
+            variant="destructive"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-error text-white text-xs font-bold hover:bg-error/90 active:scale-95 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer"
           >
             {isDeleting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-3.5 animate-spin me-1.5" />
                 <span>{t("deleting") || "Deleting..."}</span>
               </>
             ) : (
               <>
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="size-3.5 me-1.5" />
                 <span>{t("deletePermanently") || "Delete Feedback"}</span>
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

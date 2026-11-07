@@ -14,7 +14,6 @@ import {
   DollarSign,
   MessageSquare,
   HelpCircle,
-  Terminal,
   Activity,
   ShieldCheck,
   Building2,
@@ -28,6 +27,8 @@ import {
   Search,
   X,
   History,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -38,11 +39,14 @@ import {
   listThreads,
   deleteThreadApi,
   streamChat,
-  toLogin,
   ApiError,
   Role,
   SavedMessage,
 } from "@/lib/assistant/api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface ChatMessage {
   id: string;
@@ -77,26 +81,6 @@ function formatMessageTime(isoStr?: string): string {
     const datePart = d.toLocaleDateString([], { day: "numeric", month: "short" });
     const timePart = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return `${datePart}, ${timePart}`;
-  } catch {
-    return "";
-  }
-}
-
-function formatThreadDate(isoStr?: string): string {
-  if (!isoStr) return "";
-  try {
-    const d = new Date(isoStr);
-    if (isNaN(d.getTime())) return "";
-    const now = new Date();
-    const isToday =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
-
-    if (isToday) {
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-    return d.toLocaleDateString([], { day: "numeric", month: "short" });
   } catch {
     return "";
   }
@@ -182,162 +166,126 @@ function SidebarContent({
   }, [filteredThreads, t]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-card text-card-foreground">
       {/* Sidebar Header */}
-      <div className="p-3.5 border-b border-outline-variant/60 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare className="w-4 h-4 text-primary shrink-0" />
-          <span className="font-semibold text-xs uppercase tracking-wider text-on-surface truncate" suppressHydrationWarning>
+      <div className="p-3.5 border-b border-border/40 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-baseline gap-1.5 min-w-0">
+          <span
+            suppressHydrationWarning
+            className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate"
+          >
             {t("conversations") || "Conversations"}
           </span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant shrink-0">
-            {threads.length}
+          <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+            / {threads.length}
           </span>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={onNewChat}
             disabled={isStreaming}
             title={t("newChat") || "New Chat"}
-            suppressHydrationWarning
-            className="p-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary text-xs font-medium flex items-center gap-1 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+            className="toota-pill h-7 px-2.5 text-xs font-semibold cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[11px] font-semibold pe-1">
-              {t("newChat") || "New"}
-            </span>
-          </button>
+            <Plus className="size-3.5 me-1" />
+            <span suppressHydrationWarning>{t("newChat") || "New"}</span>
+          </Button>
 
           {isMobile ? (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onCloseMobile}
-              className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              className="size-7 rounded-lg text-toota-muted hover:text-toota-ink"
               title="Close history"
             >
-              <X className="w-4 h-4" />
-            </button>
+              <X className="size-4" />
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onCollapseDesktop}
-              className="p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
+              className="size-7 rounded-lg text-toota-muted hover:text-toota-ink"
               title={t("toggleHistory") || "Collapse sidebar"}
-              suppressHydrationWarning
             >
-              <PanelLeftClose className="w-4 h-4 rtl:rotate-180" />
-            </button>
+              <PanelLeftClose className="size-4 rtl:rotate-180" />
+            </Button>
           )}
         </div>
       </div>
 
       {/* Search Input Filter */}
-      <div className="p-2.5 border-b border-outline-variant/40 shrink-0">
+      <div className="p-2.5 border-b border-border/40 shrink-0">
         <div className="relative flex items-center">
-          <Search className="w-3.5 h-3.5 text-on-surface-variant/60 absolute start-2.5 pointer-events-none" />
-          <input
+          <Search className="size-3.5 text-toota-muted absolute start-2.5 pointer-events-none" />
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t("searchConversations") || "Search chats..."}
-            suppressHydrationWarning
-            className="w-full text-xs ps-8 pe-7 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/60 text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/70 transition-colors"
+            className="h-8 text-xs ps-8 pe-7 bg-toota-inner border-border/40 text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange("")}
-              className="absolute end-2 text-on-surface-variant/60 hover:text-on-surface p-0.5 cursor-pointer"
+              className="absolute end-2 text-toota-muted hover:text-toota-ink cursor-pointer p-0.5"
             >
-              <X className="w-3 h-3" />
+              <X className="size-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Threads Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3 min-h-0">
-        {groupedThreads.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center p-4 text-center text-on-surface-variant/60">
-            <MessageSquare className="w-8 h-8 opacity-30 mb-2" />
-            <p className="text-xs" suppressHydrationWarning>
-              {searchQuery
-                ? "No matching conversations"
-                : t("noPastConversations") || "No conversations yet"}
-            </p>
-            {!searchQuery && (
-              <button
-                type="button"
-                onClick={onNewChat}
-                className="mt-3 text-xs text-primary font-medium hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>{t("newChat") || "Start new conversation"}</span>
-              </button>
-            )}
+      {/* Threads Grouped List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-4">
+        {filteredThreads.length === 0 ? (
+          <div className="py-8 text-center text-xs text-toota-muted" suppressHydrationWarning>
+            {searchQuery
+              ? t("noMatchingFeedback") || "No matching conversations"
+              : t("noConversationsYet") || "No conversations recorded yet"}
           </div>
         ) : (
-          groupedThreads.map((group) => (
-            <div key={group.label} className="space-y-1">
-              <p className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 select-none">
-                {group.label}
-              </p>
+          groupedThreads.map((grp) => (
+            <div key={grp.label} className="space-y-1">
+              <span className="text-[10px] font-semibold text-toota-muted uppercase tracking-wider px-2" suppressHydrationWarning>
+                {grp.label}
+              </span>
               <div className="space-y-0.5">
-                {group.items.map((th) => {
+                {grp.items.map((th) => {
                   const isActive = th.id === activeThreadId;
                   return (
                     <div
                       key={th.id}
-                      role="button"
-                      tabIndex={0}
                       onClick={() => onSelectThread(th.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onSelectThread(th.id);
-                        }
-                      }}
-                      className={`group relative flex items-center justify-between gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all text-left rtl:text-right select-none ${
+                      className={`group relative flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all ${
                         isActive
-                          ? "bg-primary/10 text-primary border border-primary/20 shadow-2xs font-medium"
-                          : "hover:bg-surface-container text-on-surface border border-transparent hover:border-outline-variant/40"
+                          ? "bg-toota-inner text-toota-ink font-semibold border-s-2 border-toota-green shadow-2xs"
+                          : "text-toota-muted hover:text-toota-ink hover:bg-toota-inner/60"
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <Terminal
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            isActive
-                              ? "text-primary"
-                              : "text-on-surface-variant/70"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p
-                            className={`text-xs truncate ${
-                              isActive
-                                ? "font-semibold text-primary"
-                                : "font-medium text-on-surface"
-                            }`}
-                            title={th.title}
-                          >
-                            {th.title}
-                          </p>
-                          <span className="text-[10px] text-on-surface-variant/70 block">
-                            {formatThreadDate(th.lastAt)}
-                          </span>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs leading-snug">
+                          {th.title}
+                        </p>
+                        <p className="text-[10px] text-toota-muted font-mono mt-0.5 tabular-nums">
+                          {formatMessageTime(th.lastAt)}
+                        </p>
                       </div>
 
-                      {/* Delete button */}
                       <button
                         type="button"
                         onClick={(e) => onDeleteThread(e, th.id)}
-                        className="opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 p-1 rounded-md transition-all text-on-surface-variant/60 cursor-pointer shrink-0"
-                        title={t("deleteConversation") || "Delete chat"}
+                        className="opacity-0 group-hover:opacity-100 hover:text-destructive p-1 rounded-md transition-opacity cursor-pointer shrink-0"
+                        title={t("deleteConversation") || "Delete conversation"}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="size-3.5" />
                       </button>
                     </div>
                   );
@@ -350,17 +298,17 @@ function SidebarContent({
 
       {/* Sidebar Footer Controls */}
       {threads.length > 0 && (
-        <div className="p-2.5 border-t border-outline-variant/60 shrink-0 flex items-center justify-between text-[11px] text-on-surface-variant">
-          <span className="text-[10px] text-on-surface-variant/70">
+        <div className="p-2.5 border-t border-border/40 shrink-0 flex items-center justify-between text-xs text-toota-muted">
+          <span className="font-mono text-[10px] tabular-nums" suppressHydrationWarning>
             {threads.length} {t("conversations") || "chats"}
           </span>
           <button
             type="button"
             onClick={onClearAll}
-            className="inline-flex items-center gap-1 text-[11px] text-rose-500/80 hover:text-rose-600 transition-colors cursor-pointer hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] text-destructive/80 hover:text-destructive transition-colors cursor-pointer hover:underline"
           >
-            <Trash2 className="w-3 h-3" />
-            <span>{t("clearAllChats") || "Clear all"}</span>
+            <Trash2 className="size-3" />
+            <span suppressHydrationWarning>{t("clearAllChats") || "Clear all"}</span>
           </button>
         </div>
       )}
@@ -373,7 +321,7 @@ export default function AssistantPage() {
   const isRtl = i18n.language === "ar";
   const { role: userRole, companyName } = useCurrentUser();
 
-  // Role initialized as null to prevent role flashing
+  // Role initialized as null to prevent flashing
   const [role, setRole] = useState<Role | null>(null);
   const [gymName, setGymName] = useState<string>("Gym");
   const [loadingMe, setLoadingMe] = useState(true);
@@ -426,7 +374,6 @@ export default function AssistantPage() {
             const tid = (bth.thread_id || bthAny.id || "") as string;
             const existing = prevMap.get(tid);
 
-            // Extract the actual timestamp from whatever property the backend or cache sent
             const rawTime = (bth.last_at ||
               bthAny.lastAt ||
               bthAny.updated_at ||
@@ -434,7 +381,6 @@ export default function AssistantPage() {
               bthAny.created_at ||
               bthAny.createdAt) as string | undefined;
 
-            // Preserve existing thread timestamp; only use fallback if genuinely new and unknown
             const validTime =
               typeof rawTime === "string" && rawTime.trim()
                 ? rawTime
@@ -498,17 +444,14 @@ export default function AssistantPage() {
         }
       } else {
         setIsAiConnected(false);
-        setRole(null);
+        setRole(userRole ? (userRole.toUpperCase() as Role) : null);
       }
-    } catch (err: unknown) {
-      if (err instanceof ApiError && err.status === 401) {
-        const resolvedRole =
-          userRole ? (userRole.toUpperCase() as Role) : undefined;
-        toLogin(resolvedRole);
-        return;
-      }
+    } catch {
+      // NOTE: Never call toLogin() here! Calling toLogin() triggers a redirect to /login,
+      // which the Next.js middleware immediately redirects to /dashboard if the admin is already authenticated.
+      // Instead, mark AI connectivity as false so a clean reconnection card appears in-situ.
       setIsAiConnected(false);
-      setRole(null);
+      setRole(userRole ? (userRole.toUpperCase() as Role) : null);
     } finally {
       setLoadingMe(false);
     }
@@ -769,7 +712,6 @@ export default function AssistantPage() {
       });
     } catch (err: unknown) {
       if (hasReceivedTokens) {
-        // If partial text has already arrived, retain it and append the interrupted notice
         const interruptedNotice =
           t("streamInterrupted") ||
           "The answer was interrupted. Please try again.";
@@ -788,7 +730,6 @@ export default function AssistantPage() {
           )
         );
       } else {
-        // Revert optimistic messages and restore user question
         setMessages((prev) =>
           prev.filter((m) => m.id !== userMsgId && m.id !== modelMsgId)
         );
@@ -797,9 +738,8 @@ export default function AssistantPage() {
 
       if (err instanceof ApiError) {
         if (err.status === 401) {
-          const resolvedRole =
-            role || (userRole ? (userRole.toUpperCase() as Role) : undefined);
-          toLogin(resolvedRole);
+          toast.error("AI service session expired. Please reconnect.");
+          setIsAiConnected(false);
           return;
         }
         if (err.status === 429) {
@@ -844,7 +784,7 @@ export default function AssistantPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Categorized suggestions
+  // Categorized suggestions for the launchpad
   const categorizedSuggestions = useMemo(() => {
     if (role === "ADMIN") {
       return [
@@ -988,87 +928,106 @@ export default function AssistantPage() {
     );
   }, [role, t]);
 
-  // Loading spinner on initial load
-  if (loadingMe) {
-    return (
-      <div className="w-full flex items-center justify-center h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] rounded-2xl border border-outline-variant/70 bg-surface-container-lowest p-6 shadow-2xs">
-        <div className="flex flex-col items-center gap-3 text-on-surface-variant text-sm">
-          <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <span>{t("connectingToAssistant") || "Connecting to assistant..."}</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Offline Fallback Card if AI Service is unreachable
-  if (isAiConnected === false || role === null) {
-    return (
-      <div className="w-full flex items-center justify-center h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] rounded-2xl border border-outline-variant/70 bg-surface-container-lowest p-6 shadow-2xs">
-        <div className="max-w-md w-full p-6 sm:p-8 rounded-2xl bg-surface-container-low border border-outline-variant text-center space-y-4 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-          <h2 className="font-headline font-bold text-lg sm:text-xl text-on-surface">
-            {t("assistantUnavailable") || "The assistant is unavailable right now."}
-          </h2>
-          <p className="text-xs sm:text-sm text-on-surface-variant leading-relaxed">
-            {t("assistantUnavailableCard") ||
-              "The assistant is unavailable right now. Please try again later."}
-          </p>
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => void init()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all cursor-pointer shadow-2xs active:scale-95"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>{t("tryAgain") || "Try again"}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full flex h-[calc(100vh-6.5rem)] sm:h-[calc(100vh-7.5rem)] overflow-hidden rounded-2xl border border-outline-variant/70 bg-surface-container-lowest shadow-2xs relative">
-      {/* Desktop Collapsible Sidebar */}
-      <aside
-        className={`hidden lg:flex flex-col border-e border-outline-variant/60 bg-surface-container-low/60 transition-all duration-300 ease-in-out shrink-0 ${
-          isSidebarOpen ? "w-72 xl:w-80" : "w-0 overflow-hidden border-none"
-        }`}
-      >
-        {isSidebarOpen && (
-          <SidebarContent
-            isMobile={false}
-            threads={threads}
-            activeThreadId={threadId}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onSelectThread={handleSelectThread}
-            onDeleteThread={handleDeleteThread}
-            onNewChat={handleNewChat}
-            onClearAll={handleClearAllHistory}
-            onCloseMobile={() => setIsMobileHistoryOpen(false)}
-            onCollapseDesktop={() => setIsSidebarOpen(false)}
-            isStreaming={isStreaming}
-            t={t}
-          />
-        )}
-      </aside>
+    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-8 select-none">
+      {/* 1. Top Header Card (Single Typographic Baseline Metric) */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h1
+                suppressHydrationWarning
+                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+              >
+                {t("assistantTitle", "Operational AI Assistant")}
+              </h1>
+              {gymName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {gymName}
+                </span>
+              )}
+              {role && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
+                </span>
+              )}
+              {/* Crisp Outlined Micro-Badge */}
+              {isAiConnected ? (
+                <span
+                  suppressHydrationWarning
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs ms-1"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span suppressHydrationWarning>{t("aiConnected", "Connected")}</span>
+                </span>
+              ) : (
+                <span
+                  suppressHydrationWarning
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 ms-1"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span suppressHydrationWarning>{t("aiOffline", "Offline")}</span>
+                </span>
+              )}
+            </div>
+            <p
+              suppressHydrationWarning
+              className="text-xs sm:text-sm text-toota-muted mt-1 font-normal"
+            >
+              {t(
+                "assistantSubtitle",
+                "Instant gym intelligence, operational lookups, and member support powered by Gemini."
+              )}
+            </p>
+          </div>
 
-      {/* Mobile Drawer Overlay */}
-      {isMobileHistoryOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileHistoryOpen(false)}
-          />
-          {/* Drawer Sheet */}
-          <div className="relative w-80 max-w-[85vw] h-full bg-surface-container-low border-e border-outline-variant flex flex-col shadow-2xl z-10">
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            {role === "ADMIN" && (
+              <Link
+                href="/assistant/documents"
+                className="toota-pill inline-flex items-center h-10 px-4 text-xs font-semibold border border-border/50 hover:bg-toota-inner text-toota-ink transition-colors cursor-pointer"
+              >
+                <BookOpen className="size-3.5 me-2 text-toota-muted" />
+                <span suppressHydrationWarning>{t("manageDocuments", "Knowledge Documents")}</span>
+              </Link>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void init()}
+              disabled={loadingMe}
+              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+            >
+              <RefreshCw className={`size-3.5 me-2 ${loadingMe ? "animate-spin" : ""}`} />
+              <span suppressHydrationWarning>{t("refresh", "Refresh")}</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleNewChat}
+              disabled={isStreaming}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="size-3.5 me-1.5" />
+              <span suppressHydrationWarning>{t("newChat", "New Chat")}</span>
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* 2. Main Workstation Card */}
+      <Card className="toota-card border-none p-0 overflow-hidden flex flex-col lg:flex-row h-[calc(100vh-12.5rem)] min-h-[620px] shadow-xs">
+        {/* Left Collapsible History Sidebar (Desktop) */}
+        <aside
+          className={`hidden lg:flex flex-col border-e border-border/40 transition-all duration-300 ease-in-out shrink-0 ${
+            isSidebarOpen ? "w-72 xl:w-80" : "w-0 overflow-hidden border-none"
+          }`}
+        >
+          {isSidebarOpen && (
             <SidebarContent
-              isMobile={true}
+              isMobile={false}
               threads={threads}
               activeThreadId={threadId}
               searchQuery={searchQuery}
@@ -1082,328 +1041,364 @@ export default function AssistantPage() {
               isStreaming={isStreaming}
               t={t}
             />
-          </div>
-        </div>
-      )}
+          )}
+        </aside>
 
-      {/* Main Chat Workstation */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-surface-container-lowest">
-        {/* Top Header Bar */}
-        <header className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2.5 border-b border-outline-variant/70 shrink-0 bg-surface-container-lowest">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {/* Desktop Toggle (shows when collapsed) */}
-            {!isSidebarOpen && (
-              <button
-                type="button"
-                onClick={() => setIsSidebarOpen(true)}
-                className="hidden lg:flex p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/50 transition-colors cursor-pointer shrink-0"
-                title={t("toggleHistory") || "Open conversations list"}
-              >
-                <PanelLeft className="w-4 h-4 rtl:rotate-180" />
-              </button>
-            )}
-
-            {/* Mobile History Drawer Toggle */}
-            <button
-              type="button"
-              onClick={() => setIsMobileHistoryOpen(true)}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/50 transition-colors cursor-pointer shrink-0 relative"
-              title={t("chatHistory") || "View conversations history"}
-            >
-              <History className="w-4 h-4" />
-              {threads.length > 0 && (
-                <span className="absolute -top-1 -end-1 w-2 h-2 rounded-full bg-primary" />
-              )}
-            </button>
-
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-surface-container-high border border-outline-variant text-primary flex items-center justify-center shrink-0 shadow-2xs">
-              <Terminal className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-headline font-bold text-base sm:text-lg text-on-surface truncate">
-                  {gymName} {t("navAiAssistant") || "Assistant"}
-                </h1>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {t("connected") || "Connected"}
-                </span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant border border-outline-variant/50 uppercase tracking-wider">
-                  {role}
-                </span>
-              </div>
-              <p className="text-[11px] text-on-surface-variant truncate hidden sm:block">
-                {role === "ADMIN"
-                  ? t("adminAiTelemetry")
-                  : role === "STAFF"
-                  ? t("staffAiTelemetry")
-                  : t("memberAiTelemetry")}
-              </p>
+        {/* Mobile History Drawer Sheet */}
+        {isMobileHistoryOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden flex">
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+              onClick={() => setIsMobileHistoryOpen(false)}
+            />
+            <div className="relative w-80 max-w-[85vw] h-full bg-card text-card-foreground border-e border-border flex flex-col shadow-2xl z-10">
+              <SidebarContent
+                isMobile={true}
+                threads={threads}
+                activeThreadId={threadId}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onSelectThread={handleSelectThread}
+                onDeleteThread={handleDeleteThread}
+                onNewChat={handleNewChat}
+                onClearAll={handleClearAllHistory}
+                onCloseMobile={() => setIsMobileHistoryOpen(false)}
+                onCollapseDesktop={() => setIsSidebarOpen(false)}
+                isStreaming={isStreaming}
+                t={t}
+              />
             </div>
           </div>
+        )}
 
-          {/* Action Controls & Navigation */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Knowledge Documents Link (Admin Only) */}
-            {role === "ADMIN" && (
-              <Link
-                href="/assistant/documents"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 text-on-surface transition-colors cursor-pointer"
-                title={t("manageDocuments") || "Knowledge Documents"}
-              >
-                <BookOpen className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden sm:inline">
-                  {t("manageDocuments") || "Knowledge Documents"}
-                </span>
-              </Link>
-            )}
-
-            {/* Reset / New Thread Button */}
-            <button
-              type="button"
-              onClick={handleNewChat}
-              disabled={isStreaming}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-on-surface hover:text-primary bg-surface-container-low hover:bg-surface-container border border-outline-variant/60 transition-colors disabled:opacity-40 cursor-pointer"
-              title={t("newChat") || "Start new conversation"}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {t("newChat") || "New Thread"}
-              </span>
-            </button>
-          </div>
-        </header>
-
-        {/* Main Chat Stream Container */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 min-h-0">
-          {isLoadingThread ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3 text-on-surface-variant text-sm">
-                <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                <span>
-                  {t("loadingConversation") || "Loading conversation..."}
-                </span>
-              </div>
-            </div>
-          ) : messages.length === 0 ? (
-            /* Operational Launchpad */
-            <div className="h-full flex flex-col justify-center items-center text-center max-w-3xl mx-auto py-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-surface-container-high border border-outline-variant/60 text-on-surface-variant mb-4">
-                <Building2 className="w-3.5 h-3.5 text-primary" />
-                <span>{gymName} Operational Console</span>
-              </div>
-
-              <h2 className="font-headline font-bold text-xl sm:text-2xl text-on-surface mb-2">
-                {role === "ADMIN"
-                  ? "What would you like to review today?"
-                  : role === "STAFF"
-                  ? "Front desk inquiries & member lookups"
-                  : "How can we assist your workout today?"}
-              </h2>
-
-              <p className="text-xs sm:text-sm text-on-surface-variant max-w-lg mb-6 leading-relaxed">
-                {role === "ADMIN"
-                  ? "Query live membership records, expiring accounts, monthly financial figures, or club policy documents."
-                  : role === "STAFF"
-                  ? "Verify member attendance, search active memberships, or review reception desk protocols."
-                  : "Check your membership renewal dates, past visits, payments, and club guidelines."}
-              </p>
-
-              {/* Categorized Launchpad Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full text-left rtl:text-right">
-                {categorizedSuggestions.map((group, gIdx) => (
-                  <div
-                    key={gIdx}
-                    className="p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/70 shadow-2xs flex flex-col gap-2"
-                  >
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant/80 pb-1 border-b border-outline-variant/40">
-                      <group.icon className="w-3.5 h-3.5 text-primary" />
-                      <span>{group.category}</span>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5 mt-1">
-                      {group.items.map((item, iIdx) => (
-                        <button
-                          key={iIdx}
-                          type="button"
-                          onClick={() => handleSend(item.title)}
-                          disabled={isStreaming}
-                          className="group flex items-start justify-between gap-3 p-2.5 rounded-lg hover:bg-surface-container border border-transparent hover:border-outline-variant/50 transition-all text-left rtl:text-right cursor-pointer"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs sm:text-sm font-medium text-on-surface group-hover:text-primary transition-colors leading-snug">
-                              {item.title}
-                            </p>
-                            <p className="text-[11px] text-on-surface-variant/80 mt-0.5 truncate">
-                              {item.subtitle}
-                            </p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-on-surface-variant/40 group-hover:text-primary group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 shrink-0 mt-0.5 transition-transform" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Conversational Thread */
-            messages.map((msg) => {
-              const isUser = msg.role === "user";
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3 sm:gap-3.5 items-start ${
-                    isUser ? "justify-end" : "justify-start"
-                  }`}
+        {/* Right Chat Workstation */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background">
+          {/* Workstation Top Bar */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/40 shrink-0 bg-card">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {!isSidebarOpen && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="hidden lg:flex size-8 rounded-lg text-toota-muted hover:text-toota-ink"
+                  title={t("toggleHistory") || "Open conversations list"}
                 >
-                  {/* Assistant Monogram Avatar */}
-                  {!isUser && (
-                    <div className="w-8 h-8 rounded-lg bg-surface-container-high border border-outline-variant text-primary font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                      GF
-                    </div>
-                  )}
+                  <PanelLeft className="size-4 rtl:rotate-180" />
+                </Button>
+              )}
 
-                  {/* Message Container Card */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsMobileHistoryOpen(true)}
+                className="lg:hidden size-8 rounded-lg text-toota-muted hover:text-toota-ink relative"
+                title={t("chatHistory") || "View conversations history"}
+              >
+                <History className="size-4" />
+                {threads.length > 0 && (
+                  <span className="absolute -top-1 -end-1 size-2 rounded-full bg-primary" />
+                )}
+              </Button>
+
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <h2
+                    suppressHydrationWarning
+                    className="text-xs sm:text-sm font-semibold text-toota-ink truncate"
+                  >
+                    {threadId
+                      ? threads.find((th) => th.id === threadId)?.title || "Active Discussion"
+                      : t("newConversation", "New Discussion")}
+                  </h2>
+                  <span
+                    suppressHydrationWarning
+                    className="font-mono text-[11px] text-toota-muted tabular-nums"
+                  >
+                    / {messages.length} {t("messages", "messages")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleNewChat}
+                disabled={isStreaming}
+                className="toota-pill h-8 px-3 text-xs font-semibold cursor-pointer text-toota-muted hover:text-toota-ink"
+              >
+                <RotateCcw className="size-3.5 me-1.5" />
+                <span suppressHydrationWarning>{t("newChat", "Reset")}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Chat Stream Viewport */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 min-h-0 bg-background">
+            {isLoadingThread ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2 text-toota-muted text-xs">
+                  <RefreshCw className="size-6 animate-spin text-toota-ink" />
+                  <span suppressHydrationWarning>{t("loadingConversation", "Loading conversation...")}</span>
+                </div>
+              </div>
+            ) : !isAiConnected && messages.length === 0 ? (
+              /* Offline / Reconnect Fallback Card */
+              <div className="h-full flex flex-col justify-center items-center text-center max-w-md mx-auto py-8">
+                <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                  <AlertCircle className="size-6" />
+                </div>
+                <h3
+                  suppressHydrationWarning
+                  className="font-semibold text-base text-toota-ink mb-1"
+                >
+                  {t("assistantUnavailable", "Assistant Service Standby")}
+                </h3>
+                <p
+                  suppressHydrationWarning
+                  className="text-xs text-toota-muted mb-4 leading-relaxed"
+                >
+                  {t(
+                    "assistantUnavailableCard",
+                    "Could not establish connection to the AI intelligence service. Click below to reconnect."
+                  )}
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => void init()}
+                  disabled={loadingMe}
+                  className="toota-pill h-9 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <RefreshCw className={`size-3.5 me-2 ${loadingMe ? "animate-spin" : ""}`} />
+                  <span suppressHydrationWarning>{t("aiReconnect", "Reconnect Now")}</span>
+                </Button>
+              </div>
+            ) : messages.length === 0 ? (
+              /* Operational Launchpad (Suggestions) */
+              <div className="h-full flex flex-col justify-center items-center text-center max-w-2xl mx-auto py-6">
+                <div
+                  suppressHydrationWarning
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs mb-4"
+                >
+                  <Sparkles className="size-3.5 text-amber-500 shrink-0" />
+                  <span suppressHydrationWarning>{t("aiOperationalConsole", "Operational Intelligence Console")}</span>
+                </div>
+
+                <h3 className="font-semibold text-xl text-toota-ink mb-1.5 tracking-tight">
+                  {role === "ADMIN"
+                    ? "What operational metric shall we review?"
+                    : role === "STAFF"
+                    ? "Front desk inquiries & member lookups"
+                    : "How can we assist your workout today?"}
+                </h3>
+
+                <p className="text-xs text-toota-muted max-w-md mb-6 leading-relaxed">
+                  {role === "ADMIN"
+                    ? "Query membership rosters, upcoming expirations, monthly revenues, or club documents."
+                    : role === "STAFF"
+                    ? "Lookup member check-in history, verify active memberships, or review reception desk protocols."
+                    : "Check your membership status, past visits, billing history, and gym policies."}
+                </p>
+
+                {/* 2x2 Launchpad Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full text-left rtl:text-right">
+                  {categorizedSuggestions.map((group, gIdx) => (
+                    <div
+                      key={gIdx}
+                      className="p-3.5 rounded-2xl bg-card border border-border/40 shadow-2xs space-y-2"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-toota-muted pb-1 border-b border-border/40">
+                        <group.icon className="size-3.5 text-toota-ink" />
+                        <span>{group.category}</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        {group.items.map((item, iIdx) => (
+                          <button
+                            key={iIdx}
+                            type="button"
+                            onClick={() => handleSend(item.title)}
+                            disabled={isStreaming}
+                            className="w-full group flex items-start justify-between gap-3 p-2 rounded-xl hover:bg-toota-inner border border-transparent hover:border-border/40 transition-all text-left rtl:text-right cursor-pointer"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-toota-ink group-hover:text-primary transition-colors leading-snug">
+                                {item.title}
+                              </p>
+                              <p className="text-[11px] text-toota-muted mt-0.5 truncate">
+                                {item.subtitle}
+                              </p>
+                            </div>
+                            <ChevronRight className="size-3.5 text-toota-muted group-hover:text-primary group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 shrink-0 mt-0.5 transition-transform" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              /* Message Thread */
+              messages.map((msg) => {
+                const isUser = msg.role === "user";
+                return (
                   <div
-                    className={`relative max-w-[90%] sm:max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed transition-all ${
-                      isUser
-                        ? "bg-surface-container-high border border-outline-variant text-on-surface"
-                        : "bg-surface-container-lowest border border-outline-variant shadow-2xs text-on-surface"
+                    key={msg.id}
+                    className={`flex gap-3 items-start ${
+                      isUser ? "justify-end" : "justify-start"
                     }`}
                   >
-                    {/* Sender Metadata Row */}
-                    <div className="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-outline-variant/40 text-[11px] text-on-surface-variant select-none">
-                      <span className="font-semibold text-on-surface">
-                        {isUser ? `You (${role})` : `${gymName} Assistant`}
-                      </span>
-                      {msg.timestamp && (
-                        <span className="text-[10px] opacity-70">
-                          {msg.timestamp}
+                    {!isUser && (
+                      <Avatar className="size-8 ring-1 ring-border/40 shrink-0 mt-0.5">
+                        <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
+                          AI
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+
+                    <div
+                      className={`relative max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-1.5 transition-all ${
+                        isUser
+                          ? "bg-toota-inner text-toota-ink border border-border/40"
+                          : "bg-card text-toota-ink border border-border/40 shadow-2xs"
+                      }`}
+                    >
+                      {/* Sender Metadata */}
+                      <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/40 text-[11px] text-toota-muted select-none">
+                        <span className="font-semibold text-toota-ink">
+                          {isUser ? `You (${role || "User"})` : `${gymName} Assistant`}
                         </span>
+                        {msg.timestamp && (
+                          <span className="font-mono text-[10px] tabular-nums">
+                            {msg.timestamp}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tool Execution Micro-Badge */}
+                      {msg.tool && (
+                        <div className="py-1">
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                            <span>{msg.tool}...</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Message Content (Strict Security: plain text, no innerHTML) */}
+                      <p
+                        dir="auto"
+                        className="whitespace-pre-wrap font-sans break-words text-xs sm:text-[13px] leading-relaxed text-toota-ink"
+                      >
+                        {msg.text}
+                      </p>
+
+                      {/* Streaming Dots */}
+                      {msg.isStreaming && !msg.text && (
+                        <div className="inline-flex items-center gap-1 text-toota-muted py-1">
+                          <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+                          <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+                          <span className="size-1.5 rounded-full bg-primary animate-bounce" />
+                        </div>
+                      )}
+
+                      {/* Footer Actions */}
+                      {!isUser && msg.text && !msg.isStreaming && (
+                        <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-[11px] text-toota-muted">
+                          <span className="text-[10px] opacity-70" suppressHydrationWarning>
+                            {t("aiDisclaimer", "AI answer: verify operational figures")}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(msg.text, msg.id)}
+                            className="inline-flex items-center gap-1 hover:text-toota-ink transition-colors cursor-pointer"
+                            title={t("copy", "Copy answer")}
+                          >
+                            {copiedId === msg.id ? (
+                              <>
+                                <Check className="size-3 text-emerald-500" />
+                                <span className="text-emerald-500" suppressHydrationWarning>{t("copied", "Copied")}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="size-3" />
+                                <span suppressHydrationWarning>{t("copy", "Copy")}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {/* Active Tool Execution Telemetry */}
-                    {msg.tool && (
-                      <div className="mb-2.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-container text-primary border border-primary/20">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
-                        <span>{msg.tool}...</span>
-                      </div>
-                    )}
-
-                    {/* Plain Text Content (Strict Security: No Markdown/HTML) */}
-                    <p
-                      dir="auto"
-                      className="whitespace-pre-wrap font-sans break-words selection:bg-primary/20 text-on-surface text-[13.5px] sm:text-sm leading-relaxed"
-                    >
-                      {msg.text}
-                    </p>
-
-                    {/* Streaming Pulse Indicator */}
-                    {msg.isStreaming && !msg.text && (
-                      <div className="inline-flex items-center gap-1.5 text-on-surface-variant text-xs py-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" />
-                      </div>
-                    )}
-
-                    {/* Assistant Footer Controls: Advisory Disclaimer & Copy Action */}
-                    {!isUser && msg.text && !msg.isStreaming && (
-                      <div className="mt-2.5 pt-1.5 border-t border-outline-variant/40 flex items-center justify-between text-[11px] text-on-surface-variant">
-                        <span className="text-[10px] opacity-60">
-                          {t("aiDisclaimer") || "AI answer: check important numbers"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(msg.text, msg.id)}
-                          className="inline-flex items-center gap-1 hover:text-on-surface transition-colors cursor-pointer"
-                          title={t("copy") || "Copy answer"}
-                        >
-                          {copiedId === msg.id ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-500" />
-                              <span className="text-emerald-500">{t("copied") || "Copied"}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>{t("copy") || "Copy"}</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                    {isUser && (
+                      <Avatar className="size-8 ring-1 ring-border/40 shrink-0 mt-0.5">
+                        <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
+                          ME
+                        </AvatarFallback>
+                      </Avatar>
                     )}
                   </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-                  {/* User Avatar */}
-                  {isUser && (
-                    <div className="w-8 h-8 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface-variant flex items-center justify-center shrink-0 mt-0.5">
-                      <User className="w-4 h-4" />
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+          {/* Bottom Input Dock */}
+          <div className="p-3 sm:p-4 border-t border-border/40 shrink-0 bg-card">
+            <div className="rounded-2xl bg-toota-inner border border-border/40 focus-within:ring-1 focus-within:ring-zinc-400 p-2 sm:p-2.5 transition-all">
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={input}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={isStreaming}
+                maxLength={2000}
+                placeholder={placeholderText}
+                dir={isRtl ? "rtl" : "auto"}
+                className="w-full bg-transparent text-xs sm:text-sm text-toota-ink placeholder:text-toota-muted focus:outline-hidden resize-none min-h-[38px] max-h-[140px] px-2 py-1 leading-relaxed"
+              />
 
-        {/* Input Dock (Grounded at Bottom) */}
-        <div className="px-3 sm:px-6 pb-3 pt-2 border-t border-outline-variant/60 shrink-0 bg-surface-container-lowest">
-          <div className="relative rounded-xl bg-surface-container-lowest border border-outline-variant focus-within:border-primary/80 focus-within:ring-1 focus-within:ring-primary/40 transition-all p-2 sm:p-2.5 shadow-2xs">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={input}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              disabled={isStreaming}
-              maxLength={2000}
-              placeholder={placeholderText}
-              dir={isRtl ? "rtl" : "auto"}
-              className="w-full bg-transparent text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none resize-none min-h-[38px] max-h-[140px] px-2 py-1 leading-relaxed selection:bg-primary/20"
-            />
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 mt-1 px-1 text-xs">
+                <span className="text-[11px] text-toota-muted hidden sm:inline select-none" suppressHydrationWarning>
+                  ↵ {t("pressEnterToSend", "Enter to send")} • ⇧↵{" "}
+                  {t("shiftEnterForNewline", "Shift + Enter for new line")}
+                </span>
 
-            <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-outline-variant/40 mt-1 px-1">
-              <span className="text-[11px] text-on-surface-variant/60 hidden sm:inline select-none">
-                ↵ {t("pressEnterToSend") || "Enter to send"} • ⇧↵{" "}
-                {t("shiftEnterForNewline") || "Shift + Enter for new line"}
-              </span>
-              <span className="text-[11px] text-on-surface-variant/60 sm:hidden">
-                {input.length}/2000
-              </span>
-
-              <div className="flex items-center gap-2 ms-auto">
-                {input.length > 500 && (
-                  <span className="text-[11px] text-on-surface-variant hidden sm:inline">
+                <div className="flex items-center gap-2 ms-auto">
+                  <span className="font-mono text-[11px] text-toota-muted tabular-nums">
                     {input.length}/2000
                   </span>
-                )}
 
-                <button
-                  type="button"
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || isStreaming}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary text-xs font-semibold disabled:opacity-40 active:scale-95 transition-all shadow-2xs cursor-pointer disabled:cursor-not-allowed"
-                  aria-label={t("send") || "Send message"}
-                >
-                  {isStreaming ? (
-                    <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  ) : (
-                    <>
-                      <span>{t("send") || "Send"}</span>
-                      <Send className="w-3.5 h-3.5 rtl:rotate-180" />
-                    </>
-                  )}
-                </button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => handleSend()}
+                    disabled={!input.trim() || isStreaming}
+                    className="toota-pill h-7 px-3 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                    aria-label={t("send", "Send message")}
+                  >
+                    {isStreaming ? (
+                      <RefreshCw className="size-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline me-1" suppressHydrationWarning>{t("send", "Send")}</span>
+                        <Send className="size-3 rtl:rotate-180" />
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

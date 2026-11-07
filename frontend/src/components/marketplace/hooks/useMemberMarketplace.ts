@@ -19,6 +19,7 @@ import type {
   RawPurchaseItem,
 } from "@/types/marketplace";
 import axios from "axios";
+import api from "@/lib/axios";
 import { BrowserProvider, Contract, JsonRpcSigner, formatUnits } from "ethers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -198,25 +199,23 @@ export function useMemberMarketplace() {
     if (!readContract || !account) return;
 
     async function fetch_plans() {
-      const query = new URLSearchParams({
-        page: "1",
-        limit: "10000",
-      }).toString();
-
       try {
-        const API_URL = `${process.env.NEXT_PUBLIC_FETCH_PLANS_URL}?${query}`;
-        const response = await axios.get<ApiMembershipPlan[]>(API_URL, {
-          headers: {
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg4MDBjZmM0LTVhNTAtNGYxYi1hNDQ0LTgxNjdjYWFlMzNkMCIsInJvbGUiOiJNRU1CRVIiLCJpYXQiOjE3OTE2NjMyNTMsImV4cCI6MTc5NDI1NTI1M30.Egh8nKZmROfz3Y6q5PfRLjWY9rSoY2B9gTNQCFoLR1Y",
-          },
-        });
+        const response = await api.get<ApiMembershipPlan[]>(
+          "/api/members/membership-plans?page=1&limit=1000"
+        );
 
-        const mappedPlans: MembershipPlan[] = response.data.map((plan) => ({
+        const rawData = response.data;
+        const plansData = Array.isArray(rawData)
+          ? rawData
+          : Array.isArray((rawData as { data?: ApiMembershipPlan[] })?.data)
+          ? (rawData as { data: ApiMembershipPlan[] }).data
+          : [];
+
+        const mappedPlans: MembershipPlan[] = plansData.map((plan) => ({
           planName: plan.planName,
           description: plan.description,
           isActive: plan.isActive,
-          durations: plan.membershipPlanDurations.map((duration) => ({
+          durations: (plan.membershipPlanDurations || []).map((duration) => ({
             durationDays: duration.durationDays,
             priceByG: duration.priceByG,
           })),

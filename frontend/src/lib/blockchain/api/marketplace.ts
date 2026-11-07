@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "@/lib/axios";
 import type { SignedForwardRequest } from "@/types/marketplace";
 
 type RelayerResponse = {
@@ -32,17 +33,7 @@ export async function submitGaslessTransaction(
 
 export const update_addressAdmin_forMember = async (address: string) => {
   try {
-    const API_URL = `${process.env.NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN}`;
-    await axios.patch(
-      API_URL,
-      { walletAddress: address },
-      {
-        headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZiYWI3MDMwLTNmMzAtNGYzOC05OTViLWEyNDQ3YWJmMTA5ZiIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc5MTg4OTY0NSwiZXhwIjoxNzk0NDgxNjQ1fQ.ezAf4G4iFoOWOmTuKDzyOcvo5S6RtEctBW39f-L3SV0",
-        },
-      }
-    );
+    await api.patch("/api/users/admins/edit-profile", { walletAddress: address });
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Status:", error.response?.status);
@@ -56,8 +47,7 @@ export const update_addressAdmin_forMember = async (address: string) => {
 
 export const update_walletAddress_member = async (address: string) => {
   try {
-    const API_URL = `${process.env.NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER}`;
-    await axios.patch(API_URL, { walletAddress: address });
+    await api.patch("/api/users/members/edit-profile", { walletAddress: address });
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Status:", error.response?.status);

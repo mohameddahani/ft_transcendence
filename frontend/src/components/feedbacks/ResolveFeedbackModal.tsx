@@ -7,18 +7,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Lock,
-  MessageSquare,
   Loader2,
   AlertTriangle,
 } from "lucide-react";
-import { FeedbackItem, FeedbackStatus, SentimentType } from "@/types/feedback";
+import { FeedbackItem, FeedbackStatus } from "@/types/feedback";
 import { useTranslation } from "react-i18next";
-
-const SENTIMENT_STYLES: Record<SentimentType, string> = {
-  POSITIVE: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  NEUTRAL: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
-  NEGATIVE: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-};
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const starsDisagree = (f: FeedbackItem) =>
   (f.rating >= 4 && f.sentiment === "NEGATIVE") ||
@@ -47,7 +42,6 @@ export default function ResolveFeedbackModal({
 
   useEffect(() => {
     if (feedback) {
-      // Default to RESOLVED if open, or current status
       setSelectedStatus(
         feedback.feedbackStatus === "OPEN" ? "RESOLVED" : feedback.feedbackStatus
       );
@@ -59,9 +53,21 @@ export default function ResolveFeedbackModal({
   if (!isOpen || !feedback) return null;
 
   const member = feedback.member;
-  const fullName = `${member?.firstName || ""} ${member?.lastName || ""}`.trim() || "Member";
-  const initials = `${(member?.firstName || "")[0] || ""}${(member?.lastName || "")[0] || ""}`.toUpperCase() || "M";
-  const photo = member?.profileImageUrl;
+  const fullName =
+    `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
+    member?.userName ||
+    "Gym Member";
+  const initials =
+    ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() ||
+    member?.userName?.slice(0, 2).toUpperCase() ||
+    "M";
+
+  const rawPhoto = member?.profileImageUrl || member?.photo;
+  const isPlaceholder =
+    !rawPhoto ||
+    rawPhoto === "default-image.jpg" ||
+    rawPhoto === "default-member-image.jpg";
+  const photo = !isPlaceholder ? rawPhoto : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,11 +75,15 @@ export default function ResolveFeedbackModal({
 
     const noteTrimmed = resolutionNote.trim();
     if (noteTrimmed && noteTrimmed.length < 3) {
-      setValidationError(t("resolutionNoteMinLength") || "Resolution note must be at least 3 characters.");
+      setValidationError(
+        t("resolutionNoteMinLength") || "Resolution note must be at least 3 characters."
+      );
       return;
     }
     if (noteTrimmed && noteTrimmed.length > 1000) {
-      setValidationError(t("resolutionNoteMaxLength") || "Resolution note cannot exceed 1000 characters.");
+      setValidationError(
+        t("resolutionNoteMaxLength") || "Resolution note cannot exceed 1000 characters."
+      );
       return;
     }
 
@@ -85,231 +95,214 @@ export default function ResolveFeedbackModal({
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      {/* Backdrop */}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={onClose}
+    >
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-xl bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/60 p-6 z-10 animate-in zoom-in-95 duration-200 space-y-6">
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resolve-feedback-title"
+        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-outline-variant/40">
+        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                {t("feedbackResolution") || "Member Feedback & Resolution"}
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant border border-outline-variant/50">
-                <Lock className="w-3 h-3" />
-                Immutable Member Submission
+            <div className="flex items-baseline gap-2">
+              <h3
+                id="resolve-feedback-title"
+                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+              >
+                {t("reviewAndResolve") || "Review & Update Status"}
+              </h3>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {feedback.rating}.0 ★
               </span>
             </div>
-            <h3 className="font-headline text-lg font-bold text-on-surface mt-1">
-              {t("reviewAndResolve") || "Review & Update Status"}
-            </h3>
+            <p className="text-xs text-toota-muted mt-0.5">
+              {t("feedbackResolutionSubtitle") ||
+                "Review member review and document administrative action taken."}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            aria-label="Close"
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* Member & Feedback Snapshot (Read-Only Section) */}
-        <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-3">
-          {/* Member Row */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/50">
-                {photo ? (
-                   
-                  <img
-                    src={photo}
-                    alt={fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span>{initials}</span>
+        {/* Modal Body */}
+        <div className="p-5 space-y-4 overflow-y-auto">
+          {/* Member & Review Snapshot */}
+          <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
+                  {photo && <AvatarImage src={photo} alt={fullName} />}
+                  <AvatarFallback className="bg-background text-toota-ink font-semibold text-xs">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div>
+                  <h4 className="font-semibold text-xs text-toota-ink">{fullName}</h4>
+                  <p className="text-[11px] text-toota-muted font-mono">{formattedDate}</p>
+                </div>
+              </div>
+
+              {/* Rating & Mismatch Indicator */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-lg border border-border/40">
+                  <Star className="size-3 fill-amber-400 text-amber-400" />
+                  <span className="font-mono text-xs font-semibold text-toota-ink">
+                    {feedback.rating}.0
+                  </span>
+                </div>
+
+                {starsDisagree(feedback) && (
+                  <span
+                    title={t("starsDisagreeHint")}
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-amber-200 dark:ring-amber-900/40 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
+                  >
+                    <AlertTriangle className="size-3 text-amber-500 shrink-0" />
+                    <span>Mismatch</span>
+                  </span>
                 )}
               </div>
-
-              <div>
-                <h4 className="font-bold text-sm text-on-surface">{fullName}</h4>
-              </div>
             </div>
 
-            {/* Rating Stars, Mismatch Warning & Sentiment Badge */}
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <div className="flex items-center gap-1 bg-surface-bright px-2.5 py-1 rounded-lg border border-outline-variant/50">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-3.5 h-3.5 ${
-                      star <= feedback.rating
-                        ? "text-amber-400 fill-amber-400"
-                        : "text-outline-variant"
-                    }`}
-                  />
-                ))}
-                <span className="text-xs font-bold text-on-surface ml-1">
-                  {feedback.rating}.0
-                </span>
-              </div>
+            {/* Quoted Content */}
+            <div className="p-3 rounded-lg bg-background border border-border/40 text-xs text-toota-ink leading-relaxed">
+              <p className="italic">&ldquo;{feedback.content}&rdquo;</p>
+            </div>
 
-              {starsDisagree(feedback) && (
-                <span
-                  title={t("starsDisagreeHint")}
-                  className="px-2 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1"
-                >
-                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
-                  <span>{t("starsDisagreeHint")}</span>
-                </span>
-              )}
-
-              {feedback.sentiment ? (
-                <span
-                  title={t("sentimentConfidenceHint")}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                    SENTIMENT_STYLES[feedback.sentiment]
-                  }`}
-                >
-                  {t(`sentiment_${feedback.sentiment}`)} ·{" "}
-                  {Math.round(Number(feedback.sentimentScore ?? 0) * 100)}%
-                </span>
-              ) : (
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-outline-variant text-on-surface-variant">
-                  {t("sentimentNotAnalysed")}
-                </span>
-              )}
+            <div className="flex items-center gap-1 text-[11px] text-toota-muted">
+              <Lock className="size-3 opacity-60" />
+              <span>Member submission is immutable</span>
             </div>
           </div>
 
-          {/* Member's Actual Message */}
-          <div className="p-3.5 rounded-xl bg-surface-bright border border-outline-variant/40 text-xs text-on-surface leading-relaxed relative">
-            <MessageSquare className="w-4 h-4 text-primary absolute top-3.5 left-3.5 opacity-30 pointer-events-none" />
-            <p className="pl-6 italic font-medium">&quot;{feedback.content}&quot;</p>
-            <div className="mt-2 text-[10px] text-on-surface-variant text-right">
-              Submitted on {formattedDate}
-            </div>
-          </div>
-        </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Status Selection (Crisp Outlined Micro-Badge styled buttons) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-toota-muted uppercase tracking-wider">
+                {t("setFeedbackStatus") || "Set Resolution Status"}
+              </label>
 
-        {/* Resolution Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Status Selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-on-surface">
-              {t("setFeedbackStatus") || "Set Resolution Status"}
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {(
-                [
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
                   {
-                    value: "RESOLVED",
+                    value: "RESOLVED" as FeedbackStatus,
                     label: t("statusResolved") || "Resolved",
-                    color: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
-                    activeColor: "bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/20",
+                    dotClass: "bg-emerald-500",
                   },
                   {
-                    value: "IN_REVIEW",
+                    value: "IN_REVIEW" as FeedbackStatus,
                     label: t("statusInReview") || "In Review",
-                    color: "border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/10",
-                    activeColor: "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20",
+                    dotClass: "bg-blue-500",
                   },
                   {
-                    value: "OPEN",
+                    value: "OPEN" as FeedbackStatus,
                     label: t("statusOpen") || "Open",
-                    color: "border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10",
-                    activeColor: "bg-amber-500 text-white font-bold shadow-md shadow-amber-500/20",
+                    dotClass: "bg-amber-500",
                   },
                   {
-                    value: "DISMISSED",
+                    value: "DISMISSED" as FeedbackStatus,
                     label: t("statusDismissed") || "Dismissed",
-                    color: "border-slate-500/40 text-slate-600 dark:text-slate-400 bg-slate-500/10",
-                    activeColor: "bg-slate-600 text-white font-bold shadow-md shadow-slate-600/20",
+                    dotClass: "bg-zinc-400",
                   },
-                ] as const
-              ).map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setSelectedStatus(option.value)}
-                  className={`py-2 px-3 rounded-xl text-xs transition-all cursor-pointer border text-center ${
-                    selectedStatus === option.value
-                      ? option.activeColor
-                      : `${option.color} hover:opacity-90`
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+                ].map((option) => {
+                  const isSelected = selectedStatus === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setSelectedStatus(option.value)}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs ring-1 ring-zinc-900 dark:ring-zinc-100"
+                          : "bg-toota-inner text-toota-ink hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40"
+                      }`}
+                    >
+                      <span className={`size-1.5 rounded-full ${option.dotClass} shrink-0`} />
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          {/* Resolution Note Textarea */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-on-surface">
-              <label>{t("resolutionNote") || "Staff / Admin Resolution Note"}</label>
-              <span className="text-[11px] font-normal text-on-surface-variant">
-                {resolutionNote.length}/1000 characters
-              </span>
-            </div>
-            <textarea
-              rows={4}
-              placeholder={
-                t("resolutionNotePlaceholder") ||
-                "Describe how this feedback was addressed (e.g. Spoke with member, cleaned locker room area, updated equipment settings)..."
-              }
-              value={resolutionNote}
-              onChange={(e) => setResolutionNote(e.target.value)}
-              className="w-full p-3 bg-surface-bright border border-outline-variant rounded-xl text-xs text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/50 leading-relaxed resize-none"
-            />
-            {validationError && (
-              <p className="text-[11px] text-error font-medium flex items-center gap-1 mt-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {validationError}
-              </p>
-            )}
-          </div>
+            {/* Resolution Note */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-toota-muted uppercase tracking-wider">
+                  {t("resolutionNote") || "Resolution Note"}
+                </label>
+                <span className="font-mono text-[11px] text-toota-muted tabular-nums">
+                  {resolutionNote.length} / 1000
+                </span>
+              </div>
 
-          {/* Modal Footer Actions */}
-          <div className="flex items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-outline-variant text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
-            >
-              {t("cancel") || "Cancel"}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl primary-gradient text-white text-xs font-bold shadow-md hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{t("saveResolution") || "Save Resolution"}</span>
-                </>
+              <textarea
+                rows={3}
+                placeholder={
+                  t("resolutionNotePlaceholder") ||
+                  "Describe action taken (e.g. Spoke with member, scheduled equipment repair, cleaned locker rooms)..."
+                }
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-toota-inner border border-border/40 text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-zinc-400 text-xs leading-relaxed transition-all resize-none"
+              />
+
+              {validationError && (
+                <p className="text-[11px] text-destructive font-medium flex items-center gap-1 mt-1">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  <span>{validationError}</span>
+                </p>
               )}
-            </button>
-          </div>
-        </form>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/40">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="toota-pill h-9 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
+              >
+                {t("cancel") || "Cancel"}
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="size-3.5 me-1.5" />
+                    <span>{t("saveResolution") || "Save Resolution"}</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

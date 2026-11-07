@@ -7,8 +7,10 @@ import {
   X,
   Save,
   Loader2,
-  CreditCard,
+  Edit3,
   AlertCircle,
+  Zap,
+  Check,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -19,6 +21,9 @@ import {
   updateMembershipPlanSchema,
   UpdateMembershipPlanFormValues,
 } from "@/schemas/membership-plan";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface EditPlanModalProps {
   plan: MembershipPlan | null;
@@ -67,6 +72,17 @@ export default function EditPlanModal({
     }
   }, [plan, reset]);
 
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen && !isSubmitting) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isSubmitting, onClose]);
+
   if (!isOpen || !plan) return null;
 
   const onSubmit = async (values: UpdateMembershipPlanFormValues) => {
@@ -79,7 +95,12 @@ export default function EditPlanModal({
         isActive: values.isActive,
       });
 
-      toast.success(`Plan "${values.planName}" updated successfully!`);
+      toast.success(
+        t("planUpdatedSuccess", {
+          defaultValue: `Plan "${values.planName}" updated successfully!`,
+          name: values.planName,
+        })
+      );
       onSuccess();
       onClose();
     } catch (err: unknown) {
@@ -91,178 +112,219 @@ export default function EditPlanModal({
           toast.error(msg);
         }
       } else {
-        toast.error("Failed to update plan details. Please check inputs.");
+        toast.error(
+          t("planUpdateFailed", {
+            defaultValue: "Failed to update plan details. Please check inputs.",
+          })
+        );
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const visitPresets = [1, 2, 3, 4, 5, 6, 7];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-plan-title"
+    >
       <div
-        className="w-full max-w-lg bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-        role="dialog"
-        aria-modal="true"
+        className="w-full max-w-lg toota-card border-none shadow-2xl overflow-hidden p-6 sm:p-7 animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-5 border-b border-outline-variant/60 flex items-center justify-between">
+        <div className="pb-5 border-b border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-sm">
-              <CreditCard className="w-5 h-5" />
+            <div className="size-10 rounded-xl bg-toota-inner flex items-center justify-center text-toota-ink shrink-0">
+              <Edit3 className="size-5" />
             </div>
             <div>
-              <h2 className="font-headline font-bold text-lg text-on-surface">
-                {t("editPlan")}
+              <h2
+                id="edit-plan-title"
+                className="text-lg font-semibold text-toota-ink"
+              >
+                {t("editPlan") || "Edit Membership Plan"}
               </h2>
-              <p className="text-xs text-on-surface-variant font-mono">
-                {plan.planName}
+              <p className="text-xs text-toota-muted mt-0.5">
+                {t("plansSubtitle") || "Update plan name, visit limit, and active status."}
               </p>
             </div>
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            aria-label="Close modal"
-            className="p-2 rounded-xl hover:bg-surface-container text-on-surface-variant transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            aria-label="Close dialog"
+            className="size-8 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner cursor-pointer"
           >
-            <X className="w-5 h-5" />
-          </button>
+            <X className="size-4" />
+          </Button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
-          {/* Plan Status (Active / Inactive) with Red and Green indicator */}
-          <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/60 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-on-surface">{t("status")}</p>
-              <p className="text-[11px] text-on-surface-variant">
-                {isActive ? t("active") : t("inactive")}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setValue("isActive", !isActive)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
-                isActive
-                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20"
-                  : "bg-rose-500/10 text-rose-500 border-rose-500/30 hover:bg-rose-500/20"
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isActive ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
-                }`}
-              />
-              <span>{isActive ? t("active") : t("inactive")}</span>
-            </button>
-          </div>
-
+        {/* Form Body */}
+        <form onSubmit={handleSubmit(onSubmit)} className="pt-5 space-y-5">
           {/* Plan Name */}
-          <div>
-            <label className="block text-xs font-bold text-on-surface mb-1.5">
-              {t("planName")} <span className="text-error">*</span>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="editPlanName"
+              className="block text-xs font-semibold uppercase tracking-wider text-toota-muted"
+            >
+              {t("planName") || "Plan Name"} <span className="text-toota-red">*</span>
             </label>
-            <input
+            <Input
+              id="editPlanName"
               type="text"
               {...register("planName")}
-              className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
-                errors.planName
-                  ? "border-error focus:ring-error"
-                  : "border-outline-variant focus:ring-primary-container"
-              } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
+              className="h-9 rounded-lg bg-toota-inner border-border/40 px-3 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring"
+              disabled={isSubmitting}
             />
             {errors.planName && (
-              <p className="text-xs text-error mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 shrink-0" />
+              <p className="flex items-center gap-1 text-xs text-toota-red font-medium mt-1">
+                <AlertCircle className="size-3.5 shrink-0" />
                 <span>{errors.planName.message}</span>
               </p>
             )}
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-bold text-on-surface mb-1.5">
-              {t("description")}
-            </label>
-            <textarea
-              rows={2}
-              {...register("description")}
-              className={`w-full px-3.5 py-2 bg-surface-container-low border ${
-                errors.description
-                  ? "border-error focus:ring-error"
-                  : "border-outline-variant focus:ring-primary-container"
-              } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all resize-none`}
-            />
-            {errors.description && (
-              <p className="text-xs text-error mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 shrink-0" />
-                <span>{errors.description.message}</span>
-              </p>
-            )}
-          </div>
-
           {/* Weekly Visit Limit */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-on-surface">
-                {t("weeklyVisitLimit")} <span className="text-error">*</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="editWeeklyVisitLimit"
+                className="block text-xs font-semibold uppercase tracking-wider text-toota-muted"
+              >
+                {t("weeklyVisitLimit") || "Weekly Visit Limit"} <span className="text-toota-red">*</span>
               </label>
-              <span className="text-xs font-bold text-primary px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                {weeklyVisitLimit === 7 ? t("unlimitedVisits") : `${weeklyVisitLimit} ${t("visitsPerWeek")}`}
-              </span>
+              <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-toota-ink bg-toota-inner border-border/50">
+                <Zap className="size-3 me-1 text-toota-ink" />
+                {weeklyVisitLimit === 7
+                  ? (t("unlimitedVisits") || "Unlimited (7/week)")
+                  : `${weeklyVisitLimit} ${t("visitsPerWeek") || "Visits/week"}`}
+              </Badge>
             </div>
 
-            <input type="hidden" {...register("weeklyVisitLimit", { valueAsNumber: true })} />
-
+            {/* Quick Preset Buttons 1 to 7 */}
             <div className="grid grid-cols-7 gap-1.5">
-              {[1, 2, 3, 4, 5, 6, 7].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => setValue("weeklyVisitLimit", num, { shouldValidate: true, shouldDirty: true })}
-                  className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                    Number(weeklyVisitLimit) === num
-                      ? "primary-gradient text-white border-transparent shadow-sm scale-102"
-                      : "bg-surface-container-low text-on-surface border-outline-variant hover:bg-surface-container"
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
+              {visitPresets.map((limit) => {
+                const isSelected = weeklyVisitLimit === limit;
+                return (
+                  <button
+                    key={limit}
+                    type="button"
+                    onClick={() => setValue("weeklyVisitLimit", limit, { shouldValidate: true })}
+                    className={`h-8 sm:h-9 rounded-lg text-xs font-medium cursor-pointer transition-all border ${
+                      isSelected
+                        ? "bg-toota-side text-white border-toota-side font-semibold shadow-xs"
+                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink hover:bg-toota-card"
+                    }`}
+                  >
+                    {limit}
+                  </button>
+                );
+              })}
             </div>
             {errors.weeklyVisitLimit && (
-              <p className="text-xs text-error mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3 shrink-0" />
+              <p className="flex items-center gap-1 text-xs text-toota-red font-medium mt-1">
+                <AlertCircle className="size-3.5 shrink-0" />
                 <span>{errors.weeklyVisitLimit.message}</span>
               </p>
             )}
           </div>
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant/60">
-            <button
+          {/* Active Status Button */}
+          <div className="p-3.5 rounded-xl bg-toota-inner border border-border/50 flex items-center justify-between">
+            <div>
+              <span className="block text-xs font-semibold text-toota-ink">
+                {t("planStatus") || "Plan Status"}
+              </span>
+              <span className="text-xs text-toota-muted">
+                {isActive
+                  ? (t("planActiveHint") || "Members can currently subscribe to this plan.")
+                  : (t("planInactiveHint") || "Hidden from new checkouts and subscription signups.")}
+              </span>
+            </div>
+
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setValue("isActive", !isActive, { shouldValidate: true })}
+              className={`h-7.5 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-colors border shrink-0 ${
+                isActive
+                  ? "bg-toota-card text-toota-ink border-border/60 hover:bg-toota-inner"
+                  : "bg-toota-card/50 text-toota-muted border-border/40 hover:bg-toota-card hover:text-toota-ink"
+              }`}
+            >
+              {isActive ? (
+                <Check className="size-3.5 me-1.5 text-toota-green" />
+              ) : (
+                <X className="size-3.5 me-1.5 text-toota-red" />
+              )}
+              <span>{isActive ? (t("active") || "Active") : (t("inactive") || "Inactive")}</span>
+            </Button>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="editDescription"
+              className="block text-xs font-semibold uppercase tracking-wider text-toota-muted"
+            >
+              {t("description") || "Description"}{" "}
+              <span className="text-toota-muted font-normal text-[11px] lowercase">
+                ({t("optional") || "optional"})
+              </span>
+            </label>
+            <textarea
+              id="editDescription"
+              rows={3}
+              {...register("description")}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-toota-inner border border-border/40 text-xs text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all resize-none"
+              disabled={isSubmitting}
+            />
+            {errors.description && (
+              <p className="flex items-center gap-1 text-xs text-toota-red font-medium mt-1">
+                <AlertCircle className="size-3.5 shrink-0" />
+                <span>{errors.description.message}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="pt-4 border-t border-border/40 flex items-center justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
+              className="h-9 px-4 rounded-lg text-xs font-medium cursor-pointer border-border/50 hover:bg-toota-inner"
             >
-              {t("cancel")}
-            </button>
-            <button
+              {t("cancel") || "Cancel"}
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2 primary-gradient text-white text-sm font-bold rounded-xl shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+              className="h-9 px-5 rounded-lg text-xs font-semibold cursor-pointer bg-toota-side text-white hover:bg-black"
             >
               {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="size-3.5 animate-spin me-2" />
+                  <span>{t("saving") || "Saving..."}</span>
+                </>
               ) : (
-                <Save className="w-4 h-4" />
+                <>
+                  <Save className="size-3.5 me-2" />
+                  <span>{t("saveChanges") || "Save Changes"}</span>
+                </>
               )}
-              <span>{t("saveChanges")}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </div>
