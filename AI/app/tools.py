@@ -145,14 +145,17 @@ def my_payments(user: User) -> dict:
     return {"payments": rows}
 
 
-# returns how many times the user came in the last `days` days, and their last visit
+# returns how many times the user came in the last `days` days and since the 1st of this month,
+# and their last visit
 def my_attendance(user: User, days=30) -> dict:
     return db.fetch_one("""
         SELECT
           (SELECT count(*) FROM attendances WHERE member_id = %(me)s
              AND checked_in_at >= now() - %(days)s * interval '1 day') AS visits,
-          (SELECT max(checked_in_at)::date FROM attendances WHERE member_id = %(me)s) AS last_visit,
-          %(days)s AS in_last_days
+          %(days)s AS in_last_days,
+          (SELECT count(*) FROM attendances WHERE member_id = %(me)s
+             AND checked_in_at >= date_trunc('month', now())) AS visits_this_month,
+          (SELECT max(checked_in_at)::date FROM attendances WHERE member_id = %(me)s) AS last_visit
         """, {"me": user.id, "days": _clamp(days)})
 
 
@@ -240,7 +243,8 @@ TOOLS = {
         "roles": ["MEMBER"],
     },
     "my_attendance": {
-        "description": "How many times the user visited the gym in the last N days, and their last visit.",
+        "description": "How many times the user visited the gym in the last N days and since the "
+                       "1st of this month (visits_this_month), and their last visit.",
         "parameters": _days_param("How many days back. Default 30."),
         "function": my_attendance,
         "roles": ["MEMBER"],
