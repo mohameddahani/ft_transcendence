@@ -97,8 +97,10 @@ export default function MemberDetailPage() {
   }
 
   const memberName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.userName || t("member");
-  const avatarUrl = member.profileImageUrl || null;
-  const hasPhoto = Boolean(avatarUrl);
+  const memberInitials =
+    ((member.firstName?.[0] || "") + (member.lastName?.[0] || "")).toUpperCase() ||
+    (member.userName?.[0] ? member.userName[0].toUpperCase() : "M");
+  const avatarUrl = member.profileImageUrl || member.photo || null;
 
   // Active membership details (prefer active membership if exists, else latest)
   const activeMembership =
@@ -209,11 +211,17 @@ export default function MemberDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="relative">
             <div className="w-28 h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-surface-container flex items-center justify-center">
-              <img
+              {avatarUrl ? (
+                <img
                   className="w-full h-full object-cover"
                   alt={memberName}
-                  src={avatarUrl!}
+                  src={avatarUrl}
                 />
+              ) : (
+                <div className="w-full h-full primary-gradient text-white flex items-center justify-center font-bold text-3xl select-none">
+                  {memberInitials}
+                </div>
+              )}
             </div>
             <div
               className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm border-2 border-white ${
