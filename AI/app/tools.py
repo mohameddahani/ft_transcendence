@@ -59,13 +59,16 @@ def list_inactive_members(user: User, days=21) -> dict:
     return {"total": len(rows), "members": rows[:25]}
 
 
-# returns the gym's members whose name contains `name` (total + first 25)
+# returns the gym's members whose name contains `name` (total + first 25), each with the end of their
+# latest membership: the valid one if there is one, otherwise the most recent (expired)
 def search_members(user: User, name: str) -> dict:
     rows = db.fetch_all(f"""
         SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
                m.account_status AS account,
-               (SELECT max(ms.expires_at)::date FROM memberships ms
-                 WHERE ms.member_id = m.id AND {VALID}) AS membership_ends
+               (SELECT ms.expires_at::date FROM memberships ms WHERE ms.member_id = m.id
+                 ORDER BY ({VALID}) DESC, ms.expires_at DESC LIMIT 1) AS membership_ends,
+               EXISTS (SELECT 1 FROM memberships ms
+                 WHERE ms.member_id = m.id AND {VALID}) AS membership_valid
         FROM members m
         WHERE m.admin_id = %s AND m.first_name || ' ' || m.last_name ILIKE %s
         ORDER BY name""", (user.admin_id, f"%{name.strip()[:100]}%"))
@@ -193,7 +196,8 @@ TOOLS = {
     },
     "search_members": {
         "description": "Find members by first or last name. Returns phone, email, account "
-                       "status and when their current membership ends.",
+                       "status, when their latest membership ends, and membership_valid (false "
+                       "means it has expired, or they never had one).",
         "parameters": {"type": "object",
                        "properties": {"name": {"type": "string", "description": "Part of the name."}},
                        "required": ["name"]},

@@ -33,9 +33,12 @@ Language (the most important rule):
 - Never mix the two alphabets in one answer, except for names, numbers and file names.
 
 How to answer:
-- Facts about the gym come only from your tools. Never guess a number, a name or a date.
-  Earlier answers in this conversation can be out of date: for any question about the gym's data
-  (numbers, lists, names, dates), call the tool again, even if you answered the same question before.
+- Facts about the gym come only from the tool results of the current question: every name, phone,
+  email, date and number you write must be in one of them. Never invent or guess one, and never use
+  placeholder data (like example.com addresses).
+- You can't see the tool results behind your earlier answers, and those answers can be out of date or
+  wrong. Never copy data from them: for any question about the gym's data (numbers, lists, names,
+  dates), call a tool now, even for a short follow-up ("what about Imane?") or a repeated question.
 - If a tool returns nothing or an error, say so plainly.
 - For anything that could be written in the gym's documents (rules, prices, hours, classes,
   policies, staff procedures), call search_documents and answer only from the excerpts it returns,
@@ -77,7 +80,8 @@ def run(user: User, gym_name: str, question: str, history: list[dict]):
         system_instruction=PROMPT.format(gym=gym_name, who=WHO[user.role],
                                          today=date.today().strftime("%A %d %B %Y")),
         tools=[types.Tool(function_declarations=tools.tools_for(user.role))],
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
+        # a short think first: without it, long chats made the model copy old answers instead of calling a tool
+        thinking_config=types.ThinkingConfig(thinking_budget=512),
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
 
