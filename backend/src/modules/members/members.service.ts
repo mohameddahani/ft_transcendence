@@ -84,7 +84,7 @@ export class MembersService {
 
     if (isAfter(data.birthDate, minimumBirthDate)) {
       throw new BadRequestException(
-        'The Member must be at least 18 years old to add.',
+        'The Member must be at least 13 years old to add.',
       );
     }
 
@@ -266,7 +266,7 @@ export class MembersService {
 
       if (isAfter(data.birthDate, minimumBirthDate)) {
         throw new BadRequestException(
-          'The Member must be at least 18 years old to add.',
+          'The Member must be at least 13 years old to add.',
         );
       }
     }
