@@ -46,6 +46,7 @@ export default function MemberDetailPage() {
     try {
       const data = await fetchMember(id);
       setMember(data);
+      console.log(data);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -96,12 +97,13 @@ export default function MemberDetailPage() {
   }
 
   const memberName = `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.userName || t("member");
-  const memberInitials = ((member.firstName?.[0] || "") + (member.lastName?.[0] || "")).toUpperCase() || "M";
-  const avatarUrl = member.profileImageUrl || member.photo;
-  const hasPhoto = avatarUrl && !avatarUrl.includes("default-");
+  const avatarUrl = member.profileImageUrl || null;
+  const hasPhoto = Boolean(avatarUrl);
 
-  // Active membership details
-  const activeMembership = member.memberships?.[0];
+  // Active membership details (prefer active membership if exists, else latest)
+  const activeMembership =
+    member.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
+    member.memberships?.[0];
   const membershipStatus = activeMembership?.membershipStatus;
   const status = (
     member.accountStatus === "BANNED"
@@ -116,9 +118,15 @@ export default function MemberDetailPage() {
     activeMembership?.membershipPlan?.name ||
     "Standard Tier";
 
-  const durationDays = activeMembership?.membershipPlanDuration?.durationDays;
+  let durationDays = activeMembership?.membershipPlanDuration?.durationDays;
+  if (!durationDays && activeMembership?.startDate && activeMembership?.expiresAt) {
+    const start = new Date(activeMembership.startDate).getTime();
+    const end = new Date(activeMembership.expiresAt).getTime();
+    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+    if (diff > 0) durationDays = diff;
+  }
   const durationLabel = durationDays
-    ? `${durationDays} ${t("days")}`
+    ? `${durationDays} ${t("days") || "days"}`
     : activeMembership?.membershipPlanDuration?.duration || "Standard Duration";
 
   const memberSince = member.createdAt
@@ -201,17 +209,11 @@ export default function MemberDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
           <div className="relative">
             <div className="w-28 h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-surface-container flex items-center justify-center">
-              {hasPhoto ? (
-                <img
+              <img
                   className="w-full h-full object-cover"
                   alt={memberName}
                   src={avatarUrl!}
                 />
-              ) : (
-                <div className="w-full h-full primary-gradient text-white flex items-center justify-center font-bold text-3xl select-none">
-                  {memberInitials}
-                </div>
-              )}
             </div>
             <div
               className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm border-2 border-white ${

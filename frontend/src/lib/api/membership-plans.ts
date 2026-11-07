@@ -13,9 +13,13 @@ export async function fetchMembershipPlans(
   limit = 50
 ): Promise<MembershipPlan[]> {
   const url = getApiEndpoint(`/api/membership-plans?page=${page}&limit=${limit}`);
-  const response = await api.get<MembershipPlan[]>(url);
+  const response = await api.get<MembershipPlan[] | { data?: MembershipPlan[] }>(url);
   const data = response.data;
-  return Array.isArray(data) ? data : [];
+  if (Array.isArray(data)) return data;
+  if (data && typeof data === "object" && Array.isArray(data.data)) {
+    return data.data;
+  }
+  return [];
 }
 
 export async function fetchMembershipPlan(id: string): Promise<MembershipPlan> {

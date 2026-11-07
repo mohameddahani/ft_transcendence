@@ -53,6 +53,8 @@ export default function GymflowSubscriptionPage() {
         fetchAllSubscriptions(1, 50).catch(() => []),
         fetchMembers(1, 1).then((res) => (Array.isArray(res) ? res.length : 0)).catch(() => 0),
       ]);
+      console.log("allSubs", allSubs);
+      console.log("members", members);
 
       setActiveSubscription(currentSub);
       setAllSubscriptions(allSubs);

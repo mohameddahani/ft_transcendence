@@ -728,14 +728,11 @@ Thank you for training with ${companyName || "us"}!
                     member?.userName ||
                     t("member") ||
                     "Member";
-                  const memberInitials = getInitials(member?.firstName, member?.lastName);
-                  const avatarUrl = member?.profileImageUrl || member?.photo;
-                  const hasPhoto = Boolean(
-                    avatarUrl &&
-                      !avatarUrl.includes("default-member") &&
-                      !avatarUrl.includes("default-image") &&
-                      !avatarUrl.includes("avatars-default")
-                  );
+                  const memberInitials =
+                    getInitials(member?.firstName, member?.lastName) ||
+                    (member?.userName?.[0] ? member.userName[0].toUpperCase() : "M");
+                  const avatarUrl = member?.profileImageUrl || member?.photo || null;
+                  const hasPhoto = Boolean(avatarUrl);
 
                   const status = getEffectivePaymentStatus(payment);
                   const paidDateStr = payment.paidAt
@@ -868,13 +865,12 @@ Thank you for training with ${companyName || "us"}!
               <section className="space-y-4">
                 <div className="flex items-center gap-3.5">
                   <Avatar className="size-14 ring-1 ring-border/40 shrink-0">
-                    {selectedPayment.member?.profileImageUrl &&
-                      !selectedPayment.member.profileImageUrl.includes("default-") && (
-                        <AvatarImage
-                          src={selectedPayment.member.profileImageUrl}
-                          alt={selectedPayment.member.firstName || ""}
-                        />
-                      )}
+                    {selectedPayment.member?.profileImageUrl ? (
+                      <AvatarImage
+                        src={selectedPayment.member.profileImageUrl}
+                        alt={selectedPayment.member.firstName || ""}
+                      />
+                    ) : null}
                     <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-sm">
                       {getInitials(
                         selectedPayment.member?.firstName,

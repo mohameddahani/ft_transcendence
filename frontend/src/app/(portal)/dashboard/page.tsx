@@ -119,36 +119,35 @@ function AdminStaffDashboardView() {
     if (!feedbacks || feedbacks.length === 0) {
       return [];
     }
-
     // Sort by rating (highest first), then by likes
     const sorted = [...feedbacks].sort((a, b) => {
-      const diff = (b.rating || 0) - (a.rating || 0);
+      const aRating = typeof a.rating === "number" ? a.rating : 0;
+      const bRating = typeof b.rating === "number" ? b.rating : 0;
+      const diff = bRating - aRating;
       if (diff !== 0) return diff;
-      return (b._count?.likes || 0) - (a._count?.likes || 0);
+      const aLikes = a.likeCount ?? a._count?.likes ?? 0;
+      const bLikes = b.likeCount ?? b._count?.likes ?? 0;
+      return bLikes - aLikes;
     });
 
     return sorted.map((f) => {
+      const member = f.member;
       const name =
-        `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.trim() ||
+        `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
+        member?.userName ||
         "Gym Member";
       const initials =
-        (f.member?.firstName?.[0] || "") + (f.member?.lastName?.[0] || "") ||
-        "M";
-      const avatarUrl = f.member?.profileImageUrl || f.member?.photo;
-      const hasPhoto = Boolean(
-        avatarUrl &&
-          !avatarUrl.includes("default-member") &&
-          !avatarUrl.includes("default-image") &&
-          !avatarUrl.includes("avatars-default")
-      );
+        (member?.firstName?.[0] || "") + (member?.lastName?.[0] || "") ||
+        (member?.userName?.[0] ? member.userName[0].toUpperCase() : "M");
+      const avatarUrl = member?.profileImageUrl || member?.photo || null;
 
       return {
         id: f.id,
         name,
-        avatarUrl: hasPhoto ? avatarUrl : null,
-        rating: f.rating || 5,
+        avatarUrl,
+        rating: typeof f.rating === "number" ? f.rating : Number(f.rating) || 5,
         content: f.content || "",
-        likes: f._count?.likes || 0,
+        likes: f.likeCount ?? f._count?.likes ?? 0,
         createdAt: f.createdAt,
         initials: initials.toUpperCase(),
       };
@@ -168,9 +167,12 @@ function AdminStaffDashboardView() {
         totalLikes: 0,
       };
     }
-    const sum = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
+    const sum = feedbacks.reduce(
+      (acc, f) => acc + (typeof f.rating === "number" ? f.rating : Number(f.rating) || 0),
+      0
+    );
     const avg = (sum / total).toFixed(1);
-    const positive = feedbacks.filter((f) => (f.rating || 0) >= 4).length;
+    const positive = feedbacks.filter((f) => (Number(f.rating) || 0) >= 4).length;
     const positivePct = Math.round((positive / total) * 100);
     const open = feedbacks.filter(
       (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
@@ -179,7 +181,7 @@ function AdminStaffDashboardView() {
       (f) => f.feedbackStatus === "RESOLVED"
     ).length;
     const likes = feedbacks.reduce(
-      (acc, f) => acc + (f._count?.likes || 0),
+      (acc, f) => acc + (f.likeCount ?? f._count?.likes ?? 0),
       0
     );
 
@@ -459,11 +461,23 @@ function AdminStaffDashboardView() {
                     {feedbackStats.averageRating}
                   </span>
                   <div className="flex items-center gap-1 text-amber-500">
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400 text-amber-400" />
-                    <Star className="size-5 fill-amber-400/50 text-amber-400/50" />
+                    {[1, 2, 3, 4, 5].map((starIndex) => {
+                      const avgNum = parseFloat(feedbackStats.averageRating);
+                      const isFull = starIndex <= Math.floor(avgNum);
+                      const isHalf = !isFull && starIndex <= Math.ceil(avgNum) && avgNum % 1 >= 0.25;
+                      return (
+                        <Star
+                          key={starIndex}
+                          className={`size-5 ${
+                            isFull
+                              ? "fill-amber-400 text-amber-400"
+                              : isHalf
+                              ? "fill-amber-400/50 text-amber-400/50"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
                 <p className="text-xs text-toota-muted mt-1.5 font-normal">
@@ -523,14 +537,58 @@ function AdminStaffDashboardView() {
             {feedbacks.length > 0 ? (
               <div className="p-3.5 rounded-xl bg-background/50 border border-border/40 flex items-start gap-3">
                 <MessageSquareQuote className="size-5 text-toota-muted shrink-0 mt-0.5" />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {feedbacks[0].member?.profileImageUrl ? (
+                        <Avatar className="size-5 ring-1 ring-border/40 shrink-0">
+                          <AvatarImage
+                            src={feedbacks[0].member.profileImageUrl}
+                            alt={feedbacks[0].member.firstName || "Member"}
+                          />
+                          <AvatarFallback className="text-[9px]">
+                            {getInitials(
+                              feedbacks[0].member.firstName,
+                              feedbacks[0].member.lastName
+                            )}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : null}
+                      <p className="text-xs font-semibold text-toota-ink truncate">
+                        {feedbacks[0].member?.firstName || ""}{" "}
+                        {feedbacks[0].member?.lastName || feedbacks[0].member?.userName || "Member"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Star className="size-3 fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-semibold text-toota-ink">
+                        {Number(feedbacks[0].rating ?? 5).toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
                   <p className="text-xs italic text-toota-ink line-clamp-2">
                     &quot;{feedbacks[0].content}&quot;
                   </p>
-                  <p className="text-[11px] text-toota-muted mt-1 font-medium">
-                    — {feedbacks[0].member?.firstName}{" "}
-                    {feedbacks[0].member?.lastName}
-                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-toota-muted mt-2">
+                    <span>
+                      {feedbacks[0].createdAt
+                        ? new Date(feedbacks[0].createdAt).toLocaleDateString()
+                        : "—"}
+                    </span>
+                    {feedbacks[0].sentiment ? (
+                      <span
+                        className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-full ${
+                          feedbacks[0].sentiment === "POSITIVE"
+                            ? "bg-toota-green/15 text-toota-green"
+                            : feedbacks[0].sentiment === "NEGATIVE"
+                            ? "bg-toota-red/15 text-toota-red"
+                            : "bg-toota-muted/15 text-toota-muted"
+                        }`}
+                      >
+                        {feedbacks[0].sentiment}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -558,7 +616,8 @@ function AdminStaffDashboardView() {
             </div>
 
             {/* Podium View (Top 3 Reviewed Members) */}
-            {leaderboardData.length > 0 ? (
+            {leaderboardData.length > 0 ? 
+            (
               <div className="flex justify-around items-end mb-6 pt-2 pb-1 border-b border-border/30">
                 {/* 2nd Place (Left) */}
                 {podium.second ? (
@@ -801,13 +860,7 @@ function AdminStaffDashboardView() {
                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
                     member.userName ||
                     "Member";
-                  const avatarUrl = member.profileImageUrl || member.photo;
-                  const hasPhoto = Boolean(
-                    avatarUrl &&
-                      !avatarUrl.includes("default-member") &&
-                      !avatarUrl.includes("default-image") &&
-                      !avatarUrl.includes("avatars-default")
-                  );
+                  const avatarUrl = member.profileImageUrl || member.photo || null;
 
                   const firstMembership = member.memberships?.[0];
                   const membershipStatus = firstMembership?.membershipStatus;
@@ -849,9 +902,9 @@ function AdminStaffDashboardView() {
                           className="flex items-center gap-3 group hover:opacity-90 transition-opacity"
                         >
                           <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
-                            {hasPhoto && (
+                            {avatarUrl && (
                               <AvatarImage
-                                src={avatarUrl!}
+                                src={avatarUrl}
                                 alt={memberName}
                               />
                             )}

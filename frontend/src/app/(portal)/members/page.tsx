@@ -93,13 +93,12 @@ export default function MembershipsPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [membersData, initialPage, plansData] = await Promise.all([
+      const [membersData, plansData] = await Promise.all([
         fetchMembers(1, 1000),
-        fetchMembers(1, pageSize),
         fetchMembershipPlans(1, 100).catch(() => []),
       ]);
       setMembers(membersData);
-      setPagedMembers(initialPage);
+      setPagedMembers(membersData.slice(0, pageSize));
       setPlans(plansData);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -177,8 +176,11 @@ export default function MembershipsPage() {
         email.includes(query) ||
         username.includes(query);
 
-      // Status check (check first membership's status or accountStatus)
-      const membershipStatus = member.memberships?.[0]?.membershipStatus;
+      // Status check (check active membership or first membership status or accountStatus)
+      const currentMembership =
+        member.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
+        member.memberships?.[0];
+      const membershipStatus = currentMembership?.membershipStatus;
       const effectiveStatus = (
         member.accountStatus === "BANNED"
           ? "BANNED"
@@ -189,7 +191,7 @@ export default function MembershipsPage() {
       const matchesStatus = !selectedStatus || effectiveStatus === selectedStatus.toUpperCase();
 
       // Plan check
-      const memberPlanId = member.memberships?.[0]?.membershipPlanId;
+      const memberPlanId = currentMembership?.membershipPlanId;
       const matchesPlan = !selectedPlanId || memberPlanId === selectedPlanId;
 
       return matchesSearch && matchesStatus && matchesPlan;
@@ -210,9 +212,13 @@ export default function MembershipsPage() {
 
   // Statistics calculation based on backend structure
   const totalCount = members.length;
-  const activeCount = members.filter(
-    (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
-  ).length;
+  const activeCount = members.filter((m) => {
+    if (m.accountStatus === "BANNED" || m.accountStatus === "PENDING") return false;
+    return (
+      m.memberships?.some((sub) => sub.membershipStatus === "ACTIVE") ||
+      (!m.memberships?.length && m.accountStatus === "ACTIVE")
+    );
+  }).length;
   const pendingCount = members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
@@ -306,24 +312,28 @@ export default function MembershipsPage() {
       "Join Date",
     ];
 
-    const rows = filteredMembers.map((m) => [
-      m.id,
-      m.firstName || "",
-      m.lastName || "",
-      m.userName || "",
-      m.email || "",
-      m.phoneNumber || "",
-      `"${(m.address || "").replace(/"/g, '""')}"`,
-      m.accountStatus === "BANNED"
-        ? "BANNED"
-        : m.accountStatus === "PENDING"
-        ? "PENDING"
-        : m.memberships?.[0]?.membershipStatus || m.accountStatus || "ACTIVE",
-      m.memberships?.[0]?.membershipPlan?.planName ||
-        plans.find((p) => p.id === m.memberships?.[0]?.membershipPlanId)?.planName ||
-        "None",
-      m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "",
-    ]);
+    const rows = filteredMembers.map((m) => {
+      const curMem =
+        m.memberships?.find((sub) => sub.membershipStatus === "ACTIVE") ||
+        m.memberships?.[0];
+      const curPlan = plans.find((p) => p.id === curMem?.membershipPlanId);
+      return [
+        m.id,
+        m.firstName || "",
+        m.lastName || "",
+        m.userName || "",
+        m.email || "",
+        m.phoneNumber || "",
+        `"${(m.address || "").replace(/"/g, '""')}"`,
+        m.accountStatus === "BANNED"
+          ? "BANNED"
+          : m.accountStatus === "PENDING"
+          ? "PENDING"
+          : curMem?.membershipStatus || m.accountStatus || "ACTIVE",
+        curMem?.membershipPlan?.planName || curPlan?.planName || "None",
+        m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "",
+      ];
+    });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -379,10 +389,20 @@ export default function MembershipsPage() {
     return status;
   };
 
-  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+  const getInitials = (
+    firstName?: string | null,
+    lastName?: string | null,
+    userName?: string | null
+  ) => {
     const first = firstName?.[0] || "";
     const last = lastName?.[0] || "";
-    return (first + last).toUpperCase() || "M";
+    if (first || last) {
+      return (first + last).toUpperCase();
+    }
+    if (userName?.[0]) {
+      return userName[0].toUpperCase();
+    }
+    return "M";
   };
 
   return (
@@ -803,17 +823,17 @@ export default function MembershipsPage() {
                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
                     member.userName ||
                     "Member";
-                  const memberInitials = getInitials(member.firstName, member.lastName);
-                  const avatarUrl = member.profileImageUrl || member.photo;
-                  const hasPhoto = Boolean(
-                    avatarUrl &&
-                      !avatarUrl.includes("default-member") &&
-                      !avatarUrl.includes("default-image") &&
-                      !avatarUrl.includes("avatars-default")
+                  const memberInitials = getInitials(
+                    member.firstName,
+                    member.lastName,
+                    member.userName
                   );
+                  const avatarUrl = member.profileImageUrl || member.photo || null;
 
-                  // Active membership details
-                  const activeMembership = member.memberships?.[0];
+                  // Active membership details (prefer active membership if exists, else latest)
+                  const activeMembership =
+                    member.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
+                    member.memberships?.[0];
                   const matchedPlan = plans.find(
                     (p) => p.id === activeMembership?.membershipPlanId
                   );
@@ -823,11 +843,25 @@ export default function MembershipsPage() {
                     matchedPlan?.planName ||
                     (activeMembership ? t("standardPlan") || "Standard" : "None");
 
-                  const durationDays =
-                    activeMembership?.membershipPlanDuration?.durationDays;
+                  // Duration calculation: from durationDays, matchedPlan duration, or calculated between start and expiry dates
+                  const matchedDuration = matchedPlan?.membershipPlanDurations?.find(
+                    (d) => d.id === activeMembership?.membershipPlanDurationId
+                  );
+                  let durationDays =
+                    activeMembership?.membershipPlanDuration?.durationDays ||
+                    matchedDuration?.durationDays;
+
+                  if (!durationDays && activeMembership?.startDate && activeMembership?.expiresAt) {
+                    const start = new Date(activeMembership.startDate).getTime();
+                    const end = new Date(activeMembership.expiresAt).getTime();
+                    const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+                    if (diff > 0) durationDays = diff;
+                  }
+
                   const durationLabel = durationDays
                     ? `${durationDays} Days`
-                    : activeMembership?.membershipPlanDuration?.duration || "—";
+                    : activeMembership?.membershipPlanDuration?.duration ||
+                      "—";
 
                   const membershipStatus = activeMembership?.membershipStatus;
                   const status = (
@@ -862,12 +896,12 @@ export default function MembershipsPage() {
                           className="flex items-center gap-3 group hover:opacity-90 transition-opacity"
                         >
                           <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
-                            {hasPhoto && (
+                            {avatarUrl ? (
                               <AvatarImage
-                                src={avatarUrl!}
+                                src={avatarUrl}
                                 alt={memberName}
                               />
-                            )}
+                            ) : null}
                             <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
                               {memberInitials}
                             </AvatarFallback>
