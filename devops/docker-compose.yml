@@ -47,6 +47,26 @@ services:
       redis:
         condition: service_healthy
 
+  db-roles:
+    image: postgres:16-alpine
+    container_name: db-roles
+    restart: "no"
+    entrypoint: ["/bin/sh", "/usr/local/bin/apply-roles.sh"]
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_DB
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - AI_DB_USER
+      - AI_DB_USER_PASSWORD
+    volumes:
+      - ../AI/scripts/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
+      - ../AI/seeder/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
+    networks:
+      - ft_transcendence-net
+    depends_on:
+      backend:
+        condition: service_healthy
+
   frontend:
     build:
       context: ../frontend
@@ -114,8 +134,8 @@ services:
     volumes:
       - ai_data:/data
     depends_on:
-      db:
-        condition: service_healthy
+      db-roles:
+        condition: service_completed_successfully
 
   blockchain:
     build:
