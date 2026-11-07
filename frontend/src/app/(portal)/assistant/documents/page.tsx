@@ -207,12 +207,15 @@ export default function AssistantDocumentsPage() {
             <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-headline font-bold text-xl sm:text-2xl text-on-surface">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("documentsTitle") || "Gym Knowledge Base"}
               </h1>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-                Owner Only
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / Owner Only
+              </span>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {documents.length} {t("documents") || "documents"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
@@ -444,15 +447,18 @@ export default function AssistantDocumentsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                            isStaffOnly
-                              ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                              : "bg-primary/10 text-primary border-primary/20"
-                          }`}
+                          className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs"
                         >
-                          {isStaffOnly
-                            ? t("visibilityStaff") || "Staff Only"
-                            : t("visibilityMember") || "Members & Staff"}
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                              isStaffOnly ? "bg-amber-500" : "bg-emerald-500"
+                            }`}
+                          />
+                          <span>
+                            {isStaffOnly
+                              ? t("visibilityStaff") || "Staff Only"
+                              : t("visibilityMember") || "Members & Staff"}
+                          </span>
                         </span>
                         <span className="text-[11px] text-on-surface-variant">
                           {t("docChunks", { count: doc.chunks }) ||

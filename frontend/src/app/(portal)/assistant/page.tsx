@@ -185,13 +185,12 @@ function SidebarContent({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Sidebar Header */}
       <div className="p-3.5 border-b border-outline-variant/60 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <MessageSquare className="w-4 h-4 text-primary shrink-0" />
-          <span className="font-semibold text-xs uppercase tracking-wider text-on-surface truncate" suppressHydrationWarning>
+        <div className="flex items-baseline gap-1.5 min-w-0">
+          <span className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate" suppressHydrationWarning>
             {t("conversations") || "Conversations"}
           </span>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant shrink-0">
-            {threads.length}
+          <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+            / {threads.length}
           </span>
         </div>
 
@@ -1121,16 +1120,16 @@ export default function AssistantPage() {
             </div>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="font-headline font-bold text-base sm:text-lg text-on-surface truncate">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 truncate">
                   {gymName} {t("navAiAssistant") || "Assistant"}
                 </h1>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  {t("connected") || "Connected"}
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{t("connected") || "Connected"}</span>
                 </span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-surface-container-high text-on-surface-variant border border-outline-variant/50 uppercase tracking-wider">
-                  {role}
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : ""}
                 </span>
               </div>
               <p className="text-[11px] text-on-surface-variant truncate hidden sm:block">
@@ -1189,8 +1188,8 @@ export default function AssistantPage() {
           ) : messages.length === 0 ? (
             /* Operational Launchpad */
             <div className="h-full flex flex-col justify-center items-center text-center max-w-3xl mx-auto py-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-surface-container-high border border-outline-variant/60 text-on-surface-variant mb-4">
-                <Building2 className="w-3.5 h-3.5 text-primary" />
+              <div className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs mb-4">
+                <Building2 className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                 <span>{gymName} Operational Console</span>
               </div>
 

@@ -15,14 +15,13 @@ import {
   Save,
   RefreshCw,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   ShieldCheck,
   Info,
   QrCode,
   Users,
   MessageSquareQuote,
-  ShieldAlert,
+  UserCheck,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -43,12 +42,28 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberProfileView from "@/components/profile/MemberProfileView";
 import EmailChangeSection from "@/components/profile/EmailChangeSection";
-
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 const syncAdminLocalStorage = (data: AdminProfile) => {
   try {
     const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
     const current = stored ? JSON.parse(stored) : {};
+    const isPlaceholder =
+      !data.profileImageUrl ||
+      data.profileImageUrl === "default-image.jpg" ||
+      data.profileImageUrl === "default-member-image.jpg";
     const updated = {
       ...current,
       firstName: data.firstName,
@@ -57,12 +72,7 @@ const syncAdminLocalStorage = (data: AdminProfile) => {
       phoneNumber: data.phoneNumber,
       companyName: data.companyName,
       role: data.role,
-      photo:
-        data.profileImageUrl &&
-        data.profileImageUrl !== "default-image.jpg" &&
-        data.profileImageUrl !== "default-member-image.jpg"
-          ? data.profileImageUrl
-          : null,
+      photo: !isPlaceholder ? data.profileImageUrl : null,
     };
     localStorage.setItem("gym_user", JSON.stringify(updated));
     localStorage.removeItem("kinetic_user");
@@ -76,6 +86,10 @@ const syncStaffLocalStorage = (data: StaffProfile) => {
   try {
     const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
     const current = stored ? JSON.parse(stored) : {};
+    const isPlaceholder =
+      !data.profileImageUrl ||
+      data.profileImageUrl === "default-image.jpg" ||
+      data.profileImageUrl === "default-member-image.jpg";
     const updated = {
       ...current,
       firstName: data.firstName,
@@ -85,12 +99,7 @@ const syncStaffLocalStorage = (data: StaffProfile) => {
       phoneNumber: data.phoneNumber,
       companyName: data.companyName,
       role: "Staff",
-      photo:
-        data.profileImageUrl &&
-        data.profileImageUrl !== "default-image.jpg" &&
-        data.profileImageUrl !== "default-member-image.jpg"
-          ? data.profileImageUrl
-          : null,
+      photo: !isPlaceholder ? data.profileImageUrl : null,
     };
     localStorage.setItem("gym_user", JSON.stringify(updated));
     localStorage.removeItem("kinetic_user");
@@ -174,12 +183,12 @@ function AdminStaffProfileView() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to load profile from backend");
+        toast.error(t("loadProfileFailed") || "Failed to load profile from backend");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [isStaff, reset]);
+  }, [isStaff, reset, t]);
 
   useEffect(() => {
     if (!isUserRoleLoading) {
@@ -322,8 +331,8 @@ function AdminStaffProfileView() {
   if ((isLoading && !profile && !staffProfile) || isUserRoleLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-body-md text-on-surface-variant font-medium">
+        <Loader2 className="size-8 text-toota-ink animate-spin" />
+        <p className="text-xs text-toota-muted">
           {isStaff
             ? t("loadingStaffProfile", "Loading staff profile...")
             : t("loadingProfile", "Loading administrator profile...")}
@@ -336,76 +345,91 @@ function AdminStaffProfileView() {
   // RENDER: STAFF PROFILE VIEW
   // ==========================================
   if (isStaff && staffProfile) {
-    const hasCustomPhoto =
-      Boolean(staffProfile.profileImagePublicId) ||
-      Boolean(
-        staffProfile.profileImageUrl &&
-          !staffProfile.profileImageUrl.includes("default-image.jpg") &&
-          !staffProfile.profileImageUrl.includes("default-member-image.jpg")
-      );
+    const rawPhoto = staffProfile.profileImageUrl;
+    const isPlaceholder =
+      !rawPhoto ||
+      rawPhoto === "default-image.jpg" ||
+      rawPhoto === "default-member-image.jpg";
+    const photoUrl = !isPlaceholder ? rawPhoto : null;
 
     const fullName =
       `${staffProfile.firstName || ""} ${staffProfile.lastName || ""}`.trim() ||
-      staffProfile.userName;
+      staffProfile.userName ||
+      "Staff Member";
 
     const initials =
-      (staffProfile.firstName?.[0] || "") + (staffProfile.lastName?.[0] || "") ||
-      (staffProfile.userName?.[0] || "S").toUpperCase();
+      ((staffProfile.firstName?.[0] || "") + (staffProfile.lastName?.[0] || "")).toUpperCase() ||
+      staffProfile.userName?.slice(0, 2).toUpperCase() ||
+      "S";
 
     const isAccountActive =
       (staffProfile.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE";
 
-    return (
-      <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in-50 duration-200">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
-              {t("staffProfileTitle", "Staff Profile & Credentials")}
-            </h1>
-            <p className="text-body-md text-on-surface-variant">
-              {t(
-                "staffProfileSubtitle",
-                "View your personal credentials, front desk permissions, and facility assignment."
-              )}
-            </p>
-          </div>
+    const facility =
+      staffProfile.companyName ||
+      staffProfile.admin?.companyName ||
+      companyName ||
+      "";
 
-          <button
-            type="button"
-            onClick={loadProfile}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant text-on-surface text-sm font-semibold transition-colors cursor-pointer w-fit"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : ""}`}
-            />
-            <span>{t("refresh", "Refresh")}</span>
-          </button>
-        </div>
+    return (
+      <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+        {/* Top Header Card */}
+        <Card className="toota-card border-none">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {t("staffProfileTitle", "Staff Profile & Credentials")}
+                </h1>
+                {facility && (
+                  <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                    / {facility}
+                  </span>
+                )}
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / @{staffProfile.userName}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+                {t(
+                  "staffProfileSubtitle",
+                  "View your personal credentials, front desk permissions, and facility assignment."
+                )}
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadProfile}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer self-start md:self-auto"
+            >
+              <RefreshCw
+                className={`size-3.5 me-2 ${isLoading ? "animate-spin text-toota-ink" : ""}`}
+              />
+              <span>{t("refresh", "Refresh")}</span>
+            </Button>
+          </div>
+        </Card>
 
         {/* Staff Identity & Avatar Card */}
-        <div className="p-6 sm:p-8 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+        <Card className="toota-card border-none">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar Preview */}
-            <div className="relative group">
-              {hasCustomPhoto ? (
-                <img
-                  src={staffProfile.profileImageUrl}
-                  alt={fullName}
-                  className="w-28 h-28 rounded-2xl object-cover border-4 border-surface-container-low shadow-md"
-                />
-              ) : (
-                <div className="w-28 h-28 rounded-2xl bg-primary/10 border-4 border-surface-container-low text-primary flex items-center justify-center font-black text-3xl shadow-md select-none">
+            <div className="relative group shrink-0">
+              <Avatar className="size-24 md:size-28 ring-2 ring-border/40 shrink-0">
+                {photoUrl && (
+                  <AvatarImage src={photoUrl} alt={fullName} />
+                )}
+                <AvatarFallback className="bg-toota-inner text-toota-ink font-bold text-2xl md:text-3xl">
                   {initials}
-                </div>
-              )}
+                </AvatarFallback>
+              </Avatar>
 
               {isUploadingPhoto && (
-                <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                  <Loader2 className="size-6 text-white animate-spin" />
                 </div>
               )}
             </div>
@@ -413,38 +437,39 @@ function AdminStaffProfileView() {
             {/* Identity Details & Photo Actions */}
             <div className="flex-1 text-center sm:text-left rtl:sm:text-right space-y-2">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h2 className="font-headline font-bold text-xl text-on-surface">
+                <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                   {fullName}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                  {staffProfile.role || "STAFF"}
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
+                  <UserCheck className="size-3 text-zinc-500 shrink-0" />
+                  <span>{staffProfile.role || "Staff"}</span>
                 </span>
                 {isAccountActive ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {t("activeStaff", "Active Staff")}
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{t("activeStaff", "Active Staff")}</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    <ShieldAlert className="w-3 h-3" />
-                    {staffProfile.accountStatus}
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                    <span>{staffProfile.accountStatus}</span>
                   </span>
                 )}
               </div>
 
-              <p className="text-sm text-on-surface-variant font-mono">
+              <p className="text-xs text-toota-muted font-mono">
                 @{staffProfile.userName}
               </p>
 
-              {staffProfile.companyName && (
-                <p className="text-xs text-primary font-bold flex items-center justify-center sm:justify-start gap-1">
-                  <Building className="w-3.5 h-3.5" />
-                  {staffProfile.companyName}
+              {facility && (
+                <p className="text-xs text-toota-ink font-medium flex items-center justify-center sm:justify-start gap-1.5">
+                  <Building className="size-3.5 text-toota-muted" />
+                  <span>{facility}</span>
                 </p>
               )}
 
               {/* Photo Action Buttons */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-3">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -453,47 +478,48 @@ function AdminStaffProfileView() {
                   className="hidden"
                 />
 
-                <button
+                <Button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingPhoto || isDeletingPhoto}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl primary-gradient text-white text-xs font-bold shadow-sm hover:opacity-95 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                  className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer disabled:opacity-50"
                 >
                   {isUploadingPhoto ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
                   ) : (
-                    <Camera className="w-3.5 h-3.5" />
+                    <Camera className="size-3.5 me-1.5" />
                   )}
                   <span>{t("changePhoto", "Change Photo")}</span>
-                </button>
+                </Button>
 
-                {hasCustomPhoto && (
-                  <button
+                {photoUrl && (
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={handleDeletePhoto}
                     disabled={isUploadingPhoto || isDeletingPhoto}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-error hover:bg-error/10 border border-error/20 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                    className="toota-pill h-9 px-3 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer disabled:opacity-50"
                   >
                     {isDeletingPhoto ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin me-1.5" />
                     ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="size-3.5 me-1.5" />
                     )}
                     <span>{t("removePhoto", "Remove")}</span>
-                  </button>
+                  </Button>
                 )}
 
-                <span className="text-[11px] text-on-surface-variant/80">
+                <span className="text-[11px] font-mono text-toota-muted">
                   {t("maxPhotoSize", "Max 1MB (PNG, JPG, WebP)")}
                 </span>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
-        {/* Read-Only Notice Badge */}
-        <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-3 text-xs text-on-surface-variant">
-          <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+        {/* Read-Only Notice */}
+        <div className="p-4 bg-toota-inner border border-border/40 rounded-xl flex items-start gap-3 text-xs text-toota-muted">
+          <Info className="size-4 text-toota-ink shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             {t(
               "staffInfoNotice",
@@ -502,194 +528,202 @@ function AdminStaffProfileView() {
           </p>
         </div>
 
-        {/* Grid of Staff Information Cards */}
+        {/* Grid of Staff Information Bento Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card 1: Personal Information */}
-          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-              <User className="w-5 h-5 text-primary" />
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("personalInformation", "Personal Information")}
-              </h3>
-            </div>
+          <Card className="toota-card border-none">
+            <CardHeader className="p-6 pb-3 border-b border-border/40">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <User className="size-4 text-toota-ink" />
+                <span>{t("personalInformation", "Personal Information")}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-3.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("firstName", "First Name")}
+                  </span>
+                  <span className="font-semibold text-toota-ink">
+                    {staffProfile.firstName || "—"}
+                  </span>
+                </div>
 
-            <div className="space-y-3.5 text-sm">
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("firstName", "First Name")}
-                </span>
-                <span className="font-semibold text-on-surface">
-                  {staffProfile.firstName || "—"}
-                </span>
-              </div>
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("lastName", "Last Name")}
+                  </span>
+                  <span className="font-semibold text-toota-ink">
+                    {staffProfile.lastName || "—"}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("lastName", "Last Name")}
-                </span>
-                <span className="font-semibold text-on-surface">
-                  {staffProfile.lastName || "—"}
-                </span>
-              </div>
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("username", "Username")}
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-toota-ink">
+                    @{staffProfile.userName}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("username", "Username")}
-                </span>
-                <span className="font-mono text-xs font-semibold text-primary">
-                  @{staffProfile.userName}
-                </span>
-              </div>
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("gender", "Gender")}
+                  </span>
+                  <span className="font-semibold text-toota-ink capitalize">
+                    {staffProfile.gender?.toLowerCase() || "—"}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("gender", "Gender")}
-                </span>
-                <span className="font-semibold text-on-surface capitalize">
-                  {staffProfile.gender?.toLowerCase() || "—"}
-                </span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-toota-muted font-medium">
+                    {t("birthDate", "Birth Date")}
+                  </span>
+                  <span className="font-semibold text-toota-ink flex items-center gap-1.5 text-xs">
+                    <Calendar className="size-3.5 text-toota-muted" />
+                    {formatBirthDate(staffProfile.birthDate)}
+                  </span>
+                </div>
               </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("birthDate", "Birth Date")}
-                </span>
-                <span className="font-semibold text-on-surface flex items-center gap-1.5 text-xs">
-                  <Calendar className="w-3.5 h-3.5 text-on-surface-variant" />
-                  {formatBirthDate(staffProfile.birthDate)}
-                </span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Card 2: Contact Information */}
-          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-              <Mail className="w-5 h-5 text-secondary" />
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("contactInformation", "Contact Information")}
-              </h3>
-            </div>
+          <Card className="toota-card border-none">
+            <CardHeader className="p-6 pb-3 border-b border-border/40">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Mail className="size-4 text-toota-ink" />
+                <span>{t("contactInformation", "Contact Information")}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-3.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("emailAddress", "Email Address")}
+                  </span>
+                  <span className="font-semibold text-toota-ink text-xs truncate max-w-[200px]">
+                    {staffProfile.email || "—"}
+                  </span>
+                </div>
 
-            <div className="space-y-3.5 text-sm">
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("emailAddress", "Email Address")}
-                </span>
-                <span className="font-semibold text-on-surface text-xs truncate max-w-[200px]">
-                  {staffProfile.email || "—"}
-                </span>
-              </div>
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("phoneNumber", "Phone Number")}
+                  </span>
+                  <span className="font-semibold text-toota-ink flex items-center gap-1 font-mono">
+                    <Phone className="size-3.5 text-toota-muted" />
+                    {staffProfile.phoneNumber || "—"}
+                  </span>
+                </div>
 
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("phoneNumber", "Phone Number")}
-                </span>
-                <span className="font-semibold text-on-surface flex items-center gap-1 text-xs font-mono">
-                  <Phone className="w-3.5 h-3.5 text-on-surface-variant" />
-                  {staffProfile.phoneNumber || "—"}
-                </span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-toota-muted font-medium">
+                    {t("accountStatus", "Account Status")}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{staffProfile.accountStatus || "Active"}</span>
+                  </span>
+                </div>
               </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("accountStatus", "Account Status")}
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  {staffProfile.accountStatus || "ACTIVE"}
-                </span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Card 3: Facility & Management Assignment */}
-          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-              <Building className="w-5 h-5 text-tertiary" />
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("facilityDetails", "Facility & Team Assignment")}
-              </h3>
-            </div>
+          <Card className="toota-card border-none">
+            <CardHeader className="p-6 pb-3 border-b border-border/40">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Building className="size-4 text-toota-ink" />
+                <span>{t("facilityDetails", "Facility & Team Assignment")}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-3.5 text-xs">
+                <div className="flex justify-between items-center py-1 border-b border-border/40">
+                  <span className="text-toota-muted font-medium">
+                    {t("facility", "Facility")}
+                  </span>
+                  <span className="font-bold text-toota-ink text-xs">
+                    {facility || "—"}
+                  </span>
+                </div>
 
-            <div className="space-y-3.5 text-sm">
-              <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                <span className="text-on-surface-variant text-xs font-medium">
-                  {t("facility", "Facility")}
-                </span>
-                <span className="font-bold text-on-surface text-xs">
-                  {staffProfile.companyName || staffProfile.admin?.companyName || companyName || "—"}
-                </span>
-              </div>
-
-              {staffProfile.admin && (
-                <>
-                  <div className="flex justify-between items-center py-1 border-b border-outline-variant/40">
-                    <span className="text-on-surface-variant text-xs font-medium">
-                      {t("assignedAdministrator", "Assigned Administrator")}
-                    </span>
-                    <span className="font-semibold text-on-surface text-xs">
-                      {[staffProfile.admin.firstName, staffProfile.admin.lastName]
-                        .filter(Boolean)
-                        .join(" ") || "Administrator"}
-                    </span>
-                  </div>
-
-                  {staffProfile.admin.email && (
-                    <div className="flex justify-between items-center py-1">
-                      <span className="text-on-surface-variant text-xs font-medium">
-                        {t("adminEmail", "Admin Email")}
+                {staffProfile.admin && (
+                  <>
+                    <div className="flex justify-between items-center py-1 border-b border-border/40">
+                      <span className="text-toota-muted font-medium">
+                        {t("assignedAdministrator", "Assigned Administrator")}
                       </span>
-                      <span className="font-mono text-xs text-on-surface-variant">
-                        {staffProfile.admin.email}
+                      <span className="font-semibold text-toota-ink text-xs">
+                        {[staffProfile.admin.firstName, staffProfile.admin.lastName]
+                          .filter(Boolean)
+                          .join(" ") || "Administrator"}
                       </span>
                     </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+
+                    {staffProfile.admin.email && (
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-toota-muted font-medium">
+                          {t("adminEmail", "Admin Email")}
+                        </span>
+                        <span className="font-mono text-xs text-toota-muted">
+                          {staffProfile.admin.email}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Card 4: Role & Operational Access */}
-          <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("accountPermissions", "Role & Operational Permissions")}
-              </h3>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
-                <div className="flex items-center gap-2 font-medium text-on-surface">
-                  <QrCode className="w-4 h-4 text-primary" />
-                  <span>{t("qrCheckinAccess", "QR Code & Manual Check-In")}</span>
+          <Card className="toota-card border-none">
+            <CardHeader className="p-6 pb-3 border-b border-border/40">
+              <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <ShieldCheck className="size-4 text-toota-ink" />
+                <span>{t("accountPermissions", "Role & Operational Permissions")}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-toota-inner border border-border/40 text-xs">
+                  <div className="flex items-center gap-2 font-medium text-toota-ink">
+                    <QrCode className="size-4 text-toota-ink" />
+                    <span>{t("qrCheckinAccess", "QR Code & Manual Check-In")}</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{t("enabled", "Enabled")}</span>
+                  </span>
                 </div>
-                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
-                  {t("enabled", "Enabled")}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
-                <div className="flex items-center gap-2 font-medium text-on-surface">
-                  <Users className="w-4 h-4 text-secondary" />
-                  <span>{t("memberDirectoryAccess", "Member Directory & Attendance")}</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-toota-inner border border-border/40 text-xs">
+                  <div className="flex items-center gap-2 font-medium text-toota-ink">
+                    <Users className="size-4 text-toota-ink" />
+                    <span>{t("memberDirectoryAccess", "Member Directory & Attendance")}</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{t("enabled", "Enabled")}</span>
+                  </span>
                 </div>
-                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
-                  {t("enabled", "Enabled")}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/40 text-xs">
-                <div className="flex items-center gap-2 font-medium text-on-surface">
-                  <MessageSquareQuote className="w-4 h-4 text-tertiary" />
-                  <span>{t("feedbackAccess", "Member Feedback & Reviews")}</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-toota-inner border border-border/40 text-xs">
+                  <div className="flex items-center gap-2 font-medium text-toota-ink">
+                    <MessageSquareQuote className="size-4 text-toota-ink" />
+                    <span>{t("feedbackAccess", "Member Feedback & Reviews")}</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>{t("enabled", "Enabled")}</span>
+                  </span>
                 </div>
-                <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-wider">
-                  {t("enabled", "Enabled")}
-                </span>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Email Change Section for Staff */}
           <div className="md:col-span-2">
@@ -706,74 +740,82 @@ function AdminStaffProfileView() {
   // ==========================================
   // RENDER: ADMINISTRATOR PROFILE VIEW & FORM
   // ==========================================
-  const hasCustomPhoto =
-    Boolean(profile?.profileImagePublicId) ||
-    Boolean(
-      profile?.profileImageUrl &&
-        !profile.profileImageUrl.includes("default-image.jpg") &&
-        !profile.profileImageUrl.includes("default-member-image.jpg")
-    );
+  const rawPhoto = profile?.profileImageUrl;
+  const isPlaceholder =
+    !rawPhoto ||
+    rawPhoto === "default-image.jpg" ||
+    rawPhoto === "default-member-image.jpg";
+  const photoUrl = !isPlaceholder ? rawPhoto : null;
 
   const savedFullName = profile
     ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.userName
     : "Administrator";
 
-  const savedCompany = profile?.companyName || "";
+  const savedCompany = profile?.companyName || companyName || "";
 
   const savedInitials = profile
-    ? (profile.firstName?.[0] || "") + (profile.lastName?.[0] || "") ||
-      (profile.userName?.[0] || "A").toUpperCase()
+    ? ((profile.firstName?.[0] || "") + (profile.lastName?.[0] || "")).toUpperCase() ||
+      profile.userName?.slice(0, 2).toUpperCase() ||
+      "A"
     : "A";
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto pb-12 animate-in fade-in-50 duration-200">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">
-            {t("settingsTitle", "Account & Facility Settings")}
-          </h1>
-          <p className="text-body-md text-on-surface-variant">
-            {t(
-              "settingsSubtitle",
-              "Manage your profile details, operational preferences, and gym information."
-            )}
-          </p>
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Top Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("settingsTitle", "Account & Facility Settings")}
+              </h1>
+              {savedCompany && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {savedCompany}
+                </span>
+              )}
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {profile?.role || "ADMIN"}
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+              {t(
+                "settingsSubtitle",
+                "Manage your profile details, operational preferences, and gym information."
+              )}
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={loadProfile}
+            disabled={isLoading}
+            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer self-start md:self-auto"
+          >
+            <RefreshCw className={`size-3.5 me-2 ${isLoading ? "animate-spin text-toota-ink" : ""}`} />
+            <span>{t("refresh", "Refresh")}</span>
+          </Button>
         </div>
+      </Card>
 
-        <button
-          type="button"
-          onClick={loadProfile}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant text-on-surface text-sm font-semibold transition-colors cursor-pointer w-fit"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : ""}`} />
-          <span>{t("refresh", "Refresh")}</span>
-        </button>
-      </div>
-
-      {/* Avatar & Stable Identity Banner */}
-      <div className="p-6 sm:p-8 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+      {/* Avatar & Stable Identity Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           {/* Avatar Preview */}
-          <div className="relative group">
-            {hasCustomPhoto ? (
-              <img
-                src={profile?.profileImageUrl}
-                alt={savedFullName}
-                className="w-28 h-28 rounded-2xl object-cover border-4 border-surface-container-low shadow-md"
-              />
-            ) : (
-              <div className="w-28 h-28 rounded-2xl bg-primary/10 border-4 border-surface-container-low text-primary flex items-center justify-center font-black text-3xl shadow-md select-none">
+          <div className="relative group shrink-0">
+            <Avatar className="size-24 md:size-28 ring-2 ring-border/40 shrink-0">
+              {photoUrl && (
+                <AvatarImage src={photoUrl} alt={savedFullName} />
+              )}
+              <AvatarFallback className="bg-toota-inner text-toota-ink font-bold text-2xl md:text-3xl">
                 {savedInitials}
-              </div>
-            )}
+              </AvatarFallback>
+            </Avatar>
 
             {isUploadingPhoto && (
-              <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center">
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                <Loader2 className="size-6 text-white animate-spin" />
               </div>
             )}
           </div>
@@ -781,33 +823,34 @@ function AdminStaffProfileView() {
           {/* Details & Actions */}
           <div className="flex-1 text-center sm:text-left rtl:sm:text-right space-y-2">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h2 className="font-headline font-bold text-xl text-on-surface">
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {savedFullName}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                {profile?.role || "ADMIN"}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
+                <ShieldCheck className="size-3 text-zinc-500 shrink-0" />
+                <span>{profile?.role || "Admin"}</span>
               </span>
               {profile?.isAccountVerified && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" />
-                  {t("verified", "Verified")}
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{t("verified", "Verified")}</span>
                 </span>
               )}
             </div>
 
-            <p className="text-sm text-on-surface-variant font-mono">
+            <p className="text-xs text-toota-muted font-mono">
               @{profile?.userName}
             </p>
 
             {savedCompany && (
-              <p className="text-xs text-primary font-bold flex items-center justify-center sm:justify-start gap-1">
-                <Building className="w-3.5 h-3.5" />
-                {savedCompany}
+              <p className="text-xs text-toota-ink font-medium flex items-center justify-center sm:justify-start gap-1.5">
+                <Building className="size-3.5 text-toota-muted" />
+                <span>{savedCompany}</span>
               </p>
             )}
 
             {/* Photo Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-3">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -816,271 +859,277 @@ function AdminStaffProfileView() {
                 className="hidden"
               />
 
-              <button
+              <Button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingPhoto || isDeletingPhoto}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl primary-gradient text-white text-xs font-bold shadow-sm hover:opacity-95 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer disabled:opacity-50"
               >
                 {isUploadingPhoto ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="size-3.5 animate-spin me-1.5" />
                 ) : (
-                  <Camera className="w-3.5 h-3.5" />
+                  <Camera className="size-3.5 me-1.5" />
                 )}
                 <span>{t("changePhoto", "Change Photo")}</span>
-              </button>
+              </Button>
 
-              {hasCustomPhoto && (
-                <button
+              {photoUrl && (
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={handleDeletePhoto}
                   disabled={isUploadingPhoto || isDeletingPhoto}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-error hover:bg-error/10 border border-error/20 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                  className="toota-pill h-9 px-3 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer disabled:opacity-50"
                 >
                   {isDeletingPhoto ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
                   ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="size-3.5 me-1.5" />
                   )}
                   <span>{t("removePhoto", "Remove")}</span>
-                </button>
+                </Button>
               )}
 
-              <span className="text-[11px] text-on-surface-variant/80">
+              <span className="text-[11px] font-mono text-toota-muted">
                 {t("maxPhotoSize", "Max 1MB (PNG, JPG, WebP)")}
               </span>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Main Settings Form managed by React Hook Form & Zod */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Section: Personal Information */}
-        <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-5">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-            <User className="w-5 h-5 text-primary" />
-            <h3 className="font-headline font-bold text-base text-on-surface">
-              {t("personalInformation", "Personal Information")}
-            </h3>
-          </div>
+        <Card className="toota-card border-none">
+          <CardHeader className="p-6 pb-4 border-b border-border/40">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <User className="size-4 text-toota-ink" />
+              <span>{t("personalInformation", "Personal Information")}</span>
+            </CardTitle>
+          </CardHeader>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("firstName", "First Name")} <span className="text-error">*</span>
-              </label>
-              <input
-                type="text"
-                {...register("firstName")}
-                placeholder="e.g. Alexander"
-                className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
-                  errors.firstName
-                    ? "border-error focus:ring-error"
-                    : "border-outline-variant focus:ring-primary-container"
-                } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
-              />
-              {errors.firstName && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.firstName.message}</span>
-                </p>
-              )}
-            </div>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* First Name */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("firstName", "First Name")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  {...register("firstName")}
+                  placeholder="e.g. Alexander"
+                  className={`h-10 bg-toota-inner text-xs text-toota-ink rounded-xl ${
+                    errors.firstName
+                      ? "border-rose-500 focus-visible:ring-rose-500"
+                      : "border-border/40 focus-visible:ring-zinc-400"
+                  }`}
+                />
+                {errors.firstName && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.firstName.message}</span>
+                  </p>
+                )}
+              </div>
 
-            {/* Last Name */}
-            <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("lastName", "Last Name")} <span className="text-error">*</span>
-              </label>
-              <input
-                type="text"
-                {...register("lastName")}
-                placeholder="e.g. Sterling"
-                className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
-                  errors.lastName
-                    ? "border-error focus:ring-error"
-                    : "border-outline-variant focus:ring-primary-container"
-                } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
-              />
-              {errors.lastName && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.lastName.message}</span>
-                </p>
-              )}
-            </div>
+              {/* Last Name */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("lastName", "Last Name")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  {...register("lastName")}
+                  placeholder="e.g. Sterling"
+                  className={`h-10 bg-toota-inner text-xs text-toota-ink rounded-xl ${
+                    errors.lastName
+                      ? "border-rose-500 focus-visible:ring-rose-500"
+                      : "border-border/40 focus-visible:ring-zinc-400"
+                  }`}
+                />
+                {errors.lastName && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.lastName.message}</span>
+                  </p>
+                )}
+              </div>
 
-            {/* Gender */}
-            <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("gender", "Gender")} <span className="text-error">*</span>
-              </label>
-              <select
-                {...register("gender")}
-                className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
-                  errors.gender
-                    ? "border-error focus:ring-error"
-                    : "border-outline-variant focus:ring-primary-container"
-                } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all cursor-pointer`}
-              >
-                <option value="MALE">{t("male", "Male")}</option>
-                <option value="FEMALE">{t("female", "Female")}</option>
-              </select>
-              {errors.gender && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.gender.message}</span>
-                </p>
-              )}
-            </div>
+              {/* Gender */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("gender", "Gender")} <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  {...register("gender")}
+                  className={`w-full h-10 px-3 bg-toota-inner border ${
+                    errors.gender
+                      ? "border-rose-500 focus:ring-rose-500"
+                      : "border-border/40 focus:ring-zinc-400"
+                  } rounded-xl text-xs text-toota-ink focus:outline-hidden focus:ring-1 cursor-pointer`}
+                >
+                  <option value="MALE">{t("male", "Male")}</option>
+                  <option value="FEMALE">{t("female", "Female")}</option>
+                </select>
+                {errors.gender && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.gender.message}</span>
+                  </p>
+                )}
+              </div>
 
-            {/* Birth Date */}
-            <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("birthDate", "Birth Date")} <span className="text-error">*</span>
-              </label>
-              <input
-                type="date"
-                {...register("birthDate")}
-                className={`w-full px-3.5 py-2.5 bg-surface-container-low border ${
-                  errors.birthDate
-                    ? "border-error focus:ring-error"
-                    : "border-outline-variant focus:ring-primary-container"
-                } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all cursor-pointer`}
-              />
-              {errors.birthDate && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.birthDate.message}</span>
-                </p>
-              )}
+              {/* Birth Date */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("birthDate", "Birth Date")} <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  {...register("birthDate")}
+                  className={`h-10 bg-toota-inner text-xs text-toota-ink rounded-xl ${
+                    errors.birthDate
+                      ? "border-rose-500 focus-visible:ring-rose-500"
+                      : "border-border/40 focus-visible:ring-zinc-400"
+                  }`}
+                />
+                {errors.birthDate && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.birthDate.message}</span>
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Section: Contact & Gym Organization Details */}
-        <div className="p-6 bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-sm space-y-5">
-          <div className="flex items-center gap-2.5 pb-3 border-b border-outline-variant">
-            <Building className="w-5 h-5 text-secondary" />
-            <h3 className="font-headline font-bold text-base text-on-surface">
-              {t("contactGymDetails", "Contact & Gym Organization Details")}
-            </h3>
-          </div>
+        <Card className="toota-card border-none">
+          <CardHeader className="p-6 pb-4 border-b border-border/40">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Building className="size-4 text-toota-ink" />
+              <span>{t("contactGymDetails", "Contact & Gym Organization Details")}</span>
+            </CardTitle>
+          </CardHeader>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Email */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-on-surface">
-                  {t("emailAddress", "Email Address")} <span className="text-error">*</span>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Email */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-toota-ink">
+                    {t("emailAddress", "Email Address")} <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-toota-muted">
+                    {t("changeEmailViaSection", "Use Email Change below")}
+                  </span>
+                </div>
+                <div className="relative">
+                  <Mail className="size-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                  <Input
+                    type="email"
+                    {...register("email")}
+                    readOnly
+                    disabled
+                    title={t("useEmailChangeSection", "Use the dedicated Email Change section below to update your email")}
+                    className="pl-10 rtl:pl-3.5 rtl:pr-10 h-10 bg-toota-inner/60 border-border/40 text-xs text-toota-muted opacity-80 cursor-not-allowed rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("phoneNumberInternational", "Phone Number (International)")} <span className="text-rose-500">*</span>
                 </label>
-                <span className="text-[10px] text-primary font-medium">
-                  {t("changeEmailViaSection", "See Email Change section below")}
-                </span>
+                <div className="relative">
+                  <Phone className="size-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                  <Input
+                    type="tel"
+                    {...register("phoneNumber")}
+                    placeholder="e.g. +14155552671"
+                    className={`pl-10 rtl:pl-3.5 rtl:pr-10 h-10 bg-toota-inner text-xs text-toota-ink rounded-xl font-mono ${
+                      errors.phoneNumber
+                        ? "border-rose-500 focus-visible:ring-rose-500"
+                        : "border-border/40 focus-visible:ring-zinc-400"
+                    }`}
+                  />
+                </div>
+                {errors.phoneNumber ? (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.phoneNumber.message}</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-toota-muted">
+                    {t(
+                      "phoneHelperText",
+                      "Must include country code (e.g. +14155552671 or +212607080904)"
+                    )}
+                  </p>
+                )}
               </div>
-              <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                <input
-                  type="email"
-                  {...register("email")}
-                  readOnly
-                  disabled
-                  title={t("useEmailChangeSection", "Use the dedicated Email Change section below to update your email")}
-                  className="w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-high/60 border border-outline-variant/60 rounded-xl text-sm text-on-surface opacity-80 cursor-not-allowed outline-none"
-                />
-              </div>
-            </div>
 
-            {/* Phone Number */}
-            <div>
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("phoneNumberInternational", "Phone Number (International)")} <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                <input
-                  type="tel"
-                  {...register("phoneNumber")}
-                  placeholder="e.g. +14155552671"
-                  className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
-                    errors.phoneNumber
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant focus:ring-primary-container"
-                  } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
-                />
+              {/* Company / Gym Name */}
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="block text-xs font-medium text-toota-ink">
+                  {t("companyGymName", "Company / Gym Facility Name")} <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Building className="size-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                  <Input
+                    type="text"
+                    {...register("companyName")}
+                    placeholder="e.g. Apex Performance Club"
+                    className={`pl-10 rtl:pl-3.5 rtl:pr-10 h-10 bg-toota-inner text-xs text-toota-ink rounded-xl ${
+                      errors.companyName
+                        ? "border-rose-500 focus-visible:ring-rose-500"
+                        : "border-border/40 focus-visible:ring-zinc-400"
+                    }`}
+                  />
+                </div>
+                {errors.companyName && (
+                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="size-3 shrink-0" />
+                    <span>{errors.companyName.message}</span>
+                  </p>
+                )}
               </div>
-              {errors.phoneNumber ? (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.phoneNumber.message}</span>
-                </p>
-              ) : (
-                <p className="text-[11px] text-on-surface-variant/80 mt-1">
-                  {t(
-                    "phoneHelperText",
-                    "Must include country code (e.g. +14155552671 or +212607080904)"
-                  )}
-                </p>
-              )}
             </div>
-
-            {/* Company / Gym Name */}
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-on-surface mb-1.5">
-                {t("companyGymName", "Company / Gym Facility Name")} <span className="text-error">*</span>
-              </label>
-              <div className="relative">
-                <Building className="w-4 h-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-                <input
-                  type="text"
-                  {...register("companyName")}
-                  placeholder="e.g. Apex Performance Club"
-                  className={`w-full pl-10 rtl:pl-3.5 rtl:pr-10 pr-3.5 py-2.5 bg-surface-container-low border ${
-                    errors.companyName
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant focus:ring-primary-container"
-                  } rounded-xl text-sm text-on-surface focus:ring-2 outline-none transition-all`}
-                />
-              </div>
-              {errors.companyName && (
-                <p className="text-xs text-error mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3 shrink-0" />
-                  <span>{errors.companyName.message}</span>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleReset}
             disabled={isSaving}
-            className="px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface text-sm font-semibold hover:bg-surface-container transition-colors cursor-pointer"
+            className="toota-pill h-10 px-5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
           >
             {t("cancelRevert", "Cancel / Revert")}
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="submit"
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2.5 primary-gradient text-white font-bold rounded-xl text-sm shadow-md hover:opacity-95 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            className="toota-pill h-10 px-6 text-xs font-semibold cursor-pointer disabled:opacity-50"
           >
             {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="size-3.5 animate-spin me-2" />
             ) : (
-              <Save className="w-4 h-4" />
+              <Save className="size-3.5 me-2" />
             )}
             <span>{isSaving ? t("savingProfile", "Saving Profile...") : t("saveProfile", "Save Profile")}</span>
-          </button>
+          </Button>
         </div>
       </form>
 
-      {/* Section: Email Change for Administrator (Separated from main settings form) */}
+      {/* Section: Email Change for Administrator */}
       <EmailChangeSection
         role="admin"
         currentEmail={profile?.email || ""}
@@ -1095,7 +1144,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <Loader2 className="size-8 text-toota-ink animate-spin" />
       </div>
     );
   }

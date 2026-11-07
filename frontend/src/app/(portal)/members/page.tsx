@@ -39,7 +39,6 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -350,34 +349,6 @@ export default function MembershipsPage() {
     toast.success("Members exported successfully to CSV!");
   };
 
-  const getStatusBadgeVariant = (
-    status: string
-  ):
-    | "default"
-    | "secondary"
-    | "destructive"
-    | "outline"
-    | "success"
-    | "warning"
-    | "danger"
-    | "muted" => {
-    switch (status.toUpperCase()) {
-      case "ACTIVE":
-        return "success";
-      case "PENDING":
-        return "warning";
-      case "EXPIRED":
-        return "danger";
-      case "BANNED":
-        return "destructive";
-      case "CANCELLED":
-      case "INACTIVE":
-        return "muted";
-      default:
-        return "outline";
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     const s = (status || "").toUpperCase();
     if (s === "ACTIVE") return t("active") || "Active";
@@ -386,7 +357,55 @@ export default function MembershipsPage() {
     if (s === "EXPIRED") return t("expired") || "Expired";
     if (s === "CANCELLED") return t("cancelled") || "Cancelled";
     if (s === "INACTIVE") return t("inactive") || "Inactive";
-    return status;
+    return status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : "";
+  };
+
+  const renderStatusBadge = (status: string) => {
+    const s = (status || "").toUpperCase();
+    const label = getStatusLabel(status);
+
+    if (s === "ACTIVE") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "PENDING") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "EXPIRED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    if (s === "BANNED") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-600 shrink-0" />
+          <span>{label}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+        <span>{label}</span>
+      </span>
+    );
   };
 
   const getInitials = (
@@ -411,25 +430,14 @@ export default function MembershipsPage() {
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge
-                variant="outline"
-                className="rounded-full px-3 py-1 text-xs font-semibold border-border/60 text-toota-ink bg-toota-inner"
-              >
-                <Users className="size-3.5 me-1.5" />
-                {t("membersTitle") || "Members"}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                {totalCount} {t("total") || "Total"}
-              </Badge>
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("membersTitle") || "Memberships"}
+              </h1>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {totalCount} {t("total") || "total"}
+              </span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-toota-ink">
-              {t("membersTitle") || "Memberships"}
-            </h1>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("membersSubtitle") ||
                 "Manage and monitor active subscriber tiers across the facility."}
@@ -493,12 +501,9 @@ export default function MembershipsPage() {
                   {totalCount}
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className="rounded-full text-[11px] font-medium border-border/50 text-toota-muted"
-              >
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
                 {t("liveFromApi") || "Live"}
-              </Badge>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("registeredInGym") || "Registered gym members"}
@@ -525,9 +530,10 @@ export default function MembershipsPage() {
                   {activeCount}
                 </span>
               )}
-              <Badge variant="success" className="rounded-full text-[11px] font-semibold">
-                {totalCount > 0 ? `${activePercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{totalCount > 0 ? `${activePercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("active") || "Active"} {t("navMembers") || "members"}
@@ -560,9 +566,10 @@ export default function MembershipsPage() {
                   {pendingCount}
                 </span>
               )}
-              <Badge variant="warning" className="rounded-full text-[11px] font-semibold">
-                {totalCount > 0 ? `${pendingPercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span>{totalCount > 0 ? `${pendingPercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("pending") || "Awaiting activation"}
@@ -595,9 +602,10 @@ export default function MembershipsPage() {
                   {bannedCount}
                 </span>
               )}
-              <Badge variant="danger" className="rounded-full text-[11px] font-semibold">
-                {totalCount > 0 ? `${bannedPercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span>{totalCount > 0 ? `${bannedPercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("banned") || "Suspended or restricted"}
@@ -731,16 +739,13 @@ export default function MembershipsPage() {
       {/* Members Table Card */}
       <Card className="toota-card border-none p-0 overflow-hidden">
         <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-lg font-medium text-toota-ink">
+          <div className="flex items-baseline gap-2">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
               {t("membersTitle") || "Members"}
             </CardTitle>
-            <Badge
-              variant="outline"
-              className="rounded-full text-xs font-semibold px-2.5 py-0.5 border-border/50 text-toota-muted"
-            >
-              {totalItems} {isFiltering ? (t("filtered") || "filtered") : (t("total") || "total")}
-            </Badge>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {totalItems} {isFiltering ? (t("filtered") || "filtered") : (t("total") || "total")}
+            </span>
           </div>
 
           {isPageLoading && (
@@ -932,12 +937,7 @@ export default function MembershipsPage() {
 
                       {/* Status */}
                       <TableCell className="px-6 py-3.5">
-                        <Badge
-                          variant={getStatusBadgeVariant(status)}
-                          className="rounded-full text-[10px] font-semibold uppercase tracking-wider"
-                        >
-                          {getStatusLabel(status)}
-                        </Badge>
+                        {renderStatusBadge(status)}
                       </TableCell>
 
                       {/* Start Date */}

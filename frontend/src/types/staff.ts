@@ -9,7 +9,8 @@ export interface BackendStaffAdmin {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  userName?: string;
+  email?: string;
   phoneNumber?: string;
   companyName?: string;
   role: string;
@@ -18,6 +19,7 @@ export interface BackendStaffAdmin {
 
 export interface BackendStaff {
   id: string;
+  adminId?: string;
   firstName: string;
   lastName: string;
   gender: Gender | string;

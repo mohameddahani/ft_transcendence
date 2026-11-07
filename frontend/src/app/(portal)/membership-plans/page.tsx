@@ -13,8 +13,6 @@ import {
   Clock,
   Edit,
   Zap,
-  Check,
-  X,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -35,7 +33,6 @@ import {
   CardHeader,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -153,25 +150,14 @@ export default function MembershipPlansPage() {
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge
-                variant="outline"
-                className="rounded-full px-3 py-1 text-xs font-semibold border-border/60 text-toota-ink bg-toota-inner"
-              >
-                <Layers className="size-3.5 me-1.5" />
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("membershipPlans") || "Membership Plans"}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-              >
-                {totalPlans} {t("total") || "Total"}
-              </Badge>
+              </h1>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {totalPlans} {t("total") || "total"}
+              </span>
             </div>
-
-            <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-toota-ink">
-              {t("membershipPlans") || "Membership Plans"}
-            </h1>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("plansSubtitle") ||
                 "Create and configure subscription tiers, pricing, and access duration limits."}
@@ -225,12 +211,9 @@ export default function MembershipPlansPage() {
                   {totalPlans}
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className="rounded-full text-[11px] font-medium border-border/50 text-toota-muted"
-              >
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
                 {t("liveFromApi") || "Live"}
-              </Badge>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("allGymPlans") || "Configured membership tiers"}
@@ -257,9 +240,10 @@ export default function MembershipPlansPage() {
                   {activePlansCount}
                 </span>
               )}
-              <Badge variant="success" className="rounded-full text-[11px] font-semibold">
-                {totalPlans > 0 ? `${activePercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>{totalPlans > 0 ? `${activePercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("availableForSignup") || "Open for member enrollment"}
@@ -292,9 +276,10 @@ export default function MembershipPlansPage() {
                   {inactivePlansCount}
                 </span>
               )}
-              <Badge variant="danger" className="rounded-full text-[11px] font-semibold">
-                {totalPlans > 0 ? `${inactivePercent}%` : "—"}
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                <span>{totalPlans > 0 ? `${inactivePercent}%` : "—"}</span>
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("hiddenOrArchived") || "Hidden from new members"}
@@ -327,12 +312,9 @@ export default function MembershipPlansPage() {
                   {totalDurationsCount}
                 </span>
               )}
-              <Badge
-                variant="outline"
-                className="rounded-full text-[11px] font-medium border-border/50 text-toota-muted"
-              >
-                Options
-              </Badge>
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                {t("options") || "Options"}
+              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("pricingOptionsAcrossPlans") || "Pricing options across all plans"}
@@ -475,11 +457,9 @@ export default function MembershipPlansPage() {
                       </p>
                     </div>
 
-                    {/* Status Button: Clean, standard radius, distinct look */}
-                    <Button
+                    {/* Status Button: Crisp Outlined Micro-Badge */}
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={() => handleToggleActive(plan)}
                       disabled={isToggling}
                       title={
@@ -487,47 +467,47 @@ export default function MembershipPlansPage() {
                           ? (t("deactivatePlan") || "Click to deactivate plan")
                           : (t("activatePlan") || "Click to activate plan")
                       }
-                      className={`h-7.5 px-3 rounded-lg text-xs font-semibold cursor-pointer transition-colors border shrink-0 ${
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 cursor-pointer transition-all shrink-0 disabled:opacity-60 disabled:cursor-not-allowed ${
                         plan.isActive
-                          ? "bg-toota-inner text-toota-ink border-border/60 hover:bg-toota-card hover:border-border"
-                          : "bg-toota-inner/40 text-toota-muted border-border/40 hover:bg-toota-inner hover:text-toota-ink"
+                          ? "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                          : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                       }`}
                     >
                       {isToggling ? (
-                        <Loader2 className="size-3.5 animate-spin me-1.5" />
-                      ) : plan.isActive ? (
-                        <Check className="size-3.5 me-1.5 text-toota-green" />
+                        <Loader2 className="size-3 animate-spin shrink-0" />
                       ) : (
-                        <X className="size-3.5 me-1.5 text-toota-red" />
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                            plan.isActive ? "bg-emerald-500" : "bg-rose-500"
+                          }`}
+                        />
                       )}
                       <span>
                         {plan.isActive ? (t("active") || "Active") : (t("inactive") || "Inactive")}
                       </span>
-                    </Button>
+                    </button>
                   </div>
 
                   {/* Quotas & Badges Bar */}
                   <div className="flex items-center gap-2 flex-wrap pt-3">
-                    <Badge
-                      variant="outline"
-                      className="rounded-full px-2.5 py-0.5 text-xs font-medium border-border/50 text-toota-ink bg-toota-inner"
-                    >
-                      <Zap className="size-3.5 me-1.5 text-toota-ink" />
-                      {plan.weeklyVisitLimit === 7
-                        ? (t("unlimitedVisits") || "Unlimited Visits")
-                        : `${plan.weeklyVisitLimit} ${t("visitsPerWeek") || "Visits / Week"}`}
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                      <Zap className="size-3 text-zinc-500 shrink-0" />
+                      <span>
+                        {plan.weeklyVisitLimit === 7
+                          ? (t("unlimitedVisits") || "Unlimited Visits")
+                          : `${plan.weeklyVisitLimit} ${t("visitsPerWeek") || "Visits / Week"}`}
+                      </span>
+                    </span>
 
-                    <Badge
-                      variant="outline"
-                      className="rounded-full px-2.5 py-0.5 text-xs font-medium border-border/50 text-toota-muted"
-                    >
-                      <Clock className="size-3.5 me-1.5" />
-                      {durations.length}{" "}
-                      {durations.length === 1
-                        ? (t("durationOption") || "Duration")
-                        : (t("durationOptions") || "Durations")}
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                      <Clock className="size-3 text-zinc-400 shrink-0" />
+                      <span>
+                        {durations.length}{" "}
+                        {durations.length === 1
+                          ? (t("durationOption") || "Duration")
+                          : (t("durationOptions") || "Durations")}
+                      </span>
+                    </span>
                   </div>
 
                   {/* Durations & Pricing Container */}

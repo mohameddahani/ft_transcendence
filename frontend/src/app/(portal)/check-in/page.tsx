@@ -5,30 +5,54 @@ import {
   ScanLine,
   RefreshCw,
   Search,
-  Filter,
   CheckCircle2,
   Clock,
   Users,
   Eye,
-  Calendar
+  Calendar,
+  Loader2,
+  X,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-import { TodayVisit } from "@/types/visit";
+import { TodayVisit, VisitStatus } from "@/types/visit";
 import {
   fetchTodayVisits,
   fetchVisitById,
   checkInManual,
   checkInWithQr,
 } from "@/lib/api/visits";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
 import SuccessCelebrationModal from "@/components/check-in/SuccessCelebrationModal";
 import Pagination from "@/components/ui/Pagination";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 export default function CheckInPage() {
   const { t } = useTranslation();
+  const { companyName } = useCurrentUser();
 
   // State
   const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
@@ -68,12 +92,12 @@ export default function CheckInPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Failed to load today's visits roster.");
+        toast.error(t("loadVisitsFailed") || "Failed to load today's visits roster.");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize]);
+  }, [pageSize, t]);
 
   useEffect(() => {
     loadVisits();
@@ -165,7 +189,7 @@ export default function CheckInPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Check-in validation failed.");
+        toast.error(t("checkInFailed") || "Check-in validation failed.");
       }
     } finally {
       setIsCheckingInMap((prev) => ({ ...prev, [memberId]: false }));
@@ -198,7 +222,7 @@ export default function CheckInPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else {
-        toast.error("Invalid QR code or membership condition not met.");
+        toast.error(t("qrInvalid") || "Invalid QR code or membership condition not met.");
       }
     } finally {
       setIsScanningProcessing(false);
@@ -208,16 +232,47 @@ export default function CheckInPage() {
   // Open single visit details
   const handleInspectVisit = async (visit: TodayVisit) => {
     try {
-      console.log("visit", visit)
-      // Fetch fresh details by ID
       const single = await fetchVisitById(visit.id).catch(() => visit);
       setSelectedVisit(single);
-      console.log("single", single)
     } catch {
       setSelectedVisit(visit);
     } finally {
       setIsDetailsOpen(true);
     }
+  };
+
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
+    const first = firstName?.[0] || "";
+    const last = lastName?.[0] || "";
+    return (first + last).toUpperCase() || "M";
+  };
+
+  const renderVisitStatusBadge = (status: VisitStatus | string) => {
+    const s = (status || "").toUpperCase();
+    if (s === "CHECKED_IN") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>{t("checkedIn") || "Checked In"}</span>
+        </span>
+      );
+    }
+
+    if (s === "READY") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          <span>{t("awaitingCheckIn") || "Awaiting Verification"}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+        <span>{t("cancelled") || "Cancelled"}</span>
+      </span>
+    );
   };
 
   const currentDateFormatted = new Date().toLocaleDateString(undefined, {
@@ -228,339 +283,484 @@ export default function CheckInPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-container-max mx-auto pb-16">
-      {/* Top Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl primary-gradient text-white flex items-center justify-center shadow-md shadow-primary/20">
-            <ScanLine className="w-6 h-6" />
-          </div>
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Top Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("navCheckIn") || "Front Desk & Check-in"}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
-                {t("liveTerminal")}
+              {companyName && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / {companyName}
+                </span>
+              )}
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {allVisits.length} {t("total") || "total"}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {currentDateFormatted} • {t("checkInSubtitle") || "Verify member arrivals, scan QR passes, and monitor today's attendance roster."}
             </p>
           </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadVisits}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+            >
+              <RefreshCw
+                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>{t("refresh") || "Refresh"}</span>
+            </Button>
+
+            <Button
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer"
+            >
+              <ScanLine className="size-4 me-1.5" />
+              <span>{t("scanQrCheckIn") || "Scan QR Code"}</span>
+            </Button>
+          </div>
         </div>
+      </Card>
 
-        {/* Global Header Actions */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={loadVisits}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-surface-container-highest border border-outline-variant rounded-xl text-xs font-bold text-on-surface hover:bg-surface-variant transition-all cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>{t("refresh") || "Refresh"}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsScannerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <ScanLine className="w-4 h-4" />
-            <span>{t("scanQrCheckIn") || "Scan QR Code"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Live Operational Metrics Quad */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Live Operational Metrics Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Metric 1: Total Visits Scheduled */}
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/60 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-on-surface-variant">
-            <span className="font-semibold uppercase tracking-wider text-[11px]">
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("totalExpectedToday") || "Total Expected Today"}
             </span>
-            <Calendar className="w-4 h-4 text-primary" />
-          </div>
-          <div className="text-2xl font-bold font-headline text-on-surface">
-            {stats.total}
-            <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              {t("membersBooked")}
-            </span>
-          </div>
-          <p className="text-[11px] text-on-surface-variant">
-            {t("allReservationsToday")}
-          </p>
-        </div>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+              <Calendar className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-ink" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {stats.total}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                {t("liveTerminal") || "Live"}
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {t("allReservationsToday") || "All reservations scheduled for today"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-ink transition-all"
+                style={{ width: "100%" }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Metric 2: Pending / Ready for Check-in */}
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/60 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-on-surface-variant">
-            <span className="font-semibold uppercase tracking-wider text-[11px]">
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("expectedWaiting") || "Awaiting Verification"}
             </span>
-            <Clock className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold font-headline text-amber-600 dark:text-amber-400">
-            {stats.ready}
-            <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              {t("pendingEntry")}
-            </span>
-          </div>
-          <p className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-            <span>{t("readyForApproval")}</span>
-          </p>
-        </div>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+              <Clock className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-amber-500" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {stats.ready}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span>
+                  {stats.total > 0 ? `${Math.round((stats.ready / stats.total) * 100)}%` : "0%"}
+                </span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {stats.ready} {t("pendingEntry") || "members awaiting check-in"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-amber-500 transition-all"
+                style={{
+                  width: `${stats.total > 0 ? Math.min(100, Math.round((stats.ready / stats.total) * 100)) : 0}%`,
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Metric 3: Already Checked In */}
-        <div className="p-4 rounded-2xl bg-surface-bright border border-outline-variant/60 shadow-xs space-y-1">
-          <div className="flex items-center justify-between text-xs text-on-surface-variant">
-            <span className="font-semibold uppercase tracking-wider text-[11px]">
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("completedCheckIns") || "Completed Check-ins"}
             </span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-bold font-headline text-emerald-600 dark:text-emerald-400">
-            {stats.checkedIn}
-            <span className="text-xs font-normal text-on-surface-variant ml-1.5">
-              {t("verifiedEntries")}
-            </span>
-          </div>
-          <p className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>{t("activeOnFloor")}</span>
-          </p>
-        </div>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <CheckCircle2 className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-green" />
+              ) : (
+                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                  {stats.checkedIn}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>
+                  {stats.total > 0 ? `${Math.round((stats.checkedIn / stats.total) * 100)}%` : "0%"}
+                </span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              {stats.checkedIn} {t("activeOnFloor") || "admitted & active on gym floor"}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-toota-green transition-all"
+                style={{
+                  width: `${stats.total > 0 ? Math.min(100, Math.round((stats.checkedIn / stats.total) * 100)) : 0}%`,
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Roster & Search Section */}
-      <div className="space-y-4">
-        {/* Filter & Search Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 bg-surface-container-lowest p-4 rounded-2xl shadow-xs border border-outline-variant">
+      {/* Filter & Search Bar Card */}
+      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col gap-4">
+        {/* Quick Filter Status Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+          {[
+            { id: "ALL", label: t("allVisits") || "All Visits", count: allVisits.length },
+            {
+              id: "READY",
+              label: t("awaitingCheckIn") || "Awaiting Verification",
+              count: stats.ready,
+            },
+            {
+              id: "CHECKED_IN",
+              label: t("checkedIn") || "Admitted",
+              count: stats.checkedIn,
+            },
+          ].map((tab) => {
+            const isSelected = statusFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab.id as "ALL" | "READY" | "CHECKED_IN");
+                  setCurrentPage(1);
+                }}
+                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
+                  isSelected
+                    ? "active font-bold shadow-xs"
+                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
+                    isSelected
+                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
+                      : "bg-toota-inner text-toota-muted"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search & Select Controls */}
+        <div className="flex flex-col md:flex-row items-center gap-3">
           {/* Search Input */}
-          <div className="md:col-span-8 relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-            <input
+          <div className="relative flex-1 w-full min-w-[240px]">
+            <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
               type="text"
-              placeholder={t("searchCheckInPlaceholder")}
+              placeholder={`${t("searchCheckInPlaceholder") || "Search members by name, email, phone, or plan..."}`}
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full pl-10 pr-4 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/60"
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
             />
           </div>
 
-          {/* Status Tabs / Filter */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <Filter className="w-4 h-4 text-on-surface-variant shrink-0" />
+          {/* Status Select Dropdown */}
+          <div className="w-full md:w-52 shrink-0">
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value as "ALL" | "READY" | "CHECKED_IN");
                 setCurrentPage(1);
               }}
-              className="w-full px-3 py-2 bg-surface-bright border border-outline-variant rounded-xl text-xs font-medium text-on-surface focus:ring-2 focus:ring-primary-container outline-none cursor-pointer"
+              aria-label={t("status") || "Status"}
+              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
             >
-              <option value="ALL">{t("allVisitsCount", { count: allVisits.length })}</option>
-              <option value="READY">{t("awaitingCheckInCount", { count: stats.ready })}</option>
-              <option value="CHECKED_IN">{t("checkedInCount", { count: stats.checkedIn })}</option>
+              <option value="ALL">{t("allVisitsCount", { count: allVisits.length }) || `All Visits (${allVisits.length})`}</option>
+              <option value="READY">{t("awaitingCheckInCount", { count: stats.ready }) || `Awaiting Check-in (${stats.ready})`}</option>
+              <option value="CHECKED_IN">{t("checkedInCount", { count: stats.checkedIn }) || `Admitted (${stats.checkedIn})`}</option>
             </select>
           </div>
+
+          {/* Clear Filters Button */}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isFiltering}
+            onClick={() => {
+              setSearchTerm("");
+              setStatusFilter("ALL");
+              setCurrentPage(1);
+            }}
+            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
+          >
+            <X className="size-3.5 me-1.5" />
+            <span>{t("clearFilters") || "Clear Filters"}</span>
+          </Button>
         </div>
+      </Card>
 
-        {/* Live Roster Table */}
-        <div className="bg-surface-bright rounded-2xl border border-outline-variant/60 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-outline-variant/50 bg-surface-container-low text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  <th className="py-3.5 px-4 sm:px-6">{t("member")}</th>
-                  <th className="py-3.5 px-4">{t("membershipPlan")}</th>
-                  <th className="py-3.5 px-4">{t("arrivalWindow")}</th>
-                  <th className="py-3.5 px-4">{t("status")}</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right rtl:text-left">{t("action")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/20 text-xs">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-on-surface-variant">
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-                        <p className="font-semibold text-on-surface">{t("loadingTodayVisits")}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : displayedVisits.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-12 text-center text-on-surface-variant">
-                      <div className="flex flex-col items-center justify-center space-y-2">
-                        <Users className="w-8 h-8 opacity-40" />
-                        <p className="font-semibold text-on-surface">{t("noVisitsFound")}</p>
-                        <p className="text-[11px] max-w-sm text-on-surface-variant/80">
-                          {searchTerm
-                            ? t("noMatchingSearchVisits")
-                            : t("noVisitsScheduledToday")}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  displayedVisits.map((visit) => {
-                    const member = visit.member;
-                    const fullName =
-                      `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
-                      "Member";
-                    const initials =
-                      `${(member.firstName || "")[0] || ""}${(member.lastName || "")[0] || ""}`.toUpperCase() ||
-                      "M";
-
-                    const candidatePhoto = member.photo || member.profileImage;
-                    const isDefaultImage =
-                      !candidatePhoto ||
-                      candidatePhoto === "default-image.jpg" ||
-                      candidatePhoto === "default-member-image.jpg";
-                    const photo = isDefaultImage ? null : candidatePhoto;
-
-                    const isReady = visit.visitStatus === "READY";
-                    const isCheckedIn = visit.visitStatus === "CHECKED_IN";
-
-                    const scheduledTime = visit.visitDateAndTime
-                      ? new Date(visit.visitDateAndTime).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "--:--";
-
-                    const isSubmitting = isCheckingInMap[member.id] || false;
-
-                    return (
-                      <tr
-                        key={visit.id}
-                        className="hover:bg-surface-container/40 transition-colors"
-                      >
-                        {/* Member Identity */}
-                        <td className="py-3.5 px-4 sm:px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 border border-outline-variant/40">
-                              {photo ? (
-                                 
-                                <img
-                                  src={photo}
-                                  alt={fullName}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span>{initials}</span>
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <div
-                                onClick={() => handleInspectVisit(visit)}
-                                className="font-bold text-on-surface hover:text-primary transition-colors cursor-pointer truncate"
-                              >
-                                {fullName}
-                              </div>
-                              <div className="text-[11px] text-on-surface-variant truncate">
-                                {member.phoneNumber || member.email || "No contact"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Membership Plan */}
-                        <td className="py-3.5 px-4">
-                          <div className="font-semibold text-on-surface">
-                            {visit.membership?.plan?.planName || t("standardPlan")}
-                          </div>
-                          <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                            {visit.membership?.status || t("activePlanText")}
-                          </div>
-                        </td>
-
-                        {/* Scheduled Arrival Time */}
-                        <td className="py-3.5 px-4">
-                          <div className="inline-flex items-center gap-1.5 font-bold text-on-surface">
-                            <Clock className="w-3.5 h-3.5 text-primary" />
-                            <span>{scheduledTime}</span>
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1.5 ${
-                              isReady
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                : isCheckedIn
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isReady
-                                  ? "bg-amber-500 animate-pulse"
-                                  : isCheckedIn
-                                  ? "bg-emerald-500"
-                                  : "bg-rose-500"
-                              }`}
-                            />
-                            {visit.visitStatus === "READY"
-                              ? t("awaitingCheckIn")
-                              : visit.visitStatus === "CHECKED_IN"
-                              ? t("checkedIn")
-                              : t("cancelled")}
-                          </span>
-                        </td>
-
-                        {/* Action Buttons */}
-                        <td className="py-3.5 px-4 sm:px-6 text-right rtl:text-left">
-                          <div className="flex items-center justify-end rtl:justify-start gap-2">
-                            {/* Inspect Details Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleInspectVisit(visit)}
-                              className="p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-                              title={t("viewDetails") || "View Visit Details"}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-
-                            {/* 1-Click Check In Button */}
-                            {isReady && (
-                              <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={() => handleManualCheckIn(member.id)}
-                                className="px-3 py-1.5 rounded-lg primary-gradient text-white text-xs font-bold shadow-xs hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>{isSubmitting ? t("checkingAction") : t("checkInAction")}</span>
-                              </button>
-                            )}
-
-                            {isCheckedIn && (
-                              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span>{t("admitted")}</span>
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+      {/* Attendance Roster Table Card */}
+      <Card className="toota-card border-none p-0 overflow-hidden">
+        <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
+          <div className="flex items-baseline gap-2">
+            <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              {t("navCheckIn") || "Attendance Roster"}
+            </CardTitle>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {totalItems} {isFiltering ? (t("filtered") || "filtered") : (t("total") || "total")}
+            </span>
           </div>
 
-          {/* Pagination Footer */}
+          {isPageLoading && (
+            <div className="flex items-center gap-2 text-xs text-toota-muted">
+              <Loader2 className="size-3.5 animate-spin" />
+              <span>{t("loading") || "Updating..."}</span>
+            </div>
+          )}
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {/* Global Loading State */}
+          {isLoading && (
+            <div className="py-20 text-center text-toota-muted flex flex-col items-center justify-center gap-2">
+              <Loader2 className="size-6 animate-spin text-toota-ink" />
+              <p className="text-xs">{t("loadingTodayVisits") || "Loading today's attendance roster..."}</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && displayedVisits.length === 0 && (
+            <div className="py-20 text-center px-4">
+              <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
+                <Users className="size-7" />
+              </div>
+              <h4 className="font-medium text-base text-toota-ink">
+                {t("noVisitsFound") || "No visits found"}
+              </h4>
+              <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
+                {searchTerm
+                  ? t("noMatchingSearchVisits") || "No members match your search criteria."
+                  : t("noVisitsScheduledToday") || "No members are currently scheduled for check-in today."}
+              </p>
+            </div>
+          )}
+
+          {/* Populated Table */}
+          {!isLoading && displayedVisits.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
+                  <TableHead className="px-6 py-3.5">
+                    {t("member") || "Member"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("membershipPlan") || "Membership Plan"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("arrivalWindow") || "Arrival Window"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5">
+                    {t("status") || "Status"}
+                  </TableHead>
+                  <TableHead className="px-6 py-3.5 text-right rtl:text-left">
+                    {t("action") || "Actions"}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-border/40 text-xs">
+                {displayedVisits.map((visit) => {
+                  const member = visit.member;
+                  const fullName =
+                    `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
+                    t("member") ||
+                    "Member";
+                  const initials = getInitials(member.firstName, member.lastName);
+
+                  const candidatePhoto =
+                    member.photo ||
+                    member.profileImage ||
+                    (member as { profileImageUrl?: string | null }).profileImageUrl;
+                  const isDefaultImage =
+                    !candidatePhoto ||
+                    candidatePhoto === "default-image.jpg" ||
+                    candidatePhoto === "default-member-image.jpg";
+                  const photo = isDefaultImage ? null : candidatePhoto;
+
+                  const isReady = visit.visitStatus === "READY";
+                  const isCheckedIn = visit.visitStatus === "CHECKED_IN";
+
+                  const scheduledTime = visit.visitDateAndTime
+                    ? new Date(visit.visitDateAndTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "--:--";
+
+                  const isSubmitting = isCheckingInMap[member.id] || false;
+
+                  return (
+                    <TableRow
+                      key={visit.id}
+                      className="border-border/40 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group"
+                    >
+                      {/* Member Identity */}
+                      <TableCell className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
+                            {photo && (
+                              <AvatarImage
+                                src={photo}
+                                alt={fullName}
+                              />
+                            )}
+                            <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p
+                              onClick={() => handleInspectVisit(visit)}
+                              className="font-medium text-toota-ink hover:underline transition-colors cursor-pointer truncate"
+                            >
+                              {fullName}
+                            </p>
+                            <p className="text-[11px] text-toota-muted truncate">
+                              {member.phoneNumber || member.email || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Membership Plan */}
+                      <TableCell className="px-6 py-3.5">
+                        <div className="font-medium text-toota-ink">
+                          {visit.membership?.plan?.planName || t("standardPlan") || "Standard Plan"}
+                        </div>
+                        <div className="text-[11px] text-toota-muted">
+                          {visit.membership?.status || t("activePlanText") || "Active"}
+                        </div>
+                      </TableCell>
+
+                      {/* Scheduled Arrival Time */}
+                      <TableCell className="px-6 py-3.5">
+                        <div className="inline-flex items-center gap-1.5 font-medium text-toota-ink">
+                          <Clock className="size-3.5 text-toota-muted" />
+                          <span>{scheduledTime}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell className="px-6 py-3.5">
+                        {renderVisitStatusBadge(visit.visitStatus)}
+                      </TableCell>
+
+                      {/* Action Buttons */}
+                      <TableCell className="px-6 py-3.5 text-right rtl:text-left">
+                        <div className="flex items-center justify-end rtl:justify-start gap-2">
+                          {/* Inspect Details Button */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleInspectVisit(visit)}
+                            className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                            title={t("viewDetails") || "View Visit Details"}
+                          >
+                            <Eye className="size-3.5 me-1.5" />
+                            <span>{t("details") || "Details"}</span>
+                          </Button>
+
+                          {/* 1-Click Check In Button */}
+                          {isReady && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={isSubmitting}
+                              onClick={() => handleManualCheckIn(member.id)}
+                              className="toota-pill h-8 px-3.5 text-xs font-semibold cursor-pointer"
+                            >
+                              {isSubmitting ? (
+                                <Loader2 className="size-3.5 animate-spin me-1.5" />
+                              ) : (
+                                <CheckCircle2 className="size-3.5 me-1.5" />
+                              )}
+                              <span>
+                                {isSubmitting
+                                  ? t("checkingAction") || "Checking In..."
+                                  : t("checkInAction") || "Check In"}
+                              </span>
+                            </Button>
+                          )}
+
+                          {isCheckedIn && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                              <CheckCircle2 className="size-3.5" />
+                              <span>{t("admitted") || "Admitted"}</span>
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+
+        {/* Pagination Footer */}
+        {totalItems > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -570,8 +770,8 @@ export default function CheckInPage() {
             isLoading={isPageLoading}
             itemLabel={t("visits") || "visits"}
           />
-        </div>
-      </div>
+        )}
+      </Card>
 
       {/* QR Scanner Camera Modal */}
       <QrScannerModal
@@ -594,7 +794,7 @@ export default function CheckInPage() {
 
       {/* Instant Success Celebration Modal */}
       <SuccessCelebrationModal
-        isOpen={!!celebrationVisit}
+        isOpen={Boolean(celebrationVisit)}
         onClose={() => setCelebrationVisit(null)}
         visit={celebrationVisit}
         method={celebrationMethod}
