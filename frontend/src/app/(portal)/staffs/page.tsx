@@ -91,7 +91,6 @@ export default function StaffsPage() {
     setIsLoading(true);
     try {
       const data = await fetchStaffs(1, 100);
-      console.log(data);
       setStaffs(data);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {

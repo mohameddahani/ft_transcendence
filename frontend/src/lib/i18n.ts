@@ -688,6 +688,19 @@ export const resources = {
       documentDeleteFailed: "Failed to delete document",
       onlyAllowedFileTypes: "Only .md, .txt and .pdf files are accepted",
       fileTooLarge: "The file is larger than 10 MB",
+      aiIntelligenceEngine: "Intelligence Engine",
+      aiActiveSessions: "Active Sessions",
+      aiKnowledgeCorpus: "Knowledge Base",
+      aiAuthorizedScope: "Authorized Scope",
+      aiConnected: "Connected",
+      aiOffline: "Offline",
+      aiReconnect: "Reconnect",
+      aiOperationalConsole: "Operational Intelligence Console",
+      aiFullAnalytics: "Full Club Analytics & Financials",
+      aiFrontDeskScope: "Front Desk & Member Lookups",
+      aiMemberScope: "Personal Dossier & Guidelines",
+      aiModelName: "Gemini 2.5 Flash",
+      messages: "messages",
 
       // Dashboard additions
       liveFromApi: "Live from API",
@@ -1556,6 +1569,19 @@ export const resources = {
       documentDeleteFailed: "Échec de la suppression du document",
       onlyAllowedFileTypes: "Seuls les fichiers .md, .txt et .pdf sont acceptés",
       fileTooLarge: "Le fichier dépasse 10 Mo",
+      aiIntelligenceEngine: "Moteur d'intelligence",
+      aiActiveSessions: "Sessions actives",
+      aiKnowledgeCorpus: "Base documentaire",
+      aiAuthorizedScope: "Périmètre autorisé",
+      aiConnected: "Connecté",
+      aiOffline: "Hors ligne",
+      aiReconnect: "Reconnecter",
+      aiOperationalConsole: "Console d'intelligence opérationnelle",
+      aiFullAnalytics: "Analyses et finances complètes",
+      aiFrontDeskScope: "Accueil et recherche des membres",
+      aiMemberScope: "Dossier personnel et règlements",
+      aiModelName: "Gemini 2.5 Flash",
+      messages: "messages",
 
       // Dashboard additions
       liveFromApi: "En direct de l'API",
@@ -2424,6 +2450,19 @@ export const resources = {
       documentDeleteFailed: "فشل في حذف الوثيقة",
       onlyAllowedFileTypes: "يتم قبول ملفات .md و .txt و .pdf فقط",
       fileTooLarge: "حجم الملف أكبر من 10 ميغابايت",
+      aiIntelligenceEngine: "محرك الذكاء الاصطناعي",
+      aiActiveSessions: "الجلسات النشطة",
+      aiKnowledgeCorpus: "قاعدة المعرفة",
+      aiAuthorizedScope: "النطاق المصرح به",
+      aiConnected: "متصل",
+      aiOffline: "غير متصل",
+      aiReconnect: "إعادة الاتصال",
+      aiOperationalConsole: "لوحة التحكم التشغيلية الذكية",
+      aiFullAnalytics: "تحليلات النادي والبيانات المالية الكاملة",
+      aiFrontDeskScope: "الاستقبال والبحث عن الأعضاء",
+      aiMemberScope: "الملف الشخصي وإرشادات النادي",
+      aiModelName: "Gemini 2.5 Flash",
+      messages: "رسائل",
 
       // Dashboard additions
       liveFromApi: "مباشر من الخادم",
@@ -2632,6 +2671,11 @@ if (!i18n.isInitialized) {
         caches: ["localStorage"],
       },
     });
+} else {
+  // Hot-reload resources in Next.js development / HMR server instances
+  for (const [lng, res] of Object.entries(resources)) {
+    i18n.addResourceBundle(lng, "translation", res.translation, true, true);
+  }
 }
 
 export default i18n;

@@ -6,7 +6,7 @@ const API_URL = process.env.API_URL || "http://localhost:3000";
 
 export async function GET(req: NextRequest) {
   try {
-    const { headers, newAccessToken, isStaff } = await getAuthenticatedSession(req);
+    const { headers, newAccessToken, isStaff, isMember } = await getAuthenticatedSession(req);
     const { searchParams } = new URL(req.url);
 
     const page = searchParams.get("page") || "1";
@@ -24,8 +24,10 @@ export async function GET(req: NextRequest) {
 
     const queryString = `?${query.toString()}`;
 
-    // Route to staffs endpoint if user is staff, else admins endpoint
-    const backendPath = isStaff
+    // Route to members, staffs, or admins endpoint based on session role
+    const backendPath = isMember
+      ? `/api/members/membership-plans`
+      : isStaff
       ? `/api/staffs/membership-plans`
       : `/api/admins/membership-plans`;
 
