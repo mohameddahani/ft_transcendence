@@ -191,6 +191,48 @@ export class AttendancesService {
     return attendance;
   }
 
+  // * Get All Stats of Attendances
+  async attendanceStats(memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    // * Get Total of attendance method
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
+    const [qrCode, manual] = await Promise.all([
+      this.prisma.attendance.count({
+        where: {
+          adminId,
+          memberId,
+          attendanceMethod: AttendanceMethod.QR_CODE,
+        },
+      }),
+
+      this.prisma.attendance.count({
+        where: {
+          adminId,
+          memberId,
+          attendanceMethod: AttendanceMethod.MANUAL,
+        },
+      }),
+    ]);
+
+    return {
+      qrCodeCount: qrCode,
+      manualCount: manual,
+    };
+  }
+
   // ! Private
   // * Confirm Check In
   private async confirmCheckIn(

@@ -51,4 +51,13 @@ export class MemberAttendancesController {
       id,
     );
   }
+
+  // * Get All Stats of Attendances
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  attendanceStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.attendancesService.attendanceStats(accessTokenPayload.id);
+  }
 }

@@ -1,0 +1,27 @@
+### Member Platform — Attendance Stats Endpoint
+
+**GET**  
+`/api/members/attendances/stats`
+
+This endpoint is used in the **Member Platform** and returns attendance statistics for the authenticated member.
+
+**Response example:**
+
+```json
+{
+  "qrCodeCount": 12,
+  "manualCount": 4
+}
+```
+
+**Fields:**
+
+- `qrCodeCount`: Total number of times the member checked in using a QR code.
+- `manualCount`: Total number of times the member was checked in manually.
+
+The frontend can use these values directly in the **Member Platform dashboard/statistics UI**. There is no need to fetch all attendance records and count them on the frontend.
+
+
+
+
+
