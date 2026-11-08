@@ -47,7 +47,7 @@ export class MemberVisitsController {
     return this.visitsService.cancelVisit(accessTokenPayload.id, id);
   }
 
-  // * Get all Upcoming visits of Today (Member)
+  // * Get all Upcoming visits (Member)
   @Get('upcoming')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAllUpcoming(
@@ -88,5 +88,14 @@ export class MemberVisitsController {
       accessTokenPayload.id,
       id,
     );
+  }
+
+  // * Get All Stats of Visits (Member)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  visitStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.visitsService.visitStatsOfMember(accessTokenPayload.id);
   }
 }

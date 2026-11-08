@@ -191,8 +191,8 @@ export class AttendancesService {
     return attendance;
   }
 
-  // * Get All Stats of Attendances
-  async attendanceStats(memberId: string) {
+  // * Get All Stats of Attendances (Member)
+  async attendanceStatsOfMember(memberId: string) {
     // * Get Admin id
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
@@ -207,29 +207,49 @@ export class AttendancesService {
     );
 
     // * Get Total of attendance method
-    // * await Promise.all: runs multiple independent async operations concurrently
-    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
-    const [qrCode, manual] = await Promise.all([
-      this.prisma.attendance.count({
-        where: {
-          adminId,
-          memberId,
-          attendanceMethod: AttendanceMethod.QR_CODE,
-        },
-      }),
+    // [
+    //   {
+    //     attendanceMethod: AttendanceMethod.QR_CODE,
+    //     _count: {
+    //       _all: 3,
+    //     },
+    //   },
+    //   {
+    //     attendanceMethod: AttendanceMethod.MANUAL,
+    //     _count: {
+    //       _all: 2,
+    //     },
+    //   },
+    // ];
 
-      this.prisma.attendance.count({
-        where: {
-          adminId,
-          memberId,
-          attendanceMethod: AttendanceMethod.MANUAL,
-        },
-      }),
-    ]);
+    const attendanceStats = await this.prisma.attendance.groupBy({
+      by: ['attendanceMethod'],
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let qrCodeCount = 0;
+    let manualCount = 0;
+
+    for (const stat of attendanceStats) {
+      if (stat.attendanceMethod === AttendanceMethod.QR_CODE) {
+        qrCodeCount = stat._count._all;
+      }
+
+      if (stat.attendanceMethod === AttendanceMethod.MANUAL) {
+        manualCount = stat._count._all;
+      }
+    }
 
     return {
-      qrCodeCount: qrCode,
-      manualCount: manual,
+      qrCodeCount,
+      manualCount,
+      total: qrCodeCount + manualCount,
     };
   }
 

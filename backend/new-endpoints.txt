@@ -10,7 +10,8 @@ This endpoint is used in the **Member Platform** and returns attendance statisti
 ```json
 {
   "qrCodeCount": 12,
-  "manualCount": 4
+  "manualCount": 4,
+  "total": 16
 }
 ```
 
@@ -20,6 +21,107 @@ This endpoint is used in the **Member Platform** and returns attendance statisti
 - `manualCount`: Total number of times the member was checked in manually.
 
 The frontend can use these values directly in the **Member Platform dashboard/statistics UI**. There is no need to fetch all attendance records and count them on the frontend.
+
+
+
+
+
+### Admin Platform — Visit Stats Endpoint
+
+**GET**  
+`/api/admins/visits/stats`
+
+This endpoint is used in the **Admin Platform** and returns statistics for **today's visits** of the admin's club.
+
+**Response example:**
+
+```json
+{
+  "readyCount": 8,
+  "checkedInCount": 12,
+  "cancelledCount": 3,
+  "expiredCount": 2,
+  "total": 25
+}
+```
+
+**Fields:**
+
+- `readyCount`: Total number of today's visits that are still in `READY` status.
+- `checkedInCount`: Total number of today's visits that have been successfully checked in.
+- `cancelledCount`: Total number of today's cancelled visits.
+- `expiredCount`: Total number of today's expired visits.
+- `total`: Total number of today's visits across all statuses.
+
+The frontend can use these values directly in the **Admin Platform dashboard/statistics UI**. There is no need to fetch all visits and calculate the counts on the frontend.
+
+---
+
+### Staff Platform — Visit Stats Endpoint
+
+**GET**  
+`/api/staffs/visits/stats`
+
+This endpoint is used in the **Staff Platform** and returns statistics for **today's visits** of the staff member's club.
+
+**Response example:**
+
+```json
+{
+  "readyCount": 8,
+  "checkedInCount": 12,
+  "cancelledCount": 3,
+  "expiredCount": 2,
+  "total": 25
+}
+```
+
+**Fields:**
+
+- `readyCount`: Total number of today's visits that are still in `READY` status.
+- `checkedInCount`: Total number of today's visits that have been successfully checked in.
+- `cancelledCount`: Total number of today's cancelled visits.
+- `expiredCount`: Total number of today's expired visits.
+- `total`: Total number of today's visits across all statuses.
+
+The frontend can use these values directly in the **Staff Platform dashboard/statistics UI**. There is no need to fetch all visits and calculate the counts on the frontend.
+
+---
+
+### Member Platform — Visit Stats Endpoint
+
+**GET**  
+`/api/members/visits/stats`
+
+This endpoint is used in the **Member Platform** and returns statistics for **today's visits of the authenticated member**.
+
+**Response example:**
+
+```json
+{
+  "readyCount": 1,
+  "checkedInCount": 1,
+  "cancelledCount": 0,
+  "expiredCount": 0,
+  "total": 2
+}
+```
+
+**Fields:**
+
+- `readyCount`: Total number of today's visits of the member that are still in `READY` status.
+- `checkedInCount`: Total number of today's visits of the member that have been successfully checked in.
+- `cancelledCount`: Total number of today's cancelled visits of the member.
+- `expiredCount`: Total number of today's expired visits of the member.
+- `total`: Total number of today's visits of the authenticated member across all statuses.
+
+The frontend can use these values directly in the **Member Platform dashboard/statistics UI**. There is no need to fetch all visit records and calculate the counts on the frontend.
+
+
+
+
+
+
 
 
 
