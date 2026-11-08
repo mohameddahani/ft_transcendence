@@ -30,6 +30,7 @@ import { SentimentCron } from './jobs/sentiment.cron';
 import { ExternalApiModule } from './infrastructure/external-api/external-api.module';
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { LoggerMiddleware } from './core/middlewares/logger.middleware';
+import { RemoveInactiveUsers } from './jobs/remove-inactive-users.cron';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { LoggerMiddleware } from './core/middlewares/logger.middleware';
     MembershipCron,
     MembershipNotificationCron,
     SubscriptionNotificationCron,
+    RemoveInactiveUsers,
     VisitCron,
     SentimentCron,
   ],
