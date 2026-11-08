@@ -326,11 +326,11 @@ export default function GymflowSubscriptionPage() {
               </h1>
               {activeSubscription?.plan?.planName && (
                 <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / {activeSubscription.plan.planName} Tier
+                  / {activeSubscription.plan.planName} {t("planTier", "Tier")}
                 </span>
               )}
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {allSubscriptions.length} {t("allRecords") || "records"}
+                / {allSubscriptions.length} {t("recordsCount", "records")}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
@@ -424,7 +424,7 @@ export default function GymflowSubscriptionPage() {
                 <div className="text-2xl font-bold tracking-tight text-toota-ink">
                   {maxCapacity}
                   <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    Max Members
+                    {t("maxMembersQuota", "Max Members")}
                   </span>
                 </div>
                 {/* Visual meter bar */}
@@ -435,9 +435,9 @@ export default function GymflowSubscriptionPage() {
                   />
                 </div>
                 <p className="text-[11px] text-toota-muted flex items-center justify-between">
-                  <span>Registered: <strong className="text-toota-ink font-semibold">{memberCount}</strong></span>
+                  <span>{t("registeredLabel", "Registered:")} <strong className="text-toota-ink font-semibold">{memberCount}</strong></span>
                   <span className="text-toota-ink font-semibold">
-                    {slotsLeft} {t("slotsRemaining") || "slots left"}
+                    {slotsLeft} {t("slotsRemaining", "slots left")}
                   </span>
                 </p>
               </div>
@@ -446,20 +446,20 @@ export default function GymflowSubscriptionPage() {
               <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
                 <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("planPrice") || "Plan Investment"}
+                    {t("planPrice", "Plan Investment")}
                   </span>
                   <CreditCard className="size-4 text-toota-green" />
                 </div>
                 <div className="text-2xl font-bold tracking-tight text-toota-ink">
                   ${subAmount.toFixed(2)}
                   <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    / {cycleDays} days
+                    / {cycleDays} {t("days", "days")}
                   </span>
                 </div>
                 <div className="text-[11px] text-toota-muted flex items-center gap-1.5">
                   <span className="size-1.5 rounded-full bg-toota-green" />
                   <span>
-                    ≈ ${dailyRate}/day license
+                    ≈ ${dailyRate}/{t("dayLicense", "day license")}
                   </span>
                 </div>
               </div>
@@ -468,7 +468,7 @@ export default function GymflowSubscriptionPage() {
               <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
                 <div className="flex items-center justify-between text-xs text-toota-muted">
                   <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("billingPeriod") || "Billing Window"}
+                    {t("billingPeriod", "Billing Window")}
                   </span>
                   <Calendar className="size-4 text-toota-ink" />
                 </div>
@@ -476,7 +476,7 @@ export default function GymflowSubscriptionPage() {
                   {expiryAnalysis?.startDate} → {expiryAnalysis?.formattedExpiry}
                 </div>
                 <div className="text-[11px] text-toota-muted">
-                  Duration: {cycleDays} Days Cycle
+                  {t("durationCycle", "Duration: {{days}} Days Cycle", { days: cycleDays })}
                 </div>
               </div>
 
@@ -507,15 +507,15 @@ export default function GymflowSubscriptionPage() {
                 <div className="text-2xl font-bold tracking-tight text-toota-ink">
                   {expiryAnalysis?.daysLeft ?? 0}
                   <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    {t("durationDaysCount") || "Days Remaining"}
+                    {t("durationDaysCount", "Days Remaining")}
                   </span>
                 </div>
                 <p className="text-[11px] text-toota-muted">
                   {expiryAnalysis?.isExpired
-                    ? "⚠️ License expired. Upgrade or renew to continue full access."
+                    ? t("licenseExpiredAlert", "⚠️ License expired. Upgrade or renew to continue full access.")
                     : expiryAnalysis?.isExpiringSoon
-                    ? "⚠️ Renewal window approaching soon"
-                    : "Automatic license continuity active"}
+                    ? t("renewalWindowApproaching", "⚠️ Renewal window approaching soon")
+                    : t("licenseContinuityActive", "Automatic license continuity active")}
                 </p>
               </div>
             </div>
@@ -524,7 +524,7 @@ export default function GymflowSubscriptionPage() {
             <div className="p-4 rounded-2xl bg-toota-inner/60 border border-border/40 space-y-2.5">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-toota-muted flex items-center gap-1.5">
                 <Sparkles className="size-3.5 text-toota-ink" />
-                {t("planFeaturesTitle") || "Included Platform Capabilities"}
+                {t("planFeaturesTitle", "Included Platform Capabilities")}
               </span>
 
               {activeSubscription.plan?.description ? (
@@ -536,19 +536,19 @@ export default function GymflowSubscriptionPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
                 <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
                   <CheckCircle2 className="size-4 text-toota-green shrink-0" />
-                  <span>Uncapped Member QR Check-Ins</span>
+                  <span>{t("featureQrCheckins", "Uncapped Member QR Check-Ins")}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
                   <CheckCircle2 className="size-4 text-toota-green shrink-0" />
-                  <span>Staff Roles & Roster Controls</span>
+                  <span>{t("featureStaffRoles", "Staff Roles & Roster Controls")}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
                   <CheckCircle2 className="size-4 text-toota-green shrink-0" />
-                  <span>Automated Revenue Tracking</span>
+                  <span>{t("featureRevenueTracking", "Automated Revenue Tracking")}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-medium text-toota-ink">
                   <CheckCircle2 className="size-4 text-toota-green shrink-0" />
-                  <span>Full Data Integrity & Export</span>
+                  <span>{t("featureDataIntegrity", "Full Data Integrity & Export")}</span>
                 </div>
               </div>
             </div>
@@ -661,12 +661,12 @@ export default function GymflowSubscriptionPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
-                    <TableHead className="px-6 py-3.5">Plan & Tier</TableHead>
-                    <TableHead className="px-6 py-3.5">Member Limit</TableHead>
-                    <TableHead className="px-6 py-3.5">Billing Window</TableHead>
-                    <TableHead className="px-6 py-3.5">Amount Billed</TableHead>
-                    <TableHead className="px-6 py-3.5">Status</TableHead>
-                    <TableHead className="px-6 py-3.5 text-right rtl:text-left">Reference</TableHead>
+                    <TableHead className="px-6 py-3.5">{t("planAndTier", "Plan & Tier")}</TableHead>
+                    <TableHead className="px-6 py-3.5">{t("memberLimit", "Member Limit")}</TableHead>
+                    <TableHead className="px-6 py-3.5">{t("billingPeriod", "Billing Window")}</TableHead>
+                    <TableHead className="px-6 py-3.5">{t("amountBilled", "Amount Billed")}</TableHead>
+                    <TableHead className="px-6 py-3.5">{t("status", "Status")}</TableHead>
+                    <TableHead className="px-6 py-3.5 text-right rtl:text-left">{t("reference", "Reference")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/40 text-xs">
@@ -708,7 +708,7 @@ export default function GymflowSubscriptionPage() {
                                 {sub.plan?.planName || "Core Plan"}
                               </div>
                               <div className="text-[11px] text-toota-muted">
-                                {subDurationDays || 30} Days Cycle
+                                {subDurationDays || 30} {t("daysCycle", "Days Cycle")}
                               </div>
                             </div>
                           </div>
@@ -718,7 +718,7 @@ export default function GymflowSubscriptionPage() {
                         <TableCell className="px-6 py-3.5 text-toota-ink font-semibold">
                           <span className="inline-flex items-center gap-1.5">
                             <Users className="size-3.5 text-toota-muted" />
-                            {sub.plan?.maxMembers || 0} Members
+                            {sub.plan?.maxMembers || 0} {t("members", "Members")}
                           </span>
                         </TableCell>
 
@@ -772,30 +772,30 @@ export default function GymflowSubscriptionPage() {
         <Card className="toota-card border-none p-4 space-y-1.5">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
             <CheckCircle2 className="size-4 text-toota-green" />
-            <span>Continuous Local Caching</span>
+            <span>{t("continuousCachingTitle", "Continuous Local Caching")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
-            Member check-ins and attendance validation stay operational even during intermittent platform connectivity.
+            {t("continuousCachingDesc", "Member check-ins and attendance validation stay operational even during intermittent platform connectivity.")}
           </p>
         </Card>
 
         <Card className="toota-card border-none p-4 space-y-1.5">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
             <ShieldCheck className="size-4 text-toota-ink" />
-            <span>Strict Tenant Isolation</span>
+            <span>{t("tenantIsolationTitle", "Strict Tenant Isolation")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
-            Your gym member database, financial records, and staff credentials reside in dedicated isolated data partitions.
+            {t("tenantIsolationDesc", "Your gym member database, financial records, and staff credentials reside in dedicated isolated data partitions.")}
           </p>
         </Card>
 
         <Card className="toota-card border-none p-4 space-y-1.5">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
             <Headphones className="size-4 text-toota-ink" />
-            <span>Dedicated Platform Concierge</span>
+            <span>{t("platformConciergeTitle", "Dedicated Platform Concierge")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
-            24/7 technical assistance for subscription scaling, API integrations, and facility hardware synchronization.
+            {t("platformConciergeDesc", "24/7 technical assistance for subscription scaling, API integrations, and facility hardware synchronization.")}
           </p>
         </Card>
       </div>
@@ -818,10 +818,10 @@ export default function GymflowSubscriptionPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-toota-ink">
-                    Upgrade GymFlow Subscription
+                    {t("upgradeSubscriptionTitle", "Upgrade GymFlow Subscription")}
                   </h3>
                   <p className="text-xs text-toota-muted">
-                    Expand member capacity or extend your facility license
+                    {t("upgradeSubscriptionSubtitle", "Expand member capacity or extend your facility license")}
                   </p>
                 </div>
               </div>
@@ -830,37 +830,39 @@ export default function GymflowSubscriptionPage() {
             <div className="mt-6 space-y-4">
               <div className="p-4 rounded-xl bg-toota-inner border border-border/40 space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-toota-ink">
-                  How Licensing Works
+                  {t("howLicensingWorksTitle", "How Licensing Works")}
                 </h4>
                 <p className="text-xs text-toota-muted leading-relaxed">
-                  GymFlow subscriptions are provisioned directly by the Platform Administrator / GymFlow Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.
+                  {t("howLicensingWorksDesc", "GymFlow subscriptions are provisioned directly by the Platform Administrator / GymFlow Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.")}
                 </p>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
-                  <span className="font-semibold text-toota-ink">Current Capacity Limit:</span>
+                  <span className="font-semibold text-toota-ink">{t("currentCapacityLimit", "Current Capacity Limit:")}</span>
                   <span className="font-bold text-toota-ink">
-                    {maxCapacity || 100} Members
+                    {maxCapacity || 100} {t("members", "Members")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
-                  <span className="font-semibold text-toota-ink">Active Registered Members:</span>
+                  <span className="font-semibold text-toota-ink">{t("activeRegisteredMembers", "Active Registered Members:")}</span>
                   <span className="font-bold text-toota-green">
-                    {memberCount} Members
+                    {memberCount} {t("members", "Members")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-xl bg-toota-inner border border-border/40">
-                  <span className="font-semibold text-toota-ink">Next Tier Quota:</span>
+                  <span className="font-semibold text-toota-ink">{t("nextTierQuota", "Next Tier Quota:")}</span>
                   <span className="font-bold text-toota-green">
-                    {maxCapacity ? `${maxCapacity * 2}+ Members` : "500+ / Unlimited Members"}
+                    {maxCapacity ? `${maxCapacity * 2}+ ${t("members", "Members")}` : t("unlimitedMembersQuota", "500+ / Unlimited Members")}
                   </span>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-toota-inner border border-border/40 text-xs text-toota-ink leading-relaxed">
-                <strong>Need immediate quota extension?</strong> Reach out to your account executive or email{" "}
-                <span className="font-mono font-semibold underline">support@gymflow.io</span> with your Gym ID.
+                <strong>{t("needQuotaExtension", "Need immediate quota extension?")}</strong>{" "}
+                {t("reachOutSupport", "Reach out to your account executive or email")}{" "}
+                <span className="font-mono font-semibold underline">support@gymflow.io</span>{" "}
+                {t("withGymId", "with your Gym ID.")}
               </div>
             </div>
 
@@ -871,7 +873,7 @@ export default function GymflowSubscriptionPage() {
                 onClick={() => setIsContactModalOpen(false)}
                 className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
               >
-                Close
+                {t("close", "Close")}
               </Button>
             </div>
           </Card>

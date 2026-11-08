@@ -6,6 +6,7 @@ import SideBar from "@/components/layout/SideBar";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import { Plus } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
 
 export default function PortalLayout({
   children,
@@ -13,7 +14,6 @@ export default function PortalLayout({
   children: React.ReactNode;
 }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const { role, isLoading } = useCurrentUser();
 
   return (
@@ -22,7 +22,7 @@ export default function PortalLayout({
       <SideBar
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
-        onQuickAction={() => setIsAddMemberOpen(true)}
+        onQuickAction={triggerOpenAddMemberModal}
       />
 
       {/* Dynamic Content Column (Offset on desktop for fixed sidebar) */}
@@ -49,7 +49,7 @@ export default function PortalLayout({
         <div className="fixed bottom-4 right-4 rtl:right-auto rtl:left-4 lg:hidden z-40">
           <button
             type="button"
-            onClick={() => setIsAddMemberOpen(true)}
+            onClick={triggerOpenAddMemberModal}
             title="Add New Member"
             aria-label="Add New Member"
             className="w-14 h-14 rounded-full bg-[#1b1f23] text-white shadow-xl flex items-center justify-center active:scale-95 transition-transform cursor-pointer border border-white/20"
@@ -61,10 +61,7 @@ export default function PortalLayout({
 
       {/* Quick Add Member Modal (Admin/Staff only) */}
       {!isLoading && role !== "Member" && (
-        <AddMemberModal
-          isOpen={isAddMemberOpen}
-          onClose={() => setIsAddMemberOpen(false)}
-        />
+        <AddMemberModal />
       )}
     </div>
   );

@@ -124,8 +124,7 @@ export default function ResolveFeedbackModal({
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-0.5">
-              {t("feedbackResolutionSubtitle") ||
-                "Review member review and document administrative action taken."}
+              {t("feedbackResolutionSubtitle", "Review member review and document administrative action taken.")}
             </p>
           </div>
 
@@ -169,11 +168,11 @@ export default function ResolveFeedbackModal({
 
                 {starsDisagree(feedback) && (
                   <span
-                    title={t("starsDisagreeHint")}
+                    title={t("starsDisagreeHint", "Stars and words disagree")}
                     className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-amber-200 dark:ring-amber-900/40 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
                   >
                     <AlertTriangle className="size-3 text-amber-500 shrink-0" />
-                    <span>Mismatch</span>
+                    <span>{t("mismatch", "Mismatch")}</span>
                   </span>
                 )}
               </div>
@@ -186,7 +185,7 @@ export default function ResolveFeedbackModal({
 
             <div className="flex items-center gap-1 text-[11px] text-toota-muted">
               <Lock className="size-3 opacity-60" />
-              <span>Member submission is immutable</span>
+              <span>{t("memberSubmissionImmutable", "Member submission is immutable")}</span>
             </div>
           </div>
 

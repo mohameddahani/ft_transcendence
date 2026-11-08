@@ -272,7 +272,7 @@ function AdminStaffDashboardView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 select-none">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Welcome & Overview Header */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -393,7 +393,7 @@ function AdminStaffDashboardView() {
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("inactiveOrOther") || "Inactive / Other"}
             </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-muted">
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
               <UserX className="size-5" />
             </div>
           </CardHeader>
@@ -418,7 +418,7 @@ function AdminStaffDashboardView() {
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
-                className="h-full rounded-full bg-toota-muted transition-all"
+                className="h-full rounded-full bg-toota-red transition-all"
                 style={{ width: `${Math.min(100, Math.max(0, inactivePercent))}%` }}
               />
             </div>
@@ -487,13 +487,13 @@ function AdminStaffDashboardView() {
                   </div>
                 </div>
                 <p className="text-xs text-toota-muted mt-1.5 font-normal">
-                  Member Satisfaction & Verified Feedback Index
+                  {t("satisfactionAndFeedbackIndex", "Member Satisfaction & Verified Feedback Index")}
                 </p>
               </div>
 
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{feedbackStats.positivePercent}% Positive</span>
+                <span>{feedbackStats.positivePercent}% {t("positiveSentimentPercent", "Positive")}</span>
               </span>
             </div>
 
@@ -508,19 +508,19 @@ function AdminStaffDashboardView() {
                   )}%`,
                 }}
               >
-                Satisfaction index
+                {t("satisfactionIndex", "Satisfaction index")}
               </div>
               <span
                 className="toota-mark"
                 style={{
-                  left: `${Math.min(
+                  insetInlineStart: `${Math.min(
                     96,
                     Math.max(15, feedbackStats.positivePercent)
                   )}%`,
                 }}
               />
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-semibold text-toota-ink">
-                {feedbackStats.positiveCount} High Ratings
+              <span className="absolute end-5 top-1/2 -translate-y-1/2 text-xs font-semibold text-toota-ink">
+                {feedbackStats.positiveCount} {t("highRatings", "High Ratings")}
               </span>
             </div>
           </div>
@@ -528,13 +528,13 @@ function AdminStaffDashboardView() {
           {/* Breakdown Pills & Featured Review */}
           <div className="toota-inner mt-2">
             <div className="flex items-center justify-between text-xs mb-3 text-toota-muted font-medium">
-              <span>Feedback Overview</span>
+              <span>{t("feedbackOverview", "Feedback Overview")}</span>
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
                   <ThumbsUp className="size-3.5" />
-                  {feedbackStats.totalLikes} Likes
+                  {feedbackStats.totalLikes} {t("likesCount", "Likes")}
                 </span>
-                <span>{feedbacks.length} Reviews Total</span>
+                <span>{feedbacks.length} {t("reviewsTotal", "Reviews Total")}</span>
               </div>
             </div>
 
@@ -597,7 +597,7 @@ function AdminStaffDashboardView() {
               </div>
             ) : (
               <p className="text-xs text-toota-muted italic text-center py-2">
-                Awaiting first member feedback.
+                {t("awaitingFirstFeedback", "Awaiting first member feedback.")}
               </p>
             )}
           </div>
@@ -609,13 +609,13 @@ function AdminStaffDashboardView() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-toota-ink flex items-center gap-1.5">
                 <Star className="size-4 fill-amber-400 text-amber-400" />
-                <span>Top Member Reviews</span>
+                <span>{t("topMemberReviews", "Top Member Reviews")}</span>
               </h3>
               <Link
                 href="/feedbacks"
                 className="text-xs font-medium text-toota-muted hover:text-toota-ink hover:underline"
               >
-                View all ({feedbacks.length})
+                {t("viewAllReviews", "View all ({{count}})", { count: feedbacks.length })}
               </Link>
             </div>
 

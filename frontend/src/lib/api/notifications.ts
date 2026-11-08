@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "@/lib/axios";
 import { AdminNotification } from "@/types/notification";
 
 /**
@@ -8,7 +8,7 @@ export async function fetchAdminNotifications(
   page: number = 1,
   limit: number = 20
 ): Promise<AdminNotification[]> {
-  const response = await axios.get<AdminNotification[]>(
+  const response = await api.get<AdminNotification[]>(
     `/api/admins/notifications?page=${page}&limit=${limit}`
   );
   return Array.isArray(response.data) ? response.data : [];
@@ -20,8 +20,22 @@ export async function fetchAdminNotifications(
 export async function fetchAdminNotification(
   id: string
 ): Promise<AdminNotification> {
-  const response = await axios.get<AdminNotification>(
+  const response = await api.get<AdminNotification>(
     `/api/admins/notifications/${id}`
   );
   return response.data;
+}
+
+/**
+ * Mark all admin notifications as read
+ */
+export async function markAllAdminNotificationsRead(): Promise<void> {
+  await api.patch("/api/admins/notifications");
+}
+
+/**
+ * Mark single admin notification as read
+ */
+export async function markAdminNotificationRead(id: string): Promise<void> {
+  await api.patch(`/api/admins/notifications/${id}`);
 }

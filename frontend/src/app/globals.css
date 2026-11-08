@@ -241,95 +241,106 @@
 }
 
 .dark, :root[data-theme="dark"] {
-  /* DARK MODE (High-Tech Charcoal & Electric Indigo Command Center) */
-  --primary: #c0c1ff;
-  --primary-container: #8083ff;
-  --on-primary: #1000a9;
-  --on-primary-container: #0d0096;
-  --inverse-primary: #494bd6;
-  --primary-fixed: #e1e0ff;
-  --primary-fixed-dim: #c0c1ff;
-  --on-primary-fixed: #07006c;
-  --on-primary-fixed-variant: #2f2ebe;
+  /* DARK MODE (High-Tech Charcoal & Electric Indigo Command Center - Toota Design System) */
+  color-scheme: dark;
 
-  --secondary: #c8c6c5;
-  --secondary-green: #84cc16;
-  --secondary-container: #474746;
-  --on-secondary: #303030;
-  --on-secondary-container: #b7b5b4;
-  --secondary-fixed: #e5e2e1;
-  --secondary-fixed-dim: #c8c6c5;
-  --on-secondary-fixed: #1b1b1c;
-  --on-secondary-fixed-variant: #474746;
+  /* Primary (Electric Indigo / Violet) */
+  --primary: #6366f1;
+  --primary-container: #4f46e5;
+  --on-primary: #ffffff;
+  --on-primary-container: #e0e7ff;
+  --inverse-primary: #818cf8;
+  --primary-fixed: #e0e7ff;
+  --primary-fixed-dim: #c7d2fe;
+  --on-primary-fixed: #1e1b4b;
+  --on-primary-fixed-variant: #3730a3;
 
-  --tertiary: #ffb783;
-  --tertiary-container: #d97721;
-  --on-tertiary: #4f2500;
-  --on-tertiary-container: #452000;
-  --tertiary-fixed: #ffdcc5;
-  --tertiary-fixed-dim: #ffb783;
-  --on-tertiary-fixed: #301400;
-  --on-tertiary-fixed-variant: #703700;
+  /* Secondary (Toota Neon Lime brand accent) */
+  --secondary: #a3e635;
+  --secondary-green: #22c55e;
+  --secondary-container: #365314;
+  --on-secondary: #0f1115;
+  --on-secondary-container: #d9f99d;
+  --secondary-fixed: #d9f99d;
+  --secondary-fixed-dim: #bef264;
+  --on-secondary-fixed: #14532d;
+  --on-secondary-fixed-variant: #3f6212;
 
-  --surface: #131313;
-  --surface-dim: #131313;
-  --surface-bright: #393939;
-  --surface-variant: #353534;
-  --surface-tint: #c0c1ff;
-  --surface-container-lowest: #0e0e0e;
-  --surface-container-low: #1c1b1b;
-  --surface-container: #201f1f;
-  --surface-container-high: #2a2a2a;
-  --surface-container-highest: #353534;
+  /* Tertiary (Warm Amber / Energy Accent) */
+  --tertiary: #fb923c;
+  --tertiary-container: #c2410c;
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #ffedd5;
+  --tertiary-fixed: #ffedd5;
+  --tertiary-fixed-dim: #fed7aa;
+  --on-tertiary-fixed: #431407;
+  --on-tertiary-fixed-variant: #7c2d12;
 
-  --on-surface: #e5e2e1;
-  --on-surface-variant: #c7c4d7;
-  --inverse-surface: #e5e2e1;
-  --inverse-on-surface: #313030;
+  /* Surfaces (Unified Studio Charcoal & Obsidian) */
+  --surface: #15181c;
+  --surface-dim: #101215;
+  --surface-bright: #1e2228;
+  --surface-variant: #252a32;
+  --surface-tint: #6366f1;
+  --surface-container-lowest: #0c0e10;
+  --surface-container-low: #121417;
+  --surface-container: #181b20;
+  --surface-container-high: #20242b;
+  --surface-container-highest: #282d36;
 
-  --outline: #908fa0;
-  --outline-variant: #464554;
+  --on-surface: #f3f4f6;
+  --on-surface-variant: #9ca3af;
+  --inverse-surface: #f3f4f6;
+  --inverse-on-surface: #15181c;
 
-  --error: #ffb4ab;
-  --error-container: #93000a;
-  --on-error: #690005;
-  --on-error-container: #ffdad6;
+  --outline: #4b5563;
+  --outline-variant: rgba(255, 255, 255, 0.08);
 
-  --background: #131313;
-  --foreground: #e5e2e1;
-  --on-background: #e5e2e1;
+  --error: #f87171;
+  --error-container: #7f1d1d;
+  --on-error: #ffffff;
+  --on-error-container: #fecaca;
+
+  --background: #15181c;
+  --foreground: #f3f4f6;
+  --on-background: #f3f4f6;
 
   /* Shadcn Component Mapping for Dark Theme */
-  --card: #1c1b1b;
-  --card-foreground: #e5e2e1;
-  --popover: #201f1f;
-  --popover-foreground: #e5e2e1;
-  --primary-foreground: #1000a9;
-  --secondary-foreground: #1b1b1c;
-  --muted: #201f1f;
-  --muted-foreground: #c7c4d7;
-  --accent: #2a2a2a;
-  --accent-foreground: #c0c1ff;
-  --destructive: #ffb4ab;
-  --border: #464554;
-  --input: #464554;
-  --ring: #c0c1ff;
-  --sidebar: #1c1b1b;
-  --sidebar-foreground: #e5e2e1;
-  --sidebar-primary: #c0c1ff;
-  --sidebar-primary-foreground: #1000a9;
-  --sidebar-accent: #201f1f;
-  --sidebar-accent-foreground: #e5e2e1;
-  --sidebar-border: #464554;
-  --sidebar-ring: #c0c1ff;
+  --card: #1a1e24;
+  --card-foreground: #f3f4f6;
+  --popover: #1f232a;
+  --popover-foreground: #f3f4f6;
+  --primary-foreground: #ffffff;
+  --secondary-foreground: #0f1115;
+  --muted: #1e2229;
+  --muted-foreground: #9ca3af;
+  --accent: #262b33;
+  --accent-foreground: #f3f4f6;
+  --destructive: #f87171;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #a3e635;
+
+  --sidebar: #0f1114;
+  --sidebar-foreground: #f3f4f6;
+  --sidebar-primary: #a3e635;
+  --sidebar-primary-foreground: #0f1114;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #a3e635;
 
   /* Toota Design Tokens (Dark) */
-  --toota-main: #2a2f34;
-  --toota-card: rgba(255, 255, 255, 0.07);
-  --toota-inner: rgba(255, 255, 255, 0.08);
-  --toota-ink: #f1f3f4;
-  --toota-muted: #9aa1a8;
-  --toota-pill: #3a4046;
+  --toota-side: #0f1114;
+  --toota-main: #15181c;
+  --toota-card: rgba(26, 30, 36, 0.85);
+  --toota-inner: rgba(14, 16, 20, 0.62);
+  --toota-ink: #f3f4f6;
+  --toota-muted: #9ca3af;
+  --toota-pill: #1f232a;
+  --toota-green: #22c55e;
+  --toota-red: #ef4444;
+  --toota-lime: #a3e635;
 }
 
 @layer base {
@@ -372,9 +383,9 @@
 }
 
 .dark .glass-card {
-  background: rgba(28, 27, 27, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(70, 69, 84, 0.4);
+  background: rgba(26, 30, 36, 0.78);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .btn-gradient {
@@ -567,21 +578,25 @@
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #131313;
+  background: transparent;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #333333;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
 }
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #464554;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* Data grid rows micro-interaction */
 .dark .data-grid-row:nth-child(even) {
-  background-color: #1e1e1e;
+  background-color: rgba(255, 255, 255, 0.02);
 }
 .dark .data-grid-row:nth-child(odd) {
-  background-color: #131313;
+  background-color: transparent;
+}
+.dark .data-grid-row:hover {
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .material-symbols-outlined {
@@ -601,10 +616,20 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+.dark .toota-card,
+[data-theme="dark"] .toota-card {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
+
 .toota-inner {
   background: var(--toota-inner);
   border-radius: 20px;
   padding: 18px;
+}
+
+.dark .toota-inner,
+[data-theme="dark"] .toota-inner {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .toota-pill {
@@ -621,6 +646,17 @@
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.dark .toota-pill,
+[data-theme="dark"] .toota-pill {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.dark .toota-pill:hover,
+[data-theme="dark"] .toota-pill:hover {
+  background: #262b33;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
 .toota-pill.active,
 .toota-pill.on {
   background: #1b1f23;
@@ -632,7 +668,8 @@
 [data-theme="dark"] .toota-pill.active,
 [data-theme="dark"] .toota-pill.on {
   background: #ffffff;
-  color: #000000;
+  color: #0f1115;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15), 0 4px 14px rgba(0, 0, 0, 0.4);
 }
 
 .toota-seg {
@@ -641,6 +678,12 @@
   border-radius: 9999px;
   padding: 4px;
   gap: 4px;
+}
+
+.dark .toota-seg,
+[data-theme="dark"] .toota-seg {
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .toota-seg button {
@@ -654,9 +697,33 @@
   cursor: pointer;
 }
 
+.dark .toota-seg button,
+[data-theme="dark"] .toota-seg button {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.dark .toota-seg button:hover,
+[data-theme="dark"] .toota-seg button:hover {
+  color: #ffffff;
+}
+
 .toota-seg button.on {
   background: #ffffff;
   color: #000000;
+}
+
+.dark .toota-seg button.on,
+[data-theme="dark"] .toota-seg button.on {
+  background: #ffffff;
+  color: #0f1115;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Native select dropdown options in dark mode */
+.dark select option,
+[data-theme="dark"] select option {
+  background-color: #1a1e24;
+  color: #f3f4f6;
 }
 
 .toota-track {
@@ -673,20 +740,28 @@
   background: linear-gradient(90deg, #fca5a5, #fcd34d 45%, #4ade80);
   display: flex;
   align-items: center;
-  padding-left: 16px;
+  padding-inline-start: 16px;
   font-size: 14px;
   color: #222222;
   font-weight: 500;
 }
 
+[dir="rtl"] .toota-fill {
+  background: linear-gradient(270deg, #fca5a5, #fcd34d 45%, #4ade80);
+}
+
 .toota-mark {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(-50%);
   width: 6px;
   height: 36px;
   border-radius: 4px;
   background: #000000;
+}
+
+[dir="rtl"] .toota-mark {
+  transform: translateY(-50%) translateX(50%);
 }
 
 .dark .toota-mark,

@@ -11,39 +11,32 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
-import { fetchAdminNotifications } from "@/lib/api/notifications";
-import { fetchMemberNotifications } from "@/lib/api/member-portal";
+import {
+  fetchAdminNotifications,
+  markAllAdminNotificationsRead,
+  markAdminNotificationRead,
+} from "@/lib/api/notifications";
+import {
+  fetchMemberNotifications,
+  markAllMemberNotificationsRead,
+  markMemberNotificationRead,
+} from "@/lib/api/member-portal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import NotificationDetailModal from "./NotificationDetailModal";
 
 export default function NotificationDropdown() {
   const { t } = useTranslation();
   const { role, isLoading: isRoleLoading } = useCurrentUser();
   const isMember = role === "Member";
-  const seenStorageKey = isMember ? "member_seen_notifications" : "admin_seen_notifications";
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Initialize seen IDs from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(seenStorageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setSeenIds(new Set(parsed));
-        }
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
-  }, [seenStorageKey]);
 
   // Fetch notifications
   const loadNotifications = useCallback(
@@ -91,48 +84,49 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Calculate unread count (notifications that are not read in backend AND not seen locally)
+  // Calculate unread count strictly based on backend isRead status
   const unreadCount = useMemo(() => {
-    return notifications.filter((n) => !n.isRead && !seenIds.has(n.id)).length;
-  }, [notifications, seenIds]);
+    return notifications.filter((n) => !n.isRead).length;
+  }, [notifications]);
 
-  // Mark all current notifications as seen when user opens the dropdown
-  const handleOpenDropdown = () => {
-    const nextState = !isOpen;
-    setIsOpen(nextState);
+  // Handle clicking a single notification item
+  const handleItemClick = async (item: AdminNotification) => {
+    setSelectedNotificationId(item.id);
 
-    if (nextState && notifications.length > 0) {
-      // Mark all current notifications as seen
-      setSeenIds((prev) => {
-        const updated = new Set(prev);
-        notifications.forEach((n) => updated.add(n.id));
-        try {
-          localStorage.setItem(
-            seenStorageKey,
-            JSON.stringify(Array.from(updated))
-          );
-        } catch {
-          // Ignore storage errors
+    if (!item.isRead) {
+      // Optimistically mark as read in local state
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+      );
+
+      try {
+        if (isMember) {
+          await markMemberNotificationRead(item.id);
+        } else {
+          await markAdminNotificationRead(item.id);
         }
-        return updated;
-      });
+      } catch {
+        // Silently catch already-read or network errors
+      }
     }
   };
 
-  const handleMarkAllAsRead = () => {
-    setSeenIds((prev) => {
-      const updated = new Set(prev);
-      notifications.forEach((n) => updated.add(n.id));
-      try {
-        localStorage.setItem(
-          seenStorageKey,
-          JSON.stringify(Array.from(updated))
-        );
-      } catch {
-        // Ignore
+  // Handle Mark All As Read
+  const handleMarkAllAsRead = async () => {
+    if (unreadCount === 0) return;
+
+    // Optimistically mark all as read in local state
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+
+    try {
+      if (isMember) {
+        await markAllMemberNotificationsRead();
+      } else {
+        await markAllAdminNotificationsRead();
       }
-      return updated;
-    });
+    } catch {
+      // Silently catch already-read or network errors
+    }
   };
 
   // Helper for relative time
@@ -140,7 +134,7 @@ export default function NotificationDropdown() {
     try {
       const diffMs = Date.now() - new Date(dateStr).getTime();
       const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return t("justNow") || "Just now";
+      if (diffMins < 1) return t("justNow", "Just now");
       if (diffMins < 60) return `${diffMins}m ago`;
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) return `${diffHours}h ago`;
@@ -156,13 +150,13 @@ export default function NotificationDropdown() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "PAYMENT_REMINDER":
-        return <CreditCard className="w-4 h-4 text-emerald-500" />;
+        return <CreditCard className="size-4 text-emerald-500" />;
       case "MEMBERSHIP_EXPIRATION":
-        return <AlertTriangle className="w-4 h-4 text-amber-500" />;
+        return <AlertTriangle className="size-4 text-amber-500" />;
       case "SUBSCRIPTION_EXPIRATION":
-        return <Clock className="w-4 h-4 text-orange-500" />;
+        return <Clock className="size-4 text-orange-500" />;
       default:
-        return <Bell className="w-4 h-4 text-primary" />;
+        return <Bell className="size-4 text-primary" />;
     }
   };
 
@@ -172,18 +166,18 @@ export default function NotificationDropdown() {
         {/* Notification Bell Button */}
         <button
           type="button"
-          onClick={handleOpenDropdown}
-          aria-label={t("notifications")}
-          title={t("notifications")}
-          className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-primary transition-all relative cursor-pointer"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={t("notifications", "Notifications")}
+          title={t("notifications", "Notifications")}
+          className="p-2.5 hover:bg-toota-inner rounded-full text-toota-muted hover:text-toota-ink transition-all relative cursor-pointer"
         >
-          <Bell className="w-5 h-5 text-on-surface-variant" />
+          <Bell className="size-5" />
 
           {/* Unread Count Badge */}
           {unreadCount > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-error text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md border-2 border-surface animate-in zoom-in-50 duration-200 pointer-events-none"
-              title={`${unreadCount} ${t("unreadNotifications") || "unread"}`}
+              className="absolute top-1 end-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-xs border-2 border-background animate-in zoom-in-50 duration-200 pointer-events-none"
+              title={`${unreadCount} ${t("unreadNotifications", "unread")}`}
             >
               {unreadCount > 9 ? "+9" : unreadCount}
             </span>
@@ -192,18 +186,22 @@ export default function NotificationDropdown() {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-surface-bright/95 dark:bg-surface-container-low/95 backdrop-blur-xl border border-outline-variant/60 shadow-2xl z-50 animate-in fade-in-0 zoom-in-95 duration-150 overflow-hidden flex flex-col">
+          <Card className="toota-card border border-border/40 shadow-2xl p-0 overflow-hidden w-80 sm:w-96 flex flex-col z-50 absolute right-0 rtl:right-auto rtl:left-0 mt-2 animate-in fade-in-0 zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-4 py-3.5 border-b border-outline-variant/50 flex items-center justify-between bg-surface-container-lowest/60">
+            <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between bg-toota-inner/40">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-on-surface font-headline">
-                  {t("notifications")}
+                <span className="font-bold text-sm text-toota-ink">
+                  {t("notifications", "Notifications")}
                 </span>
-                {notifications.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/10 text-primary">
+                {unreadCount > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                    {unreadCount} {t("unreadNotifications", "unread")}
+                  </span>
+                ) : notifications.length > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-toota-inner text-toota-muted">
                     {notifications.length}
                   </span>
-                )}
+                ) : null}
               </div>
 
               <div className="flex items-center gap-1">
@@ -211,78 +209,86 @@ export default function NotificationDropdown() {
                   type="button"
                   onClick={() => loadNotifications(true)}
                   disabled={isLoading}
-                  title={t("refresh")}
-                  className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+                  title={t("refresh", "Refresh")}
+                  className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw
-                    className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+                    className={`size-3.5 ${isLoading ? "animate-spin" : ""}`}
                   />
                 </button>
 
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    title={t("markAllAsRead")}
-                    className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer"
+                    title={t("markAllAsRead", "Mark all as read")}
+                    className="p-1.5 rounded-lg text-toota-muted hover:text-primary hover:bg-toota-inner transition-colors cursor-pointer"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" />
+                    <CheckCheck className="size-3.5" />
                   </button>
                 )}
               </div>
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-outline-variant/20">
+            <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-border/20">
               {notifications.length === 0 ? (
                 <div className="py-12 px-6 text-center flex flex-col items-center justify-center space-y-2.5">
-                  <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-                    <Bell className="w-6 h-6 opacity-60" />
+                  <div className="size-12 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-muted shadow-inner">
+                    <Bell className="size-6 opacity-60" />
                   </div>
-                  <p className="text-xs font-semibold text-on-surface">
-                    {t("noNotifications")}
+                  <p className="text-xs font-bold text-toota-ink">
+                    {t("noNotifications", "No new notifications")}
                   </p>
-                  <p className="text-[11px] text-on-surface-variant/80 max-w-[200px]">
+                  <p className="text-[11px] text-toota-muted max-w-[200px]">
                     You are completely caught up! New alerts will appear here.
                   </p>
                 </div>
               ) : (
                 notifications.map((item) => {
-                  const isItemUnread = !item.isRead && !seenIds.has(item.id);
+                  const isItemUnread = !item.isRead;
 
                   return (
                     <div
                       key={item.id}
-                      onClick={() => setSelectedNotificationId(item.id)}
-                      className={`p-3.5 transition-colors cursor-pointer flex items-start gap-3 hover:bg-surface-container-high/50 ${
+                      onClick={() => handleItemClick(item)}
+                      className={cn(
+                        "p-3.5 transition-colors cursor-pointer flex items-start gap-3 hover:bg-toota-inner/60",
                         isItemUnread
-                          ? "bg-primary/5 dark:bg-primary/10"
+                          ? "bg-primary/[0.04] dark:bg-primary/[0.08]"
                           : "bg-transparent"
-                      }`}
+                      )}
                     >
                       {/* Icon */}
-                      <div className="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="size-8 rounded-xl bg-toota-inner flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                         {getTypeIcon(item.notificationType)}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
-                          <h4 className="text-xs font-bold text-on-surface truncate">
+                          <h4
+                            className={cn(
+                              "text-xs truncate",
+                              isItemUnread
+                                ? "font-bold text-toota-ink"
+                                : "font-medium text-toota-ink/80"
+                            )}
+                          >
                             {item.title}
                           </h4>
-                          <span className="text-[10px] text-on-surface-variant shrink-0">
+                          <span className="text-[10px] text-toota-muted shrink-0 font-medium">
                             {formatTimeAgo(item.createdAt)}
                           </span>
                         </div>
-                        <p className="text-[11px] text-on-surface-variant mt-1 line-clamp-2 leading-relaxed">
+                        <p className="text-[11px] text-toota-muted mt-1 line-clamp-2 leading-relaxed">
                           {item.message}
                         </p>
                       </div>
 
                       {/* Unread indicator dot */}
                       {isItemUnread && (
-                        <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />
+                        <span className="size-2 rounded-full bg-primary shrink-0 mt-2 shadow-xs" />
                       )}
                     </div>
                   );
@@ -292,13 +298,13 @@ export default function NotificationDropdown() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-2 border-t border-outline-variant/40 bg-surface-container-lowest/80 text-center">
-                <span className="text-[10px] text-on-surface-variant">
+              <div className="px-4 py-2 border-t border-border/40 bg-toota-inner/20 text-center">
+                <span className="text-[10px] text-toota-muted font-medium">
                   Showing latest {notifications.length} alerts
                 </span>
               </div>
             )}
-          </div>
+          </Card>
         )}
       </div>
 
@@ -306,6 +312,11 @@ export default function NotificationDropdown() {
       <NotificationDetailModal
         notificationId={selectedNotificationId}
         onClose={() => setSelectedNotificationId(null)}
+        onNotificationRead={(id) => {
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+          );
+        }}
       />
     </>
   );

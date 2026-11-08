@@ -199,7 +199,7 @@ export default function MemberDashboardView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 select-none">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* 1. Member Hero Header Card (shadcn Card) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

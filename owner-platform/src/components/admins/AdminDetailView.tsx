@@ -461,8 +461,24 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
                     <span className="font-semibold text-on-surface text-body-md">
                       {sub.plan?.name || "Standard Plan"}
                     </span>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
-                      {sub.status || "ACTIVE"}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 ${
+                        (sub.status || "ACTIVE") === "ACTIVE"
+                          ? "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs"
+                          : "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400"
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                          (sub.status || "ACTIVE") === "ACTIVE"
+                            ? "bg-emerald-500"
+                            : "bg-amber-500"
+                        }`}
+                      />
+                      <span>
+                        {(sub.status || "ACTIVE").charAt(0).toUpperCase() +
+                          (sub.status || "ACTIVE").slice(1).toLowerCase()}
+                      </span>
                     </span>
                   </div>
                   {sub.plan?.price !== undefined && (
@@ -499,30 +515,30 @@ function renderStatusBadge(status?: UserAccountStatus) {
   switch (status) {
     case "ACTIVE":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          ACTIVE
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+          <span>Active</span>
         </span>
       );
     case "PENDING":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-[11px] font-bold tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          PENDING
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+          <span>Pending</span>
         </span>
       );
     case "INACTIVE":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 rounded-full text-[11px] font-bold tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
-          INACTIVE
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+          <span>Inactive</span>
         </span>
       );
     case "BANNED":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-[11px] font-bold tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-          BANNED
+        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span>Banned</span>
         </span>
       );
     default:
@@ -533,17 +549,17 @@ function renderStatusBadge(status?: UserAccountStatus) {
 function renderVerifiedBadge(isVerified?: boolean) {
   if (isVerified) {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold tracking-wider">
-        <CheckCircle2 className="size-3 text-emerald-400" />
-        VERIFIED
+      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+        <span>Verified</span>
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-[11px] font-bold tracking-wider">
-      <XCircle className="size-3 text-amber-400" />
-      UNVERIFIED
+    <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+      <span>Unverified</span>
     </span>
   );
 }

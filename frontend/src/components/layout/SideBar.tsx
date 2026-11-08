@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
+import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
 
 interface SideBarProps {
   isMobileOpen: boolean;
@@ -377,13 +378,17 @@ export default function SideBar({
         )}
 
         {/* Quick Add Member Pill Action (Admin/Staff only) */}
-        {!isLoading && !isMember && onQuickAction && (
+        {!isLoading && !isMember && (
           <div className="pt-2">
             <button
               type="button"
               onClick={() => {
                 onCloseMobile();
-                onQuickAction();
+                if (onQuickAction) {
+                  onQuickAction();
+                } else {
+                  triggerOpenAddMemberModal();
+                }
               }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer border border-white/10 shadow-xs"
             >

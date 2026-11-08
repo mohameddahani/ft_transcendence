@@ -28,6 +28,7 @@ import {
   updateProfileSchema,
   UpdateProfileFormValues,
 } from "@/schemas/owner-profile.schema";
+import EmailChangeSection from "./EmailChangeSection";
 
 export default function OwnerProfileView() {
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
@@ -373,16 +374,23 @@ export default function OwnerProfileView() {
             {/* Email & Phone Number */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider">
-                  Email Address
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider">
+                    Email Address
+                  </label>
+                  <span className="text-[10px] text-on-surface-variant font-mono-data">
+                    Use section below to change
+                  </span>
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-on-surface-variant/50" />
                   <input
                     {...register("email")}
                     type="email"
+                    readOnly
+                    disabled
                     placeholder="mohamed@gmail.com"
-                    className="w-full bg-surface-container-high border border-outline-variant rounded pl-9 pr-3 py-2 font-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full bg-surface-container-high/50 border border-outline-variant rounded pl-9 pr-3 py-2 font-body-md text-on-surface-variant opacity-80 cursor-not-allowed"
                   />
                 </div>
                 {errors.email && (
@@ -609,6 +617,9 @@ export default function OwnerProfileView() {
           </div>
         </div>
       </div>
+
+      {/* Email Change Section */}
+      <EmailChangeSection currentEmail={profile?.email || ""} />
 
       {/* Delete Avatar Confirmation Dialog */}
       {showDeleteModal && (

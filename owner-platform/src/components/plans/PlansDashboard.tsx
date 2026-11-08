@@ -162,10 +162,15 @@ export default function PlansDashboard() {
       {/* Dashboard Header */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end gap-3 sm:gap-layout-margin mb-layout-margin">
         <div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface mb-unit font-bold">
-            Platform Plans
-          </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Platform Plans
+            </h1>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {plans.length} total
+            </span>
+          </div>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
             Configure subscription tiers and member thresholds for SaaS clients.
           </p>
         </div>
@@ -365,11 +370,11 @@ export default function PlansDashboard() {
                       </button>
                       <span
                         className={cn(
-                          "font-label-caps text-[10px] mt-1 font-bold tracking-wider",
-                          plan.isActive ? "text-emerald-400" : "text-rose-400"
+                          "text-[11px] mt-1 font-medium",
+                          plan.isActive ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
                         )}
                       >
-                        {plan.isActive ? "ACTIVE" : "INACTIVE"}
+                        {plan.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
                   </div>

@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   User,
   ChevronRight,
-  Search,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
@@ -196,19 +195,8 @@ export default function TopBar({
         </div>
       </div>
 
-      {/* Right: Search Pill, Notifications, Language & User Avatar */}
+      {/* Right: Notifications, Language & User Avatar */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Toota Search Pill Input */}
-        <label className="hidden md:flex items-center gap-2.5 bg-toota-pill text-toota-ink rounded-full h-[46px] px-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)] w-48 lg:w-64 transition-all focus-within:ring-2 focus-within:ring-[#84cc16]">
-          <Search className="w-4 h-4 text-toota-muted shrink-0" />
-          <input
-            type="text"
-            placeholder={t("search") || "Search"}
-            aria-label="Search"
-            className="border-0 bg-transparent outline-none w-full text-xs font-normal text-toota-ink placeholder:text-toota-muted"
-          />
-        </label>
-
         {/* Notifications Dropdown */}
         <NotificationDropdown />
 
