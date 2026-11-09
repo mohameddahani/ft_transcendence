@@ -36,8 +36,7 @@ export function toLogin(role?: Role) {
     let targetRole: Role | undefined = role;
     if (!targetRole) {
       try {
-        const stored =
-          localStorage.getItem("kinetic_user") || localStorage.getItem("gym_user");
+        const stored = localStorage.getItem("gym_user");
         if (stored) {
           const parsed = JSON.parse(stored);
           const r = (parsed?.role || parsed?.user?.role)?.toUpperCase();

@@ -1,13 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
-  Bell,
   Calendar,
-  CreditCard,
-  AlertTriangle,
-  Clock,
   Loader2,
   CheckCircle2,
 } from "lucide-react";
@@ -22,7 +19,6 @@ import {
   markMemberNotificationRead,
 } from "@/lib/api/member-portal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface NotificationDetailModalProps {
@@ -40,9 +36,25 @@ export default function NotificationDetailModal({
   const { role } = useCurrentUser();
   const isMember = role === "Member";
 
+  const [mounted, setMounted] = useState(false);
   const [notification, setNotification] = useState<AdminNotification | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    if (notificationId) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [notificationId, onClose]);
 
   useEffect(() => {
     if (!notificationId) {
@@ -50,7 +62,7 @@ export default function NotificationDetailModal({
       return;
     }
 
-    let isMounted = true;
+    let isSubscribed = true;
     setIsLoading(true);
     setError(null);
 
@@ -60,7 +72,7 @@ export default function NotificationDetailModal({
 
     fetchPromise
       .then((data) => {
-        if (!isMounted) return;
+        if (!isSubscribed) return;
         setNotification(data);
 
         // If unread, mark it as read in backend and trigger callback
@@ -71,7 +83,7 @@ export default function NotificationDetailModal({
 
           markPromise
             .then(() => {
-              if (isMounted) {
+              if (isSubscribed) {
                 setNotification((prev) => (prev ? { ...prev, isRead: true } : prev));
                 onNotificationRead?.(notificationId);
               }
@@ -82,35 +94,22 @@ export default function NotificationDetailModal({
         }
       })
       .catch((err) => {
-        if (isMounted) {
+        if (isSubscribed) {
           setError(
             err?.response?.data?.message || "Failed to load notification details"
           );
         }
       })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        if (isSubscribed) setIsLoading(false);
       });
 
     return () => {
-      isMounted = false;
+      isSubscribed = false;
     };
   }, [notificationId, isMember, onNotificationRead]);
 
-  if (!notificationId) return null;
-
-  const getTypeIcon = (type?: string) => {
-    switch (type) {
-      case "PAYMENT_REMINDER":
-        return <CreditCard className="size-5 text-emerald-500" />;
-      case "MEMBERSHIP_EXPIRATION":
-        return <AlertTriangle className="size-5 text-amber-500" />;
-      case "SUBSCRIPTION_EXPIRATION":
-        return <Clock className="size-5 text-orange-500" />;
-      default:
-        return <Bell className="size-5 text-primary" />;
-    }
-  };
+  if (!mounted || !notificationId) return null;
 
   const getTypeMicroBadge = (type?: string) => {
     switch (type) {
@@ -145,28 +144,22 @@ export default function NotificationDetailModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
     >
-      <Card className="toota-card border-none shadow-2xl relative w-full max-w-lg p-6 sm:p-7 overflow-hidden space-y-6 animate-in zoom-in-95 duration-200">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 end-5 p-2 rounded-xl text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
-          aria-label="Close modal"
-        >
-          <X className="size-4" />
-        </button>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
 
-        {/* Header */}
-        <div className="flex items-start gap-4 pe-8">
-          <div className="size-12 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-ink shrink-0 shadow-inner">
-            {getTypeIcon(notification?.notificationType)}
-          </div>
+      {/* Modal Dialog Card */}
+      <div className="relative w-full max-w-lg toota-card border border-border/40 p-6 sm:p-7 shadow-2xl rounded-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 space-y-5 bg-card text-toota-ink">
+        {/* Header - Baseline Metric style */}
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-baseline gap-2 flex-wrap">
               <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -182,6 +175,15 @@ export default function NotificationDetailModal({
               <div>{getTypeMicroBadge(notification.notificationType)}</div>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X className="size-4" />
+          </button>
         </div>
 
         {/* Content Body */}
@@ -203,7 +205,7 @@ export default function NotificationDetailModal({
             <div className="space-y-4">
               {/* Message Inner Box */}
               <div className="toota-inner border border-border/40 rounded-2xl p-5 space-y-2.5">
-                <h3 className="text-sm sm:text-base font-bold text-toota-ink tracking-tight">
+                <h3 className="text-sm sm:text-base font-semibold text-toota-ink tracking-tight">
                   {notification.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-toota-muted leading-relaxed whitespace-pre-line">
@@ -214,7 +216,7 @@ export default function NotificationDetailModal({
               {/* Metadata row */}
               <div className="flex items-center justify-between text-xs px-1">
                 <div className="flex items-center gap-1.5 text-toota-muted">
-                  <Calendar className="size-3.5 text-toota-muted shrink-0" />
+                  <Calendar className="size-3.5 shrink-0" />
                   <span>
                     {t("receivedAt", "Received")}:{" "}
                     <span className="text-toota-ink font-medium">
@@ -241,12 +243,13 @@ export default function NotificationDetailModal({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="toota-pill w-full h-11 text-xs font-semibold cursor-pointer border-border/60 hover:bg-toota-inner text-toota-ink"
+            className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border-border/60 hover:bg-toota-inner text-toota-ink"
           >
             {t("close", "Close")}
           </Button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 }

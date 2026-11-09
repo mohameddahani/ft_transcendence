@@ -18,6 +18,7 @@ import { addMemberSchema, AddMemberFormValues } from "@/schemas/member";
 import { useTranslation } from "react-i18next";
 import { OPEN_ADD_MEMBER_EVENT } from "@/lib/events/modal-events";
 import { Button } from "@/components/ui/button";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface AddMemberModalProps {
   isOpen?: boolean;
@@ -126,7 +127,9 @@ export default function AddMemberModal({
   }, [isOpen, setValue, reset, t]);
 
   // Current selected plan and durations
+  const selectedGender = watch("gender") || "MALE";
   const selectedPlanId = watch("membershipPlanId");
+  const selectedDurationId = watch("membershipPlanDurationId");
   const currentPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId),
     [plans, selectedPlanId]
@@ -293,13 +296,19 @@ export default function AddMemberModal({
                   <label className="text-xs font-medium text-toota-ink">
                     {t("gender", "Gender")} <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    {...register("gender")}
-                    className="w-full h-10 px-3.5 rounded-xl bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-                  >
-                    <option value="MALE">{t("male", "Male")}</option>
-                    <option value="FEMALE">{t("female", "Female")}</option>
-                  </select>
+                  <CustomSelect
+                    value={selectedGender}
+                    onChange={(val) =>
+                      setValue("gender", val as "MALE" | "FEMALE", {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="rounded-xl"
+                    options={[
+                      { value: "MALE", label: t("male", "Male") },
+                      { value: "FEMALE", label: t("female", "Female") },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -431,21 +440,22 @@ export default function AddMemberModal({
                     <label className="text-xs font-medium text-toota-ink">
                       {t("selectPlan", "Membership Plan")} <span className="text-rose-500">*</span>
                     </label>
-                    <select
-                      {...register("membershipPlanId")}
-                      className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-                    >
-                      <option value="" disabled>
-                        {t("chooseTier", "Select a membership tier")}
-                      </option>
-                      {plans
+                    <CustomSelect
+                      value={selectedPlanId}
+                      onChange={(val) =>
+                        setValue("membershipPlanId", String(val), {
+                          shouldValidate: true,
+                        })
+                      }
+                      className="rounded-xl bg-card"
+                      placeholder={t("chooseTier", "Select a membership tier")}
+                      options={plans
                         .filter((p) => p.isActive)
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.planName} ({p.weeklyVisitLimit} {t("visitsPerWeek", "visits/wk")})
-                          </option>
-                        ))}
-                    </select>
+                        .map((p) => ({
+                          value: p.id,
+                          label: `${p.planName} (${p.weeklyVisitLimit} ${t("visitsPerWeek", "visits/wk")})`,
+                        }))}
+                    />
                     {errors.membershipPlanId && (
                       <p className="text-[11px] text-rose-500">
                         {errors.membershipPlanId.message}
@@ -458,21 +468,25 @@ export default function AddMemberModal({
                     <label className="text-xs font-medium text-toota-ink">
                       {t("selectDuration", "Plan Duration & Billing")} <span className="text-rose-500">*</span>
                     </label>
-                    <select
-                      {...register("membershipPlanDurationId")}
+                    <CustomSelect
+                      value={selectedDurationId}
+                      onChange={(val) =>
+                        setValue("membershipPlanDurationId", String(val), {
+                          shouldValidate: true,
+                        })
+                      }
                       disabled={currentDurations.length === 0}
-                      className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {currentDurations.length === 0 ? (
-                        <option value="">No durations available</option>
-                      ) : (
-                        currentDurations.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.durationDays} {t("days", "days")} — ${Number(d.price).toFixed(2)}
-                          </option>
-                        ))
-                      )}
-                    </select>
+                      className="rounded-xl bg-card"
+                      placeholder={
+                        currentDurations.length === 0
+                          ? "No durations available"
+                          : t("selectDuration", "Select duration")
+                      }
+                      options={currentDurations.map((d) => ({
+                        value: d.id,
+                        label: `${d.durationDays} ${t("days", "days")} — $${Number(d.price).toFixed(2)}`,
+                      }))}
+                    />
                     {errors.membershipPlanDurationId && (
                       <p className="text-[11px] text-rose-500">
                         {errors.membershipPlanDurationId.message}

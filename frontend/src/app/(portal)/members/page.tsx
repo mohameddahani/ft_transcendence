@@ -32,6 +32,7 @@ import { MembershipPlan } from "@/types/membership-plan";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import EditMemberModal from "@/components/members/EditMemberModal";
 import Pagination from "@/components/ui/Pagination";
+import CustomSelect from "@/components/ui/CustomSelect";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -237,7 +238,7 @@ export default function MembershipsPage() {
     setMenuAnchor(null);
     try {
       await activeMember(member.id);
-      toast.success(`Member ${member.firstName} ${member.lastName} is now ACTIVE!`);
+      toast.success(t("memberActivatedSuccess", "Member activated successfully"));
       await loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -252,7 +253,7 @@ export default function MembershipsPage() {
     setMenuAnchor(null);
     try {
       await banMember(member.id);
-      toast.error(`Member ${member.firstName} ${member.lastName} has been BANNED.`);
+      toast.success(t("memberBannedSuccess", "Member banned successfully"));
       await loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -635,48 +636,49 @@ export default function MembershipsPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
           {/* Plan Filter Dropdown */}
           <div className="w-full md:w-56 shrink-0">
-            <select
+            <CustomSelect
               value={selectedPlanId}
-              onChange={(e) => {
-                setSelectedPlanId(e.target.value);
+              onChange={(val) => {
+                setSelectedPlanId(String(val));
                 setCurrentPage(1);
               }}
               aria-label={t("planName") || "Plan"}
-              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-            >
-              <option value="">{t("allPlans", "All Plan Types")}</option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.planName}
-                </option>
-              ))}
-            </select>
+              placeholder={t("allPlans", "All Plan Types")}
+              options={[
+                { value: "", label: t("allPlans", "All Plan Types") },
+                ...plans.map((p) => ({
+                  value: p.id,
+                  label: p.planName,
+                })),
+              ]}
+            />
           </div>
 
           {/* Status Filter Dropdown */}
           <div className="w-full md:w-44 shrink-0">
-            <select
+            <CustomSelect
               value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
+              onChange={(val) => {
+                setSelectedStatus(String(val));
                 setCurrentPage(1);
               }}
               aria-label={t("status") || "Status"}
-              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-            >
-              <option value="">{t("allStatuses") || "All Statuses"}</option>
-              <option value="ACTIVE">{t("active") || "Active"}</option>
-              <option value="PENDING">{t("pending") || "Pending"}</option>
-              <option value="EXPIRED">{t("expired") || "Expired"}</option>
-              <option value="CANCELLED">{t("cancelled") || "Cancelled"}</option>
-              <option value="BANNED">{t("banned") || "Banned"}</option>
-            </select>
+              placeholder={t("allStatuses") || "All Statuses"}
+              options={[
+                { value: "", label: t("allStatuses") || "All Statuses" },
+                { value: "ACTIVE", label: t("active") || "Active" },
+                { value: "PENDING", label: t("pending") || "Pending" },
+                { value: "EXPIRED", label: t("expired") || "Expired" },
+                { value: "CANCELLED", label: t("cancelled") || "Cancelled" },
+                { value: "BANNED", label: t("banned") || "Banned" },
+              ]}
+            />
           </div>
 
           {/* Clear Filters Button */}

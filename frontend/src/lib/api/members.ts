@@ -33,11 +33,6 @@ export async function activeMember(id: string): Promise<void> {
   await api.patch(url, {});
 }
 
-export async function freezeMember(id: string): Promise<void> {
-  const url = getApiEndpoint(`/api/admins/members/freeze/${id}`);
-  await api.patch(url, {});
-}
-
 export async function banMember(id: string): Promise<void> {
   const url = getApiEndpoint(`/api/admins/members/ban/${id}`);
   await api.patch(url, {});

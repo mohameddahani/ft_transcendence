@@ -58,7 +58,7 @@ import {
 
 const syncAdminLocalStorage = (data: AdminProfile) => {
   try {
-    const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+    const stored = localStorage.getItem("gym_user");
     const current = stored ? JSON.parse(stored) : {};
     const isPlaceholder =
       !data.profileImageUrl ||
@@ -75,7 +75,6 @@ const syncAdminLocalStorage = (data: AdminProfile) => {
       photo: !isPlaceholder ? data.profileImageUrl : null,
     };
     localStorage.setItem("gym_user", JSON.stringify(updated));
-    localStorage.removeItem("kinetic_user");
     window.dispatchEvent(new Event("storage"));
   } catch {
     // ignore localStorage sync error
@@ -84,7 +83,7 @@ const syncAdminLocalStorage = (data: AdminProfile) => {
 
 const syncStaffLocalStorage = (data: StaffProfile) => {
   try {
-    const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+    const stored = localStorage.getItem("gym_user");
     const current = stored ? JSON.parse(stored) : {};
     const isPlaceholder =
       !data.profileImageUrl ||
@@ -102,7 +101,6 @@ const syncStaffLocalStorage = (data: StaffProfile) => {
       photo: !isPlaceholder ? data.profileImageUrl : null,
     };
     localStorage.setItem("gym_user", JSON.stringify(updated));
-    localStorage.removeItem("kinetic_user");
     window.dispatchEvent(new Event("storage"));
   } catch {
     // ignore localStorage sync error
@@ -351,6 +349,10 @@ function AdminStaffProfileView() {
       rawPhoto === "default-image.jpg" ||
       rawPhoto === "default-member-image.jpg";
     const photoUrl = !isPlaceholder ? rawPhoto : null;
+    const canDeletePhoto =
+      Boolean(photoUrl) &&
+      !photoUrl?.includes("avatars-default") &&
+      !photoUrl?.includes("default-image");
 
     const fullName =
       `${staffProfile.firstName || ""} ${staffProfile.lastName || ""}`.trim() ||
@@ -492,7 +494,7 @@ function AdminStaffProfileView() {
                   <span>{t("changePhoto", "Change Photo")}</span>
                 </Button>
 
-                {photoUrl && (
+                {canDeletePhoto && (
                   <Button
                     type="button"
                     variant="outline"
@@ -746,6 +748,10 @@ function AdminStaffProfileView() {
     rawPhoto === "default-image.jpg" ||
     rawPhoto === "default-member-image.jpg";
   const photoUrl = !isPlaceholder ? rawPhoto : null;
+  const canDeletePhoto =
+    Boolean(photoUrl) &&
+    !photoUrl?.includes("avatars-default") &&
+    !photoUrl?.includes("default-image");
 
   const savedFullName = profile
     ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || profile.userName
@@ -873,7 +879,7 @@ function AdminStaffProfileView() {
                 <span>{t("changePhoto", "Change Photo")}</span>
               </Button>
 
-              {photoUrl && (
+              {canDeletePhoto && (
                 <Button
                   type="button"
                   variant="outline"

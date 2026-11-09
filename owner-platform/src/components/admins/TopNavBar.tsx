@@ -25,7 +25,7 @@ export default function TopNavBar() {
         if (isMounted && res.data) {
           if (
             res.data.profileImageUrl &&
-            !res.data.profileImageUrl.includes("default-image")
+            !res.data.profileImageUrl.includes("default-image.jpg")
           ) {
             setAvatarUrl(res.data.profileImageUrl);
           } else {

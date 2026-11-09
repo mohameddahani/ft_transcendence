@@ -15,6 +15,7 @@ import { updateMember } from "@/lib/api/members";
 import { BackendMember } from "@/types/member";
 import { updateMemberSchema, UpdateMemberFormValues } from "@/schemas/member";
 import { Button } from "@/components/ui/button";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface EditMemberModalProps {
   member: BackendMember | null;
@@ -36,10 +37,14 @@ export default function EditMemberModal({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<UpdateMemberFormValues>({
     resolver: zodResolver(updateMemberSchema),
   });
+
+  const selectedGender = watch("gender") || "MALE";
 
   useEffect(() => {
     if (member && isOpen) {
@@ -185,13 +190,19 @@ export default function EditMemberModal({
                   <label className="text-xs font-medium text-toota-ink">
                     {t("gender", "Gender")} <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    {...register("gender")}
-                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-                  >
-                    <option value="MALE">{t("male", "Male")}</option>
-                    <option value="FEMALE">{t("female", "Female")}</option>
-                  </select>
+                  <CustomSelect
+                    value={selectedGender}
+                    onChange={(val) =>
+                      setValue("gender", val as "MALE" | "FEMALE", {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="rounded-xl bg-card"
+                    options={[
+                      { value: "MALE", label: t("male", "Male") },
+                      { value: "FEMALE", label: t("female", "Female") },
+                    ]}
+                  />
                 </div>
 
                 <div className="space-y-1.5">

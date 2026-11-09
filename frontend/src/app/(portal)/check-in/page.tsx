@@ -28,6 +28,7 @@ import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
 import SuccessCelebrationModal from "@/components/check-in/SuccessCelebrationModal";
 import Pagination from "@/components/ui/Pagination";
+import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -466,25 +467,40 @@ export default function CheckInPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
           {/* Status Select Dropdown */}
           <div className="w-full md:w-52 shrink-0">
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as "ALL" | "READY" | "CHECKED_IN");
+              onChange={(val) => {
+                setStatusFilter(val as "ALL" | "READY" | "CHECKED_IN");
                 setCurrentPage(1);
               }}
               aria-label={t("status") || "Status"}
-              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-            >
-              <option value="ALL">{t("allVisitsCount", { count: allVisits.length }) || `All Visits (${allVisits.length})`}</option>
-              <option value="READY">{t("awaitingCheckInCount", { count: stats.ready }) || `Awaiting Check-in (${stats.ready})`}</option>
-              <option value="CHECKED_IN">{t("checkedInCount", { count: stats.checkedIn }) || `Admitted (${stats.checkedIn})`}</option>
-            </select>
+              options={[
+                {
+                  value: "ALL",
+                  label:
+                    t("allVisitsCount", { count: allVisits.length }) ||
+                    `All Visits (${allVisits.length})`,
+                },
+                {
+                  value: "READY",
+                  label:
+                    t("awaitingCheckInCount", { count: stats.ready }) ||
+                    `Awaiting Check-in (${stats.ready})`,
+                },
+                {
+                  value: "CHECKED_IN",
+                  label:
+                    t("checkedInCount", { count: stats.checkedIn }) ||
+                    `Admitted (${stats.checkedIn})`,
+                },
+              ]}
+            />
           </div>
 
           {/* Clear Filters Button */}

@@ -229,7 +229,7 @@ function SidebarContent({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t("searchConversations") || "Search chats..."}
-            className="h-8 text-xs ps-8 pe-7 bg-toota-inner border-border/40 text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400"
+            className="h-8 text-xs ps-8 pe-7 bg-toota-inner border-border/40 text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635]"
           />
           {searchQuery && (
             <button
