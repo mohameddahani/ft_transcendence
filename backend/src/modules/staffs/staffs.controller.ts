@@ -60,7 +60,7 @@ export class StaffsController {
     return this.staffsService.findAll(accessTokenPayload.id, page, limit);
   }
 
-  // * Get one member
+  // * Get one staff
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(
@@ -109,5 +109,12 @@ export class StaffsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.staffsService.resendSetPasswordStaff(accessTokenPayload.id, id);
+  }
+
+  // * Get All Stats of Staffs (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  staffStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.staffsService.staffStats(accessTokenPayload.id);
   }
 }

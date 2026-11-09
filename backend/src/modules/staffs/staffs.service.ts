@@ -394,4 +394,47 @@ export class StaffsService {
       );
     }
   }
+
+  // * Get All Stats of Staffs (Admin)
+  async staffStats(adminId: string) {
+    const statusStats = await this.prisma.staff.groupBy({
+      by: ['accountStatus'],
+      where: {
+        adminId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+    let total = 0;
+
+    for (const stat of statusStats) {
+      const count = stat._count._all;
+
+      total += count;
+
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = count;
+      }
+    }
+
+    return {
+      total,
+      activeCount,
+      pendingCount,
+      bannedCount,
+    };
+  }
 }

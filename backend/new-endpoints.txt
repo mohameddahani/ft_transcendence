@@ -1479,3 +1479,81 @@ Owner → GET /api/owners/subscriptions/stats
 ```
 
 
+## Admin Platform — Staff Statistics API
+
+**GET**
+
+`/api/admins/staffs/stats`
+
+This endpoint is used in the **Admin Platform** and returns statistics about all staff members that belong to the authenticated admin's club.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all staff records and calculate the counts on the frontend.
+
+### Response Example
+
+```json
+{
+  "total": 25,
+  "activeCount": 18,
+  "pendingCount": 4,
+  "bannedCount": 3
+}
+```
+
+### Response Fields
+
+- `total`: Total number of staff members in the club.
+- `activeCount`: Number of staff members with account status `ACTIVE`.
+- `pendingCount`: Number of staff members with account status `PENDING`.
+- `bannedCount`: Number of staff members with account status `BANNED`.
+
+### Frontend Usage
+
+```ts
+const response = await fetch('/api/admins/staffs/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.total
+stats.activeCount
+stats.pendingCount
+stats.bannedCount
+```
+
+Example dashboard cards:
+
+```text
+Total Staff   → stats.total
+Active Staff  → stats.activeCount
+Pending Staff → stats.pendingCount
+Banned Staff  → stats.bannedCount
+```
+
+### Important Note
+
+All statistics are scoped to the authenticated admin's club.
+
+The backend calculates staff counts using the staff `accountStatus`:
+
+```text
+ACTIVE
+PENDING
+BANNED
+```
+
+Because every staff member has exactly one account status:
+
+```text
+activeCount + pendingCount + bannedCount = total
+```
+
+### Endpoint Summary
+
+```text
+Admin → GET /api/admins/staffs/stats
+```
+
