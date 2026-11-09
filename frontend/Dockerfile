@@ -1,12 +1,12 @@
 # ==============================================================================
-#                        SuperAdmin's Frontend Dockerfile (Next.js)
+#                        Owner-Portal's Frontend Dockerfile (Next.js)
 # ==============================================================================
 
 
 # ==============================================================================
 # Stage 1: Install dependencies
 # ==============================================================================
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN npm ci
 # ==============================================================================
 # Stage 2: Build Next.js application
 # ==============================================================================
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN npm run build
 # ==============================================================================
 # Stage 3: Production image
 # ==============================================================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

@@ -5,7 +5,7 @@
 # ==============================================================================
 # Stage 1: Install all dependencies
 # ==============================================================================
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN npm ci
 # ==============================================================================
 # Stage 2: Generate Prisma client + compile source
 # ==============================================================================
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN npm run build
 # ==============================================================================
 # Stage 3: Install production-only dependencies + generate Prisma client
 # ==============================================================================
-FROM node:20-alpine AS prod-deps
+FROM node:24-alpine AS prod-deps
 
 WORKDIR /app
 
@@ -40,7 +40,7 @@ RUN npm ci --omit=dev
 # ==============================================================================
 # Stage 4: Final production image
 # ==============================================================================
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 

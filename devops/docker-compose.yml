@@ -18,11 +18,11 @@ services:
       - db_data:/var/lib/postgresql/data
     networks: [internal]
     healthcheck:
-        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
-        start_period: 120s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   backend:
     build:
@@ -94,20 +94,20 @@ services:
       ai:
         condition: service_healthy
 
-  superadmin:
+  owner-portal:
     build:
       context: ../owner-platform
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    image: superadmin:latest
-    container_name: superadmin
+    image: owner-portal:latest
+    container_name: owner-portal
     restart: unless-stopped
     env_file:
       - ../owner-platform/.env
     networks: [internal]
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/owner-portal/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -193,7 +193,7 @@ services:
     depends_on:
       frontend:
         condition: service_healthy
-      superadmin:
+      owner-portal:
         condition: service_healthy
       cert-generator:
         condition: service_completed_successfully
