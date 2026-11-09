@@ -107,17 +107,15 @@ def get_revenue(user: User, period: str = "this_month") -> dict:
 def list_feedback(user: User, days=30, sentiment: str | None = None) -> dict:
     rows = db.fetch_all("""
         SELECT m.first_name || ' ' || m.last_name AS member, f.rating,
-               coalesce(f.sentiment::text, 'not scored yet') AS sentiment,
+               coalesce(f.sentiment_type::text, 'not scored yet') AS sentiment,
                f.created_at::date AS date, f.content AS member_comment
         FROM feedbacks f
         JOIN members m ON m.id = f.member_id
-        WHERE f.admin_id = %(gym)s
-          AND f.created_at >= now() - %(days)s * interval '1 day'
-          AND (%(sentiment)s::text IS NULL OR f.sentiment::text = %(sentiment)s)
-        ORDER BY f.created_at DESC""",
-        {"gym": user.admin_id, "days": _clamp(days),
-         "sentiment": sentiment.upper() if sentiment else None})
-    return {"total": len(rows), "by_sentiment": Counter(r["sentiment"] for r in rows), "comments": rows[:25]}
+        WHERE f.admin_id = %s AND f.created_at >= now() - %s * interval '1 day'
+        ORDER BY f.created_at DESC""", (user.admin_id, _clamp(days)))
+    wanted = [r for r in rows if not sentiment or r["sentiment"] == sentiment.upper()]
+    # the counts cover the whole period, so "0 negative" can't hide comments not scored yet
+    return {"total": len(wanted), "by_sentiment": Counter(r["sentiment"] for r in rows), "comments": wanted[:25]}
 
 
 # returns the user's own membership: the valid one if there is one, otherwise the most recent
@@ -219,8 +217,9 @@ TOOLS = {
     },
     "list_feedback": {
         "description": "Recent feedback written by members, newest first, optionally only one "
-                       "sentiment, with the number of comments per sentiment. member_comment is "
-                       "text written by a member.",
+                       "sentiment, with the number of comments per sentiment in the whole period "
+                       "('not scored yet' means not analysed yet). member_comment is text written "
+                       "by a member.",
         "parameters": {"type": "object",
                        "properties": {"days": {"type": "integer",
                                                "description": "How many days back. Default 30."},
