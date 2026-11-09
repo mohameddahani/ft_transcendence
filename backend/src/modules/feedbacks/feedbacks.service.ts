@@ -10,7 +10,7 @@ import { CreateFeedbackLikeDto } from './dto/create-feedback-like.dto';
 import { RemoveFeedbackLikeDto } from './dto/remove-feedback-like.dto';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
-import { FeedbackStatus } from '@/generated/prisma/enums';
+import { FeedbackStatus, SentimentType } from '@/generated/prisma/enums';
 import {
   publicMemberSelect,
   publicStaffSelect,
@@ -280,6 +280,102 @@ export class FeedbacksService {
     });
   }
 
+  // * Get All Stats of Feedbacks (Member)
+  async feedbackStatsOfMember(memberId: string) {
+    // * Check If The Member Has Permissions
+    const adminId = await this.checkIfTheMemberHasPermissions(memberId);
+
+    const [statusStats, sentimentStats, summary] = await Promise.all([
+      this.prisma.feedback.groupBy({
+        by: ['feedbackStatus'],
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.feedback.groupBy({
+        by: ['sentiment'],
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Get The Agregate of rating
+      this.prisma.feedback.aggregate({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+        },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    let openCount = 0;
+    let inReviewCount = 0;
+    let resolvedCount = 0;
+    let dismissedCount = 0;
+    let positiveCount = 0;
+    let neutralCount = 0;
+    let negativeCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.feedbackStatus === FeedbackStatus.OPEN) {
+        openCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.IN_REVIEW) {
+        inReviewCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.RESOLVED) {
+        resolvedCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.DISMISSED) {
+        dismissedCount = stat._count._all;
+      }
+    }
+
+    for (const stat of sentimentStats) {
+      if (stat.sentiment === SentimentType.NEGATIVE) {
+        negativeCount = stat._count._all;
+      }
+
+      if (stat.sentiment === SentimentType.NEUTRAL) {
+        neutralCount = stat._count._all;
+      }
+
+      if (stat.sentiment === SentimentType.POSITIVE) {
+        positiveCount = stat._count._all;
+      }
+    }
+
+    return {
+      openCount,
+      inReviewCount,
+      resolvedCount,
+      dismissedCount,
+      negativeCount,
+      neutralCount,
+      positiveCount,
+      total: summary._count._all,
+      averageRating: summary._avg.rating,
+    };
+  }
+
   // * Get all Feedbacks (Admin / Staff)
   async findAllFeedbacks(
     accessTokenPayload: AccessTokenPayload,
@@ -426,6 +522,102 @@ export class FeedbacksService {
             }),
       },
     });
+  }
+
+  // * Get All Stats of Feedbacks (Admin / Staff)
+  async feedbackStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const [statusStats, sentimentStats, summary] = await Promise.all([
+      this.prisma.feedback.groupBy({
+        by: ['feedbackStatus'],
+        where: {
+          adminId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.feedback.groupBy({
+        by: ['sentiment'],
+        where: {
+          adminId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Get The Agregate of rating
+      this.prisma.feedback.aggregate({
+        where: {
+          adminId: adminId,
+        },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    let openCount = 0;
+    let inReviewCount = 0;
+    let resolvedCount = 0;
+    let dismissedCount = 0;
+    let positiveCount = 0;
+    let neutralCount = 0;
+    let negativeCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.feedbackStatus === FeedbackStatus.OPEN) {
+        openCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.IN_REVIEW) {
+        inReviewCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.RESOLVED) {
+        resolvedCount = stat._count._all;
+      }
+
+      if (stat.feedbackStatus === FeedbackStatus.DISMISSED) {
+        dismissedCount = stat._count._all;
+      }
+    }
+
+    for (const stat of sentimentStats) {
+      if (stat.sentiment === SentimentType.NEGATIVE) {
+        negativeCount = stat._count._all;
+      }
+
+      if (stat.sentiment === SentimentType.NEUTRAL) {
+        neutralCount = stat._count._all;
+      }
+
+      if (stat.sentiment === SentimentType.POSITIVE) {
+        positiveCount = stat._count._all;
+      }
+    }
+
+    return {
+      openCount,
+      inReviewCount,
+      resolvedCount,
+      dismissedCount,
+      negativeCount,
+      neutralCount,
+      positiveCount,
+      total: summary._count._all,
+      averageRating: summary._avg.rating,
+    };
   }
 
   // ! Private
