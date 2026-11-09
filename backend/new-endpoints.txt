@@ -1557,3 +1557,230 @@ activeCount + pendingCount + bannedCount = total
 Admin → GET /api/admins/staffs/stats
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Working Hours Statistics API
+
+These endpoints return statistics about the club's regular working hours and special-hour records.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all working-hour records and calculate the counts on the frontend.
+
+---
+
+### Admin Platform — Working Hours Stats
+
+**GET**
+
+`/api/admins/working-hours/stats`
+
+Returns working-hours statistics for the authenticated admin's club.
+
+### Response Example
+
+```json id="7e4mkb"
+{
+  "workingHours": {
+    "total": 7,
+    "openDaysCount": 6,
+    "closedDaysCount": 1
+  },
+  "specialHours": {
+    "total": 4
+  }
+}
+```
+
+---
+
+### Staff Platform — Working Hours Stats
+
+**GET**
+
+`/api/staffs/working-hours/stats`
+
+Returns working-hours statistics for the staff member's club.
+
+The Staff and Admin endpoints return the same response structure.
+
+### Response Example
+
+```json id="jv8hyw"
+{
+  "workingHours": {
+    "total": 7,
+    "openDaysCount": 6,
+    "closedDaysCount": 1
+  },
+  "specialHours": {
+    "total": 4
+  }
+}
+```
+
+---
+
+### Member Platform — Working Hours Stats
+
+**GET**
+
+`/api/members/working-hours/stats`
+
+Returns working-hours statistics for the authenticated member's club.
+
+### Response Example
+
+```json id="xt1qua"
+{
+  "workingHours": {
+    "total": 7,
+    "openDaysCount": 6,
+    "closedDaysCount": 1
+  },
+  "specialHours": {
+    "total": 4
+  }
+}
+```
+
+---
+
+## Response Fields
+
+### `workingHours`
+
+- `total`: Total number of regular working-hour/day records.
+- `openDaysCount`: Number of days where the club is open.
+- `closedDaysCount`: Number of days where the club is closed.
+
+The backend calculates:
+
+```ts id="x8jkn1"
+workingHours.total =
+  workingHours.openDaysCount +
+  workingHours.closedDaysCount;
+```
+
+### `specialHours`
+
+- `total`: Total number of special-hour records configured for the club.
+
+A special-hour record can represent a single day or a date range, so `specialHours.total` counts records, not necessarily calendar days.
+
+---
+
+## Example
+
+If the normal weekly schedule is:
+
+```text id="dj4a4m"
+Monday    → Open
+Tuesday   → Open
+Wednesday → Open
+Thursday  → Open
+Friday    → Open
+Saturday  → Open
+Sunday    → Closed
+```
+
+and the club has 4 special-hour records, the API returns:
+
+```json id="frslj0"
+{
+  "workingHours": {
+    "total": 7,
+    "openDaysCount": 6,
+    "closedDaysCount": 1
+  },
+  "specialHours": {
+    "total": 4
+  }
+}
+```
+
+---
+
+## Frontend Usage
+
+### Admin
+
+```ts id="0uqkll"
+const response = await fetch('/api/admins/working-hours/stats');
+const stats = await response.json();
+```
+
+### Staff
+
+```ts id="3zafzh"
+const response = await fetch('/api/staffs/working-hours/stats');
+const stats = await response.json();
+```
+
+### Member
+
+```ts id="ya6ip9"
+const response = await fetch('/api/members/working-hours/stats');
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts id="w3rj4q"
+stats.workingHours.total
+stats.workingHours.openDaysCount
+stats.workingHours.closedDaysCount
+stats.specialHours.total
+```
+
+Example dashboard cards:
+
+```text id="2d2qon"
+Working Days        → stats.workingHours.total
+Open Days           → stats.workingHours.openDaysCount
+Closed Days         → stats.workingHours.closedDaysCount
+Special Hour Records → stats.specialHours.total
+```
+
+---
+
+## Endpoint Summary
+
+```text id="cak3t1"
+Admin  → GET /api/admins/working-hours/stats
+Staff  → GET /api/staffs/working-hours/stats
+Member → GET /api/members/working-hours/stats
+```
+
+### Important Note
+
+`workingHours.total` represents regular weekly working-hour records.
+
+`specialHours.total` represents separate special-hour records and should not be added to `workingHours.total`.
+
+
+
+
+
+

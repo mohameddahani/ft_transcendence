@@ -397,6 +397,9 @@ export class StaffsService {
 
   // * Get All Stats of Staffs (Admin)
   async staffStats(adminId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
     const statusStats = await this.prisma.staff.groupBy({
       by: ['accountStatus'],
       where: {

@@ -94,4 +94,13 @@ export class AdminWorkingHoursController {
       id,
     );
   }
+
+  // * Get All Stats of Working Hours (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  workingHourStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.workingHoursService.workingHourStats(accessTokenPayload);
+  }
 }
