@@ -43,4 +43,13 @@ export class AdminMembershipsController {
   ) {
     return this.membershipsService.findOne(accessTokenPayload, id);
   }
+
+  // * Get All Stats of Memebership (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  membershipStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipsService.membershipStats(accessTokenPayload);
+  }
 }

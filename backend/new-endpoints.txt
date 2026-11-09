@@ -560,3 +560,173 @@ Admin → /api/admins/membership-plans/stats
 Staff → /api/staffs/membership-plans/stats
 ```
 
+
+## Membership Statistics API
+
+These endpoints return membership statistics for the Admin, Staff, and Member platforms.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all membership records and calculate the counts on the frontend.
+
+---
+
+### Admin Platform — Membership Stats
+
+**GET**
+
+`/api/admins/memberships/stats`
+
+Returns statistics for all membership records belonging to the admin's club.
+
+**Response example:**
+
+```json
+{
+  "activeCount": 120,
+  "expiredCount": 35,
+  "cancelledCount": 8,
+  "total": 163
+}
+```
+
+---
+
+### Staff Platform — Membership Stats
+
+**GET**
+
+`/api/staffs/memberships/stats`
+
+Returns statistics for all membership records belonging to the staff member's club.
+
+The Staff and Admin endpoints return the same response structure.
+
+**Response example:**
+
+```json
+{
+  "activeCount": 120,
+  "expiredCount": 35,
+  "cancelledCount": 8,
+  "total": 163
+}
+```
+
+---
+
+### Member Platform — Membership Stats
+
+**GET**
+
+`/api/members/memberships/stats`
+
+Returns membership statistics only for the authenticated member.
+
+This can include the member's current and previous membership records.
+
+**Response example:**
+
+```json
+{
+  "activeCount": 1,
+  "expiredCount": 2,
+  "cancelledCount": 1,
+  "total": 4
+}
+```
+
+---
+
+## Response Fields
+
+- `activeCount`: Number of membership records with status `ACTIVE`.
+- `expiredCount`: Number of membership records with status `EXPIRED`.
+- `cancelledCount`: Number of membership records with status `CANCELLED`.
+- `total`: Total number of membership records.
+
+The current backend calculates:
+
+```ts
+total = activeCount + expiredCount + cancelledCount;
+```
+
+---
+
+## Important Difference
+
+These endpoints count **membership records**, not unique members.
+
+Example:
+
+```text
+Mohamed
+├── Membership #1 → EXPIRED
+├── Membership #2 → CANCELLED
+└── Membership #3 → ACTIVE
+```
+
+For the Member Platform, this would return:
+
+```json
+{
+  "activeCount": 1,
+  "expiredCount": 1,
+  "cancelledCount": 1,
+  "total": 3
+}
+```
+
+Mohamed is one member, but he has three membership records.
+
+---
+
+## Frontend Usage
+
+### Admin
+
+```ts
+const response = await fetch('/api/admins/memberships/stats');
+
+const stats = await response.json();
+```
+
+### Staff
+
+```ts
+const response = await fetch('/api/staffs/memberships/stats');
+
+const stats = await response.json();
+```
+
+### Member
+
+```ts
+const response = await fetch('/api/members/memberships/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.activeCount
+stats.expiredCount
+stats.cancelledCount
+stats.total
+```
+
+Example dashboard cards:
+
+```text
+Total Memberships     → stats.total
+Active Memberships    → stats.activeCount
+Expired Memberships   → stats.expiredCount
+Cancelled Memberships → stats.cancelledCount
+```
+
+Use the endpoint that matches the current platform:
+
+```text
+Admin  → /api/admins/memberships/stats
+Staff  → /api/staffs/memberships/stats
+Member → /api/members/memberships/stats
+```

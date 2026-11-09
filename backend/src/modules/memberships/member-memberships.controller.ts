@@ -44,4 +44,14 @@ export class MemberMembershipsController {
       limit,
     );
   }
+
+  // * Get All Stats of Memebership (Member)
+  @Get('stats')
+  membershipStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipsService.membershipStatsOfMember(
+      accessTokenPayload.id,
+    );
+  }
 }

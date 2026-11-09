@@ -82,6 +82,50 @@ export class MembershipsService {
     return membership;
   }
 
+  // * Get All Stats of Memebership (Admin / Staff)
+  async membershipStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const membershipStats = await this.prisma.membership.groupBy({
+      by: ['membershipStatus'],
+      where: {
+        adminId: adminId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let activeCount = 0;
+    let expiredCount = 0;
+    let cancelledCount = 0;
+
+    for (const stat of membershipStats) {
+      if (stat.membershipStatus === MembershipStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.membershipStatus === MembershipStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+
+      if (stat.membershipStatus === MembershipStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      expiredCount,
+      cancelledCount,
+      total: activeCount + expiredCount + cancelledCount,
+    };
+  }
+
   // * Get Membership of Member
   async findMyMembership(memberId: string) {
     // * Get Admin Id from member
@@ -150,5 +194,57 @@ export class MembershipsService {
     });
 
     return memberships;
+  }
+
+  // * Get All Stats of Memebership (Member)
+  async membershipStatsOfMember(memberId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipStats = await this.prisma.membership.groupBy({
+      by: ['membershipStatus'],
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let activeCount = 0;
+    let expiredCount = 0;
+    let cancelledCount = 0;
+
+    for (const stat of membershipStats) {
+      if (stat.membershipStatus === MembershipStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.membershipStatus === MembershipStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+
+      if (stat.membershipStatus === MembershipStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      expiredCount,
+      cancelledCount,
+      total: activeCount + expiredCount + cancelledCount,
+    };
   }
 }
