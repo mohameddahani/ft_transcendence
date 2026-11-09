@@ -237,7 +237,7 @@ export class ProfilesService {
       await tx.userActionToken.updateMany({
         where: {
           userId: user.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
         },
         data: {
@@ -253,7 +253,7 @@ export class ProfilesService {
             },
           },
           tokenHash,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail: data.email,
           expiresAt,
         },
@@ -602,7 +602,7 @@ export class ProfilesService {
       await tx.memberActionToken.updateMany({
         where: {
           memberId: member.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
         },
         data: {
@@ -618,7 +618,7 @@ export class ProfilesService {
             },
           },
           tokenHash,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail: data.email,
           expiresAt,
         },
@@ -981,7 +981,7 @@ export class ProfilesService {
       await tx.staffActionToken.updateMany({
         where: {
           StaffId: staff.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
         },
         data: {
@@ -997,7 +997,7 @@ export class ProfilesService {
             },
           },
           tokenHash,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail: data.email,
           expiresAt,
         },

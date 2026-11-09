@@ -120,7 +120,7 @@ export class StaffsService {
       data: {
         staff: { connect: { id: result.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -344,7 +344,7 @@ export class StaffsService {
     const existingToken = await this.prisma.staffActionToken.findFirst({
       where: {
         StaffId: staff.id,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -371,7 +371,7 @@ export class StaffsService {
       data: {
         staff: { connect: { id: staff.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });

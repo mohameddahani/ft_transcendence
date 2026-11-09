@@ -199,7 +199,7 @@ export class MembersService {
       data: {
         member: { connect: { id: result.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -525,7 +525,7 @@ export class MembersService {
     const existingToken = await this.prisma.memberActionToken.findFirst({
       where: {
         memberId: member.id,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -552,7 +552,7 @@ export class MembersService {
       data: {
         member: { connect: { id: member.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });

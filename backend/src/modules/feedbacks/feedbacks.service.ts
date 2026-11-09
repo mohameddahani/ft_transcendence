@@ -55,7 +55,7 @@ export class FeedbacksService {
         staff: member.staffId ? { connect: { id: member.staffId } } : undefined,
         content: data.content,
         rating: data.rating,
-        sentiment: response?.sentiment ?? null,
+        sentimentType: response?.sentiment ?? null,
         sentimentScore: response?.score ?? null,
       },
     });
@@ -298,7 +298,7 @@ export class FeedbacksService {
       }),
 
       this.prisma.feedback.groupBy({
-        by: ['sentiment'],
+        by: ['sentimentType'],
         where: {
           adminId: adminId,
           memberId: memberId,
@@ -350,15 +350,15 @@ export class FeedbacksService {
     }
 
     for (const stat of sentimentStats) {
-      if (stat.sentiment === SentimentType.NEGATIVE) {
+      if (stat.sentimentType === SentimentType.NEGATIVE) {
         negativeCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.NEUTRAL) {
+      if (stat.sentimentType === SentimentType.NEUTRAL) {
         neutralCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.POSITIVE) {
+      if (stat.sentimentType === SentimentType.POSITIVE) {
         positiveCount = stat._count._all;
       }
     }
@@ -409,7 +409,7 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
-        sentiment: true,
+        sentimentType: true,
         sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
@@ -464,7 +464,7 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
-        sentiment: true,
+        sentimentType: true,
         sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
@@ -544,7 +544,7 @@ export class FeedbacksService {
       }),
 
       this.prisma.feedback.groupBy({
-        by: ['sentiment'],
+        by: ['sentimentType'],
         where: {
           adminId: adminId,
         },
@@ -594,15 +594,15 @@ export class FeedbacksService {
     }
 
     for (const stat of sentimentStats) {
-      if (stat.sentiment === SentimentType.NEGATIVE) {
+      if (stat.sentimentType === SentimentType.NEGATIVE) {
         negativeCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.NEUTRAL) {
+      if (stat.sentimentType === SentimentType.NEUTRAL) {
         neutralCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.POSITIVE) {
+      if (stat.sentimentType === SentimentType.POSITIVE) {
         positiveCount = stat._count._all;
       }
     }
