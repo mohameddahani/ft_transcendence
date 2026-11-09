@@ -730,3 +730,164 @@ Admin  → /api/admins/memberships/stats
 Staff  → /api/staffs/memberships/stats
 Member → /api/members/memberships/stats
 ```
+
+
+
+
+
+## Notification Statistics API
+
+These endpoints return notification statistics for the Admin and Member platforms.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all notification records and count them on the frontend.
+
+---
+
+### Admin Platform — Notification Stats
+
+**GET**
+
+`/api/admins/notifications/stats`
+
+Returns statistics for all notifications that belong to the authenticated admin.
+
+**Response example:**
+
+```json
+{
+  "paymentReminderCount": 8,
+  "membershipExpirationCount": 12,
+  "subscriptionExpirationCount": 2,
+  "customCount": 5,
+  "isReadCount": 20,
+  "isNotReadCount": 7,
+  "total": 27
+}
+```
+
+### Admin Response Fields
+
+- `paymentReminderCount`: Number of notifications with type `PAYMENT_REMINDER`.
+- `membershipExpirationCount`: Number of notifications with type `MEMBERSHIP_EXPIRATION`.
+- `subscriptionExpirationCount`: Number of notifications with type `SUBSCRIPTION_EXPIRATION`.
+- `customCount`: Number of notifications with type `CUSTOM`.
+- `isReadCount`: Number of notifications that have already been read.
+- `isNotReadCount`: Number of notifications that are still unread.
+- `total`: Total number of admin notifications.
+
+The backend calculates:
+
+```ts
+total = isReadCount + isNotReadCount;
+```
+
+---
+
+### Member Platform — Notification Stats
+
+**GET**
+
+`/api/members/notifications/stats`
+
+Returns statistics only for notifications that belong to the authenticated member.
+
+**Response example:**
+
+```json
+{
+  "paymentReminderCount": 4,
+  "membershipExpirationCount": 2,
+  "subscriptionExpirationCount": 0,
+  "customCount": 3,
+  "isReadCount": 6,
+  "isNotReadCount": 3,
+  "total": 9
+}
+```
+
+### Member Response Fields
+
+- `paymentReminderCount`: Number of member notifications with type `PAYMENT_REMINDER`.
+- `membershipExpirationCount`: Number of member notifications with type `MEMBERSHIP_EXPIRATION`.
+- `subscriptionExpirationCount`: Number of member notifications with type `SUBSCRIPTION_EXPIRATION`.
+- `customCount`: Number of member notifications with type `CUSTOM`.
+- `isReadCount`: Number of notifications the member has already read.
+- `isNotReadCount`: Number of notifications the member has not read yet.
+- `total`: Total number of notifications belonging to the authenticated member.
+
+---
+
+## Frontend Usage
+
+### Admin
+
+```ts
+const response = await fetch('/api/admins/notifications/stats');
+
+const stats = await response.json();
+```
+
+### Member
+
+```ts
+const response = await fetch('/api/members/notifications/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.paymentReminderCount
+stats.membershipExpirationCount
+stats.subscriptionExpirationCount
+stats.customCount
+stats.isReadCount
+stats.isNotReadCount
+stats.total
+```
+
+Example dashboard cards:
+
+```text
+Total Notifications           → stats.total
+Read Notifications            → stats.isReadCount
+Unread Notifications          → stats.isNotReadCount
+Payment Reminders              → stats.paymentReminderCount
+Membership Expiration Alerts   → stats.membershipExpirationCount
+Subscription Expiration Alerts → stats.subscriptionExpirationCount
+Custom Notifications           → stats.customCount
+```
+
+Use the endpoint that matches the current platform:
+
+```text
+Admin  → /api/admins/notifications/stats
+Member → /api/members/notifications/stats
+```
+
+### Important Note
+
+The notification type counts and read/unread counts represent different groupings of the same notifications.
+
+For example:
+
+```json
+{
+  "paymentReminderCount": 8,
+  "membershipExpirationCount": 12,
+  "subscriptionExpirationCount": 2,
+  "customCount": 5,
+  "isReadCount": 20,
+  "isNotReadCount": 7,
+  "total": 27
+}
+```
+
+The type counts add up to `27`, and the read/unread counts also add up to `27`.
+
+Do not add all of these fields together to calculate the total. Always use:
+
+```ts
+stats.total
+```

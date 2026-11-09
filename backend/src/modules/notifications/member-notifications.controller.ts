@@ -73,4 +73,14 @@ export class MemberNotificationsController {
       id,
     );
   }
+
+  // * Get All Stats of Notification (Member)
+  @Get('stats')
+  notificationStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.notificationStatsOfMember(
+      accessTokenPayload.id,
+    );
+  }
 }

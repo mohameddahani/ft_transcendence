@@ -1,3 +1,4 @@
+import { NotificationType } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import {
   ConflictException,
@@ -114,6 +115,73 @@ export class NotificationsService {
     });
   }
 
+  // * Get All Stats of Notification (Admin)
+  async notificationStats(adminId: string) {
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
+    const [statusStats, isReadStats] = await Promise.all([
+      this.prisma.adminNotification.groupBy({
+        by: ['notificationType'],
+        where: {
+          adminId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.adminNotification.groupBy({
+        by: ['isRead'],
+        where: {
+          adminId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    let paymentReminderCount = 0;
+    let membershipExpirationCount = 0;
+    let subscriptionExpirationCount = 0;
+    let customCount = 0;
+    let isReadCount = 0;
+    let isNotReadCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.notificationType === NotificationType.PAYMENT_REMINDER) {
+        paymentReminderCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.MEMBERSHIP_EXPIRATION) {
+        membershipExpirationCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.SUBSCRIPTION_EXPIRATION) {
+        subscriptionExpirationCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.CUSTOM) {
+        customCount = stat._count._all;
+      }
+    }
+
+    for (const stat of isReadStats) {
+      if (stat.isRead) {
+        isReadCount = stat._count._all;
+      } else {
+        isNotReadCount = stat._count._all;
+      }
+    }
+
+    return {
+      paymentReminderCount,
+      membershipExpirationCount,
+      subscriptionExpirationCount,
+      customCount,
+      isReadCount,
+      isNotReadCount,
+      total: isReadCount + isNotReadCount,
+    };
+  }
+
   // * Make All Notification as Read (Member)
   async makeAllNotificationsReadMember(memberId: string) {
     // * check if his as any notification non read
@@ -161,5 +229,72 @@ export class NotificationsService {
         isRead: true,
       },
     });
+  }
+
+  // * Get All Stats of Notification (Member)
+  async notificationStatsOfMember(memberId: string) {
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
+    const [statusStats, isReadStats] = await Promise.all([
+      this.prisma.memberNotification.groupBy({
+        by: ['notificationType'],
+        where: {
+          memberId: memberId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      this.prisma.memberNotification.groupBy({
+        by: ['isRead'],
+        where: {
+          memberId: memberId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    let paymentReminderCount = 0;
+    let membershipExpirationCount = 0;
+    let subscriptionExpirationCount = 0;
+    let customCount = 0;
+    let isReadCount = 0;
+    let isNotReadCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.notificationType === NotificationType.PAYMENT_REMINDER) {
+        paymentReminderCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.MEMBERSHIP_EXPIRATION) {
+        membershipExpirationCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.SUBSCRIPTION_EXPIRATION) {
+        subscriptionExpirationCount = stat._count._all;
+      }
+      if (stat.notificationType === NotificationType.CUSTOM) {
+        customCount = stat._count._all;
+      }
+    }
+
+    for (const stat of isReadStats) {
+      if (stat.isRead) {
+        isReadCount = stat._count._all;
+      } else {
+        isNotReadCount = stat._count._all;
+      }
+    }
+
+    return {
+      paymentReminderCount,
+      membershipExpirationCount,
+      subscriptionExpirationCount,
+      customCount,
+      isReadCount,
+      isNotReadCount,
+      total: isReadCount + isNotReadCount,
+    };
   }
 }

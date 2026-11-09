@@ -73,4 +73,12 @@ export class AdminNotificationsController {
       id,
     );
   }
+
+  // * Get All Stats of Notification (Admin)
+  @Get('stats')
+  notificationStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.notificationStats(accessTokenPayload.id);
+  }
 }
