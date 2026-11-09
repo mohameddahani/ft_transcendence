@@ -9,22 +9,32 @@ import {
   AlertTriangle,
   Clock,
   Loader2,
-  CheckCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
-import { fetchAdminNotification } from "@/lib/api/notifications";
-import { fetchMemberNotificationById } from "@/lib/api/member-portal";
+import {
+  fetchAdminNotification,
+  markAdminNotificationRead,
+} from "@/lib/api/notifications";
+import {
+  fetchMemberNotificationById,
+  markMemberNotificationRead,
+} from "@/lib/api/member-portal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface NotificationDetailModalProps {
   notificationId: string | null;
   onClose: () => void;
+  onNotificationRead?: (id: string) => void;
 }
 
 export default function NotificationDetailModal({
   notificationId,
   onClose,
+  onNotificationRead,
 }: NotificationDetailModalProps) {
   const { t } = useTranslation();
   const { role } = useCurrentUser();
@@ -50,7 +60,26 @@ export default function NotificationDetailModal({
 
     fetchPromise
       .then((data) => {
-        if (isMounted) setNotification(data);
+        if (!isMounted) return;
+        setNotification(data);
+
+        // If unread, mark it as read in backend and trigger callback
+        if (!data.isRead) {
+          const markPromise = isMember
+            ? markMemberNotificationRead(notificationId)
+            : markAdminNotificationRead(notificationId);
+
+          markPromise
+            .then(() => {
+              if (isMounted) {
+                setNotification((prev) => (prev ? { ...prev, isRead: true } : prev));
+                onNotificationRead?.(notificationId);
+              }
+            })
+            .catch(() => {
+              // Silently catch already-read or network errors
+            });
+        }
       })
       .catch((err) => {
         if (isMounted) {
@@ -66,114 +95,140 @@ export default function NotificationDetailModal({
     return () => {
       isMounted = false;
     };
-  }, [notificationId, isMember]);
+  }, [notificationId, isMember, onNotificationRead]);
 
   if (!notificationId) return null;
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type?: string) => {
     switch (type) {
       case "PAYMENT_REMINDER":
-        return <CreditCard className="w-5 h-5 text-emerald-500" />;
+        return <CreditCard className="size-5 text-emerald-500" />;
       case "MEMBERSHIP_EXPIRATION":
-        return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+        return <AlertTriangle className="size-5 text-amber-500" />;
       case "SUBSCRIPTION_EXPIRATION":
-        return <Clock className="w-5 h-5 text-orange-500" />;
+        return <Clock className="size-5 text-orange-500" />;
       default:
-        return <Bell className="w-5 h-5 text-primary" />;
+        return <Bell className="size-5 text-primary" />;
     }
   };
 
-  const getTypeBadgeClass = (type: string) => {
+  const getTypeMicroBadge = (type?: string) => {
     switch (type) {
       case "PAYMENT_REMINDER":
-        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Payment</span>
+          </span>
+        );
       case "MEMBERSHIP_EXPIRATION":
-        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>Membership</span>
+          </span>
+        );
       case "SUBSCRIPTION_EXPIRATION":
-        return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20";
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+            <span>Subscription</span>
+          </span>
+        );
       default:
-        return "bg-primary/10 text-primary border-primary/20";
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+            <span>Alert</span>
+          </span>
+        );
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
+    >
+      <Card className="toota-card border-none shadow-2xl relative w-full max-w-lg p-6 sm:p-7 overflow-hidden space-y-6 animate-in zoom-in-95 duration-200">
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 end-5 p-2 rounded-xl text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+          aria-label="Close modal"
+        >
+          <X className="size-4" />
+        </button>
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/40 p-6 z-10 animate-in zoom-in-95 duration-200">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center">
-              {notification ? (
-                getTypeIcon(notification.notificationType)
-              ) : (
-                <Bell className="w-5 h-5 text-on-surface-variant" />
-              )}
-            </div>
-            <div>
-              <h3 className="font-headline text-lg font-bold text-on-surface">
-                {t("notificationDetails")}
-              </h3>
-              {notification && (
-                <span
-                  className={`mt-1 inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${getTypeBadgeClass(
-                    notification.notificationType
-                  )}`}
-                >
-                  {notification.notificationType.replace(/_/g, " ")}
+        {/* Header */}
+        <div className="flex items-start gap-4 pe-8">
+          <div className="size-12 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-ink shrink-0 shadow-inner">
+            {getTypeIcon(notification?.notificationType)}
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("notificationDetails", "Notification Details")}
+              </h2>
+              {notification?.id && (
+                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  / ID: {notification.id.slice(0, 8)}
                 </span>
               )}
             </div>
+            {notification && (
+              <div>{getTypeMicroBadge(notification.notificationType)}</div>
+            )}
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
-        {/* Content */}
-        <div className="mt-5">
+        {/* Content Body */}
+        <div className="space-y-4">
           {isLoading && (
-            <div className="py-12 flex flex-col items-center justify-center text-on-surface-variant gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span className="text-xs">Loading notification...</span>
+            <div className="py-12 flex flex-col items-center justify-center text-toota-muted gap-2.5">
+              <Loader2 className="size-6 animate-spin text-primary" />
+              <span className="text-xs font-medium">Loading details...</span>
             </div>
           )}
 
           {error && (
-            <div className="py-6 text-center text-xs text-error">
+            <div className="p-4 rounded-xl bg-destructive/10 text-destructive text-xs text-center border border-destructive/20">
               {error}
             </div>
           )}
 
           {!isLoading && notification && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/40">
-                <h4 className="font-bold text-sm text-on-surface">
+              {/* Message Inner Box */}
+              <div className="toota-inner border border-border/40 rounded-2xl p-5 space-y-2.5">
+                <h3 className="text-sm sm:text-base font-bold text-toota-ink tracking-tight">
                   {notification.title}
-                </h4>
-                <p className="mt-2 text-xs text-on-surface-variant leading-relaxed whitespace-pre-line">
+                </h3>
+                <p className="text-xs sm:text-sm text-toota-muted leading-relaxed whitespace-pre-line">
                   {notification.message}
                 </p>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] text-on-surface-variant px-1">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {t("receivedAt")}: {new Date(notification.createdAt).toLocaleString()}
-                </span>
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold">
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  Read
+              {/* Metadata row */}
+              <div className="flex items-center justify-between text-xs px-1">
+                <div className="flex items-center gap-1.5 text-toota-muted">
+                  <Calendar className="size-3.5 text-toota-muted shrink-0" />
+                  <span>
+                    {t("receivedAt", "Received")}:{" "}
+                    <span className="text-toota-ink font-medium">
+                      {new Date(notification.createdAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  </span>
+                </div>
+
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="size-3.5" />
+                  <span>Read</span>
                 </span>
               </div>
             </div>
@@ -181,16 +236,17 @@ export default function NotificationDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="mt-6 flex justify-end">
-          <button
+        <div className="pt-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-bold hover:opacity-90 transition-all cursor-pointer"
+            className="toota-pill w-full h-11 text-xs font-semibold cursor-pointer border-border/60 hover:bg-toota-inner text-toota-ink"
           >
-            {t("close") || "Close"}
-          </button>
+            {t("close", "Close")}
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

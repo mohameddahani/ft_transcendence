@@ -38,3 +38,38 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { headers, newAccessToken } = await getAuthenticatedSession(req);
+
+    const backendRes = await axios.patch(
+      `${API_URL}/api/members/notifications`,
+      {},
+      {
+        headers,
+        validateStatus: () => true,
+      }
+    );
+
+    // If backend throws 409 "All Notifications Already Mark As Read", return 200 OK
+    if (backendRes.status === 409) {
+      const res = NextResponse.json(
+        { message: backendRes.data?.message || "Notifications already marked as read" },
+        { status: 200 }
+      );
+      return attachSessionCookies(res, newAccessToken);
+    }
+
+    const res = NextResponse.json(backendRes.data, {
+      status: backendRes.status,
+    });
+    return attachSessionCookies(res, newAccessToken);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error connecting to backend";
+    return NextResponse.json(
+      { message: `Proxy error: ${message}` },
+      { status: 502 }
+    );
+  }
+}

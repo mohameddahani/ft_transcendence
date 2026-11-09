@@ -16,13 +16,13 @@ services:
       - .env
     volumes:
       - db_data:/var/lib/postgresql/data
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 120s
 
   backend:
     build:
@@ -33,14 +33,13 @@ services:
     restart: unless-stopped
     env_file:
       - ../backend/.env
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -61,8 +60,7 @@ services:
     volumes:
       - ../AI/scripts/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
       - ../AI/seeder/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       backend:
         condition: service_healthy
@@ -83,8 +81,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../frontend/.env
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -108,8 +105,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../owner-platform/.env
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/superadmin/"]
       interval: 30s
@@ -129,8 +125,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../AI/.env
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     volumes:
       - ai_data:/data
     depends_on:
@@ -146,8 +141,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../blockchain/api/.env
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       backend:
         condition: service_healthy
@@ -163,8 +157,7 @@ services:
     volumes:
       - ./redis/redis.conf:/etc/redis/redis.conf:ro
       - redis_data:/data
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
@@ -196,8 +189,7 @@ services:
       - certs:/etc/nginx/ssl:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/templates:ro
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       frontend:
         condition: service_healthy
@@ -222,8 +214,7 @@ services:
       - prometheus_data:/prometheus
     expose:
       - "9090"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
 
   alertmanager:
     image: prom/alertmanager:v0.30.0
@@ -237,8 +228,7 @@ services:
       - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
     expose:
       - "9093"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
 
   grafana:
     image: grafana/grafana:10.4.0
@@ -266,8 +256,7 @@ services:
       - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer             # new users get Viewer, not Editor
       - GF_AUTH_DISABLE_LOGIN_FORM=false                 # keep the login form (local auth)
       - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on: [prometheus]
 
   # ============================================================================
@@ -289,8 +278,7 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     expose:
       - "9100"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.5.1
@@ -300,8 +288,7 @@ services:
       - '--nginx.scrape-uri=http://nginx:80/nginx_status'
     expose:
       - "9113"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on: [nginx]
 
   postgres-exporter:
@@ -312,8 +299,7 @@ services:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
     expose:
       - "9187"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       db:
         condition: service_healthy
@@ -327,8 +313,7 @@ services:
       REDIS_PASSWORD: "${REDIS_PASSWORD}"
     expose:
       - "9121"
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       redis:
         condition: service_healthy
@@ -347,8 +332,7 @@ services:
       - "8080"
     volumes:
       - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
 
   # ============================================================================
   #                             Backup & Recovery
@@ -366,8 +350,7 @@ services:
       - BACKUP_SCHEDULE
     volumes:
       - ./backups:/backups
-    networks:
-      - ft_transcendence-net
+    networks: [internal]
     depends_on:
       db:
         condition: service_healthy
@@ -395,5 +378,5 @@ volumes:
 # ==============================================================================
 
 networks:
-  ft_transcendence-net:
+  internal:
     driver: bridge

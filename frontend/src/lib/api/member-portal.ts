@@ -214,6 +214,14 @@ export async function fetchMemberNotificationById(id: string): Promise<AdminNoti
   return response.data;
 }
 
+export async function markAllMemberNotificationsRead(): Promise<void> {
+  await axios.patch("/api/members/notifications");
+}
+
+export async function markMemberNotificationRead(id: string): Promise<void> {
+  await axios.patch(`/api/members/notifications/${id}`);
+}
+
 /* =========================================================================
    Member Feedbacks APIs
 ========================================================================= */

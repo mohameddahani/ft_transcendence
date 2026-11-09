@@ -32,7 +32,7 @@ def gym_overview(user: User) -> dict:
 # returns the members whose valid membership ends in the next `days` days (total + first 25)
 def list_expiring_memberships(user: User, days=7) -> dict:
     rows = db.fetch_all(f"""
-        SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone,
+        SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
                p.plan_name AS plan, ms.expires_at::date AS expires_on
         FROM memberships ms
         JOIN members m ON m.id = ms.member_id
@@ -185,7 +185,8 @@ TOOLS = {
         "roles": OWNER_AND_STAFF,
     },
     "list_expiring_memberships": {
-        "description": "Members whose valid membership ends within the next N days, soonest first.",
+        "description": "Members whose valid membership ends within the next N days, soonest first, "
+                       "with their phone, email, plan and end date.",
         "parameters": _days_param("How many days ahead to look. Default 7."),
         "function": list_expiring_memberships,
         "roles": OWNER_AND_STAFF,

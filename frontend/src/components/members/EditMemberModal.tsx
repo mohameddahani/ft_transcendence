@@ -5,9 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   X,
-  UserCheck,
   Loader2,
-  ShieldCheck,
   Save,
 } from "lucide-react";
 import axios from "axios";
@@ -16,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { updateMember } from "@/lib/api/members";
 import { BackendMember } from "@/types/member";
 import { updateMemberSchema, UpdateMemberFormValues } from "@/schemas/member";
+import { Button } from "@/components/ui/button";
 
 interface EditMemberModalProps {
   member: BackendMember | null;
@@ -107,60 +106,44 @@ export default function EditMemberModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-4xl bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col md:flex-row max-h-[92vh] z-10 animate-in zoom-in-95 duration-200">
-        {/* Left Decorative Banner */}
-        <div className="hidden md:flex md:w-5/12 primary-gradient p-8 flex-col justify-between relative overflow-hidden text-white select-none">
-          <div className="relative z-10">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6 backdrop-blur-xs shadow-inner">
-              <UserCheck className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="font-headline text-2xl font-bold leading-tight">
-              {t("editMemberProfile")}
-            </h2>
-            <p className="text-white/80 mt-3 text-sm leading-relaxed">
-              {t("membersSubtitle")}
-            </p>
-          </div>
-
-          <div className="relative z-10 space-y-4 pt-6 border-t border-white/20">
-            <div className="flex items-center gap-2 text-white/80 text-xs">
-              <ShieldCheck className="w-4 h-4 text-white" />
-              <span>{t("verified")}</span>
-            </div>
-            <p className="text-[11px] text-white/60">
-              {t("accountStatusSecurity")}
-            </p>
-          </div>
-
-          <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-black/10 rounded-full blur-3xl pointer-events-none" />
-        </div>
-
-        {/* Right Form Area */}
-        <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-surface-container-lowest custom-scrollbar">
-          <div className="flex justify-between items-start mb-6">
+      {/* Modal Dialog Card */}
+      <div className="relative w-full max-w-2xl toota-card border border-border/40 p-0 shadow-2xl overflow-hidden max-h-[92vh] z-10 animate-in zoom-in-95 duration-150 flex flex-col">
+        {/* Form Area */}
+        <div className="flex-1 p-6 sm:p-8 overflow-y-auto bg-card text-toota-ink custom-scrollbar">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface">
-                {t("editMemberProfile")}
-              </h3>
-              <p className="text-on-surface-variant text-xs md:text-sm mt-1">
-                {member.firstName} {member.lastName} (@{member.userName || "member"})
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-xl font-semibold tracking-tight text-toota-ink">
+                  {t("editMemberProfile", "Edit Member Profile")}
+                </h3>
+                <span className="font-mono text-xs text-toota-muted tabular-nums">
+                  / @{member.userName || "member"}
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-1">
+                {member.firstName} {member.lastName}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 hover:bg-surface-container-high rounded-full transition-colors text-on-surface-variant hover:text-on-surface cursor-pointer"
+              disabled={isSubmitting}
+              className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+              aria-label="Close modal"
             >
-              <X className="w-5 h-5" />
+              <X className="size-4" />
             </button>
           </div>
 
@@ -169,149 +152,121 @@ export default function EditMemberModal({
             <div className="space-y-4">
               {/* First & Last Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("firstName")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("firstName", "First Name")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     {...register("firstName")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.firstName
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.firstName && (
-                    <p className="text-xs text-error mt-0.5">{errors.firstName.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.firstName.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("lastName")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("lastName", "Last Name")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     {...register("lastName")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.lastName
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.lastName && (
-                    <p className="text-xs text-error mt-0.5">{errors.lastName.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.lastName.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Gender & Birth Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("gender")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("gender", "Gender")} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     {...register("gender")}
-                    className="w-full px-3.5 py-2.5 bg-surface-bright border border-outline-variant rounded-xl text-sm font-medium text-on-surface outline-none focus:ring-2 focus:ring-primary-container"
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                   >
-                    <option value="MALE">{t("male")}</option>
-                    <option value="FEMALE">{t("female")}</option>
+                    <option value="MALE">{t("male", "Male")}</option>
+                    <option value="FEMALE">{t("female", "Female")}</option>
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("birthDate")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("birthDate", "Birth Date")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="date"
                     {...register("birthDate")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.birthDate
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                   />
                   {errors.birthDate && (
-                    <p className="text-xs text-error mt-0.5">{errors.birthDate.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.birthDate.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Email & Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("emailAddress")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("emailAddress", "Email Address")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
                     {...register("email")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.email
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.email && (
-                    <p className="text-xs text-error mt-0.5">{errors.email.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.email.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("phone")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("phone", "Phone Number")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
                     {...register("phoneNumber")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.phoneNumber
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.phoneNumber && (
-                    <p className="text-xs text-error mt-0.5">{errors.phoneNumber.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.phoneNumber.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Residential Address & Emergency Contact */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("residentialAddress")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("residentialAddress", "Residential Address")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     {...register("address")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.address
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.address && (
-                    <p className="text-xs text-error mt-0.5">{errors.address.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.address.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("emergencyContact")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("emergencyContact", "Emergency Contact")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
                     {...register("emergencyContact")}
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                      errors.emergencyContact
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                    }`}
+                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all"
                   />
                   {errors.emergencyContact && (
-                    <p className="text-xs text-error mt-0.5">
+                    <p className="text-[11px] text-rose-500">
                       {errors.emergencyContact.message}
                     </p>
                   )}
@@ -319,33 +274,35 @@ export default function EditMemberModal({
               </div>
             </div>
 
-            {/* Form Actions */}
+            {/* Form Actions (Toota Pill Buttons) */}
             <div className="flex items-center gap-3 pt-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-3 rounded-xl border border-outline-variant font-bold text-sm text-on-surface-variant hover:bg-surface-container-low transition-all cursor-pointer"
+                className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
               >
-                {t("cancel")}
-              </button>
-              <button
+                <span>{t("cancel", "Cancel")}</span>
+              </Button>
+              <Button
                 type="submit"
+                variant="outline"
                 disabled={isSubmitting}
-                className="flex-[2] primary-gradient text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{t("savingChanges")}</span>
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
+                    <span>{t("savingChanges", "Saving Changes...")}</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
-                    <span>{t("saveChanges")}</span>
+                    <Save className="size-3.5 me-1.5" />
+                    <span>{t("saveChanges", "Save Changes")}</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

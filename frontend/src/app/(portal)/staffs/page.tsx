@@ -477,11 +477,11 @@ export default function StaffsPage() {
                 </span>
               )}
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {t("liveFromApi") || "Live"}
+                {t("liveFromApi", "Live")}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("registeredStaff") || "Registered facility staff"}
+              {t("registeredStaff", "Registered facility staff")}
             </p>
           </CardContent>
         </Card>
@@ -490,7 +490,7 @@ export default function StaffsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("totalActiveStaff") || "Active Staff"}
+              {t("totalActiveStaff", "Active Staff")}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
               <ShieldCheck className="size-5" />
@@ -511,7 +511,7 @@ export default function StaffsPage() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("activeStaffDesc") || "On-duty and verified staff"}
+              {t("activeStaffDesc", "On-duty and verified staff")}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
@@ -526,7 +526,7 @@ export default function StaffsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("pendingApproval") || "Pending Staff"}
+              {t("pendingApproval", "Pending Staff")}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
               <Clock className="size-5" />
@@ -547,7 +547,7 @@ export default function StaffsPage() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("pendingStaffDesc") || "Awaiting credentials review"}
+              {t("pendingStaffDesc", "Awaiting credentials review")}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
@@ -562,7 +562,7 @@ export default function StaffsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("bannedStaff") || "Banned Staff"}
+              {t("bannedStaff", "Banned Staff")}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
               <UserX className="size-5" />
@@ -583,7 +583,7 @@ export default function StaffsPage() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("bannedStaffDesc") || "Revoked facility access"}
+              {t("bannedStaffDesc", "Revoked facility access")}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
@@ -596,45 +596,7 @@ export default function StaffsPage() {
       </div>
 
       {/* Filter & Search Bar Card */}
-      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col gap-4">
-        {/* Quick Filter Status Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {[
-            { id: "", label: t("allStatuses") || "All Staff", count: totalCount },
-            { id: "ACTIVE", label: t("active") || "Active", count: activeCount },
-            { id: "PENDING", label: t("pending") || "Pending", count: pendingCount },
-            { id: "BANNED", label: t("banned") || "Banned", count: bannedCount },
-          ].map((tab) => {
-            const isSelected = selectedStatus === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setSelectedStatus(tab.id);
-                  setCurrentPage(1);
-                }}
-                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
-                  isSelected
-                    ? "active font-bold shadow-xs"
-                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isSelected
-                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
-                      : "bg-toota-inner text-toota-muted"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
+      <Card className="toota-card border-none p-4 sm:p-5">
         {/* Search & Select Controls */}
         <div className="flex flex-col md:flex-row items-center gap-3">
           {/* Search Input */}
