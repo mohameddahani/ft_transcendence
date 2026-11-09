@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  basePath: '/superadmin',
+  basePath: '/owner-portal',
 };
 
 export default nextConfig;
