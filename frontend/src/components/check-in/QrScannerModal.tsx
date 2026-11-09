@@ -3,16 +3,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   X,
-  Camera,
-  Keyboard,
-  CheckCircle2,
   AlertCircle,
   Loader2,
   ScanLine,
-  Sparkles,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Button } from "@/components/ui/button";
 
 interface QrScannerModalProps {
   isOpen: boolean;
@@ -28,18 +25,16 @@ export default function QrScannerModal({
   isProcessing,
 }: QrScannerModalProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<"camera" | "manual">("camera");
-  const [manualToken, setManualToken] = useState("");
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isScanningRef = useRef(false);
 
-  // Initialize Camera Scanner when modal is open and on 'camera' tab
+  // Initialize Camera Scanner when modal is open
   useEffect(() => {
     let html5QrCode: Html5Qrcode | null = null;
 
-    if (isOpen && activeTab === "camera") {
+    if (isOpen) {
       setCameraError(null);
       const scannerElementId = "interactive-qr-reader";
 
@@ -110,39 +105,41 @@ export default function QrScannerModal({
         setIsCameraActive(false);
       };
     }
-  }, [isOpen, activeTab, onScanSuccess]);
+  }, [isOpen, onScanSuccess]);
 
   if (!isOpen) return null;
 
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualToken.trim() || isProcessing) return;
-    await onScanSuccess(manualToken.trim());
-    setManualToken("");
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-md bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/60 p-6 z-10 animate-in zoom-in-95 duration-200 space-y-5">
+      {/* Modal Dialog Card */}
+      <div className="relative w-full max-w-md toota-card border border-border/40 p-6 sm:p-7 shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-outline-variant/40">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl primary-gradient text-white flex items-center justify-center shadow-xs">
-              <ScanLine className="w-5 h-5" />
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-ink border border-border/40 shrink-0 shadow-inner">
+              <ScanLine className="size-5" />
             </div>
             <div>
-              <h3 className="font-headline text-base font-bold text-on-surface">
-                {t("scanQrCheckIn") || "Scan Member QR Pass"}
-              </h3>
-              <p className="text-[11px] text-on-surface-variant">
-                Hold member QR pass in front of camera or scanner
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-base font-bold tracking-tight text-toota-ink">
+                  {t("scanQrCheckIn", "Scan Member QR Pass")}
+                </h3>
+                <span className="font-mono text-xs text-toota-muted tabular-nums">
+                  / {t("qrCheckIn", "Live Scanner")}
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-0.5">
+                {t("holdQrInFrontOfCamera", "Hold member QR pass in front of camera")}
               </p>
             </div>
           </div>
@@ -150,151 +147,83 @@ export default function QrScannerModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+            aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* Tab Switcher: Camera vs USB Scanner/Manual */}
-        <div className="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant/40 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab("camera")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "camera"
-                ? "bg-surface-bright text-primary shadow-xs font-bold"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>{t("liveCamera") || "Live Camera"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("manual")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg transition-all cursor-pointer ${
-              activeTab === "manual"
-                ? "bg-surface-bright text-primary shadow-xs font-bold"
-                : "text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            <Keyboard className="w-3.5 h-3.5" />
-            <span>{t("usbOrManual") || "USB / Manual Token"}</span>
-          </button>
-        </div>
+        {/* Live Camera Scanner Viewport */}
+        <div className="space-y-3">
+          <div className="relative rounded-2xl overflow-hidden bg-black/95 aspect-square flex flex-col items-center justify-center border border-border/40 shadow-inner">
+            {/* html5-qrcode target div */}
+            <div id="interactive-qr-reader" className="w-full h-full" />
 
-        {/* Tab 1: Live Camera Scanner */}
-        {activeTab === "camera" && (
-          <div className="space-y-3">
-            <div className="relative rounded-2xl overflow-hidden bg-black/90 aspect-square flex flex-col items-center justify-center border border-outline-variant/60 shadow-inner">
-              {/* html5-qrcode target div */}
-              <div id="interactive-qr-reader" className="w-full h-full" />
-
-              {/* Scanning visual overlay box */}
-              {isCameraActive && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-48 h-48 border-2 border-primary/80 rounded-2xl relative animate-pulse shadow-lg shadow-primary/20">
-                    <span className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-primary" />
-                    <span className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-primary" />
-                    <span className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-primary" />
-                    <span className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-primary" />
-                  </div>
+            {/* Modern Targeting Reticle */}
+            {isCameraActive && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-52 h-52 relative">
+                  <span className="absolute top-0 left-0 size-5 border-t-2 border-l-2 border-[#a3e635] rounded-tl-lg" />
+                  <span className="absolute top-0 right-0 size-5 border-t-2 border-r-2 border-[#a3e635] rounded-tr-lg" />
+                  <span className="absolute bottom-0 left-0 size-5 border-b-2 border-l-2 border-[#a3e635] rounded-bl-lg" />
+                  <span className="absolute bottom-0 right-0 size-5 border-b-2 border-r-2 border-[#a3e635] rounded-br-lg" />
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Processing Overlay */}
-              {isProcessing && (
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center space-y-2 text-white z-20">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-xs font-bold">{t("verifyingQrToken")}</p>
+            {/* Processing Overlay */}
+            {isProcessing && (
+              <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex flex-col items-center justify-center gap-2.5 text-white z-20">
+                <Loader2 className="size-7 animate-spin text-[#a3e635]" />
+                <p className="text-xs font-mono font-medium tracking-wide">
+                  {t("verifyingQrToken", "Verifying token...")}
+                </p>
+              </div>
+            )}
+
+            {/* Camera Error / No permission state */}
+            {cameraError && (
+              <div className="p-6 text-center space-y-3 z-10">
+                <div className="size-10 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center mx-auto">
+                  <AlertCircle className="size-5" />
                 </div>
-              )}
-
-              {/* Camera Error / No permission state */}
-              {cameraError && (
-                <div className="p-6 text-center space-y-3 z-10">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
-                    <AlertCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">{t("cameraOffline")}</h4>
-                    <p className="text-[11px] text-slate-400 mt-1 max-w-xs leading-relaxed">
-                      {t("cameraPermissionPrompt")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("manual")}
-                    className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-95 transition-opacity"
-                  >
-                    {t("switchToManualUsb")}
-                  </button>
+                <div>
+                  <h4 className="text-xs font-semibold text-white">
+                    {t("cameraOffline", "Camera Offline")}
+                  </h4>
+                  <p className="text-[11px] text-zinc-400 mt-1 max-w-xs leading-relaxed">
+                    {t("cameraPermissionPrompt", "Camera permission was denied or device is unavailable.")}
+                  </p>
                 </div>
-              )}
-            </div>
-
-            <p className="text-center text-[11px] text-on-surface-variant">
-              {t("positionQrGuide")}
-            </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="toota-pill h-9 px-4 text-xs font-semibold border-white/20 text-white hover:bg-white/10"
+                >
+                  {t("close", "Close")}
+                </Button>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Tab 2: USB Scanner / Keyboard Input */}
-        {activeTab === "manual" && (
-          <form onSubmit={handleManualSubmit} className="space-y-4">
-            <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/40 space-y-1.5 text-xs">
-              <strong className="text-on-surface font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-                {t("usbScannerReady")}
-              </strong>
-              <p className="text-on-surface-variant leading-relaxed text-[11px]">
-                If using a handheld USB barcode gun, click inside the input below and pull the scanner trigger. It will auto-submit.
-              </p>
-            </div>
+          <p className="text-center text-xs text-toota-muted font-mono">
+            {t("positionQrGuide", "Align the QR code within the frame to automatically scan.")}
+          </p>
+        </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-on-surface">
-                {t("qrTokenString") || "QR Token / Member Pass Code"}
-              </label>
-              <input
-                type="text"
-                autoFocus
-                placeholder="e.g. 8f14e45fceea167a5a36dedd4bea2543"
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-surface-bright border border-outline-variant rounded-xl text-xs font-mono text-on-surface focus:ring-2 focus:ring-primary-container outline-none transition-all placeholder:text-on-surface-variant/50"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-outline-variant text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
-              >
-                {t("cancel") || "Cancel"}
-              </button>
-              <button
-                type="submit"
-                disabled={!manualToken.trim() || isProcessing}
-                className="px-5 py-2.5 rounded-xl primary-gradient text-white text-xs font-bold shadow-md hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{t("validateAndCheckIn") || "Validate & Check In"}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        )}
+        {/* Action Button */}
+        <div className="pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="toota-pill w-full h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
+          >
+            {t("cancel", "Cancel")}
+          </Button>
+        </div>
       </div>
     </div>
   );

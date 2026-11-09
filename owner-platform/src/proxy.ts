@@ -13,7 +13,7 @@ const protectedRoutes = [
 ];
 
 // Authentication routes that authenticated owners shouldn't revisit
-const authRoutes = ["/login"];
+const authRoutes = ["/login", "/forgot-password"];
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 

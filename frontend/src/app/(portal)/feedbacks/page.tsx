@@ -511,13 +511,13 @@ function AdminStaffFeedbackView() {
                 {stats.openCount}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / {stats.total} total
+                / {stats.total} {t("total", "total")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span>{t("activeTickets") || "Needs Review"}</span>
+                <span>{t("activeTickets", "Needs Review")}</span>
               </span>
             </div>
           </CardContent>
@@ -528,7 +528,7 @@ function AdminStaffFeedbackView() {
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between text-xs text-toota-muted">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-toota-muted">
-                {t("resolvedTickets") || "Resolved Inquiries"}
+                {t("resolvedTickets", "Resolved Inquiries")}
               </CardTitle>
               <CheckCircle2 className="size-4 text-emerald-500" />
             </div>
@@ -539,13 +539,13 @@ function AdminStaffFeedbackView() {
                 {stats.resolvedCount}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / {stats.total} total
+                / {stats.total} {t("total", "total")}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{t("documentedWithNotes") || "Documented"}</span>
+                <span>{t("documentedWithNotes", "Documented")}</span>
               </span>
             </div>
           </CardContent>
@@ -556,7 +556,7 @@ function AdminStaffFeedbackView() {
           <CardHeader className="p-5 pb-2">
             <div className="flex items-center justify-between text-xs text-toota-muted">
               <CardTitle className="text-xs font-medium uppercase tracking-wider text-toota-muted">
-                {t("positiveSentiment") || "Positive Sentiment"}
+                {t("positiveSentiment", "Positive Sentiment")}
               </CardTitle>
               <TrendingUp className="size-4 text-emerald-500" />
             </div>
@@ -567,7 +567,7 @@ function AdminStaffFeedbackView() {
                 {stats.positivePercent === null ? "—" : `${stats.positivePercent}%`}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / {stats.analysedCount} analyzed
+                / {stats.analysedCount} {t("analyzed", "analyzed")}
               </span>
             </div>
             {/* Visual bar */}
@@ -834,11 +834,11 @@ function AdminStaffFeedbackView() {
                     <div className="flex items-center justify-between font-semibold text-emerald-700 dark:text-emerald-300">
                       <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                         <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                        {t("resolutionNoteShort") || "Resolution Note"}
+                        {t("resolutionNoteShort", "Resolution Note")}
                       </span>
                       {item.resolvedAt && (
                         <span className="text-[10px] text-toota-muted font-normal font-mono">
-                          {t("resolvedOn") || "Resolved on"} {new Date(item.resolvedAt).toLocaleDateString()}
+                          {t("resolvedOn", "Resolved on")} {new Date(item.resolvedAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
@@ -852,7 +852,7 @@ function AdminStaffFeedbackView() {
                 <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
                   <div className="flex items-center gap-1.5 text-toota-muted text-[11px]">
                     <Lock className="size-3 opacity-60 shrink-0" />
-                    <span>Member submission immutable</span>
+                    <span>{t("memberSubmissionImmutable", "Member submission immutable")}</span>
                   </div>
 
                   <Button

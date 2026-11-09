@@ -88,38 +88,39 @@ export default function AddPlanModal({ isOpen, onClose, onSuccess }: AddPlanModa
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-4 sm:p-layout-margin space-y-4 sm:space-y-layout-margin overflow-y-auto flex-1">
             {/* Plan Identity: Name & Max Members */}
-            <div>
-              <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
-                Plan Identity
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
-                <div>
-                  <div className="relative">
-                    <input
-                      {...register("planName")}
-                      type="text"
-                      placeholder="Plan Name (e.g. Growth)"
-                      className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
-                    />
-                  </div>
-                  {errors.planName && (
-                    <p className="text-red-400 text-xs mt-1">{errors.planName.message}</p>
-                  )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
+                  Plan Identity
+                </label>
+                <div className="relative">
+                  <input
+                    {...register("planName")}
+                    type="text"
+                    placeholder="Plan Name (e.g. Growth)"
+                    className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
+                  />
                 </div>
+                {errors.planName && (
+                  <p className="text-red-400 text-xs mt-1">{errors.planName.message}</p>
+                )}
+              </div>
 
-                <div>
-                  <div className="relative">
-                    <input
-                      {...register("maxMembers", { valueAsNumber: true })}
-                      type="number"
-                      placeholder="Max Members Count"
-                      className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
-                    />
-                  </div>
-                  {errors.maxMembers && (
-                    <p className="text-red-400 text-xs mt-1">{errors.maxMembers.message}</p>
-                  )}
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
+                  Max Members
+                </label>
+                <div className="relative">
+                  <input
+                    {...register("maxMembers", { valueAsNumber: true })}
+                    type="number"
+                    placeholder="Max Members Count"
+                    className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
+                  />
                 </div>
+                {errors.maxMembers && (
+                  <p className="text-red-400 text-xs mt-1">{errors.maxMembers.message}</p>
+                )}
               </div>
             </div>
 
@@ -143,7 +144,7 @@ export default function AddPlanModal({ isOpen, onClose, onSuccess }: AddPlanModa
             <div>
               <div className="flex justify-between items-center mb-unit">
                 <label className="block font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider">
-                  Initial Duration & Pricing (Optional)
+                  Initial Duration & Pricing
                 </label>
                 <span className="font-body-sm text-body-sm text-on-surface-variant text-[11px]">
                   Can add more later

@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
-  XCircle,
   QrCode,
   UserCheck,
   Ban,
@@ -27,6 +26,12 @@ import {
   fetchMemberAttendanceById,
 } from "@/lib/api/member-portal";
 import { MemberVisit, MemberAttendance } from "@/types/member-portal";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import BookVisitModal from "@/components/visits/BookVisitModal";
 
 export default function MemberVisitsPage() {
@@ -44,7 +49,6 @@ export default function MemberVisitsPage() {
   // Single Item View Detail Modals
   const [selectedVisit, setSelectedVisit] = useState<MemberVisit | null>(null);
   const [selectedAttendance, setSelectedAttendance] = useState<MemberAttendance | null>(null);
-  const [_isDetailLoading, setIsDetailLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -58,7 +62,7 @@ export default function MemberVisitsPage() {
       setTodayVisits(today);
       setAttendances(att);
     } catch {
-      toast.error(t("failedToLoadVisits") || "Failed to load visits data", {
+      toast.error(t("failedToLoadVisits", "Failed to load visits data"), {
         position: "top-right",
       });
     } finally {
@@ -75,7 +79,7 @@ export default function MemberVisitsPage() {
     setCancellingId(visitId);
     try {
       await cancelMemberVisit(visitId);
-      toast.success(t("visitCancelledSuccessfully") || "Visit successfully cancelled.", {
+      toast.success(t("visitCancelledSuccessfully", "Visit successfully cancelled."), {
         position: "top-right",
       });
       await loadData();
@@ -94,7 +98,6 @@ export default function MemberVisitsPage() {
 
   // Inspect Single Visit
   const handleInspectVisit = async (visitId: string) => {
-    setIsDetailLoading(true);
     try {
       const visit = await fetchTodayVisitById(visitId);
       setSelectedVisit(visit);
@@ -102,215 +105,353 @@ export default function MemberVisitsPage() {
       // Fallback to in-memory item
       const found = todayVisits.find((v) => v.id === visitId) || upcomingVisits.find((v) => v.id === visitId);
       if (found) setSelectedVisit(found);
-    } finally {
-      setIsDetailLoading(false);
     }
   };
 
   // Inspect Single Attendance
   const handleInspectAttendance = async (attendanceId: string) => {
-    setIsDetailLoading(true);
     try {
       const att = await fetchMemberAttendanceById(attendanceId);
       setSelectedAttendance(att);
     } catch {
       const found = attendances.find((a) => a.id === attendanceId);
       if (found) setSelectedAttendance(found);
-    } finally {
-      setIsDetailLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  // Crisp Outlined Micro-Badges
+  const renderStatusBadge = (status: string) => {
     switch (status) {
       case "READY":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            {t("ready") || "Scheduled"}
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span suppressHydrationWarning>{t("ready", "Scheduled")}</span>
           </span>
         );
       case "CHECKED_IN":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            {t("checkedIn") || "Checked In"}
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span suppressHydrationWarning>{t("checkedIn", "Checked In")}</span>
           </span>
         );
       case "CANCELLED":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-error/10 text-error border border-error/20">
-            <XCircle className="w-3.5 h-3.5" />
-            {t("cancelled") || "Cancelled"}
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+            <span suppressHydrationWarning>{t("cancelled", "Cancelled")}</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-container text-on-surface-variant">
-            {status}
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+            <span>{status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}</span>
           </span>
         );
     }
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Top Banner & Quick Booking */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 mb-1">
-            <CalendarCheck className="w-3.5 h-3.5" />
-            <span>{t("visitsAndAttendances") || "Visits & Attendances"}</span>
+    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-12">
+      {/* 1. Top Header Card (Single Typographic Baseline Metric) */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h1
+                suppressHydrationWarning
+                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+              >
+                {t("myGymVisits", "My Workout Visits")}
+              </h1>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {t("memberPortal", "Member Portal")}
+              </span>
+              <span
+                suppressHydrationWarning
+                className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums"
+              >
+                / {activeTab === "upcoming"
+                  ? `${upcomingVisits.length} ${t("upcomingVisits", "upcoming")}`
+                  : activeTab === "today"
+                  ? `${todayVisits.length} ${t("today", "today")}`
+                  : `${attendances.length} ${t("sessions", "sessions")}`}
+              </span>
+            </div>
+            <p
+              suppressHydrationWarning
+              className="text-xs sm:text-sm text-toota-muted mt-1 font-normal"
+            >
+              {t(
+                "myGymVisitsSubtitle",
+                "Schedule workouts ahead of time, check upcoming sessions, and review your workout history."
+              )}
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-headline text-on-surface">
-            {t("myGymVisits") || "My Workout Visits"}
-          </h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant">
-            {t("myGymVisitsSubtitle") ||
-              "Schedule workouts ahead of time, check upcoming sessions, and review your workout history."}
-          </p>
-        </div>
 
-        <div className="relative z-10 flex items-center gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-bold border border-outline-variant/60 transition-all cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            <span>{t("refresh") || "Refresh"}</span>
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadData}
+              disabled={isLoading}
+              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+            >
+              <RefreshCw className={`size-3.5 me-2 ${isLoading ? "animate-spin text-toota-ink" : ""}`} />
+              <span suppressHydrationWarning>{t("refresh", "Refresh")}</span>
+            </Button>
 
-          <button
-            type="button"
-            onClick={() => setIsBookModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 primary-gradient text-white rounded-xl text-xs font-bold shadow-md hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t("bookVisit") || "Schedule Visit"}</span>
-          </button>
+            <Button
+              type="button"
+              onClick={() => setIsBookModalOpen(true)}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="size-3.5 me-1.5" />
+              <span suppressHydrationWarning>{t("bookVisit", "Schedule Visit")}</span>
+            </Button>
+          </div>
         </div>
+      </Card>
+
+      {/* 2. 3 Bento KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {/* Metric 1: Upcoming Visits */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span
+              suppressHydrationWarning
+              className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
+            >
+              {t("upcomingVisits", "Upcoming Visits")}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+              <Calendar className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between gap-2">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-ink" />
+              ) : (
+                <span className="text-3xl font-bold tracking-tight text-toota-ink font-mono">
+                  {upcomingVisits.length}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span suppressHydrationWarning>{t("ready", "Scheduled")}</span>
+              </span>
+            </div>
+            <p
+              suppressHydrationWarning
+              className="text-xs text-toota-muted mt-2 truncate"
+            >
+              {upcomingVisits.length > 0
+                ? `${upcomingVisits.length} upcoming workouts reserved`
+                : t("noUpcomingVisits", "No upcoming visits scheduled")}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  upcomingVisits.length > 0 ? "bg-amber-500" : "bg-toota-muted"
+                }`}
+                style={{ width: upcomingVisits.length > 0 ? "100%" : "0%" }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 2: Today's Schedule */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span
+              suppressHydrationWarning
+              className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
+            >
+              {t("todaysVisits", "Visits Today")}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+              <Clock className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between gap-2">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-ink" />
+              ) : (
+                <span className="text-3xl font-bold tracking-tight text-toota-ink font-mono">
+                  {todayVisits.length}
+                </span>
+              )}
+              {todayVisits.length > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span suppressHydrationWarning>{t("today", "Today")}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+                  <span>None</span>
+                </span>
+              )}
+            </div>
+            <p
+              suppressHydrationWarning
+              className="text-xs text-toota-muted mt-2 truncate"
+            >
+              {todayVisits.length > 0
+                ? t("checkInAllowed", "Check-in ready upon arrival")
+                : t("noVisitsToday", "No visits scheduled for today")}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  todayVisits.length > 0 ? "bg-toota-green" : "bg-toota-muted"
+                }`}
+                style={{ width: todayVisits.length > 0 ? "100%" : "0%" }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Metric 3: Completed Check-ins */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span
+              suppressHydrationWarning
+              className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
+            >
+              {t("totalAttendances", "Completed Check-ins")}
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+              <CheckCircle2 className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between gap-2">
+              {isLoading ? (
+                <Loader2 className="size-7 animate-spin text-toota-green" />
+              ) : (
+                <span className="text-3xl font-bold tracking-tight text-toota-green font-mono">
+                  {attendances.length}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span suppressHydrationWarning>{t("sessions", "sessions")}</span>
+              </span>
+            </div>
+            <p
+              suppressHydrationWarning
+              className="text-xs text-toota-muted mt-2 truncate"
+            >
+              {attendances.length > 0
+                ? `${t("lastCheckinMethod", "Last")}: ${
+                    attendances[0].attendanceMethod === "QR_CODE"
+                      ? t("qrCheckIn", "QR Check-in")
+                      : t("manualCheckIn", "Front Desk")
+                  }`
+                : t("noAttendancesYet", "No check-ins recorded yet")}
+            </p>
+            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  attendances.length > 0 ? "bg-toota-green" : "bg-toota-muted"
+                }`}
+                style={{ width: attendances.length > 0 ? "100%" : "0%" }}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              {t("upcomingVisits") || "Upcoming Visits"}
-            </p>
-            <p className="text-2xl font-bold font-headline text-on-surface mt-1">
-              {upcomingVisits.length}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-            <Calendar className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              {t("todaysVisits") || "Visits Today"}
-            </p>
-            <p className="text-2xl font-bold font-headline text-primary mt-1">
-              {todayVisits.length}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-            <Clock className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-surface-container-lowest border border-outline-variant/60 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-              {t("totalAttendances") || "Completed Check-ins"}
-            </p>
-            <p className="text-2xl font-bold font-headline text-emerald-600 dark:text-emerald-400 mt-1">
-              {attendances.length}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-2">
+      {/* 3. Segmented Navigation Tabs */}
+      <div className="p-1 rounded-2xl bg-toota-inner border border-border/40 inline-flex items-center gap-1 max-w-full overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("upcoming")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "upcoming"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
+              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>
-            {t("upcomingVisits") || "Upcoming Visits"} ({upcomingVisits.length})
+          <Calendar className="size-3.5" />
+          <span suppressHydrationWarning>{t("upcomingVisits", "Upcoming Visits")}</span>
+          <span className="font-mono text-[11px] tabular-nums opacity-75">
+            ({upcomingVisits.length})
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("today")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "today"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
+              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
           }`}
         >
-          <Clock className="w-4 h-4" />
-          <span>
-            {t("todaysVisits") || "Today's Schedule"} ({todayVisits.length})
+          <Clock className="size-3.5" />
+          <span suppressHydrationWarning>{t("todaysVisits", "Today's Schedule")}</span>
+          <span className="font-mono text-[11px] tabular-nums opacity-75">
+            ({todayVisits.length})
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("attendances")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "attendances"
-              ? "bg-primary text-white shadow-xs"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low"
+              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
+              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
           }`}
         >
-          <UserCheck className="w-4 h-4" />
-          <span>
-            {t("attendanceHistory") || "Attendance History"} ({attendances.length})
+          <UserCheck className="size-3.5" />
+          <span suppressHydrationWarning>{t("attendanceHistory", "Attendance History")}</span>
+          <span className="font-mono text-[11px] tabular-nums opacity-75">
+            ({attendances.length})
           </span>
         </button>
       </div>
 
-      {/* Tab 1: Upcoming Visits */}
+      {/* 4. Tab 1: Upcoming Visits */}
       {activeTab === "upcoming" && (
-        <div className="space-y-4">
+        <div>
           {upcomingVisits.length === 0 ? (
-            <div className="p-12 rounded-3xl bg-surface-container-lowest border border-outline-variant/60 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
-                <Calendar className="w-6 h-6" />
+            <Card className="toota-card border-none p-12 text-center space-y-3">
+              <div className="size-12 rounded-2xl bg-toota-inner text-toota-muted flex items-center justify-center mx-auto">
+                <Calendar className="size-6" />
               </div>
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("noUpcomingVisits") || "No Upcoming Visits Scheduled"}
-              </h3>
-              <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
-                {t("noUpcomingVisitsHint") ||
-                  "You have no upcoming workout visits. Schedule one now to guarantee your gym slot!"}
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsBookModalOpen(true)}
-                className="mt-2 inline-flex items-center gap-2 px-4 py-2 primary-gradient text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-95 cursor-pointer"
+              <h3
+                suppressHydrationWarning
+                className="font-semibold text-base text-toota-ink"
               >
-                <Plus className="w-4 h-4" />
-                <span>{t("bookVisit") || "Schedule Visit"}</span>
-              </button>
-            </div>
+                {t("noUpcomingVisits", "No Upcoming Visits Scheduled")}
+              </h3>
+              <p
+                suppressHydrationWarning
+                className="text-xs text-toota-muted max-w-sm mx-auto leading-relaxed"
+              >
+                {t(
+                  "noUpcomingVisitsHint",
+                  "You have no upcoming workout visits. Schedule one now to guarantee your gym slot!"
+                )}
+              </p>
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsBookModalOpen(true)}
+                  className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="size-3.5 me-1.5" />
+                  <span suppressHydrationWarning>{t("bookVisit", "Schedule Visit")}</span>
+                </Button>
+              </div>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {upcomingVisits.map((visit) => {
@@ -318,14 +459,14 @@ export default function MemberVisitsPage() {
                 const isCancelling = cancellingId === visit.id;
 
                 return (
-                  <div
+                  <Card
                     key={visit.id}
-                    className="p-5 rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-xs flex flex-col justify-between gap-4 hover:border-primary/30 transition-all"
+                    className="toota-card border-none flex flex-col justify-between gap-4 p-5 hover:bg-toota-inner/30 transition-all shadow-xs"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        {getStatusBadge(visit.visitStatus)}
-                        <span className="text-[11px] text-on-surface-variant font-mono">
+                        {renderStatusBadge(visit.visitStatus)}
+                        <span className="text-xs text-toota-muted font-mono tabular-nums">
                           {dateObj.toLocaleDateString(undefined, {
                             weekday: "short",
                             month: "short",
@@ -335,8 +476,8 @@ export default function MemberVisitsPage() {
                       </div>
 
                       <div>
-                        <div className="flex items-center gap-2 text-on-surface font-headline font-extrabold text-xl">
-                          <Clock className="w-5 h-5 text-primary shrink-0" />
+                        <div className="flex items-center gap-2 text-toota-ink font-bold text-xl font-mono">
+                          <Clock className="size-4 text-primary shrink-0" />
                           <span>
                             {dateObj.toLocaleTimeString([], {
                               hour: "2-digit",
@@ -345,40 +486,44 @@ export default function MemberVisitsPage() {
                           </span>
                         </div>
                         {visit.membership?.membershipPlan?.planName && (
-                          <p className="text-xs text-on-surface-variant mt-1">
-                            {t("membership") || "Plan"}: {visit.membership.membershipPlan.planName}
+                          <p className="text-xs text-toota-muted mt-1">
+                            {t("membership", "Plan")}: {visit.membership.membershipPlan.planName}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-2">
-                      <button
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleInspectVisit(visit.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold transition-all cursor-pointer"
+                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{t("details") || "Details"}</span>
-                      </button>
+                        <Eye className="size-3.5 me-1 text-toota-muted" />
+                        <span suppressHydrationWarning>{t("details", "Details")}</span>
+                      </Button>
 
                       {visit.visitStatus === "READY" && (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-error/10 hover:bg-error/20 text-error text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="size-3.5 animate-spin me-1" />
                           ) : (
-                            <Ban className="w-3.5 h-3.5" />
+                            <Ban className="size-3.5 me-1" />
                           )}
-                          <span>{t("cancelVisit") || "Cancel"}</span>
-                        </button>
+                          <span suppressHydrationWarning>{t("cancelVisit", "Cancel")}</span>
+                        </Button>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
@@ -386,30 +531,40 @@ export default function MemberVisitsPage() {
         </div>
       )}
 
-      {/* Tab 2: Today's Visits */}
+      {/* 5. Tab 2: Today's Visits */}
       {activeTab === "today" && (
-        <div className="space-y-4">
+        <div>
           {todayVisits.length === 0 ? (
-            <div className="p-12 rounded-3xl bg-surface-container-lowest border border-outline-variant/60 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-surface-container text-on-surface-variant flex items-center justify-center mx-auto">
-                <Clock className="w-6 h-6" />
+            <Card className="toota-card border-none p-12 text-center space-y-3">
+              <div className="size-12 rounded-2xl bg-toota-inner text-toota-muted flex items-center justify-center mx-auto">
+                <Clock className="size-6" />
               </div>
-              <h3 className="font-headline font-bold text-base text-on-surface">
-                {t("noVisitsToday") || "No Visits Scheduled for Today"}
-              </h3>
-              <p className="text-xs text-on-surface-variant max-w-sm mx-auto">
-                {t("noVisitsTodayHint") ||
-                  "You don't have any workout visits scheduled for today. Feel free to book a slot whenever you're ready!"}
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsBookModalOpen(true)}
-                className="mt-2 inline-flex items-center gap-2 px-4 py-2 primary-gradient text-white rounded-xl text-xs font-bold shadow-sm hover:opacity-95 cursor-pointer"
+              <h3
+                suppressHydrationWarning
+                className="font-semibold text-base text-toota-ink"
               >
-                <Plus className="w-4 h-4" />
-                <span>{t("bookVisit") || "Schedule Visit"}</span>
-              </button>
-            </div>
+                {t("noVisitsToday", "No Visits Scheduled for Today")}
+              </h3>
+              <p
+                suppressHydrationWarning
+                className="text-xs text-toota-muted max-w-sm mx-auto leading-relaxed"
+              >
+                {t(
+                  "noVisitsTodayHint",
+                  "You don't have any workout visits scheduled for today. Feel free to book a slot whenever you're ready!"
+                )}
+              </p>
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  onClick={() => setIsBookModalOpen(true)}
+                  className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="size-3.5 me-1.5" />
+                  <span suppressHydrationWarning>{t("bookVisit", "Schedule Visit")}</span>
+                </Button>
+              </div>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {todayVisits.map((visit) => {
@@ -417,63 +572,71 @@ export default function MemberVisitsPage() {
                 const isCancelling = cancellingId === visit.id;
 
                 return (
-                  <div
+                  <Card
                     key={visit.id}
-                    className="p-5 rounded-3xl bg-surface-container-lowest border border-primary/20 shadow-xs flex flex-col justify-between gap-4"
+                    className="toota-card border-none flex flex-col justify-between gap-4 p-5 hover:bg-toota-inner/30 transition-all shadow-xs"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        {getStatusBadge(visit.visitStatus)}
-                        <span className="text-xs font-bold text-primary">
-                          {t("today") || "Today"}
+                        {renderStatusBadge(visit.visitStatus)}
+                        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span suppressHydrationWarning>{t("today", "Today")}</span>
                         </span>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <Clock className="w-6 h-6" />
+                        <div className="size-11 rounded-2xl bg-toota-inner text-toota-ink flex items-center justify-center shrink-0">
+                          <Clock className="size-5" />
                         </div>
                         <div>
-                          <p className="font-headline font-extrabold text-xl text-on-surface">
+                          <p className="font-bold text-xl font-mono text-toota-ink">
                             {dateObj.toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
                           </p>
-                          <p className="text-xs text-on-surface-variant">
-                            {t("checkInAllowed") || "Check-in ready upon arrival"}
+                          <p
+                            suppressHydrationWarning
+                            className="text-xs text-toota-muted mt-0.5"
+                          >
+                            {t("checkInAllowed", "Check-in ready upon arrival")}
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-2">
-                      <button
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleInspectVisit(visit.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold transition-all cursor-pointer"
+                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{t("viewDetails") || "View Details"}</span>
-                      </button>
+                        <Eye className="size-3.5 me-1 text-toota-muted" />
+                        <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
+                      </Button>
 
                       {visit.visitStatus === "READY" && (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-error/10 hover:bg-error/20 text-error text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="size-3.5 animate-spin me-1" />
                           ) : (
-                            <Ban className="w-3.5 h-3.5" />
+                            <Ban className="size-3.5 me-1" />
                           )}
-                          <span>{t("cancel") || "Cancel"}</span>
-                        </button>
+                          <span suppressHydrationWarning>{t("cancel", "Cancel")}</span>
+                        </Button>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
@@ -481,38 +644,48 @@ export default function MemberVisitsPage() {
         </div>
       )}
 
-      {/* Tab 3: Attendance History */}
+      {/* 6. Tab 3: Attendance History */}
       {activeTab === "attendances" && (
-        <div className="rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-outline-variant/60 flex items-center justify-between">
-            <h3 className="font-headline font-bold text-base text-on-surface flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-primary" />
-              {t("attendanceLogs") || "Check-in Logs"}
-            </h3>
-            <span className="text-xs text-on-surface-variant font-mono">
-              {attendances.length} {t("sessions") || "sessions"}
-            </span>
+        <Card className="toota-card border-none p-0 overflow-hidden shadow-xs">
+          <div className="p-4 sm:p-5 border-b border-border/40 flex items-center justify-between">
+            <div className="flex items-baseline gap-2">
+              <h2
+                suppressHydrationWarning
+                className="text-xs sm:text-sm font-semibold text-toota-ink"
+              >
+                {t("attendanceLogs", "Check-in Logs")}
+              </h2>
+              <span
+                suppressHydrationWarning
+                className="font-mono text-xs text-toota-muted tabular-nums"
+              >
+                / {attendances.length} {t("sessions", "sessions")}
+              </span>
+            </div>
           </div>
 
           {attendances.length === 0 ? (
-            <div className="p-12 text-center text-xs text-on-surface-variant">
-              {t("noAttendancesYet") || "No attendance check-ins recorded yet."}
+            <div
+              suppressHydrationWarning
+              className="p-12 text-center text-xs text-toota-muted"
+            >
+              {t("noAttendancesYet", "No attendance check-ins recorded yet.")}
             </div>
           ) : (
-            <div className="divide-y divide-outline-variant/40">
+            <div className="divide-y divide-border/40">
               {attendances.map((item) => {
                 const checkedInDate = new Date(item.checkedInAt);
                 return (
                   <div
                     key={item.id}
-                    className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-container-low/50 transition-colors"
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-toota-inner/40 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-5 h-5" />
+                    <div className="flex items-center gap-3.5">
+                      <div className="size-10 rounded-full bg-toota-inner text-toota-green flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="size-5" />
                       </div>
                       <div className="space-y-0.5">
-                        <p className="font-headline font-bold text-sm text-on-surface">
+                        <p className="font-semibold text-sm text-toota-ink">
                           {checkedInDate.toLocaleDateString(undefined, {
                             weekday: "long",
                             year: "numeric",
@@ -520,47 +693,49 @@ export default function MemberVisitsPage() {
                             day: "numeric",
                           })}
                         </p>
-                        <p className="text-xs text-on-surface-variant flex items-center gap-2">
-                          <span className="font-mono">
+                        <div className="flex items-center gap-2 text-xs text-toota-muted">
+                          <span className="font-mono tabular-nums">
                             {checkedInDate.toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}
                           </span>
                           <span>•</span>
-                          <span className="inline-flex items-center gap-1 font-semibold text-primary">
+                          <span className="inline-flex items-center gap-1.5 font-medium text-toota-ink">
                             {item.attendanceMethod === "QR_CODE" ? (
                               <>
-                                <QrCode className="w-3 h-3" />
-                                {t("qrCheckIn") || "QR Check-in"}
+                                <QrCode className="size-3 text-toota-muted" />
+                                <span suppressHydrationWarning>{t("qrCheckIn", "QR Check-in")}</span>
                               </>
                             ) : (
                               <>
-                                <UserCheck className="w-3 h-3" />
-                                {t("manualCheckIn") || "Front Desk Check-in"}
+                                <UserCheck className="size-3 text-toota-muted" />
+                                <span suppressHydrationWarning>{t("manualCheckIn", "Front Desk Check-in")}</span>
                               </>
                             )}
                           </span>
-                        </p>
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleInspectAttendance(item.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface text-xs font-semibold border border-outline-variant/50 transition-all cursor-pointer"
+                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>{t("viewDetails") || "Details"}</span>
-                      </button>
+                        <Eye className="size-3.5 me-1 text-toota-muted" />
+                        <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
+                      </Button>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Booking Modal */}
@@ -575,60 +750,64 @@ export default function MemberVisitsPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
         >
-          <div className="relative w-full max-w-md rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-2xl p-6 sm:p-8 space-y-5">
+          <Card className="toota-card border-none shadow-2xl relative w-full max-w-md p-6 space-y-5">
             <button
               type="button"
               onClick={() => setSelectedVisit(null)}
-              className="absolute top-5 right-5 rtl:right-auto rtl:left-5 p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container cursor-pointer"
+              className="absolute top-5 end-5 p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="size-4" />
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                <CalendarCheck className="w-5 h-5" />
+              <div className="size-10 rounded-2xl bg-toota-inner text-toota-ink flex items-center justify-center">
+                <CalendarCheck className="size-5" />
               </div>
               <div>
-                <h3 className="font-headline font-bold text-base text-on-surface">
-                  {t("visitDetails") || "Visit Details"}
+                <h3
+                  suppressHydrationWarning
+                  className="font-semibold text-base text-toota-ink"
+                >
+                  {t("visitDetails", "Visit Details")}
                 </h3>
-                <p className="text-xs text-on-surface-variant font-mono">
+                <p className="text-xs text-toota-muted font-mono tabular-nums">
                   {selectedVisit.id.slice(0, 8)}...
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-2.5 text-xs">
+            <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2.5 text-xs text-toota-ink">
               <div className="flex items-center justify-between">
-                <span className="text-on-surface-variant">{t("status") || "Status"}:</span>
-                {getStatusBadge(selectedVisit.visitStatus)}
+                <span className="text-toota-muted">{t("status", "Status")}:</span>
+                {renderStatusBadge(selectedVisit.visitStatus)}
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-on-surface-variant">{t("scheduledTime") || "Scheduled"}:</span>
-                <span className="font-semibold text-on-surface">
+                <span className="text-toota-muted">{t("scheduledTime", "Scheduled")}:</span>
+                <span className="font-semibold text-toota-ink font-mono tabular-nums">
                   {new Date(selectedVisit.visitDateAndTime).toLocaleString()}
                 </span>
               </div>
               {selectedVisit.membership?.membershipPlan?.planName && (
                 <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant">{t("membershipPlan") || "Plan"}:</span>
-                  <span className="font-semibold text-on-surface">
+                  <span className="text-toota-muted">{t("membershipPlan", "Plan")}:</span>
+                  <span className="font-semibold text-toota-ink">
                     {selectedVisit.membership.membershipPlan.planName}
                   </span>
                 </div>
               )}
             </div>
 
-            <button
+            <Button
               type="button"
               onClick={() => setSelectedVisit(null)}
-              className="w-full py-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-bold text-xs border border-outline-variant/60 cursor-pointer"
+              className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
+              variant="outline"
             >
-              {t("close") || "Close"}
-            </button>
-          </div>
+              <span suppressHydrationWarning>{t("close", "Close")}</span>
+            </Button>
+          </Card>
         </div>
       )}
 
@@ -637,54 +816,68 @@ export default function MemberVisitsPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
         >
-          <div className="relative w-full max-w-md rounded-3xl bg-surface-container-lowest border border-outline-variant/60 shadow-2xl p-6 sm:p-8 space-y-5">
+          <Card className="toota-card border-none shadow-2xl relative w-full max-w-md p-6 space-y-5">
             <button
               type="button"
               onClick={() => setSelectedAttendance(null)}
-              className="absolute top-5 right-5 rtl:right-auto rtl:left-5 p-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container cursor-pointer"
+              className="absolute top-5 end-5 p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="size-4" />
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="size-10 rounded-2xl bg-toota-inner text-toota-green flex items-center justify-center">
+                <CheckCircle2 className="size-5" />
               </div>
               <div>
-                <h3 className="font-headline font-bold text-base text-on-surface">
-                  {t("attendanceDetails") || "Attendance Details"}
+                <h3
+                  suppressHydrationWarning
+                  className="font-semibold text-base text-toota-ink"
+                >
+                  {t("attendanceDetails", "Attendance Details")}
                 </h3>
-                <p className="text-xs text-on-surface-variant font-mono">
+                <p className="text-xs text-toota-muted font-mono tabular-nums">
                   {selectedAttendance.id.slice(0, 8)}...
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/40 space-y-2.5 text-xs">
+            <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2.5 text-xs text-toota-ink">
               <div className="flex items-center justify-between">
-                <span className="text-on-surface-variant">{t("checkedInAt") || "Checked In At"}:</span>
-                <span className="font-semibold text-on-surface">
+                <span className="text-toota-muted">{t("checkedInAt", "Checked In At")}:</span>
+                <span className="font-semibold text-toota-ink font-mono tabular-nums">
                   {new Date(selectedAttendance.checkedInAt).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-on-surface-variant">{t("method") || "Method"}:</span>
-                <span className="font-bold text-primary">
-                  {selectedAttendance.attendanceMethod === "QR_CODE" ? "QR Code" : "Manual Front Desk"}
+                <span className="text-toota-muted">{t("method", "Method")}:</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-toota-ink">
+                  {selectedAttendance.attendanceMethod === "QR_CODE" ? (
+                    <>
+                      <QrCode className="size-3 text-toota-muted" />
+                      <span suppressHydrationWarning>{t("qrCheckIn", "QR Check-in")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="size-3 text-toota-muted" />
+                      <span suppressHydrationWarning>{t("manualCheckIn", "Front Desk Check-in")}</span>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
 
-            <button
+            <Button
               type="button"
               onClick={() => setSelectedAttendance(null)}
-              className="w-full py-2.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-bold text-xs border border-outline-variant/60 cursor-pointer"
+              className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
+              variant="outline"
             >
-              {t("close") || "Close"}
-            </button>
-          </div>
+              <span suppressHydrationWarning>{t("close", "Close")}</span>
+            </Button>
+          </Card>
         </div>
       )}
     </div>

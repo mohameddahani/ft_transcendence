@@ -346,7 +346,7 @@ export default function MemberFeedbackView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 select-none">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* 1. Header Card (shadcn Card with Baseline Metric) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

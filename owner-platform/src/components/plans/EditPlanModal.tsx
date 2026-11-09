@@ -114,44 +114,39 @@ export default function EditPlanModal({
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
           <div className="p-4 sm:p-layout-margin space-y-4 sm:space-y-layout-margin overflow-y-auto flex-1">
             {/* Plan Identity: Name & Max Members */}
-            <div>
-              <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
-                Plan Identity
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
-                <div>
-                  <label className="block text-body-xs text-on-surface-variant mb-1">
-                    Plan Name
-                  </label>
-                  <input
-                    {...register("planName")}
-                    type="text"
-                    placeholder="e.g. Enterprise Tier"
-                    className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
-                  />
-                  {errors.planName && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.planName.message}
-                    </p>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
+                  Plan Identity
+                </label>
+                <input
+                  {...register("planName")}
+                  type="text"
+                  placeholder="e.g. Enterprise Tier"
+                  className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40"
+                />
+                {errors.planName && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.planName.message}
+                  </p>
+                )}
+              </div>
 
-                <div>
-                  <label className="block text-body-xs text-on-surface-variant mb-1">
-                    Max Members Capacity
-                  </label>
-                  <input
-                    {...register("maxMembers", { valueAsNumber: true })}
-                    type="number"
-                    placeholder="e.g. 500"
-                    className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40 font-mono-data"
-                  />
-                  {errors.maxMembers && (
-                    <p className="text-red-400 text-xs mt-1">
-                      {errors.maxMembers.message}
-                    </p>
-                  )}
-                </div>
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
+                  Max Members
+                </label>
+                <input
+                  {...register("maxMembers", { valueAsNumber: true })}
+                  type="number"
+                  placeholder="e.g. 500"
+                  className="w-full bg-surface-container border border-outline-variant text-body-md font-body-md p-unit px-3 rounded focus:ring-1 focus:ring-primary focus:border-primary outline-none text-on-surface placeholder:text-on-surface-variant/40 font-mono-data"
+                />
+                {errors.maxMembers && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.maxMembers.message}
+                  </p>
+                )}
               </div>
             </div>
 

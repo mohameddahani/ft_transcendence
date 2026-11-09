@@ -929,7 +929,7 @@ export default function AssistantPage() {
   }, [role, t]);
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-8 select-none">
+    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-8">
       {/* 1. Top Header Card (Single Typographic Baseline Metric) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

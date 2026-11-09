@@ -452,52 +452,7 @@ export default function CheckInPage() {
       </div>
 
       {/* Filter & Search Bar Card */}
-      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col gap-4">
-        {/* Quick Filter Status Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          {[
-            { id: "ALL", label: t("allVisits") || "All Visits", count: allVisits.length },
-            {
-              id: "READY",
-              label: t("awaitingCheckIn") || "Awaiting Verification",
-              count: stats.ready,
-            },
-            {
-              id: "CHECKED_IN",
-              label: t("checkedIn") || "Admitted",
-              count: stats.checkedIn,
-            },
-          ].map((tab) => {
-            const isSelected = statusFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setStatusFilter(tab.id as "ALL" | "READY" | "CHECKED_IN");
-                  setCurrentPage(1);
-                }}
-                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
-                  isSelected
-                    ? "active font-bold shadow-xs"
-                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
-                    isSelected
-                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
-                      : "bg-toota-inner text-toota-muted"
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
+      <Card className="toota-card border-none p-4 sm:p-5">
         {/* Search & Select Controls */}
         <div className="flex flex-col md:flex-row items-center gap-3">
           {/* Search Input */}

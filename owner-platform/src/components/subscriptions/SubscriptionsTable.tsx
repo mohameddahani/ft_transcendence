@@ -141,31 +141,31 @@ export default function SubscriptionsTable() {
     switch (status) {
       case "ACTIVE":
         return (
-          <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-label-caps text-label-caps font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            ACTIVE
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Active</span>
           </span>
         );
       case "PENDING":
         return (
-          <span className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full font-label-caps text-label-caps font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            PENDING
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>Pending</span>
           </span>
         );
       case "EXPIRED":
         return (
-          <span className="inline-flex items-center gap-1.5 bg-error/10 text-error border border-error/20 px-2.5 py-0.5 rounded-full font-label-caps text-label-caps font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-error" />
-            EXPIRED
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+            <span>Expired</span>
           </span>
         );
       case "CANCELLED":
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 bg-secondary-container/60 text-on-surface-variant border border-outline-variant px-2.5 py-0.5 rounded-full font-label-caps text-label-caps font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-outline" />
-            CANCELLED
+          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
+            <span>Cancelled</span>
           </span>
         );
     }
@@ -176,10 +176,15 @@ export default function SubscriptionsTable() {
       {/* Page Header & Action */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end gap-3 sm:gap-4">
         <div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
-            Platform Subscriptions
-          </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-unit">
+          <div className="flex items-baseline gap-2">
+            <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Platform Subscriptions
+            </h1>
+            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+              / {totalSubscriptions} total
+            </span>
+          </div>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
             Oversee and manage enterprise-level licenses and service levels.
           </p>
         </div>

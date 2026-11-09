@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Moon,
   Sparkles,
+  Save,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -24,6 +25,7 @@ import {
   createWorkingHour,
   updateWorkingHour,
 } from "@/lib/api/working-hours";
+import { Button } from "@/components/ui/button";
 
 interface WorkingHourModalProps {
   isOpen: boolean;
@@ -55,13 +57,13 @@ export default function WorkingHourModal({
 
   const daysList = useMemo(
     () => [
-      { value: 1, label: t("monday") },
-      { value: 2, label: t("tuesday") },
-      { value: 3, label: t("wednesday") },
-      { value: 4, label: t("thursday") },
-      { value: 5, label: t("friday") },
-      { value: 6, label: t("saturday") },
-      { value: 7, label: t("sunday") },
+      { value: 1, label: t("monday", "Monday") },
+      { value: 2, label: t("tuesday", "Tuesday") },
+      { value: 3, label: t("wednesday", "Wednesday") },
+      { value: 4, label: t("thursday", "Thursday") },
+      { value: 5, label: t("friday", "Friday") },
+      { value: 6, label: t("saturday", "Saturday") },
+      { value: 7, label: t("sunday", "Sunday") },
     ],
     [t]
   );
@@ -144,7 +146,7 @@ export default function WorkingHourModal({
           isClosed: values.isClosed,
           dayOfWeek: Number(values.dayOfWeek),
         });
-        toast.success(t("operatingHourSaved"));
+        toast.success(t("operatingHourSaved", "Working hours saved successfully"));
       } else {
         await createWorkingHour({
           dayOfWeek: Number(values.dayOfWeek),
@@ -152,7 +154,7 @@ export default function WorkingHourModal({
           endTime: values.endTime,
           isClosed: values.isClosed,
         });
-        toast.success(t("operatingHourSaved"));
+        toast.success(t("operatingHourSaved", "Working hours saved successfully"));
       }
 
       onSuccess?.();
@@ -174,55 +176,58 @@ export default function WorkingHourModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-2xl bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col z-10 animate-in zoom-in-95 duration-200">
-        {/* Header Banner */}
-        <div className="primary-gradient p-6 text-white relative overflow-hidden flex items-center justify-between">
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-xs shadow-inner">
-              <Clock className="w-5 h-5 text-white" />
+      {/* Modal Dialog Card */}
+      <div className="relative w-full max-w-2xl toota-card border border-border/40 p-6 sm:p-8 shadow-2xl overflow-hidden max-h-[92vh] z-10 animate-in zoom-in-95 duration-150 flex flex-col bg-card text-toota-ink space-y-6">
+        {/* Header with Baseline Metric */}
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {isEditing ? t("editWorkingHour", "Edit Working Hours") : t("addWorkingHour", "Add Regular Day")}
+              </h3>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {isEditing ? t("updateSchedule", "update schedule") : t("weeklyRoster", "weekly roster")}
+              </span>
             </div>
-            <div>
-              <h2 className="font-headline text-xl font-bold leading-tight">
-                {isEditing ? t("editWorkingHour") : t("addWorkingHour")}
-              </h2>
-              <p className="text-white/80 text-xs mt-0.5">
-                {isEditing
-                  ? t("workingHoursSubtitle")
-                  : t("clickAddWorkingHour")}
-              </p>
-            </div>
+            <p className="text-xs text-toota-muted mt-1">
+              {isEditing
+                ? t("workingHoursSubtitle", "Update operational hours or mark as closed.")
+                : t("clickAddWorkingHour", "Configure weekly schedule and opening hours.")}
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="relative z-10 p-2 hover:bg-white/20 rounded-full transition-colors text-white cursor-pointer"
+            disabled={isSubmitting}
+            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+            aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="size-4" />
           </button>
-
-          {/* Glow accents */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         </div>
 
         {/* Form Body */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="p-6 md:p-8 space-y-6 bg-surface-container-lowest overflow-y-auto max-h-[calc(90vh-140px)] custom-scrollbar"
+          className="space-y-6 overflow-y-auto custom-scrollbar pr-1"
         >
           {/* Day of Week Selector */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" />
-              {t("dayOfWeek")} *
+            <label className="text-xs font-medium text-toota-ink flex items-center gap-1.5">
+              <Calendar className="size-3.5 text-toota-muted" />
+              <span>{t("dayOfWeek", "Day of Week")} <span className="text-rose-500">*</span></span>
             </label>
 
             {/* Quick Day Chips */}
@@ -240,16 +245,16 @@ export default function WorkingHourModal({
                     onClick={() => setValue("dayOfWeek", day.value)}
                     className={`py-2 px-1 text-xs font-semibold rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
                       isSelected
-                        ? "bg-primary text-on-primary border-primary shadow-sm ring-2 ring-primary/20"
+                        ? "bg-toota-inner text-toota-ink border-border/80 shadow-2xs ring-1 ring-border"
                         : isConfigured
-                        ? "bg-surface-container-high/50 text-on-surface-variant/40 border-outline-variant/30 cursor-not-allowed line-through"
-                        : "bg-surface-bright text-on-surface hover:bg-surface-container border-outline-variant/60"
+                        ? "opacity-40 line-through bg-toota-inner/40 text-toota-muted border-transparent cursor-not-allowed"
+                        : "toota-inner border-border/40 text-toota-muted hover:text-toota-ink hover:bg-toota-card"
                     }`}
                   >
                     <span>{day.label.slice(0, 3)}</span>
                     {isConfigured && (
                       <span className="text-[9px] uppercase tracking-tighter opacity-70">
-                        {t("statusSaved") || "Set"}
+                        {t("statusSaved", "Set")}
                       </span>
                     )}
                   </button>
@@ -259,38 +264,30 @@ export default function WorkingHourModal({
 
             <input type="hidden" {...register("dayOfWeek", { valueAsNumber: true })} />
             {errors.dayOfWeek && (
-              <p className="text-xs text-error mt-0.5">
+              <p className="text-[11px] text-rose-500 mt-0.5">
                 {errors.dayOfWeek.message}
               </p>
             )}
           </div>
 
           {/* Closed Toggle Switch */}
-          <div className="p-4 rounded-xl border border-outline-variant/60 bg-surface-bright flex items-center justify-between transition-colors">
+          <div className="p-4 rounded-xl border border-border/40 toota-inner flex items-center justify-between transition-colors">
             <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  watchedClosed
-                    ? "bg-error-container text-error"
-                    : "bg-primary-container text-primary"
-                }`}
-              >
+              <div className="size-9 rounded-xl bg-card border border-border/40 flex items-center justify-center text-toota-ink shadow-inner">
                 {watchedClosed ? (
-                  <Moon className="w-5 h-5" />
+                  <Moon className="size-4 text-amber-500" />
                 ) : (
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="size-4 text-emerald-500" />
                 )}
               </div>
               <div>
-                <p className="text-sm font-bold text-on-surface">
-                  {t("markFacilityClosed")}
+                <p className="text-xs font-semibold text-toota-ink">
+                  {t("markFacilityClosed", "Mark Facility as Closed")}
                 </p>
-                <p className="text-xs text-on-surface-variant">
+                <p className="text-[11px] text-toota-muted">
                   {watchedClosed
-                    ? t("facilityClosedTooltip") ||
-                      "Members and staff cannot check in or access on this day"
-                    : t("facilityOpenTooltip") ||
-                      "Standard check-in hours and access will apply"}
+                    ? t("facilityClosedTooltip", "Facility is closed; check-ins disabled on this day")
+                    : t("facilityOpenTooltip", "Standard check-in hours and access apply")}
                 </p>
               </div>
             </div>
@@ -301,17 +298,17 @@ export default function WorkingHourModal({
                 {...register("isClosed")}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-error" />
+              <div className="w-11 h-6 bg-border/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500" />
             </label>
           </div>
 
           {/* Time Fields (Only if not closed) */}
           {!watchedClosed && (
-            <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-4 animate-in fade-in-0 duration-150">
               {/* Presets */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-primary" /> Presets:
+                <span className="text-[11px] font-mono text-toota-muted uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="size-3 text-toota-ink" /> Presets:
                 </span>
                 {PRESET_HOURS.map((preset) => (
                   <button
@@ -321,7 +318,7 @@ export default function WorkingHourModal({
                       setValue("startTime", preset.start);
                       setValue("endTime", preset.end);
                     }}
-                    className="text-xs px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 text-on-surface transition-colors cursor-pointer"
+                    className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
                   >
                     {preset.label}
                   </button>
@@ -330,89 +327,94 @@ export default function WorkingHourModal({
 
               {/* Start & End Times */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("openTime")} (HH:mm) *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("openTime", "Opening Time")} (HH:mm) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    <Clock className="size-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                     <input
                       type="time"
                       {...register("startTime")}
-                      className={`w-full pl-10 pr-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                      className={`w-full h-10 pl-10 pr-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
                         errors.startTime
-                          ? "border-error focus:ring-2 focus:ring-error/20"
-                          : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                          ? "border-rose-500 focus:ring-1 focus:ring-rose-500"
+                          : "border-border/40 focus:ring-1 focus:ring-ring"
                       }`}
                     />
                   </div>
                   {errors.startTime && (
-                    <p className="text-xs text-error mt-0.5">
+                    <p className="text-[11px] text-rose-500 mt-0.5">
                       {errors.startTime.message}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("closeTime")} (HH:mm) *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("closeTime", "Closing Time")} (HH:mm) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+                    <Clock className="size-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                     <input
                       type="time"
                       {...register("endTime")}
-                      className={`w-full pl-10 pr-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                      className={`w-full h-10 pl-10 pr-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
                         errors.endTime
-                          ? "border-error focus:ring-2 focus:ring-error/20"
-                          : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                          ? "border-rose-500 focus:ring-1 focus:ring-rose-500"
+                          : "border-border/40 focus:ring-1 focus:ring-ring"
                       }`}
                     />
                   </div>
                   {errors.endTime && (
-                    <p className="text-xs text-error mt-0.5">
+                    <p className="text-[11px] text-rose-500 mt-0.5">
                       {errors.endTime.message}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Live Hours Calculation Pill */}
+              {/* Live Hours Calculation Card */}
               {durationStr && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary font-semibold">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex items-center gap-2 p-3 rounded-xl toota-inner border border-border/40 text-xs text-toota-ink">
+                  <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
                   <span>
-                    Facility operates for <strong>{durationStr}</strong> on this day ({watchedStartTime} to {watchedEndTime}).
+                    Facility operates for <strong className="font-mono">{durationStr}</strong> on this day ({watchedStartTime} to {watchedEndTime}).
                   </span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/30">
-            <button
+          {/* Form Actions (Unified Toota Pill Outline Buttons) */}
+          <div className="flex items-center gap-3 pt-3 border-t border-border/40">
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant font-bold text-sm hover:bg-surface-container-high transition-colors cursor-pointer disabled:opacity-50"
+              className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
             >
-              {t("cancel")}
-            </button>
-            <button
+              <span>{t("cancel", "Cancel")}</span>
+            </Button>
+            <Button
               type="submit"
+              variant="outline"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-md hover:opacity-90 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{t("saving")}</span>
+                  <Loader2 className="size-3.5 animate-spin me-1.5" />
+                  <span>{t("saving", "Saving...")}</span>
                 </>
               ) : (
-                <span>{t("saveWorkingHours")}</span>
+                <>
+                  <Save className="size-3.5 me-1.5" />
+                  <span>{isEditing ? t("saveWorkingHours", "Save Working Hours") : t("addRegularDay", "Add Regular Day")}</span>
+                </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

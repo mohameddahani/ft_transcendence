@@ -212,7 +212,7 @@ export default function AssistantDocumentsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-12 select-none">
+    <div className="flex flex-col gap-6 max-w-[1440px] mx-auto pb-12">
       {/* 1. Top Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -386,7 +386,7 @@ export default function AssistantDocumentsPage() {
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer select-none ${
+            className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer ${
               isDragOver
                 ? "border-toota-green bg-toota-green/5 ring-2 ring-toota-green/20"
                 : selectedFile

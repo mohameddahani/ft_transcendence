@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   X,
   UserPlus,
   Loader2,
-  ShieldCheck,
   Award,
 } from "lucide-react";
 import axios from "axios";
@@ -17,22 +16,36 @@ import { fetchMembershipPlans } from "@/lib/api/membership-plans";
 import { MembershipPlan } from "@/types/membership-plan";
 import { addMemberSchema, AddMemberFormValues } from "@/schemas/member";
 import { useTranslation } from "react-i18next";
+import { OPEN_ADD_MEMBER_EVENT } from "@/lib/events/modal-events";
+import { Button } from "@/components/ui/button";
 
 interface AddMemberModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
   onSuccess?: () => void;
 }
 
 export default function AddMemberModal({
-  isOpen,
-  onClose,
+  isOpen: controlledIsOpen,
+  onClose: controlledOnClose,
   onSuccess,
 }: AddMemberModalProps) {
   const { t } = useTranslation();
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isControlled = controlledIsOpen !== undefined;
+  const isOpen = isControlled ? controlledIsOpen : internalIsOpen;
+
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Listen to global open event when uncontrolled
+  useEffect(() => {
+    if (isControlled) return;
+    const handleOpen = () => setInternalIsOpen(true);
+    window.addEventListener(OPEN_ADD_MEMBER_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_ADD_MEMBER_EVENT, handleOpen);
+  }, [isControlled]);
 
   const {
     register,
@@ -57,40 +70,63 @@ export default function AddMemberModal({
     },
   });
 
-  const selectedPlanId = watch("membershipPlanId");
+  const handleClose = useCallback(() => {
+    reset();
+    if (isControlled) {
+      controlledOnClose?.();
+    } else {
+      setInternalIsOpen(false);
+    }
+  }, [isControlled, controlledOnClose, reset]);
 
-  // Load plans on modal open
+  // Load plans on modal open (runs exactly once per open, with plans in-memory cache)
   useEffect(() => {
-    if (isOpen) {
-      const loadPlans = async () => {
-        setIsLoadingPlans(true);
-        try {
-          const loaded = await fetchMembershipPlans(1, 100);
-          setPlans(loaded);
-          // If a plan exists, select the first active plan by default
-          const activePlans = loaded.filter((p) => p.isActive);
-          if (activePlans.length > 0 && !selectedPlanId) {
-            setValue("membershipPlanId", activePlans[0].id);
-            if (activePlans[0].membershipPlanDurations?.length > 0) {
-              setValue(
-                "membershipPlanDurationId",
-                activePlans[0].membershipPlanDurations[0].id
-              );
-            }
+    if (!isOpen) {
+      reset();
+      return;
+    }
+
+    let isMounted = true;
+    const loadPlans = async () => {
+      setIsLoadingPlans(true);
+      try {
+        const loaded = await fetchMembershipPlans(1, 100);
+        if (!isMounted) return;
+        setPlans(loaded);
+
+        // Pre-select first active plan by default if not set
+        const activePlans = loaded.filter((p) => p.isActive);
+        if (activePlans.length > 0) {
+          setValue("membershipPlanId", activePlans[0].id);
+          if (
+            activePlans[0].membershipPlanDurations &&
+            activePlans[0].membershipPlanDurations.length > 0
+          ) {
+            setValue(
+              "membershipPlanDurationId",
+              activePlans[0].membershipPlanDurations[0].id
+            );
           }
-        } catch {
-          toast.error("Failed to load available membership plans");
-        } finally {
+        }
+      } catch {
+        if (isMounted) {
+          toast.error(t("plansLoadFailed", "Failed to load available membership plans"));
+        }
+      } finally {
+        if (isMounted) {
           setIsLoadingPlans(false);
         }
-      };
-      loadPlans();
-    } else {
-      reset();
-    }
-  }, [isOpen, setValue, reset, selectedPlanId]);
+      }
+    };
 
-  // When selected plan changes, auto-select first available duration
+    loadPlans();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, setValue, reset, t]);
+
+  // Current selected plan and durations
+  const selectedPlanId = watch("membershipPlanId");
   const currentPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId),
     [plans, selectedPlanId]
@@ -100,17 +136,27 @@ export default function AddMemberModal({
     [currentPlan]
   );
 
+  // When selected plan changes, auto-select first available duration without effect loops
   useEffect(() => {
-    if (currentDurations.length > 0) {
-      const currentDurationId = watch("membershipPlanDurationId");
-      const exists = currentDurations.some((d) => d.id === currentDurationId);
-      if (!exists) {
-        setValue("membershipPlanDurationId", currentDurations[0].id);
-      }
-    } else {
-      setValue("membershipPlanDurationId", "");
+    if (!isOpen || currentDurations.length === 0) return;
+    const currentDurationId = watch("membershipPlanDurationId");
+    const exists = currentDurations.some((d) => d.id === currentDurationId);
+    if (!exists && currentDurations[0]) {
+      setValue("membershipPlanDurationId", currentDurations[0].id);
     }
-  }, [selectedPlanId, currentDurations, setValue, watch]);
+  }, [isOpen, selectedPlanId, currentDurations, setValue, watch]);
+
+  // Handle ESC key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
@@ -133,9 +179,8 @@ export default function AddMemberModal({
       toast.success(
         `Member "${values.firstName} ${values.lastName}" added successfully!`
       );
-      reset();
+      handleClose();
       onSuccess?.();
-      onClose();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         const msg = err.response.data.message;
@@ -153,225 +198,207 @@ export default function AddMemberModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
-      {/* Modal Dialog */}
-      <div className="relative w-full max-w-4xl bg-surface-bright rounded-2xl shadow-2xl overflow-hidden border border-outline-variant/30 flex flex-col md:flex-row max-h-[92vh] z-10 animate-in zoom-in-95 duration-200">
-        {/* Left Decorative Banner */}
-        <div className="hidden md:flex md:w-5/12 primary-gradient p-8 flex-col justify-between relative overflow-hidden text-white select-none">
-          <div className="relative z-10">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-6 backdrop-blur-xs shadow-inner">
-              <UserPlus className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="font-headline text-2xl font-bold leading-tight">
-              Empower New Potential
-            </h2>
-            <p className="text-white/80 mt-3 text-sm leading-relaxed">
-              Every new member is a story of growth. Add their details to the gym
-              database to begin their fitness journey.
-            </p>
-          </div>
-
-          <div className="relative z-10 space-y-4 pt-6 border-t border-white/20">
-            <div className="flex items-center gap-2 text-white/80 text-xs">
-              <ShieldCheck className="w-4 h-4 text-white" />
-              <span>Secure Member Data Entry</span>
-            </div>
-            <p className="text-[11px] text-white/60">
-              Member ID, memberships, and billing are auto-provisioned upon registration.
-            </p>
-          </div>
-
-          {/* Abstract ambient glow */}
-          <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-black/10 rounded-full blur-3xl pointer-events-none" />
-        </div>
-
-        {/* Right Form Area */}
-        <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-surface-container-lowest custom-scrollbar">
-          <div className="flex justify-between items-start mb-6">
+      {/* Modal Dialog Card (Toota Card styling with Crisp Border) */}
+      <div className="relative w-full max-w-2xl toota-card border border-border/40 p-0 shadow-2xl overflow-hidden max-h-[92vh] z-10 animate-in zoom-in-95 duration-150 flex flex-col">
+        {/* Form Area */}
+        <div className="flex-1 p-6 sm:p-8 overflow-y-auto bg-card text-toota-ink custom-scrollbar">
+          {/* Header with Baseline Metric */}
+          <div className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <h3 className="font-headline text-xl md:text-2xl font-bold text-on-surface">
-                {t("addNewMember")}
-              </h3>
-              <p className="text-on-surface-variant text-xs md:text-sm mt-1">
-                {t("membersSubtitle")}
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-xl font-semibold tracking-tight text-toota-ink">
+                  {t("addNewMember", "Add New Member")}
+                </h3>
+                <span className="font-mono text-xs text-toota-muted tabular-nums">
+                  / {t("newRegistration", "New Registration")}
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-1">
+                {t(
+                  "membersSubtitle",
+                  "Register a new member, assign a membership plan, and initialize facility access."
+                )}
               </p>
             </div>
             <button
               type="button"
-              onClick={onClose}
-              className="p-2 hover:bg-surface-container-high rounded-full transition-colors text-on-surface-variant hover:text-on-surface cursor-pointer"
+              onClick={handleClose}
+              className="p-2 rounded-full text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer shrink-0"
+              aria-label={t("close", "Close")}
             >
-              <X className="w-5 h-5" />
+              <X className="size-4" />
             </button>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Information Section */}
+            {/* Personal Information Section */}
             <div className="space-y-4">
-              <h4 className="font-label-sm text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-                {t("personalInformation")}
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-toota-muted">
+                {t("personalInformation", "Personal Information")}
               </h4>
 
               {/* First & Last Name */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("firstName")} *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("firstName", "First Name")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     {...register("firstName")}
                     placeholder="e.g. Ayman"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.firstName
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.firstName && (
-                    <p className="text-xs text-error mt-0.5">{errors.firstName.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.firstName.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("lastName")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("lastName", "Last Name")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     {...register("lastName")}
                     placeholder="e.g. El Jamaaouy"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.lastName
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.lastName && (
-                    <p className="text-xs text-error mt-0.5">{errors.lastName.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.lastName.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Gender & Birth Date */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("gender")} *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("gender", "Gender")} <span className="text-rose-500">*</span>
                   </label>
                   <select
                     {...register("gender")}
-                    className="w-full px-3.5 py-2.5 bg-surface-bright border border-outline-variant rounded-xl text-sm font-medium text-on-surface outline-none focus:ring-2 focus:ring-primary-container"
+                    className="w-full h-10 px-3.5 rounded-xl bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                   >
-                    <option value="MALE">{t("male")}</option>
-                    <option value="FEMALE">{t("female")}</option>
+                    <option value="MALE">{t("male", "Male")}</option>
+                    <option value="FEMALE">{t("female", "Female")}</option>
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("birthDate")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("birthDate", "Birth Date")} <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      {...register("birthDate")}
-                      className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
-                        errors.birthDate
-                          ? "border-error focus:ring-2 focus:ring-error/20"
-                          : "border-outline-variant focus:ring-2 focus:ring-primary-container"
-                      }`}
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    {...register("birthDate")}
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all ${
+                      errors.birthDate
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
+                    }`}
+                  />
                   {errors.birthDate && (
-                    <p className="text-xs text-error mt-0.5">{errors.birthDate.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.birthDate.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Email & Phone */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("emailAddress")} *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("emailAddress", "Email Address")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
                     {...register("email")}
-                    placeholder="name@enterprise.com"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    placeholder="name@example.com"
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.email
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.email && (
-                    <p className="text-xs text-error mt-0.5">{errors.email.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.email.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("phone")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("phone", "Phone Number")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
                     {...register("phoneNumber")}
                     placeholder="+212607080904"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.phoneNumber
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.phoneNumber && (
-                    <p className="text-xs text-error mt-0.5">{errors.phoneNumber.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.phoneNumber.message}</p>
                   )}
                 </div>
               </div>
 
               {/* Residential Address & Emergency Contact */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("residentialAddress")} *
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("residentialAddress", "Residential Address")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     {...register("address")}
-                    placeholder="Hay almal Bengurir"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    placeholder="Hay Al-Amal, Ben Guerir"
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.address
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.address && (
-                    <p className="text-xs text-error mt-0.5">{errors.address.message}</p>
+                    <p className="text-[11px] text-rose-500">{errors.address.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                    {t("emergencyContact")} *
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("emergencyContact", "Emergency Contact")} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
                     {...register("emergencyContact")}
                     placeholder="+212607080905"
-                    className={`w-full px-3.5 py-2.5 bg-surface-bright border rounded-xl text-sm font-medium text-on-surface outline-none transition-all ${
+                    className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:ring-1 focus:ring-ring transition-all ${
                       errors.emergencyContact
-                        ? "border-error focus:ring-2 focus:ring-error/20"
-                        : "border-outline-variant focus:ring-2 focus:ring-primary-container"
+                        ? "border-rose-500 focus:ring-rose-500/20"
+                        : "border-border/40"
                     }`}
                   />
                   {errors.emergencyContact && (
-                    <p className="text-xs text-error mt-0.5">
+                    <p className="text-[11px] text-rose-500">
                       {errors.emergencyContact.message}
                     </p>
                   )}
@@ -379,75 +406,75 @@ export default function AddMemberModal({
               </div>
             </div>
 
-            {/* Membership Plan Section */}
-            <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/60 space-y-4">
+            {/* Membership Plan Section (Toota Inner Well) */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-toota-inner border border-border/40 space-y-3.5">
               <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-primary" />
-                <h4 className="text-xs font-bold text-on-surface uppercase tracking-wider">
-                  {t("assignPlanDuration")}
+                <Award className="size-4 text-toota-ink" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-toota-ink">
+                  {t("assignPlanDuration", "Assign Plan & Duration")}
                 </h4>
               </div>
 
               {isLoadingPlans ? (
-                <div className="py-4 text-center text-xs text-on-surface-variant flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <span>Loading plans from server...</span>
+                <div className="py-4 text-center text-xs text-toota-muted flex items-center justify-center gap-2">
+                  <Loader2 className="size-4 animate-spin text-toota-ink" />
+                  <span>Loading plans...</span>
                 </div>
               ) : plans.length === 0 ? (
-                <div className="p-3 bg-error-container/20 border border-error-container text-error rounded-xl text-xs">
-                  {t("noPlansFound")}
+                <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs">
+                  {t("noPlansFound", "No membership plans found. Please configure a plan first.")}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Select Plan */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                      {t("selectPlan")} *
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-toota-ink">
+                      {t("selectPlan", "Membership Plan")} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       {...register("membershipPlanId")}
-                      className="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm font-medium text-on-surface outline-none focus:ring-2 focus:ring-primary-container"
+                      className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
                     >
                       <option value="" disabled>
-                        {t("chooseTier")}
+                        {t("chooseTier", "Select a membership tier")}
                       </option>
                       {plans
                         .filter((p) => p.isActive)
                         .map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.planName} ({p.weeklyVisitLimit} {t("visitsPerWeek")})
+                            {p.planName} ({p.weeklyVisitLimit} {t("visitsPerWeek", "visits/wk")})
                           </option>
                         ))}
                     </select>
                     {errors.membershipPlanId && (
-                      <p className="text-xs text-error mt-0.5">
+                      <p className="text-[11px] text-rose-500">
                         {errors.membershipPlanId.message}
                       </p>
                     )}
                   </div>
 
                   {/* Select Duration */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wide">
-                      {t("selectDuration")} *
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-toota-ink">
+                      {t("selectDuration", "Plan Duration & Billing")} <span className="text-rose-500">*</span>
                     </label>
                     <select
                       {...register("membershipPlanDurationId")}
                       disabled={currentDurations.length === 0}
-                      className="w-full px-3.5 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-xl text-sm font-medium text-on-surface outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-50"
+                      className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer disabled:opacity-50"
                     >
                       {currentDurations.length === 0 ? (
                         <option value="">No durations available</option>
                       ) : (
                         currentDurations.map((d) => (
                           <option key={d.id} value={d.id}>
-                            {d.durationDays} {t("days")} — ${Number(d.price).toFixed(2)}
+                            {d.durationDays} {t("days", "days")} — ${Number(d.price).toFixed(2)}
                           </option>
                         ))
                       )}
                     </select>
                     {errors.membershipPlanDurationId && (
-                      <p className="text-xs text-error mt-0.5">
+                      <p className="text-[11px] text-rose-500">
                         {errors.membershipPlanDurationId.message}
                       </p>
                     )}
@@ -456,33 +483,35 @@ export default function AddMemberModal({
               )}
             </div>
 
-            {/* Form Actions */}
+            {/* Form Actions (Toota Pill Buttons) */}
             <div className="flex items-center gap-3 pt-2">
-              <button
+              <Button
                 type="button"
-                onClick={onClose}
+                variant="outline"
+                onClick={handleClose}
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-3 rounded-xl border border-outline-variant font-bold text-sm text-on-surface-variant hover:bg-surface-container-low transition-all cursor-pointer"
+                className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
               >
-                {t("cancel")}
-              </button>
-              <button
+                <span>{t("cancel", "Cancel")}</span>
+              </Button>
+              <Button
                 type="submit"
+                variant="outline"
                 disabled={isSubmitting || plans.length === 0}
-                className="flex-[2] primary-gradient text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+                className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{t("registeringMember")}</span>
+                    <Loader2 className="size-3.5 animate-spin me-1.5" />
+                    <span>{t("registeringMember", "Registering Member...")}</span>
                   </>
                 ) : (
                   <>
-                    <UserPlus className="w-4 h-4" />
-                    <span>{t("addNewMember")}</span>
+                    <UserPlus className="size-3.5 me-1.5" />
+                    <span>{t("addNewMember", "Register Member")}</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

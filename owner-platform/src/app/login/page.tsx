@@ -1,3 +1,4 @@
+import Link from "next/link";
 import LoginForm from "@/components/login/LoginForm";
 import { ThemeToggle } from "@/components/theme/ThemeProvider";
 
@@ -26,12 +27,12 @@ export default function LoginPage() {
           <LoginForm />
 
           <footer className="mt-8 text-center">
-            <a
-              href="#"
+            <Link
+              href="/forgot-password"
               className="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors no-underline"
             >
               Forgot password?
-            </a>
+            </Link>
           </footer>
         </div>
 
