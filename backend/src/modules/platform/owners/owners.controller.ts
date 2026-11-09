@@ -61,4 +61,11 @@ export class OwnersController {
   banUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.banUser(id);
   }
+
+  // * Get All Stats of users (owner)
+  @Get('users/stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  userStats() {
+    return this.ownersService.userStats();
+  }
 }

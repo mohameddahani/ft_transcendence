@@ -1074,3 +1074,111 @@ totalAmount: paymentStats._sum.amount ?? 0
 ```
 
 This gives the frontend a consistent numeric value.
+
+
+
+## Owner Platform — User Statistics API
+
+**GET**
+
+`/api/owner/users/stats`
+
+This endpoint is used in the **Owner Platform** and returns statistics about all users in the system.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all users and calculate the counts on the frontend.
+
+### Response Example
+
+```json
+{
+  "total": 120,
+  "activeCount": 95,
+  "pendingCount": 18,
+  "bannedCount": 7,
+  "verifiedCount": 110,
+  "unverifiedCount": 10,
+  "adminCount": 118,
+  "ownerCount": 2
+}
+```
+
+### Response Fields
+
+- `total`: Total number of users.
+- `activeCount`: Number of users whose account status is `ACTIVE`.
+- `pendingCount`: Number of users whose account status is `PENDING`.
+- `bannedCount`: Number of users whose account status is `BANNED`.
+- `verifiedCount`: Number of users whose account is verified.
+- `unverifiedCount`: Number of users whose account is not verified.
+- `adminCount`: Number of users with role `ADMIN`.
+- `ownerCount`: Number of users with role `OWNER`.
+
+### Frontend Usage
+
+```ts
+const response = await fetch('/api/owner/users/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.total
+stats.activeCount
+stats.pendingCount
+stats.bannedCount
+stats.verifiedCount
+stats.unverifiedCount
+stats.adminCount
+stats.ownerCount
+```
+
+Example dashboard cards:
+
+```text
+Total Users       → stats.total
+
+Active Users      → stats.activeCount
+Pending Users     → stats.pendingCount
+Banned Users      → stats.bannedCount
+
+Verified Users    → stats.verifiedCount
+Unverified Users  → stats.unverifiedCount
+
+Admins            → stats.adminCount
+Owners            → stats.ownerCount
+```
+
+### Important Note
+
+These fields represent different groupings of the same users.
+
+For example:
+
+```text
+Account status:
+ACTIVE + PENDING + BANNED = total
+
+Verification:
+verifiedCount + unverifiedCount = total
+
+Role:
+adminCount + ownerCount = total
+```
+
+Do not add all response fields together.
+
+Always use:
+
+```ts
+stats.total
+```
+
+for the total number of users.
+
+### Endpoint Summary
+
+```text
+Owner → GET /api/owner/users/stats
+```
