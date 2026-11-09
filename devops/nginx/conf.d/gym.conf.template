@@ -33,10 +33,6 @@ server {
 		return 302 https://status.${DOMAIN};
 	}
 
-	location /blockchain-api/ {
-		proxy_pass http://blockchain:3000/;
-	}
-
 	# Owner platform
 	location ^~ /owner-portal {
 		proxy_pass http://owner-portal:3000;
