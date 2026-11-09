@@ -56,4 +56,10 @@ export class OwnerSubscriptionsController {
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.subscriptionsService.findOne(id);
   }
+
+  // * Get All Stats of subscriptions (Owner)
+  @Get('stats')
+  subscriptionStatsOfOwner() {
+    return this.subscriptionsService.subscriptionStatsOfOwner();
+  }
 }

@@ -1297,3 +1297,185 @@ This represents:
 
 
 
+## Subscription Statistics API
+
+These endpoints return subscription statistics for the Admin and Owner platforms.
+
+The frontend should use these values directly for dashboard/statistics cards. There is no need to fetch all subscription records and calculate the values on the frontend.
+
+---
+
+### Admin Platform — Subscription Stats
+
+**GET**
+
+`/api/admins/subscriptions/stats`
+
+Returns statistics for all subscription records belonging to the authenticated admin.
+
+This includes the admin's current and previous subscription records.
+
+### Response Example
+
+```json
+{
+  "activeCount": 1,
+  "expiredCount": 2,
+  "cancelledCount": 1,
+  "total": 4,
+  "totalAmount": 1999.96
+}
+```
+
+### Admin Response Fields
+
+- `activeCount`: Number of subscription records with status `ACTIVE`.
+- `expiredCount`: Number of subscription records with status `EXPIRED`.
+- `cancelledCount`: Number of subscription records with status `CANCELLED`.
+- `total`: Total number of subscription records belonging to the admin.
+- `totalAmount`: Sum of the `amount` of all subscription records belonging to the admin.
+
+### Frontend Usage
+
+```ts
+const response = await fetch('/api/admins/subscriptions/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.activeCount
+stats.expiredCount
+stats.cancelledCount
+stats.total
+stats.totalAmount
+```
+
+Example dashboard cards:
+
+```text
+Total Subscriptions     → stats.total
+Active Subscriptions    → stats.activeCount
+Expired Subscriptions   → stats.expiredCount
+Cancelled Subscriptions → stats.cancelledCount
+Total Amount Paid       → stats.totalAmount
+```
+
+---
+
+### Owner Platform — Subscription Stats
+
+**GET**
+
+`/api/owners/subscriptions/stats`
+
+Returns subscription statistics across the whole SaaS platform.
+
+Unlike the Admin endpoint, this endpoint is not limited to one admin account.
+
+### Response Example
+
+```json
+{
+  "activeCount": 78,
+  "expiredCount": 32,
+  "cancelledCount": 10,
+  "total": 120,
+  "totalAmount": 48500
+}
+```
+
+### Owner Response Fields
+
+- `activeCount`: Number of all subscription records with status `ACTIVE`.
+- `expiredCount`: Number of all subscription records with status `EXPIRED`.
+- `cancelledCount`: Number of all subscription records with status `CANCELLED`.
+- `total`: Total number of subscription records in the SaaS.
+- `totalAmount`: Sum of the `amount` of all subscription records.
+
+For the Owner Platform, `totalAmount` can be used as the total historical subscription revenue recorded by the current subscription table.
+
+### Frontend Usage
+
+```ts
+const response = await fetch('/api/owners/subscriptions/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.activeCount
+stats.expiredCount
+stats.cancelledCount
+stats.total
+stats.totalAmount
+```
+
+Example Owner dashboard cards:
+
+```text
+Total Subscriptions     → stats.total
+Active Subscriptions    → stats.activeCount
+Expired Subscriptions   → stats.expiredCount
+Cancelled Subscriptions → stats.cancelledCount
+Subscription Revenue    → stats.totalAmount
+```
+
+---
+
+## Important Difference
+
+The Admin endpoint returns subscription history for **one authenticated admin**:
+
+```text
+GET /api/admins/subscriptions/stats
+```
+
+The Owner endpoint returns statistics across **all subscription records in the SaaS**:
+
+```text
+GET /api/owners/subscriptions/stats
+```
+
+---
+
+## Important Note About `total`
+
+These endpoints count **subscription records**, not unique users.
+
+Example:
+
+```text
+Admin A
+├── Subscription #1 → EXPIRED
+├── Subscription #2 → CANCELLED
+└── Subscription #3 → ACTIVE
+```
+
+For that admin:
+
+```json
+{
+  "activeCount": 1,
+  "expiredCount": 1,
+  "cancelledCount": 1,
+  "total": 3
+}
+```
+
+The admin is one user but has three subscription records.
+
+---
+
+## Endpoint Summary
+
+```text
+Admin → GET /api/admins/subscriptions/stats
+Owner → GET /api/owners/subscriptions/stats
+```
+
+

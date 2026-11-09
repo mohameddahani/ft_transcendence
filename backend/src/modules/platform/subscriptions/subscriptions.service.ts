@@ -271,4 +271,111 @@ export class SubscriptionsService {
 
     return subscriptions;
   }
+
+  // * Get All Stats of Subscriptions (Admin)
+  async subscriptionStatsOfAdmin(adminId: string) {
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    const [statusStats, summary] = await Promise.all([
+      // * Count subscriptions grouped by status
+      this.prisma.subscription.groupBy({
+        by: ['subscriptionStatus'],
+        where: {
+          userId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Get total subscription count and total amount
+      this.prisma.subscription.aggregate({
+        where: {
+          userId: adminId,
+        },
+        _count: {
+          _all: true,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let expiredCount = 0;
+    let cancelledCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.subscriptionStatus === SubscriptionStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+
+      if (stat.subscriptionStatus === SubscriptionStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      expiredCount,
+      cancelledCount,
+      total: summary._count._all,
+      totalAmount: summary._sum.amount ?? 0,
+    };
+  }
+
+  // * Get All Stats of Subscriptions (Owner)
+  async subscriptionStatsOfOwner() {
+    const [statusStats, summary] = await Promise.all([
+      // * Count subscriptions grouped by status
+      this.prisma.subscription.groupBy({
+        by: ['subscriptionStatus'],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Get total subscriptions and total revenue
+      this.prisma.subscription.aggregate({
+        _count: {
+          _all: true,
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let expiredCount = 0;
+    let cancelledCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.subscriptionStatus === SubscriptionStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.subscriptionStatus === SubscriptionStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+
+      if (stat.subscriptionStatus === SubscriptionStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      expiredCount,
+      cancelledCount,
+      total: summary._count._all,
+      totalAmount: summary._sum.amount ?? 0,
+    };
+  }
 }
