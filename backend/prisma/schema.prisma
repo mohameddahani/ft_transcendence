@@ -541,7 +541,7 @@ model Feedback {
 
   rating Int
 
-  sentimentType  SentimentType? @map("sentiment_type")
+  sentiment      SentimentType?
   sentimentScore Decimal?       @map("sentiment_score") @db.Decimal(3, 2)
 
   feedbackStatus FeedbackStatus @default(OPEN) @map("feedback_status")
@@ -713,11 +713,11 @@ model UserActionToken {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id])
 
-  tokenHash       String          @unique @map("token_hash")
-  ActionTokenType ActionTokenType @map("action_token_type")
-  pendingEmail    String?         @map("pending_email")
-  expiresAt       DateTime        @map("expires_at")
-  usedAt          DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -733,11 +733,11 @@ model StaffActionToken {
   StaffId String @map("staff_id")
   staff   Staff  @relation(fields: [StaffId], references: [id])
 
-  tokenHash       String          @unique @map("token_hash")
-  ActionTokenType ActionTokenType @map("action_token_type")
-  pendingEmail    String?         @map("pending_email")
-  expiresAt       DateTime        @map("expires_at")
-  usedAt          DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -753,11 +753,11 @@ model MemberActionToken {
   memberId String @map("member_id")
   member   Member @relation(fields: [memberId], references: [id])
 
-  tokenHash       String          @unique @map("token_hash")
-  ActionTokenType ActionTokenType @map("action_token_type")
-  pendingEmail    String?         @map("pending_email")
-  expiresAt       DateTime        @map("expires_at")
-  usedAt          DateTime?       @map("used_at")
+  tokenHash    String          @unique @map("token_hash")
+  type         ActionTokenType
+  pendingEmail String?         @map("pending_email")
+  expiresAt    DateTime        @map("expires_at")
+  usedAt       DateTime?       @map("used_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
