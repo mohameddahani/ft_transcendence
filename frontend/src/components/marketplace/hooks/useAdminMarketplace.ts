@@ -98,7 +98,6 @@ export function useAdminMarketplace() {
           status: s.status,
         })),
       );
-      update_addressAdmin_forMember(account);
     } catch (error) {
       toast.error(parseError(error));
     }

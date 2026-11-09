@@ -20,7 +20,7 @@ import type {
 } from "@/types/marketplace";
 import axios from "axios";
 import api from "@/lib/axios";
-import { BrowserProvider, Contract, JsonRpcSigner, formatUnits } from "ethers";
+import { BrowserProvider, Contract, JsonRpcSigner, formatUnits, getAddress, isAddress, parseUnits, ZeroAddress } from "ethers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
@@ -43,8 +43,7 @@ export function useMemberMarketplace() {
   const [buyingId, setBuyingId] = useState<bigint | null>(null);
 
   // Subscription state
-  const [subOwner] = useState("");
-  const [subAmount] = useState("");
+  const [subOwner, setSubOwner] = useState("");
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [subscribing, setSubscribing] = useState(false);
 
@@ -69,6 +68,23 @@ export function useMemberMarketplace() {
 
   const selectedDuration =
     selectedPlan?.durations[Number(selectedDurationIndex)];
+  const subAmount = selectedDuration?.priceByG.toString() ?? "";
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("gym_user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const owner = user?.adminWalletAddress;
+      if (typeof owner === "string" && isAddress(owner) && getAddress(owner) !== ZeroAddress) {
+        setSubOwner(getAddress(owner));
+        setMarketAddress(getAddress(owner));
+      }
+    } catch {
+      // Missing or invalid stored login data must not become a payment recipient.
+      setSubOwner("");
+      setMarketAddress("");
+    }
+  }, []);
 
   // Quick buy confirmation dialog
   const [confirmBuyProduct, setConfirmBuyProduct] = useState<{
@@ -132,7 +148,6 @@ export function useMemberMarketplace() {
       } catch {
         setPurchases([]);
       }
-      update_walletAddress_member(account);
     } catch (error) {
       toast.error(parseError(error));
     } finally {
@@ -346,7 +361,7 @@ export function useMemberMarketplace() {
   };
 
   const handlePaySubscription = async () => {
-    if (!provider || !signer || !account) {
+    if (!provider || !signer || !account || !readContract) {
       toast.error("Please connect your wallet first.");
       return;
     }
@@ -358,15 +373,25 @@ export function useMemberMarketplace() {
       toast.error("Switch your wallet to Sepolia first.");
       return;
     }
+    if (!isAddress(subOwner) || subOwner === ZeroAddress) {
+      toast.error("Your gym owner's wallet is missing. Please sign in again.");
+      return;
+    }
+    if (!selectedDuration || !Number.isFinite(selectedDuration.priceByG) || selectedDuration.priceByG <= 0) {
+      toast.error("Select a plan and duration with a valid G-token price.");
+      return;
+    }
 
     setSubscribing(true);
     try {
+      const decimals = Number(await readContract.decimals());
+      const amount = parseUnits(subAmount, decimals);
       await relayForwarderMethod(provider, signer, "paySubscription", [
         subOwner,
-        subAmount,
+        amount,
       ]);
       toast.success(
-        `Successfully subscribed (${subAmount.toString()})`,
+        `Subscription payment sent (${subAmount} ${tokenSymbol})`,
       );
       await refresh();
     } catch (error) {
@@ -394,6 +419,8 @@ export function useMemberMarketplace() {
     subOwner,
     subAmount,
     subscribing,
+    selectedPlanIndex,
+    selectedDurationIndex,
     setSelectedPlanIndex,
     setSelectedDurationIndex,
     activePlans,

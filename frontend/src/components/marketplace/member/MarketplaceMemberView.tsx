@@ -35,6 +35,8 @@ export default function MarketplaceMemberView() {
     isRefreshing,
     buyingId,
     subOwner,
+    selectedPlanIndex,
+    selectedDurationIndex,
     subscribing,
     setSelectedPlanIndex,
     setSelectedDurationIndex,
@@ -241,6 +243,8 @@ export default function MarketplaceMemberView() {
           <SubscriptionTab
             tokenSymbol={tokenSymbol}
             subOwner={subOwner}
+            selectedPlanIndex={selectedPlanIndex}
+            selectedDurationIndex={selectedDurationIndex}
             planItems={planItems}
             setSelectedPlanIndex={setSelectedPlanIndex}
             setSelectedDurationIndex={setSelectedDurationIndex}
