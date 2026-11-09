@@ -1,4 +1,4 @@
-COMPOSE = docker compose -f devops/docker-compose.yml
+COMPOSE = docker compose -p ft_transcendence -f devops/docker-compose.yml
 
 all: up
 
@@ -23,9 +23,9 @@ restart:
 clean:
 	$(COMPOSE) down --volumes --remove-orphans
 
-fclean: clean
-	docker system prune -af
+fclean:
+	$(COMPOSE) down --volumes --remove-orphans --rmi local
 
-re: fclean build up 
+re: fclean build up
 
 .PHONY: all up build down logs ps restart clean fclean re
