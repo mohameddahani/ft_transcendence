@@ -1182,3 +1182,118 @@ for the total number of users.
 ```text
 Owner → GET /api/owner/users/stats
 ```
+
+
+
+
+## Public Platform — Plan Statistics API
+
+**GET**
+
+`/api/plans/stats`
+
+This endpoint is used in the **Public Platform** and returns statistics about the available SaaS plans and their durations.
+
+The frontend can use these values directly for public pricing/statistics sections. There is no need to fetch all plans and calculate the values on the frontend.
+
+### Response Example
+
+```json
+{
+  "total": 3,
+  "activeCount": 2,
+  "inactiveCount": 1,
+  "durationCount": 7
+}
+```
+
+### Response Fields
+
+- `total`: Total number of plans.
+- `activeCount`: Number of plans where `isActive = true`.
+- `inactiveCount`: Number of plans where `isActive = false`.
+- `durationCount`: Total number of plan duration records across all plans.
+
+### Example
+
+If the system has:
+
+```text
+BASIC
+- 30 Days
+- 365 Days
+
+PRO
+- 30 Days
+- 90 Days
+- 365 Days
+
+ENTERPRISE
+- 30 Days
+- 365 Days
+```
+
+Then:
+
+```text
+total = 3
+durationCount = 7
+```
+
+### Frontend Usage
+
+```ts
+const response = await fetch('/api/plans/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.total
+stats.activeCount
+stats.inactiveCount
+stats.durationCount
+```
+
+Example public cards:
+
+```text
+Total Plans      → stats.total
+Active Plans     → stats.activeCount
+Inactive Plans   → stats.inactiveCount
+Plan Durations   → stats.durationCount
+```
+
+### Endpoint Summary
+
+```text
+Public → GET /api/plans/stats
+```
+
+### Important Note
+
+`durationCount` counts duration records, not plans.
+
+For example, one plan can have multiple durations:
+
+```text
+PRO
+- 30 Days
+- 90 Days
+- 365 Days
+```
+
+This represents:
+
+```text
+1 plan
+3 durations
+```
+
+
+
+
+
+

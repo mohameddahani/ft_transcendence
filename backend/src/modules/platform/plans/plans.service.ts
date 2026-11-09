@@ -236,6 +236,40 @@ export class PlansService {
     return plan;
   }
 
+  // * Get All Stats of Plans (Public)
+  async planStats() {
+    const [planStats, durationCount] = await Promise.all([
+      // * Count plans grouped by active status
+      this.prisma.plan.groupBy({
+        by: ['isActive'],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count all plan durations
+      this.prisma.planDuration.count(),
+    ]);
+
+    let activeCount = 0;
+    let inactiveCount = 0;
+
+    for (const stat of planStats) {
+      if (stat.isActive) {
+        activeCount = stat._count._all;
+      } else {
+        inactiveCount = stat._count._all;
+      }
+    }
+
+    return {
+      total: activeCount + inactiveCount,
+      activeCount,
+      inactiveCount,
+      durationCount,
+    };
+  }
+
   // ! Private
   // * check if Duration is Duplicate in Plan
   private async checkIfDurationIsDuplicateInPlan(

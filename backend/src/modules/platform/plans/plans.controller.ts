@@ -80,4 +80,11 @@ export class PlansController {
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.plansService.findOne(id);
   }
+
+  // * Get All Stats of plans (public)
+  @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  planStats() {
+    return this.plansService.planStats();
+  }
 }
