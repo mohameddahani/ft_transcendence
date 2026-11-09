@@ -36,7 +36,7 @@ endpoints:
 
   - name: Backend API
     group: Application
-    url: https://nginx/api/health
+    url: http://backend:3000/api/health
     <<: *http-defaults
     conditions:
       - "[STATUS] == 200"

@@ -47,4 +47,11 @@ export class StaffVisitsController {
   ) {
     return this.visitsService.findOneVisitToday(accessTokenPayload, id);
   }
+
+  // * Get All Stats of Visits (Staff)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  visitStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.visitsService.visitStats(accessTokenPayload);
+  }
 }

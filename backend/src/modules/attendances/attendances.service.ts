@@ -191,6 +191,68 @@ export class AttendancesService {
     return attendance;
   }
 
+  // * Get All Stats of Attendances (Member)
+  async attendanceStatsOfMember(memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    // * Get Total of attendance method
+    // [
+    //   {
+    //     attendanceMethod: AttendanceMethod.QR_CODE,
+    //     _count: {
+    //       _all: 3,
+    //     },
+    //   },
+    //   {
+    //     attendanceMethod: AttendanceMethod.MANUAL,
+    //     _count: {
+    //       _all: 2,
+    //     },
+    //   },
+    // ];
+
+    const attendanceStats = await this.prisma.attendance.groupBy({
+      by: ['attendanceMethod'],
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let qrCodeCount = 0;
+    let manualCount = 0;
+
+    for (const stat of attendanceStats) {
+      if (stat.attendanceMethod === AttendanceMethod.QR_CODE) {
+        qrCodeCount = stat._count._all;
+      }
+
+      if (stat.attendanceMethod === AttendanceMethod.MANUAL) {
+        manualCount = stat._count._all;
+      }
+    }
+
+    return {
+      qrCodeCount,
+      manualCount,
+      total: qrCodeCount + manualCount,
+    };
+  }
+
   // ! Private
   // * Confirm Check In
   private async confirmCheckIn(

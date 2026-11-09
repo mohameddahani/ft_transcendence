@@ -65,4 +65,13 @@ export class AdminFeedbacksController {
       body,
     );
   }
+
+  // * Get All Stats of Feedbacks (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  feedbackStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.feedbacksService.feedbackStats(accessTokenPayload);
+  }
 }

@@ -384,6 +384,64 @@ export class VisitsService {
     return visitToday;
   }
 
+  // * Get All Stats of Visits (Admin / Staff)
+  async visitStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+
+    const visitStats = await this.prisma.visit.groupBy({
+      by: ['visitStatus'],
+      where: {
+        adminId: adminId,
+        visitDateAndTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let readyCount = 0;
+    let checkedInCount = 0;
+    let cancelledCount = 0;
+    let expiredCount = 0;
+
+    for (const stat of visitStats) {
+      if (stat.visitStatus === VisitStatus.READY) {
+        readyCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.CHECKED_IN) {
+        checkedInCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+    }
+
+    return {
+      readyCount,
+      checkedInCount,
+      cancelledCount,
+      expiredCount,
+      total: readyCount + checkedInCount + cancelledCount + expiredCount,
+    };
+  }
+
   // * Get all upcoming visits (Member)
   async findAllUpcomingVisitsByMember(
     memberId: string,
@@ -537,5 +595,71 @@ export class VisitsService {
     }
 
     return visitToday;
+  }
+
+  // * Get All Stats of Visits (Member)
+  async visitStatsOfMember(memberId: string) {
+    const now = new Date();
+    const startOfToday = startOfDay(now);
+    const endOfToday = endOfDay(now);
+
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const visitStats = await this.prisma.visit.groupBy({
+      by: ['visitStatus'],
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+        visitDateAndTime: {
+          gte: startOfToday,
+          lte: endOfToday,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let readyCount = 0;
+    let checkedInCount = 0;
+    let cancelledCount = 0;
+    let expiredCount = 0;
+
+    for (const stat of visitStats) {
+      if (stat.visitStatus === VisitStatus.READY) {
+        readyCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.CHECKED_IN) {
+        checkedInCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.CANCELLED) {
+        cancelledCount = stat._count._all;
+      }
+
+      if (stat.visitStatus === VisitStatus.EXPIRED) {
+        expiredCount = stat._count._all;
+      }
+    }
+
+    return {
+      readyCount,
+      checkedInCount,
+      cancelledCount,
+      expiredCount,
+      total: readyCount + checkedInCount + cancelledCount + expiredCount,
+    };
   }
 }
