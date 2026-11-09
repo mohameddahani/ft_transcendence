@@ -14,6 +14,7 @@ import { createStaff } from "@/lib/api/staffs";
 import { addStaffSchema, AddStaffFormValues } from "@/schemas/staff";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface AddStaffModalProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export default function AddStaffModal({
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<AddStaffFormValues>({
     resolver: zodResolver(addStaffSchema),
@@ -45,6 +48,8 @@ export default function AddStaffModal({
       phoneNumber: "",
     },
   });
+
+  const selectedGender = watch("gender") || "MALE";
 
   useEffect(() => {
     if (!isOpen) {
@@ -170,13 +175,19 @@ export default function AddStaffModal({
                   <label className="text-xs font-medium text-toota-ink">
                     {t("gender", "Gender")} <span className="text-rose-500">*</span>
                   </label>
-                  <select
-                    {...register("gender")}
-                    className="w-full h-10 px-3.5 rounded-xl bg-card border border-border/40 text-xs font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-                  >
-                    <option value="MALE">{t("male", "Male")}</option>
-                    <option value="FEMALE">{t("female", "Female")}</option>
-                  </select>
+                  <CustomSelect
+                    value={selectedGender}
+                    onChange={(val) =>
+                      setValue("gender", val as "MALE" | "FEMALE", {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="rounded-xl bg-card"
+                    options={[
+                      { value: "MALE", label: t("male", "Male") },
+                      { value: "FEMALE", label: t("female", "Female") },
+                    ]}
+                  />
                   {errors.gender && (
                     <p className="text-[11px] text-rose-500">{errors.gender.message}</p>
                   )}

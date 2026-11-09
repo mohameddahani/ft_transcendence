@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    const data = await backendRes.json().catch(() => ({}));
+    const data = (await backendRes.json().catch(() => ({}))) as {
+      message?: string;
+      [key: string]: unknown;
+    };
 
     if (!backendRes.ok) {
       return NextResponse.json(data || { message: "Failed to upload image" }, {
@@ -77,9 +80,23 @@ export async function DELETE(req: NextRequest) {
       }
     );
 
-    const data = await backendRes.json().catch(() => ({}));
+    const data = (await backendRes.json().catch(() => ({}))) as {
+      message?: string;
+      [key: string]: unknown;
+    };
 
     if (!backendRes.ok) {
+      // If backend returns 400 because there is no profile image, treat as idempotent success (200 OK)
+      if (
+        backendRes.status === 400 &&
+        (typeof data?.message === "string" && data.message.toLowerCase().includes("no profile image"))
+      ) {
+        return NextResponse.json(
+          { message: "Profile image is already removed", data },
+          { status: 200 }
+        );
+      }
+
       return NextResponse.json(data || { message: "Failed to delete image" }, {
         status: backendRes.status,
       });

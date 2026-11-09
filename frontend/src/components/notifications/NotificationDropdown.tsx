@@ -92,6 +92,7 @@ export default function NotificationDropdown() {
   // Handle clicking a single notification item
   const handleItemClick = async (item: AdminNotification) => {
     setSelectedNotificationId(item.id);
+    setIsOpen(false);
 
     if (!item.isRead) {
       // Optimistically mark as read in local state

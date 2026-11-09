@@ -7,30 +7,51 @@ export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Check initial theme from localStorage or document class
-    const savedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+    const syncTheme = () => {
+      const savedTheme =
+        localStorage.getItem("toota-theme") || localStorage.getItem("theme");
+      const prefersDark =
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const shouldBeDark =
+        savedTheme === "dark" ||
+        (!savedTheme && prefersDark) ||
+        document.documentElement.classList.contains("dark") ||
+        document.documentElement.dataset.theme === "dark";
 
-    if (shouldBeDark) {
-      document.documentElement.classList.add("dark");
-      setIsDark(true);
-    } else {
-      document.documentElement.classList.remove("dark");
-      setIsDark(false);
-    }
+      if (shouldBeDark) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.dataset.theme = "dark";
+        setIsDark(true);
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.dataset.theme = "light";
+        setIsDark(false);
+      }
+    };
+
+    syncTheme();
+    window.addEventListener("themechange", syncTheme);
+    return () => window.removeEventListener("themechange", syncTheme);
   }, []);
 
   const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-      setIsDark(false);
-    } else {
+    const nextIsDark = !isDark;
+    const mode = nextIsDark ? "dark" : "light";
+
+    if (nextIsDark) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-      setIsDark(true);
+      document.documentElement.dataset.theme = "dark";
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.dataset.theme = "light";
     }
+
+    localStorage.setItem("theme", mode);
+    localStorage.setItem("toota-theme", mode);
+    setIsDark(nextIsDark);
+    window.dispatchEvent(new Event("themechange"));
   };
 
   return (

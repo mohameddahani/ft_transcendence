@@ -26,6 +26,7 @@ import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
 import Pagination from "@/components/ui/Pagination";
+import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -621,73 +622,82 @@ function AdminStaffFeedbackView() {
               placeholder={t("searchFeedbackPlaceholder") || "Search by member, comment, note..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400"
+              className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635]"
             />
           </div>
 
           {/* Status Filter */}
-          <div className="lg:col-span-3 flex items-center gap-2">
-            <Filter className="size-4 text-toota-muted shrink-0" />
-            <select
+          <div className="lg:col-span-3">
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as "ALL" | FeedbackStatus)
-              }
-              className="w-full h-10 px-3 bg-toota-inner border border-border/40 rounded-xl text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-zinc-400 cursor-pointer"
-            >
-              <option value="ALL">{t("allStatuses") || "All Statuses"} ({feedbacks.length})</option>
-              <option value="OPEN">{t("statusOpen") || "Open"}</option>
-              <option value="IN_REVIEW">{t("statusInReview") || "In Review"}</option>
-              <option value="RESOLVED">{t("statusResolved") || "Resolved"}</option>
-              <option value="DISMISSED">{t("statusDismissed") || "Dismissed"}</option>
-            </select>
+              onChange={(val) => setStatusFilter(val as "ALL" | FeedbackStatus)}
+              icon={<Filter className="size-4" />}
+              className="rounded-xl"
+              placeholder={t("allStatuses") || "All Statuses"}
+              options={[
+                {
+                  value: "ALL",
+                  label: `${t("allStatuses") || "All Statuses"} (${feedbacks.length})`,
+                },
+                { value: "OPEN", label: t("statusOpen") || "Open" },
+                { value: "IN_REVIEW", label: t("statusInReview") || "In Review" },
+                { value: "RESOLVED", label: t("statusResolved") || "Resolved" },
+                { value: "DISMISSED", label: t("statusDismissed") || "Dismissed" },
+              ]}
+            />
           </div>
 
           {/* Rating Filter */}
-          <div className="lg:col-span-2 flex items-center gap-2">
-            <Star className="size-4 text-toota-muted shrink-0" />
-            <select
+          <div className="lg:col-span-2">
+            <CustomSelect
               value={ratingFilter}
-              onChange={(e) =>
-                setRatingFilter(
-                  e.target.value === "ALL" ? "ALL" : Number(e.target.value)
-                )
+              onChange={(val) =>
+                setRatingFilter(val === "ALL" ? "ALL" : Number(val))
               }
-              className="w-full h-10 px-3 bg-toota-inner border border-border/40 rounded-xl text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-zinc-400 cursor-pointer"
-            >
-              <option value="ALL">{t("allStarRatings") || "All Ratings"}</option>
-              <option value={5}>{t("fiveStarsOnly") || "5 Stars"}</option>
-              <option value={4}>{t("fourStars") || "4 Stars"}</option>
-              <option value={3}>{t("threeStars") || "3 Stars"}</option>
-              <option value={2}>{t("twoStars") || "2 Stars"}</option>
-              <option value={1}>{t("oneStarOnly") || "1 Star"}</option>
-            </select>
+              icon={<Star className="size-4" />}
+              className="rounded-xl"
+              placeholder={t("allStarRatings") || "All Ratings"}
+              options={[
+                { value: "ALL", label: t("allStarRatings") || "All Ratings" },
+                { value: 5, label: t("fiveStarsOnly") || "5 Stars" },
+                { value: 4, label: t("fourStars") || "4 Stars" },
+                { value: 3, label: t("threeStars") || "3 Stars" },
+                { value: 2, label: t("twoStars") || "2 Stars" },
+                { value: 1, label: t("oneStarOnly") || "1 Star" },
+              ]}
+            />
           </div>
 
           {/* Sentiment Filter */}
-          <div className="lg:col-span-3 flex items-center gap-2">
-            <Sparkles className="size-4 text-toota-muted shrink-0" />
-            <select
+          <div className="lg:col-span-3">
+            <CustomSelect
               value={sentimentFilter}
-              onChange={(e) =>
-                setSentimentFilter(e.target.value as typeof sentimentFilter)
+              onChange={(val) =>
+                setSentimentFilter(val as typeof sentimentFilter)
               }
-              className="w-full h-10 px-3 bg-toota-inner border border-border/40 rounded-xl text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-zinc-400 cursor-pointer"
-            >
-              <option value="ALL">{t("allSentiments") || "All Sentiments"}</option>
-              <option value="NEGATIVE">
-                {t("negativeOnly") || "Negative"} ({stats.bySentiment.NEGATIVE})
-              </option>
-              <option value="NEUTRAL">
-                {t("neutralOnly") || "Neutral"} ({stats.bySentiment.NEUTRAL})
-              </option>
-              <option value="POSITIVE">
-                {t("positiveOnly") || "Positive"} ({stats.bySentiment.POSITIVE})
-              </option>
-              <option value="NONE">
-                {t("sentimentNotAnalysed") || "Not Analyzed"} ({stats.bySentiment.NONE})
-              </option>
-            </select>
+              icon={<Sparkles className="size-4" />}
+              className="rounded-xl"
+              placeholder={t("allSentiments") || "All Sentiments"}
+              options={[
+                { value: "ALL", label: t("allSentiments") || "All Sentiments" },
+                {
+                  value: "NEGATIVE",
+                  label: `${t("negativeOnly") || "Negative"} (${stats.bySentiment.NEGATIVE})`,
+                },
+                {
+                  value: "NEUTRAL",
+                  label: `${t("neutralOnly") || "Neutral"} (${stats.bySentiment.NEUTRAL})`,
+                },
+                {
+                  value: "POSITIVE",
+                  label: `${t("positiveOnly") || "Positive"} (${stats.bySentiment.POSITIVE})`,
+                },
+                {
+                  value: "NONE",
+                  label: `${t("sentimentNotAnalysed") || "Not Analyzed"} (${stats.bySentiment.NONE})`,
+                },
+              ]}
+            />
           </div>
         </div>
       </Card>

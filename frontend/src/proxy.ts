@@ -99,7 +99,6 @@ export async function proxy(request: NextRequest) {
   let token = request.cookies.get("auth_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
-
   const isAuthRoute = authRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );

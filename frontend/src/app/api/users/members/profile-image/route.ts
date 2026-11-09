@@ -46,9 +46,20 @@ export async function DELETE(req: NextRequest) {
       }
     );
 
-    const res = NextResponse.json(backendRes.data, {
-      status: backendRes.status,
-    });
+    // If backend returns 400 because there is no profile image, treat as idempotent success (200 OK)
+    const status =
+      backendRes.status === 400 &&
+      typeof backendRes.data?.message === "string" &&
+      backendRes.data.message.toLowerCase().includes("no profile image")
+        ? 200
+        : backendRes.status;
+
+    const res = NextResponse.json(
+      status === 200 && backendRes.status === 400
+        ? { message: "Profile image is already removed", ...backendRes.data }
+        : backendRes.data,
+      { status }
+    );
     return attachSessionCookies(res, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";

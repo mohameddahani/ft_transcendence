@@ -511,7 +511,7 @@ export default function AssistantDocumentsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search documents..."
-              className="h-8 text-xs pl-8 pr-3 rtl:pl-3 rtl:pr-8 bg-toota-inner border-border/40 text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400"
+              className="h-8 text-xs pl-8 pr-3 rtl:pl-3 rtl:pr-8 bg-toota-inner border-border/40 text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635]"
             />
           </div>
         </div>

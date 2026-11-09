@@ -50,9 +50,9 @@ endpoints:
       - "[STATUS] == 200"
       - "[RESPONSE_TIME] < 3000"
 
-  - name: Superadmin
+  - name: Owner-Portal
     group: Application
-    url: https://nginx/superadmin/
+    url: https://nginx/owner-portal/
     <<: *http-defaults
     conditions:
       - "[STATUS] == 200"

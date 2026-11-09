@@ -595,7 +595,7 @@ export default function GymflowSubscriptionPage() {
                 placeholder={t("searchSubscriptions") || "Search ledger by plan tier, date, or amount..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 ps-10 pe-4 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-ring transition-all"
+                className="w-full h-10 ps-10 pe-4 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:outline-none focus:ring-1 focus:ring-[#a3e635] focus:border-[#a3e635] transition-all"
               />
             </div>
 
