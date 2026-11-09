@@ -61,7 +61,6 @@ export default function MemberLoginForm() {
       if (memberObject) {
         try {
           localStorage.setItem("gym_user", JSON.stringify(memberObject));
-          localStorage.removeItem("kinetic_user");
         } catch {
           // ignore localStorage error if in private mode
         }

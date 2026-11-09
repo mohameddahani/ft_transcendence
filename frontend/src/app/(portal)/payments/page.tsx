@@ -92,7 +92,6 @@ export default function PaymentsPage() {
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -127,7 +126,7 @@ export default function PaymentsPage() {
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage);
-    if (!searchTerm && statusFilter === "ALL") {
+    if (!searchTerm) {
       setIsPageLoading(true);
       try {
         const pageData = await fetchPayments(newPage, pageSize);
@@ -152,7 +151,7 @@ export default function PaymentsPage() {
   }, []);
 
   // Filtered Payments
-  const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
+  const isFiltering = Boolean(searchTerm);
   const filteredPayments = useMemo(() => {
     return payments.filter((payment) => {
       const member = payment.member;
@@ -161,18 +160,13 @@ export default function PaymentsPage() {
       const invoiceId = payment.id.toLowerCase();
       const query = searchTerm.toLowerCase();
 
-      const matchesSearch =
+      return (
         memberName.includes(query) ||
         email.includes(query) ||
-        invoiceId.includes(query);
-
-      const status = getEffectivePaymentStatus(payment);
-      const matchesStatus =
-        statusFilter === "ALL" || status === statusFilter.toUpperCase();
-
-      return matchesSearch && matchesStatus;
+        invoiceId.includes(query)
+      );
     });
-  }, [payments, searchTerm, statusFilter]);
+  }, [payments, searchTerm]);
 
   // Pagination
   const totalItems = isFiltering ? filteredPayments.length : payments.length;
@@ -569,27 +563,8 @@ Thank you for training with ${companyName || "us"}!
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
-          </div>
-
-          {/* Status Select Dropdown */}
-          <div className="w-full md:w-52 shrink-0">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              aria-label={t("status") || "Status"}
-              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-            >
-              <option value="ALL">{t("allStatuses") || "All Statuses"}</option>
-              <option value="PAID">{t("paid") || "Paid"}</option>
-              <option value="PENDING">{t("pending") || "Pending"}</option>
-              <option value="PARTIAL">{t("partial") || "Partial"}</option>
-              <option value="OVERDUE">{t("overdue") || "Overdue"}</option>
-            </select>
           </div>
 
           {/* Clear Filters Button */}
@@ -599,7 +574,6 @@ Thank you for training with ${companyName || "us"}!
             disabled={!isFiltering}
             onClick={() => {
               setSearchTerm("");
-              setStatusFilter("ALL");
               setCurrentPage(1);
             }}
             className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"

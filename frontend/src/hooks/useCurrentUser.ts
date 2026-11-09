@@ -31,7 +31,7 @@ export function useCurrentUser() {
     // Fetch live user and company data directly from database
     const syncWithDb = async () => {
       try {
-        const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+        const stored = localStorage.getItem("gym_user");
         const parsed = stored ? JSON.parse(stored) : null;
         const currentRole = (parsed?.role || parsed?.userType || "").toUpperCase();
 
@@ -70,7 +70,6 @@ export function useCurrentUser() {
             setUser(mergedUser);
             try {
               localStorage.setItem("gym_user", JSON.stringify(mergedUser));
-              localStorage.removeItem("kinetic_user");
             } catch {
               // ignore
             }
@@ -129,7 +128,6 @@ export function useCurrentUser() {
       }
     } finally {
       localStorage.removeItem("gym_user");
-      localStorage.removeItem("kinetic_user");
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("assistant_thread_id");
         sessionStorage.removeItem("thread_id");

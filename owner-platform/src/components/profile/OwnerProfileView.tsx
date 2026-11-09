@@ -144,6 +144,11 @@ export default function OwnerProfileView() {
 
   // Handle Image Deletion
   const handleConfirmDeleteImage = async () => {
+    if (!hasCustomAvatar) {
+      setShowDeleteModal(false);
+      return;
+    }
+
     try {
       setDeletingImage(true);
       await api.delete("/api/users/owners/profile-image");
@@ -153,10 +158,19 @@ export default function OwnerProfileView() {
       await fetchProfile();
       window.dispatchEvent(new Event("owner-profile-updated"));
     } catch (err: unknown) {
-      console.error("Failed to delete image:", err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to remove profile image";
+
+      // If backend returns 400 (no custom image exists), resolve cleanly without error
+      if (status === 400) {
+        setShowDeleteModal(false);
+        await fetchProfile();
+        window.dispatchEvent(new Event("owner-profile-updated"));
+        return;
+      }
+
       toast.error(errorMsg);
     } finally {
       setDeletingImage(false);
@@ -195,9 +209,21 @@ export default function OwnerProfileView() {
     }
   };
 
+  const isDefaultAvatar = (url?: string | null): boolean => {
+    if (!url) return true;
+    const lower = url.toLowerCase();
+    return (
+      lower.includes("default-image") ||
+      lower.includes("avatars-default") ||
+      lower.includes("default-avatar") ||
+      lower.includes("default-member") ||
+      lower === "default"
+    );
+  };
+
   const hasCustomAvatar =
     Boolean(profile?.profileImageUrl) &&
-    !profile?.profileImageUrl.includes("default-image");
+    !isDefaultAvatar(profile?.profileImageUrl);
 
   if (loading) {
     return (
@@ -226,10 +252,10 @@ export default function OwnerProfileView() {
           {/* Avatar Container with Upload Overlay */}
           <div className="relative group shrink-0">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-secondary-container border-2 border-outline-variant flex items-center justify-center overflow-hidden shadow-md">
-              {hasCustomAvatar ? (
+              {profile?.profileImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={profile?.profileImageUrl}
+                  src={profile.profileImageUrl}
                   alt={`${profile?.firstName} ${profile?.lastName}`}
                   className="w-full h-full object-cover"
                 />

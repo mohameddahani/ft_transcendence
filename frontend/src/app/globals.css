@@ -216,7 +216,7 @@
   --destructive: #ba1a1a;
   --border: #c7c4d8;
   --input: #c7c4d8;
-  --ring: #3525cd;
+  --ring: #a3e635;
   --radius: 0.5rem;
   --sidebar: #f8f9fb;
   --sidebar-foreground: #191c1e;
@@ -225,7 +225,7 @@
   --sidebar-accent: #edeef0;
   --sidebar-accent-foreground: #191c1e;
   --sidebar-border: #c7c4d8;
-  --sidebar-ring: #3525cd;
+  --sidebar-ring: #a3e635;
 
   /* Toota Design Tokens (Light) */
   --toota-side: #1b1f23;
@@ -561,32 +561,7 @@
   background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--outline-variant);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--outline);
-}
 
-.dark ::-webkit-scrollbar-track {
-  background: transparent;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
 
 /* Data grid rows micro-interaction */
 .dark .data-grid-row:nth-child(even) {

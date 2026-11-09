@@ -65,7 +65,7 @@ export default function MemberProfileView() {
   // Sync profile photo to localStorage for TopBar
   const syncLocalStorage = (updatedProfile: MemberProfile) => {
     try {
-      const stored = localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user");
+      const stored = localStorage.getItem("gym_user");
       const current = stored ? JSON.parse(stored) : {};
       const isPlaceholder =
         !updatedProfile.profileImageUrl ||
@@ -86,7 +86,6 @@ export default function MemberProfileView() {
         photo: !isPlaceholder ? updatedProfile.profileImageUrl : null,
       };
       localStorage.setItem("gym_user", JSON.stringify(updated));
-      localStorage.removeItem("kinetic_user");
       window.dispatchEvent(new Event("storage"));
     } catch {
       // Ignore
@@ -154,7 +153,13 @@ export default function MemberProfileView() {
 
   // Delete Photo Handler
   const handleDeletePhoto = async () => {
-    if (!profile?.profileImageUrl || profile.profileImageUrl === "default-member-image.jpg" || profile.profileImageUrl === "default-image.jpg") {
+    if (
+      !profile?.profileImageUrl ||
+      profile.profileImageUrl === "default-member-image.jpg" ||
+      profile.profileImageUrl === "default-image.jpg" ||
+      profile.profileImageUrl.includes("avatars-default") ||
+      profile.profileImageUrl.includes("default-image")
+    ) {
       toast.info(t("noCustomPhoto") || "No custom profile photo to remove");
       return;
     }
@@ -180,6 +185,10 @@ export default function MemberProfileView() {
     rawPhoto === "default-image.jpg" ||
     rawPhoto === "default-member-image.jpg";
   const photoUrl = !isPlaceholder ? rawPhoto : null;
+  const canDeletePhoto =
+    Boolean(photoUrl) &&
+    !photoUrl?.includes("avatars-default") &&
+    !photoUrl?.includes("default-image");
 
   const fullName =
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
@@ -352,7 +361,7 @@ export default function MemberProfileView() {
                 <span>{t("changePhoto") || "Change Photo"}</span>
               </Button>
 
-              {photoUrl && (
+              {canDeletePhoto && (
                 <Button
                   type="button"
                   variant="outline"

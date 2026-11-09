@@ -34,6 +34,7 @@ import { useTranslation } from "react-i18next";
 import AddStaffModal from "@/components/staffs/AddStaffModal";
 import EditStaffModal from "@/components/staffs/EditStaffModal";
 import Pagination from "@/components/ui/Pagination";
+import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -610,26 +611,27 @@ export default function StaffsPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring focus-visible:border-border transition-all"
+              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
           {/* Status Select Dropdown */}
           <div className="w-full md:w-52 shrink-0">
-            <select
+            <CustomSelect
               value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
+              onChange={(val) => {
+                setSelectedStatus(String(val));
                 setCurrentPage(1);
               }}
               aria-label={t("status") || "Status"}
-              className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-            >
-              <option value="">{t("allStatuses") || "All Statuses"}</option>
-              <option value="ACTIVE">{t("active") || "Active"}</option>
-              <option value="PENDING">{t("pending") || "Pending"}</option>
-              <option value="BANNED">{t("banned") || "Banned"}</option>
-            </select>
+              placeholder={t("allStatuses") || "All Statuses"}
+              options={[
+                { value: "", label: t("allStatuses") || "All Statuses" },
+                { value: "ACTIVE", label: t("active") || "Active" },
+                { value: "PENDING", label: t("pending") || "Pending" },
+                { value: "BANNED", label: t("banned") || "Banned" },
+              ]}
+            />
           </div>
 
           {/* Clear Filters Button */}

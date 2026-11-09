@@ -97,7 +97,7 @@ api.interceptors.response.use(
       // Determine whether to call member, staff or admin refresh endpoint
       let userRole = "ADMIN";
       try {
-        const stored = typeof window !== "undefined" ? (localStorage.getItem("gym_user") || localStorage.getItem("kinetic_user")) : null;
+        const stored = typeof window !== "undefined" ? (localStorage.getItem("gym_user")) : null;
         if (stored) {
           const parsed = JSON.parse(stored);
           const rawRole = (parsed?.role || parsed?.userType || "").toUpperCase();

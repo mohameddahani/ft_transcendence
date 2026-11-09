@@ -51,11 +51,25 @@ export default function SideBar({
 
   useEffect(() => {
     const syncTheme = () => {
+      const savedTheme =
+        localStorage.getItem("toota-theme") || localStorage.getItem("theme");
+      const prefersDark =
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
       const isDarkMode =
+        savedTheme === "dark" ||
+        (!savedTheme && prefersDark) ||
         document.documentElement.classList.contains("dark") ||
-        document.documentElement.dataset.theme === "dark" ||
-        localStorage.getItem("theme") === "dark" ||
-        localStorage.getItem("toota-theme") === "dark";
+        document.documentElement.dataset.theme === "dark";
+
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.dataset.theme = "dark";
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.dataset.theme = "light";
+      }
       setIsDark(isDarkMode);
     };
     syncTheme();

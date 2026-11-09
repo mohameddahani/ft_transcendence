@@ -57,6 +57,18 @@ export async function DELETE(req: NextRequest) {
       }
     );
 
+    // If backend returns 400 because there is no profile image, treat as idempotent success (200 OK)
+    if (
+      backendRes.status === 400 &&
+      typeof backendRes.data?.message === "string" &&
+      backendRes.data.message.toLowerCase().includes("no profile image")
+    ) {
+      return NextResponse.json(
+        { message: "Profile image is already removed", ...backendRes.data },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.json(backendRes.data, {
       status: backendRes.status,
     });

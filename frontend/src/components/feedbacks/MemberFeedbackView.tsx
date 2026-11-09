@@ -555,7 +555,7 @@ export default function MemberFeedbackView() {
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-400 rtl:pl-4 rtl:pr-10"
+                className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] rtl:pl-4 rtl:pr-10"
               />
               {searchTerm && (
                 <button

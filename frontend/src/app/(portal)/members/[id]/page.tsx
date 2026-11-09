@@ -168,7 +168,7 @@ export default function MemberDetailPage() {
     setIsActionLoading(true);
     try {
       await activeMember(member.id);
-      toast.success(t("makeActive", "Member activated successfully"));
+      toast.success(t("memberActivatedSuccess", "Member activated successfully"));
       await loadMemberData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -185,7 +185,7 @@ export default function MemberDetailPage() {
     setIsActionLoading(true);
     try {
       await banMember(member.id);
-      toast.error(t("banMember", "Member has been banned"));
+      toast.success(t("memberBannedSuccess", "Member banned successfully"));
       await loadMemberData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -273,16 +273,11 @@ export default function MemberDetailPage() {
               )}
             </div>
 
-            {/* Core Member Details with Single Typographic Baseline */}
+            {/* Core Member Details */}
             <div className="space-y-2">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  {memberName}
-                </h1>
-                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / ID: {member.id.slice(0, 8)}
-                </span>
-              </div>
+              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {memberName}
+              </h1>
 
               <div>
                 {renderStatusBadge(status)}
@@ -356,21 +351,13 @@ export default function MemberDetailPage() {
         <div className="lg:col-span-8 space-y-6">
           {/* Section: Personal Info */}
           <Card className="toota-card border-none p-6 sm:p-7 space-y-6">
-            <div className="flex items-center justify-between">
-              {/* Baseline Metric Section Header */}
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  {t("personalInformation", "Personal Information")}
-                </h2>
-                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / {t("identity", "identity")}
-                </span>
-              </div>
-
-              {/* Crisp Outlined Micro-Badge */}
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{t("verified", "Verified")}</span>
+            {/* Baseline Metric Section Header */}
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                {t("personalInformation", "Personal Information")}
+              </h2>
+              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+                / {t("identity", "identity")}
               </span>
             </div>
 
