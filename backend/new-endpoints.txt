@@ -428,3 +428,135 @@ stats.total
 
 for the total number of members.
 
+
+
+## Membership Plan Statistics API
+
+These endpoints return statistics about membership plans and their durations.
+
+The frontend should use these endpoints directly for dashboard/statistics cards. There is no need to fetch all membership plans and calculate the values on the frontend.
+
+---
+
+### Admin Platform — Membership Plan Stats
+
+**GET**
+
+`/api/admins/membership-plans/stats`
+
+Returns statistics for all membership plans belonging to the admin's club.
+
+**Response example:**
+
+```json
+{
+  "activeCount": 4,
+  "inactiveCount": 2,
+  "total": 6,
+  "durationCount": 14
+}
+```
+
+---
+
+### Staff Platform — Membership Plan Stats
+
+**GET**
+
+`/api/staffs/membership-plans/stats`
+
+Returns statistics for all membership plans belonging to the staff member's club.
+
+The Staff and Admin endpoints return the same response structure.
+
+**Response example:**
+
+```json
+{
+  "activeCount": 4,
+  "inactiveCount": 2,
+  "total": 6,
+  "durationCount": 14
+}
+```
+
+---
+
+## Response Fields
+
+- `activeCount`: Number of membership plans where `isActive = true`.
+- `inactiveCount`: Number of membership plans where `isActive = false`.
+- `total`: Total number of membership plans.
+- `durationCount`: Total number of membership plan durations across all plans in the club.
+
+### Example
+
+If the club has:
+
+```text
+Basic Plan
+- 1 Month
+- 3 Months
+- 6 Months
+
+Premium Plan
+- 1 Month
+- 3 Months
+- 6 Months
+- 12 Months
+```
+
+Then:
+
+```text
+total = 2
+durationCount = 7
+```
+
+`durationCount` counts duration records, not membership plans.
+
+---
+
+## Frontend Usage
+
+For Admin:
+
+```ts
+const response = await fetch('/api/admins/membership-plans/stats');
+
+const stats = await response.json();
+```
+
+For Staff:
+
+```ts
+const response = await fetch('/api/staffs/membership-plans/stats');
+
+const stats = await response.json();
+```
+
+The frontend can use:
+
+```ts
+stats.activeCount
+stats.inactiveCount
+stats.total
+stats.durationCount
+```
+
+Example dashboard cards:
+
+```text
+Total Plans      → stats.total
+Active Plans     → stats.activeCount
+Inactive Plans   → stats.inactiveCount
+Total Durations  → stats.durationCount
+```
+
+Use the endpoint that matches the current platform:
+
+```text
+Admin → /api/admins/membership-plans/stats
+Staff → /api/staffs/membership-plans/stats
+```
+
