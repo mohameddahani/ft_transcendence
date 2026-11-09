@@ -891,3 +891,186 @@ Do not add all of these fields together to calculate the total. Always use:
 ```ts
 stats.total
 ```
+
+
+
+
+
+## Payment Statistics API
+
+These endpoints return payment statistics for the Admin, Staff, and Member platforms.
+
+The frontend should use these endpoints directly for dashboard/statistics cards. There is no need to fetch all payment records and calculate totals on the frontend.
+
+---
+
+### Admin Platform — Payment Stats
+
+**GET**
+
+`/api/admins/payments/stats`
+
+Returns payment statistics for all payments belonging to the admin's club.
+
+**Response example:**
+
+```json
+{
+  "totalAmount": 18500.5,
+  "totalPayments": 128
+}
+```
+
+### Admin Response Fields
+
+- `totalAmount`: Total amount of money received from all payment records in the club.
+- `totalPayments`: Total number of payment records in the club.
+
+Frontend usage:
+
+```ts
+const response = await fetch('/api/admins/payments/stats');
+const stats = await response.json();
+
+stats.totalAmount;
+stats.totalPayments;
+```
+
+Example dashboard cards:
+
+```text
+Total Revenue  → stats.totalAmount
+Total Payments → stats.totalPayments
+```
+
+---
+
+### Staff Platform — Payment Stats
+
+**GET**
+
+`/api/staffs/payments/stats`
+
+Returns the total number of payment records belonging to the staff member's club.
+
+**Response example:**
+
+```json
+{
+  "totalPayments": 128
+}
+```
+
+### Staff Response Fields
+
+- `totalPayments`: Total number of payment records in the club.
+
+The Staff endpoint currently does **not** return `totalAmount`.
+
+Frontend usage:
+
+```ts
+const response = await fetch('/api/staffs/payments/stats');
+const stats = await response.json();
+
+stats.totalPayments;
+```
+
+Example dashboard card:
+
+```text
+Total Payments → stats.totalPayments
+```
+
+---
+
+### Member Platform — Payment Stats
+
+**GET**
+
+`/api/members/payments/stats`
+
+Returns payment statistics only for the authenticated member.
+
+**Response example:**
+
+```json
+{
+  "totalAmount": 1250,
+  "totalPayments": 6
+}
+```
+
+### Member Response Fields
+
+- `totalAmount`: Total amount paid by the authenticated member.
+- `totalPayments`: Total number of payment records belonging to the authenticated member.
+
+Frontend usage:
+
+```ts
+const response = await fetch('/api/members/payments/stats');
+const stats = await response.json();
+
+stats.totalAmount;
+stats.totalPayments;
+```
+
+Example dashboard cards:
+
+```text
+Total Paid     → stats.totalAmount
+Total Payments → stats.totalPayments
+```
+
+---
+
+## Endpoint Summary
+
+```text
+Admin  → GET /api/admins/payments/stats
+Staff  → GET /api/staffs/payments/stats
+Member → GET /api/members/payments/stats
+```
+
+### Response Difference
+
+Admin:
+
+```json
+{
+  "totalAmount": 18500.5,
+  "totalPayments": 128
+}
+```
+
+Staff:
+
+```json
+{
+  "totalPayments": 128
+}
+```
+
+Member:
+
+```json
+{
+  "totalAmount": 1250,
+  "totalPayments": 6
+}
+```
+
+### Important Note
+
+These statistics currently represent **all-time payments** because the backend does not apply a date filter.
+
+Also, if there are no payments, Prisma may return `null` for `totalAmount`.
+
+It is better for the backend to return `0` instead:
+
+```ts
+totalAmount: paymentStats._sum.amount ?? 0
+```
+
+This gives the frontend a consistent numeric value.

@@ -47,4 +47,13 @@ export class StaffPaymentsController {
   ) {
     return this.paymentsService.findOnePayment(accessTokenPayload, id);
   }
+
+  // * Get All Stats of payments (Staff)
+  @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  paymentStatsOfStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.paymentsService.paymentStatsOfStaff(accessTokenPayload);
+  }
 }
