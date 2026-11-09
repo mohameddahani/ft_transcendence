@@ -127,3 +127,304 @@ The frontend can use these values directly in the **Member Platform dashboard/st
 
 
 
+
+
+## Feedback Statistics API
+
+These endpoints return feedback statistics for the Admin, Staff, and Member platforms.
+
+The frontend should use these endpoints directly for dashboard/statistics cards. There is no need to fetch all feedback records and calculate statistics on the frontend.
+
+---
+
+### Admin Platform — Feedback Stats
+
+**GET**
+
+`/api/admins/feedbacks/stats`
+
+Returns statistics for **all feedback belonging to the admin's club**.
+
+**Response example:**
+
+```json id="u7f2mx"
+{
+  "openCount": 14,
+  "inReviewCount": 6,
+  "resolvedCount": 100,
+  "dismissedCount": 8,
+  "negativeCount": 8,
+  "neutralCount": 22,
+  "positiveCount": 98,
+  "total": 128,
+  "averageRating": 4.8
+}
+```
+
+---
+
+### Staff Platform — Feedback Stats
+
+**GET**
+
+`/api/staffs/feedbacks/stats`
+
+Returns statistics for **all feedback belonging to the staff member's club**.
+
+The Staff and Admin endpoints return the same response structure.
+
+**Response example:**
+
+```json id="d4xk98"
+{
+  "openCount": 14,
+  "inReviewCount": 6,
+  "resolvedCount": 100,
+  "dismissedCount": 8,
+  "negativeCount": 8,
+  "neutralCount": 22,
+  "positiveCount": 98,
+  "total": 128,
+  "averageRating": 4.8
+}
+```
+
+---
+
+### Member Platform — Feedback Stats
+
+**GET**
+
+`/api/members/feedbacks/stats`
+
+Returns statistics only for **feedback created by the authenticated member**.
+
+It does not return statistics from other members of the club.
+
+**Response example:**
+
+```json id="4np9oy"
+{
+  "openCount": 2,
+  "inReviewCount": 1,
+  "resolvedCount": 7,
+  "dismissedCount": 0,
+  "negativeCount": 1,
+  "neutralCount": 2,
+  "positiveCount": 7,
+  "total": 10,
+  "averageRating": 4.5
+}
+```
+
+---
+
+## Response Fields
+
+- `openCount`: Number of feedbacks with status `OPEN`.
+- `inReviewCount`: Number of feedbacks with status `IN_REVIEW`.
+- `resolvedCount`: Number of feedbacks with status `RESOLVED`.
+- `dismissedCount`: Number of feedbacks with status `DISMISSED`.
+- `negativeCount`: Number of feedbacks analyzed as `NEGATIVE`.
+- `neutralCount`: Number of feedbacks analyzed as `NEUTRAL`.
+- `positiveCount`: Number of feedbacks analyzed as `POSITIVE`.
+- `total`: Total number of feedback records.
+- `averageRating`: Average rating of the feedback records.
+
+---
+
+## Frontend Usage
+
+For status cards:
+
+```ts id="2yzzl8"
+stats.openCount
+stats.inReviewCount
+stats.resolvedCount
+stats.dismissedCount
+```
+
+For sentiment cards or charts:
+
+```ts id="j08ph6"
+stats.positiveCount
+stats.neutralCount
+stats.negativeCount
+```
+
+For general statistics:
+
+```ts id="gcx2uq"
+stats.total
+stats.averageRating
+```
+
+Example:
+
+```ts id="tn4bc8"
+const response = await fetch('/api/admins/feedbacks/stats');
+
+const stats = await response.json();
+
+console.log(stats.total);
+console.log(stats.averageRating);
+console.log(stats.positiveCount);
+```
+
+Use the corresponding endpoint depending on the current platform:
+
+```text id="uyt49n"
+Admin  → /api/admins/feedbacks/stats
+Staff  → /api/staffs/feedbacks/stats
+Member → /api/members/feedbacks/stats
+```
+
+### Important Notes
+
+`positiveCount + neutralCount + negativeCount` may be smaller than `total`.
+
+This can happen because sentiment analysis may not yet exist for some feedback records.
+
+Example:
+
+```json id="8j538y"
+{
+  "total": 10,
+  "positiveCount": 5,
+  "neutralCount": 2,
+  "negativeCount": 1
+}
+```
+
+Only 8 feedbacks have sentiment results; the remaining 2 may still have no `sentimentType`.
+
+Also, with the current backend implementation, `averageRating` may be `null` when there are no feedback ratings:
+
+```json id="0o76eq"
+{
+  "total": 0,
+  "averageRating": null
+}
+```
+
+The frontend should handle that case, or the backend can return `0` instead by using:
+
+```ts id="h93ob4"
+averageRating: summary._avg.rating ?? 0
+```
+
+
+
+
+
+
+## Member Statistics API
+
+### Admin Platform — Member Stats
+
+**GET**
+
+`/api/admins/members/stats`
+
+This endpoint is used in the **Admin Platform** and returns statistics about all members belonging to the admin's club.
+
+The frontend should use this endpoint directly for dashboard/statistics cards. There is no need to fetch all member records and calculate the values on the frontend.
+
+**Response example:**
+
+```json id="glhuxs"
+{
+  "activeCount": 245,
+  "pendingCount": 42,
+  "bannedCount": 12,
+  "expiredCount": 39,
+  "total": 338
+}
+```
+
+### Response Fields
+
+- `activeCount`: Number of members whose account status is `ACTIVE`.
+- `pendingCount`: Number of members whose account status is `PENDING`.
+- `bannedCount`: Number of members whose account status is `BANNED`.
+- `expiredCount`: Number of members who have at least one `EXPIRED` membership and currently have no `ACTIVE` membership.
+- `total`: Total number of members belonging to the club.
+
+### Important Note About `expiredCount`
+
+`expiredCount` is based on the member's memberships, not their account status.
+
+For example:
+
+```text id="7ovllk"
+Member A
+Memberships:
+- EXPIRED
+- EXPIRED
+
+→ counted in expiredCount ✅
+```
+
+```text id="exk2li"
+Member B
+Memberships:
+- EXPIRED
+- ACTIVE
+
+→ not counted in expiredCount ❌
+```
+
+A member with an active membership is not considered expired even if they have older expired memberships.
+
+### Frontend Usage
+
+Example:
+
+```ts id="e4wrl8"
+const response = await fetch('/api/admins/members/stats');
+
+const stats = await response.json();
+
+console.log(stats.total);
+console.log(stats.activeCount);
+console.log(stats.pendingCount);
+console.log(stats.bannedCount);
+console.log(stats.expiredCount);
+```
+
+The dashboard can use:
+
+```ts id="6vqxj1"
+stats.total
+stats.activeCount
+stats.pendingCount
+stats.bannedCount
+stats.expiredCount
+```
+
+Example cards:
+
+```text id="8zvurb"
+Total Members   → stats.total
+Active Members  → stats.activeCount
+Pending Members → stats.pendingCount
+Banned Members  → stats.bannedCount
+Expired Members → stats.expiredCount
+```
+
+### Important
+
+`activeCount`, `pendingCount`, and `bannedCount` come from the member's **account status**.
+
+`expiredCount` comes from the member's **membership status**.
+
+Because these represent different concepts, `expiredCount` should not be added to the other account-status counts to calculate `total`.
+
+Always use:
+
+```ts id="99qkr5"
+stats.total
+```
+
+for the total number of members.
+

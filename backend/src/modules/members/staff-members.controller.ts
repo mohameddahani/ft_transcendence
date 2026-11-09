@@ -109,4 +109,11 @@ export class StaffMembersController {
   ) {
     return this.membersService.resendSetPasswordMember(accessTokenPayload, id);
   }
+
+  // * Get All Stats of Memebers (Member)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.membersService.memberStats(accessTokenPayload);
+  }
 }

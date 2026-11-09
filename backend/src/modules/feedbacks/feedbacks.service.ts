@@ -285,6 +285,8 @@ export class FeedbacksService {
     // * Check If The Member Has Permissions
     const adminId = await this.checkIfTheMemberHasPermissions(memberId);
 
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
     const [statusStats, sentimentStats, summary] = await Promise.all([
       this.prisma.feedback.groupBy({
         by: ['feedbackStatus'],
@@ -532,6 +534,8 @@ export class FeedbacksService {
         accessTokenPayload,
       );
 
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
     const [statusStats, sentimentStats, summary] = await Promise.all([
       this.prisma.feedback.groupBy({
         by: ['feedbackStatus'],
