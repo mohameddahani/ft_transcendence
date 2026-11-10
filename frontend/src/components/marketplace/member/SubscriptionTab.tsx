@@ -23,6 +23,8 @@ import { CreditCard, Loader2 } from "lucide-react";
 export function SubscriptionTab({
   tokenSymbol,
   subOwner,
+  selectedPlanIndex,
+  selectedDurationIndex,
   planItems,
   setSelectedPlanIndex,
   setSelectedDurationIndex,
@@ -36,6 +38,8 @@ export function SubscriptionTab({
 }: {
   tokenSymbol: string;
   subOwner: string;
+  selectedPlanIndex: string;
+  selectedDurationIndex: string;
   planItems: { label: string; value: string }[];
   setSelectedPlanIndex: (value: string) => void;
   setSelectedDurationIndex: (value: string) => void;
@@ -84,6 +88,8 @@ export function SubscriptionTab({
             {/* Plans */}
             <Select
               items={planItems}
+              value={selectedPlan ? selectedPlanIndex : null}
+              disabled={subscribing || activePlans.length === 0}
               onValueChange={(value: string | null) => {
                 setSelectedPlanIndex(value ?? "0");
                 setSelectedDurationIndex("0");
@@ -109,7 +115,8 @@ export function SubscriptionTab({
             {/* Durations */}
             <Select
               items={durationItems}
-              disabled={!selectedPlan || selectedPlan.durations.length === 0}
+              value={selectedDuration ? selectedDurationIndex : null}
+              disabled={subscribing || !selectedPlan || selectedPlan.durations.length === 0}
               onValueChange={(value: string | null) =>
                 setSelectedDurationIndex(value ?? "0")
               }
@@ -140,7 +147,7 @@ export function SubscriptionTab({
             <Button
               variant="default"
               className="w-full mt-2"
-              disabled={subscribing || !account}
+              disabled={subscribing || !account || !subOwner || !selectedDuration || !Number.isFinite(selectedDuration.priceByG) || selectedDuration.priceByG <= 0}
               onClick={() => {
                 void handlePaySubscription();
               }}
