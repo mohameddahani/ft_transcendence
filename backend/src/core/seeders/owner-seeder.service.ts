@@ -1,11 +1,6 @@
 import { Gender, Role } from '@/generated/prisma/enums';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import {
-  ConflictException,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { hash } from 'bcryptjs';
 import {
@@ -64,16 +59,17 @@ export class OwnerSeederService implements OnApplicationBootstrap {
 
     if (existingOwner) {
       if (existingOwner.email === data.email) {
-        throw new ConflictException('Owner Email already exists');
+        this.logger.error('Owner Email already exists');
       }
 
       if (existingOwner.phoneNumber === data.phoneNumber) {
-        throw new ConflictException('Owner Phone number already exists');
+        this.logger.error('Owner Phone number already exists');
       }
 
       if (existingOwner.userName === data.userName) {
-        throw new ConflictException('Owner User Name already exists');
+        this.logger.error('Owner User Name already exists');
       }
+      return;
     }
 
     // * Save the owner in the database
