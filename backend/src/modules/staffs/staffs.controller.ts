@@ -62,7 +62,6 @@ export class StaffsController {
 
   // * Get All Stats of Staffs (Admin)
   @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   staffStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.staffsService.staffStats(accessTokenPayload.id);
   }

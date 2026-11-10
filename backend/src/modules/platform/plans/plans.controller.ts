@@ -76,7 +76,6 @@ export class PlansController {
 
   // * Get All Stats of plans (public)
   @Get('stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   planStats() {
     return this.plansService.planStats();
   }

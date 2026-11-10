@@ -40,7 +40,6 @@ export class AdminPaymentsController {
 
   // * Get All Stats of Payments (Admin)
   @Get('stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   paymentStatsOfAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

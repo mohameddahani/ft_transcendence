@@ -35,7 +35,6 @@ export class OwnersController {
 
   // * Get All Stats of users (owner)
   @Get('users/stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   userStats() {
     return this.ownersService.userStats();
   }
