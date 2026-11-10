@@ -165,6 +165,41 @@ def search_documents(user: User, query: str) -> dict:
     return {"found": True, "excerpts": [{"source": h["source"], "text": h["text"]} for h in hits]}
 
 
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+# one closure from special_hours: no times means closed all day, else closed between the two times
+def _closure(row) -> dict:
+    when = "all day" if not row["start_time"] or not row["end_time"] else f"{row['start_time']} - {row['end_time']}"
+    return {"from": row["start_date"], "to": row["end_date"], "closed": when}
+
+
+# returns the gym's opening hours as set in the app: every weekday, today, and the closures coming up
+def get_opening_hours(user: User) -> dict:
+    rows = db.fetch_all("""
+        SELECT day_of_week, start_time, end_time, is_closed FROM working_hours
+        WHERE admin_id = %s ORDER BY day_of_week""", (user.admin_id,))
+    if not rows:
+        return {"set_in_app": False, "note": "The gym has not set its opening hours in the app."}
+    # the gym's local date and time, Monday = 1 like the app
+    now = db.fetch_one("""
+        SELECT (now() AT TIME ZONE 'Africa/Casablanca')::date AS date,
+               to_char(now() AT TIME ZONE 'Africa/Casablanca', 'HH24:MI') AS time,
+               extract(isodow FROM now() AT TIME ZONE 'Africa/Casablanca')::int AS day""")
+    closures = db.fetch_all("""
+        SELECT start_date, end_date, start_time, end_time FROM special_hours
+        WHERE admin_id = %s AND end_date >= %s ORDER BY start_date LIMIT 10""", (user.admin_id, now["date"]))
+    by_day = {r["day_of_week"]: r for r in rows}
+    week = []
+    for n, name in enumerate(DAY_NAMES, start=1):
+        r = by_day.get(n)
+        hours = "not set" if r is None else "closed" if r["is_closed"] else f"{r['start_time']} - {r['end_time']}"
+        week.append({"day": name, "hours": hours})
+    today = {"date": now["date"], "time_now": now["time"], **week[now["day"] - 1],
+             "closures_today": [_closure(c)["closed"] for c in closures if c["start_date"] <= now["date"]]}
+    return {"set_in_app": True, "today": today, "weekly_hours": week, "closures": [_closure(c) for c in closures]}
+
+
 # returns the parameter description for the tools that only take `days`
 def _days_param(text: str) -> dict:
     return {"type": "object", "properties": {"days": {"type": "integer", "description": text}}}
@@ -249,9 +284,18 @@ TOOLS = {
         "function": my_attendance,
         "roles": ["MEMBER"],
     },
+    "get_opening_hours": {
+        "description": "The gym's opening hours as set in the app: the hours of each day from Monday to "
+                       "Sunday, today's date, time and hours, and the closures coming up (holidays or "
+                       "special days, all day or between two times). Use it for every question about "
+                       "opening hours, when the gym opens or closes, or whether it is open on a day.",
+        "parameters": NO_PARAMS,
+        "function": get_opening_hours,
+        "roles": ["ADMIN", "STAFF", "MEMBER"],
+    },
     "search_documents": {
-        "description": "Search the gym's own documents: rules, prices, opening hours, classes, "
-                       "cancelling, freezing, guests and, for staff, internal procedures. Use it "
+        "description": "Search the gym's own documents: rules, prices, classes, cancelling, "
+                       "freezing, guests and, for staff, internal procedures. Use it "
                        "whenever the answer could be written in a document. Write the query as a "
                        "complete question in English, like 'Which classes are on Saturday morning?', "
                        "even if the user wrote in another language.",
