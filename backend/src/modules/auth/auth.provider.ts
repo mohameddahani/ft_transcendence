@@ -848,7 +848,8 @@ export class AuthProvider {
       );
     }
     return {
-      message: 'Please check your email and set your password',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
@@ -1811,7 +1812,8 @@ export class AuthProvider {
       );
     }
     return {
-      message: 'Please check your email and set your password.',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
@@ -2066,7 +2068,8 @@ export class AuthProvider {
     }
 
     return {
-      message: 'Please check your email and set your password.',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
