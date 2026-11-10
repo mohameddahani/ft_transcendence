@@ -48,14 +48,8 @@ export default function MemberOperatingHoursView() {
     setIsLoading(true);
     try {
       const [whData, shData] = await Promise.all([
-        fetchMemberWorkingHours(1, 50).catch((err) => {
-          console.warn("fetchMemberWorkingHours warning:", err);
-          return [];
-        }),
-        fetchMemberSpecialHours(1, 50).catch((err) => {
-          console.warn("fetchMemberSpecialHours warning:", err);
-          return [];
-        }),
+        fetchMemberWorkingHours(1, 50).catch(() => []),
+        fetchMemberSpecialHours(1, 50).catch(() => []),
       ]);
       setWorkingHours(whData);
       setSpecialHours(shData);

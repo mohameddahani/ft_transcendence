@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "react-toastify";
 import api from "@/lib/axios";
 import type { SignedForwardRequest } from "@/types/marketplace";
 
@@ -10,38 +11,42 @@ type RelayerResponse = {
 export async function submitGaslessTransaction(
   payload: SignedForwardRequest
 ): Promise<string> {
-  const API_URL_RELAYER = process.env.NEXT_PUBLIC_API_URL_RELAYER;
+  try {
+    // Route via Next.js BFF proxy to avoid CORS and keep the relayer host private
+    const response = await api.post<RelayerResponse>(
+      "/api/blockchain/relayer",
+      payload
+    );
 
-  if (!API_URL_RELAYER) {
-    throw new Error("Relayer API URL is missing");
+    const { hash, error } = response.data;
+
+    if (!hash) {
+      throw new Error(error || "Relayer did not accept the transaction.");
+    }
+
+    return hash;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      const serverError =
+        (err.response.data as { error?: string; message?: string })?.error ||
+        (err.response.data as { error?: string; message?: string })?.message;
+      if (serverError) {
+        throw new Error(serverError);
+      }
+    }
+    throw err;
   }
-
-  const response = await axios.post<RelayerResponse>(API_URL_RELAYER, payload, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  const { hash, error } = response.data;
-
-  if (!hash) {
-    throw new Error(error || "Relayer did not accept the transaction.");
-  }
-
-  return hash;
 }
 
 export const update_addressAdmin_forMember = async (address: string) => {
   try {
     await api.patch("/api/users/admins/edit-profile", { walletAddress: address });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
-    } else {
-      console.error("Unexpected error:", error);
-    }
+    const errorMsg =
+      axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
+        : "Failed to update admin wallet address";
+    toast.error(errorMsg);
   }
 };
 
@@ -49,13 +54,11 @@ export const update_walletAddress_member = async (address: string) => {
   try {
     await api.patch("/api/users/members/edit-profile", { walletAddress: address });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
-    } else {
-      console.error("Unexpected error:", error);
-    }
+    const errorMsg =
+      axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
+        : "Failed to update member wallet address";
+    toast.error(errorMsg);
   }
 };
 

@@ -67,7 +67,6 @@ export default function AdminDetailView({ admin }: AdminDetailViewProps) {
       setCurrentStatus(newStatus);
       toast.success(`Account status updated to ${newStatus}`);
     } catch (err: unknown) {
-      console.error(`Failed to update status to ${action}:`, err);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         `Failed to set account status to ${action}.`;

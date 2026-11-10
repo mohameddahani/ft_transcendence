@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, Building2, Package, CreditCard, X } from "lucide-react";
+import { Building2, Package, CreditCard, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/layout/DashboardShell";
 import { ThemeToggle } from "@/components/theme/ThemeProvider";
+import { SportiumIcon } from "@/components/brand/SportiumLogo";
 
 interface NavItem {
   label: string;
@@ -66,13 +67,13 @@ export default function SideNavBar() {
             {/* Mobile Drawer Header */}
             <div className="px-5 mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-primary flex items-center justify-center rounded text-on-primary">
-                  <Terminal className="size-4" />
+                <div className="size-7 bg-black text-white flex items-center justify-center rounded-lg p-1">
+                  <SportiumIcon className="w-full h-full text-white" />
                 </div>
                 <div>
-                  <h2 className="font-headline-sm text-sm font-bold text-on-surface">Management</h2>
+                  <h2 className="font-headline-sm text-sm font-bold text-on-surface">Sportium</h2>
                   <p className="text-[10px] font-label-caps text-on-surface-variant uppercase tracking-wider">
-                    SaaS Admin
+                    SaaS Platform
                   </p>
                 </div>
               </div>
@@ -107,13 +108,13 @@ export default function SideNavBar() {
         {/* Brand / Section Header */}
         <div className="px-layout-margin mb-layout-margin">
           <div className="flex items-center gap-element-gap mb-1">
-            <div className="w-6 h-6 bg-primary flex items-center justify-center rounded text-on-primary">
-              <Terminal className="size-4" />
+            <div className="size-7 bg-black text-white flex items-center justify-center rounded-lg p-1">
+              <SportiumIcon className="w-full h-full text-white" />
             </div>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">Management</h2>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">Sportium</h2>
           </div>
           <p className="text-[11px] font-label-caps text-on-surface-variant uppercase tracking-wider">
-            SaaS Admin
+            SaaS Platform
           </p>
         </div>
 

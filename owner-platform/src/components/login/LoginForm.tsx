@@ -91,8 +91,6 @@ export default function LoginForm() {
         } else if (err.response?.status) {
           message = `Login failed (${err.response.status})`;
         }
-      } else {
-        console.error("Unexpected login error:", err);
       }
 
       setServerError(message);

@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { TodayVisit } from "@/types/visit";
+import { MembershipPlan } from "@/types/membership-plan";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,7 @@ interface VisitDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   visit: TodayVisit | null;
+  plans?: MembershipPlan[];
   onConfirmCheckIn: (memberId: string) => Promise<void>;
   isCheckingIn: boolean;
 }
@@ -27,6 +29,7 @@ export default function VisitDetailsModal({
   isOpen,
   onClose,
   visit,
+  plans,
   onConfirmCheckIn,
   isCheckingIn,
 }: VisitDetailsModalProps) {
@@ -66,6 +69,45 @@ export default function VisitDetailsModal({
         day: "numeric",
       })
     : "";
+
+  const matchedPlan = plans?.find(
+    (p) =>
+      p.id === visit.membership?.membershipPlanId ||
+      p.id === visit.membership?.membershipPlan?.id ||
+      p.id === (visit.membership as { planId?: string } | undefined)?.planId ||
+      p.id === visit.membershipId ||
+      p.id === visit.membership?.id
+  );
+
+  const memberAny = member as {
+    memberships?: Array<{
+      membershipStatus?: string;
+      membershipPlanId?: string;
+      membershipPlan?: { planName?: string; name?: string };
+      plan?: { planName?: string };
+      planName?: string;
+    }>;
+  };
+  const memberActiveMembership =
+    memberAny?.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
+    memberAny?.memberships?.[0];
+  const matchedMemberPlan = plans?.find(
+    (p) => p.id === memberActiveMembership?.membershipPlanId
+  );
+
+  const resolvedPlanName =
+    visit.membership?.membershipPlan?.planName ||
+    visit.membership?.membershipPlan?.name ||
+    visit.membership?.plan?.planName ||
+    (visit.membership as { planName?: string } | undefined)?.planName ||
+    matchedPlan?.planName ||
+    memberActiveMembership?.membershipPlan?.planName ||
+    memberActiveMembership?.membershipPlan?.name ||
+    memberActiveMembership?.plan?.planName ||
+    matchedMemberPlan?.planName ||
+    (visit.membership || visit.membershipId || memberActiveMembership
+      ? t("activePlanText", "Active Plan")
+      : t("noActivePlan", "No Active Plan"));
 
   return (
     <div
@@ -179,10 +221,10 @@ export default function VisitDetailsModal({
               <span>{t("membershipPlan", "Membership Plan")}</span>
             </div>
             <p className="text-sm font-bold text-toota-ink truncate">
-              {visit.membership?.plan?.planName || t("standardPlan", "Standard Tier")}
+              {resolvedPlanName}
             </p>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-              {visit.membership?.status || t("inGoodStanding", "Active & In Good Standing")}
+              {visit.membership?.membershipStatus || visit.membership?.status || t("inGoodStanding", "Active & In Good Standing")}
             </p>
           </div>
         </div>

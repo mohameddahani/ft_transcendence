@@ -66,6 +66,7 @@ export default function AddMemberModal({
       phoneNumber: "",
       address: "",
       emergencyContact: "",
+      walletAddress: "",
       membershipPlanId: "",
       membershipPlanDurationId: "",
     },
@@ -91,7 +92,7 @@ export default function AddMemberModal({
     const loadPlans = async () => {
       setIsLoadingPlans(true);
       try {
-        const loaded = await fetchMembershipPlans(1, 100);
+        const loaded = await fetchMembershipPlans(1, 50);
         if (!isMounted) return;
         setPlans(loaded);
 
@@ -175,6 +176,7 @@ export default function AddMemberModal({
         phoneNumber: values.phoneNumber.trim().replace(/\s+/g, ""),
         address: values.address.trim(),
         emergencyContact: values.emergencyContact.trim().replace(/\s+/g, ""),
+        walletAddress: values.walletAddress?.trim() ? values.walletAddress.trim() : undefined,
         membershipPlanId: values.membershipPlanId,
         membershipPlanDurationId: values.membershipPlanDurationId,
       });
@@ -413,6 +415,32 @@ export default function AddMemberModal({
                   )}
                 </div>
               </div>
+
+              {/* Wallet Address */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-toota-ink">
+                    {t("walletAddress", "Wallet Address")}
+                  </label>
+                  <span className="text-[11px] text-toota-muted">
+                    {t("optional", "Optional")}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  {...register("walletAddress")}
+                  autoComplete="off"
+                  spellCheck={false}
+                  className={`w-full h-10 px-3.5 rounded-xl bg-toota-inner border text-xs font-mono font-medium text-toota-ink outline-none focus:ring-1 focus:ring-ring transition-all ${
+                    errors.walletAddress
+                      ? "border-rose-500 focus:ring-rose-500/20"
+                      : "border-border/40"
+                  }`}
+                />
+                {errors.walletAddress && (
+                  <p className="text-[11px] text-rose-500">{errors.walletAddress.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Membership Plan Section (Toota Inner Well) */}
@@ -484,7 +512,7 @@ export default function AddMemberModal({
                       }
                       options={currentDurations.map((d) => ({
                         value: d.id,
-                        label: `${d.durationDays} ${t("days", "days")} — $${Number(d.price).toFixed(2)}`,
+                        label: `${d.durationDays} ${t("days", "days")} — ${Number(d.price).toFixed(2)} MAD`,
                       }))}
                     />
                     {errors.membershipPlanDurationId && (

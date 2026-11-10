@@ -65,8 +65,7 @@ export default function SubscriptionsTable() {
         res.data?.totalPages ||
           Math.max(1, Math.ceil((res.data?.total ?? list.length) / itemsPerPage))
       );
-    } catch (err) {
-      console.error("Failed to load subscriptions:", err);
+    } catch {
       toast.error("Failed to load platform subscriptions");
     } finally {
       setLoading(false);
@@ -108,7 +107,6 @@ export default function SubscriptionsTable() {
       );
       setSubToCancel(null);
     } catch (err: unknown) {
-      console.error("Failed to cancel subscription:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to cancel subscription";

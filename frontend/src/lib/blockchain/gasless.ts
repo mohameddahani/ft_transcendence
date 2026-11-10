@@ -37,6 +37,7 @@ export async function relayForwarderCall(
   provider: BrowserProvider,
   signer: JsonRpcSigner,
   data: string,
+  onSubmitted?: (hash: string) => void,
 ): Promise<string> {
   if (!GASLESS_ENABLED)
     throw new Error("Gasless transactions are not configured.");
@@ -78,8 +79,9 @@ export async function relayForwarderCall(
   toast.info("Submitting gasless transaction…");
 
   const hash = await submitGaslessTransaction(payload);
+  onSubmitted?.(hash);
 
-  const receipt = await provider.waitForTransaction(hash);
+  const receipt = await provider.waitForTransaction(hash, 1, onSubmitted ? 60000 : undefined);
 
   if (!receipt || receipt.status !== 1) {
     throw new Error("Relayed transaction failed or was not confirmed.");
@@ -93,7 +95,8 @@ export async function relayForwarderMethod(
   signer: JsonRpcSigner,
   Method: string,
   args: readonly unknown[],
+  onSubmitted?: (hash: string) => void,
 ): Promise<string> {
   const data = new Interface(GYMTOKEN_ABI).encodeFunctionData(Method, args);
-  return relayForwarderCall(provider, signer, data);
+  return relayForwarderCall(provider, signer, data, onSubmitted);
 }

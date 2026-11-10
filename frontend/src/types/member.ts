@@ -70,6 +70,7 @@ export interface BackendMember {
   photo?: string | null;
   address: string;
   emergencyContact: string;
+  walletAddress?: string | null;
   role?: string;
   accountStatus: MemberAccountStatus | string;
   status?: string; // backwards compatibility
@@ -91,6 +92,7 @@ export interface AddMemberInput {
   emergencyContact: string;
   membershipPlanId: string;
   membershipPlanDurationId: string;
+  walletAddress?: string;
 }
 
 export type UpdateMemberInput = Partial<AddMemberInput>;

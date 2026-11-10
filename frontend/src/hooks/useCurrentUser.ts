@@ -1,104 +1,73 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AuthUser } from "@/types/auth";
+import {
+  useUserContext,
+  fetchLiveUserData,
+  type UserContextValue,
+} from "@/contexts/UserContext";
 
-export function useCurrentUser() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+export function useCurrentUser(): UserContextValue {
+  const context = useUserContext();
+
+  // If inside UserProvider, use the shared context directly (zero duplicate network calls!)
+  const [localUser, setLocalUser] = useState<AuthUser | null>(null);
+  const [localLoading, setLocalLoading] = useState<boolean>(true);
+
+  const loadLocal = useCallback(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("gym_user") : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === "object") {
+          setLocalUser(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLocalLoading(false);
+    }
+  }, []);
+
+  const syncLocal = useCallback(async (force = false) => {
+    const updated = await fetchLiveUserData(force);
+    if (updated) {
+      setLocalUser(updated);
+    }
+    setLocalLoading(false);
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    if (context) return; // If context is active, skip local effect
 
-    const loadCached = () => {
-      try {
-        const stored = localStorage.getItem("gym_user");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && typeof parsed === "object") {
-            setUser(parsed);
-          }
-        }
-      } catch {
-        // ignore JSON parse error
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
+    loadLocal();
+    syncLocal();
 
-    loadCached();
-
-    // Fetch live user and company data directly from database
-    const syncWithDb = async () => {
-      try {
-        const stored = localStorage.getItem("gym_user");
-        const parsed = stored ? JSON.parse(stored) : null;
-        const currentRole = (parsed?.role || parsed?.userType || "").toUpperCase();
-
-        let endpoint = "";
-        if (currentRole === "MEMBER") {
-          endpoint = "/api/users/members/me";
-        } else if (currentRole === "STAFF") {
-          endpoint = "/api/users/staffs/me";
-        } else if (currentRole === "ADMIN") {
-          endpoint = "/api/users/admins/me";
-        }
-
-        if (!endpoint) return;
-
-        const res = await fetch(endpoint);
-        if (res.ok) {
-          const dbData = await res.json();
-          if (dbData && typeof dbData === "object" && isMounted) {
-            const resolvedCompanyName =
-              dbData.companyName ||
-              dbData.admin?.companyName ||
-              parsed?.companyName ||
-              "";
-
-            const mergedUser: AuthUser = {
-              ...parsed,
-              ...dbData,
-              companyName: resolvedCompanyName,
-              photo:
-                dbData.profileImageUrl ||
-                dbData.photo ||
-                parsed?.photo ||
-                null,
-            };
-
-            setUser(mergedUser);
-            try {
-              localStorage.setItem("gym_user", JSON.stringify(mergedUser));
-            } catch {
-              // ignore
-            }
-          }
-        }
-      } catch {
-        // Fail silently if offline or token expired
-      }
-    };
-
-    syncWithDb();
-
-    // Listen to profile updates dispatched within the app
     const handleStorageUpdate = () => {
-      loadCached();
+      loadLocal();
     };
+
     window.addEventListener("storage", handleStorageUpdate);
     window.addEventListener("user_updated", handleStorageUpdate);
 
     return () => {
-      isMounted = false;
       window.removeEventListener("storage", handleStorageUpdate);
       window.removeEventListener("user_updated", handleStorageUpdate);
     };
-  }, []);
+  }, [context, loadLocal, syncLocal]);
 
-  // Format role to proper case (e.g., ADMIN -> Admin, STAFF -> Staff, MEMBER -> Member)
+  if (context) {
+    return context;
+  }
+
+  // Fallback if rendered outside UserProvider
+  const user = localUser;
+  const isLoading = localLoading;
+
   const rawRole = (user?.role || user?.userType || "").toUpperCase();
-  const role =
+  const role: "Admin" | "Staff" | "Member" | "Owner" | null =
     rawRole === "ADMIN"
       ? "Admin"
       : rawRole === "OWNER"
@@ -145,28 +114,36 @@ export function useCurrentUser() {
     (user as unknown as { admin?: { companyName?: string } })?.admin?.companyName ||
     "";
 
-  // Check if valid photo URL exists and is not a backend placeholder like default-image.jpg
   const candidatePhoto = user?.photo || user?.profileImage || user?.avatar || null;
   const isDefaultImage =
-    !candidatePhoto ||
-    candidatePhoto === "default-image.jpg" ||
-    candidatePhoto === "default-member-image.jpg";
+    candidatePhoto &&
+    (candidatePhoto.includes("default-image.jpg") ||
+      candidatePhoto.includes("default-avatar") ||
+      candidatePhoto.includes("placeholder"));
   const photo = isDefaultImage ? null : candidatePhoto;
 
   const initials =
-    (firstName[0] || "") + (lastName[0] || "") ||
-    (fullName[0] || "U").toUpperCase();
+    [firstName, lastName]
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
+    user?.userName?.slice(0, 2).toUpperCase() ||
+    "U";
 
   return {
     user,
-    fullName,
+    setUser: setLocalUser,
+    isLoading,
+    role,
+    logout,
     firstName,
     lastName,
+    fullName,
     companyName,
-    role,
     photo,
     initials,
-    isLoading,
-    logout,
+    refetchUser: () => syncLocal(true),
   };
 }

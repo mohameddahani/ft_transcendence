@@ -79,8 +79,7 @@ export default function OwnerProfileView() {
         companyName: data.companyName || "",
         password: "",
       });
-    } catch (err) {
-      console.error("Failed to load owner profile:", err);
+    } catch {
       toast.error("Failed to load profile details");
     } finally {
       setLoading(false);
@@ -131,7 +130,6 @@ export default function OwnerProfileView() {
       await fetchProfile();
       window.dispatchEvent(new Event("owner-profile-updated"));
     } catch (err: unknown) {
-      console.error("Failed to upload image:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to upload profile image";
@@ -201,7 +199,6 @@ export default function OwnerProfileView() {
       window.dispatchEvent(new Event("owner-profile-updated"));
       setChangePasswordOpen(false);
     } catch (err: unknown) {
-      console.error("Failed to update profile:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to update profile";

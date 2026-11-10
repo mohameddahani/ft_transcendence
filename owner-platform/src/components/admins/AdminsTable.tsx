@@ -74,8 +74,7 @@ export default function AdminsTable() {
         setTotalAdmins(0);
         setTotalPages(1);
       }
-    } catch (err: unknown) {
-      console.error("Failed to load gym owners:", err);
+    } catch {
       setError("Unable to load gym owners. Please check your backend connection.");
       toast.error("Failed to load gym owners from backend");
     } finally {
@@ -124,7 +123,6 @@ export default function AdminsTable() {
 
       toast.success(`Account for ${userName} is now ${newStatus}`);
     } catch (err: unknown) {
-      console.error(`Failed to set user to ${action}:`, err);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         `Failed to set user account to ${action}.`;

@@ -46,7 +46,7 @@ export default function AssistantDocumentsPage() {
 
   // Upload Form State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [visibility, setVisibility] = useState<"member" | "staff">("member");
+  const [visibility, setVisibility] = useState<"member" | "staff">("staff");
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);

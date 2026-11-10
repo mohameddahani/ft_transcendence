@@ -69,13 +69,6 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_GYMTOKEN_ADDRESS: ${NEXT_PUBLIC_GYMTOKEN_ADDRESS}
-        NEXT_PUBLIC_FORWARDER_ADDRESS: ${NEXT_PUBLIC_FORWARDER_ADDRESS}
-        NEXT_PUBLIC_API_URL_RELAYER: ${NEXT_PUBLIC_API_URL_RELAYER}
-        NEXT_PUBLIC_FETCH_PLANS_URL: ${NEXT_PUBLIC_FETCH_PLANS_URL}
-        NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER: ${NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_MEMBER}
-        NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN: ${NEXT_PUBLIC_UPDATE_WALLET_ADDRESS_ADMIN}
     image: frontend:latest
     container_name: frontend
     restart: unless-stopped
@@ -84,15 +77,15 @@ services:
     networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     depends_on:
       backend:
         condition: service_healthy
       ai:
-        condition: service_healthy
+        condition: service_started
 
   owner-portal:
     build:
@@ -108,10 +101,10 @@ services:
     networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/owner-portal/"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     depends_on:
       backend:
         condition: service_healthy
@@ -171,7 +164,7 @@ services:
       req -x509 -nodes -days 365 -newkey rsa:2048
       -keyout /certs/self-signed.key
       -out /certs/self-signed.crt
-      -subj "/C=FR/ST=Paris/L=Paris/O=GymFlow/CN=localhost"
+      -subj "/C=FR/ST=Paris/L=Paris/O=Sportium/CN=localhost"
       -addext "subjectAltName=DNS:localhost,DNS:status.localhost"
     volumes:
       - certs:/certs
@@ -361,17 +354,17 @@ services:
 
 volumes:
   db_data:
-    name: "gymFlow_db_data"
+    name: "db_data"
   ai_data:
-    name: "gymFlow_ai_data"
+    name: "ai_data"
   redis_data:
-    name: "gymFlow_redis_data"
+    name: "redis_data"
   certs:
-    name: "gymFlow_certs"
+    name: "certs"
   prometheus_data:
-    name: "gymFlow_prometheus_data"
+    name: "prometheus_data"
   grafana_data:
-    name: "gymFlow_grafana_data"
+    name: "grafana_data"
 
 # ==============================================================================
 #                                  Networks

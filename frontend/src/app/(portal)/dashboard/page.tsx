@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -20,6 +20,17 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { fetchMembers } from "@/lib/api/members";
 import { fetchMembershipPlans } from "@/lib/api/membership-plans";
 import { fetchAllFeedbacks } from "@/lib/api/feedbacks";
+import {
+  fetchAdminMemberStats,
+  fetchStaffMemberStats,
+  fetchAdminPlanStats,
+  fetchStaffPlanStats,
+  fetchAdminFeedbackStats,
+  fetchStaffFeedbackStats,
+  MemberStats,
+  PlanStats,
+  FeedbackStats,
+} from "@/lib/api/stats";
 import { BackendMember } from "@/types/member";
 import { MembershipPlan } from "@/types/membership-plan";
 import { FeedbackItem } from "@/types/feedback";
@@ -62,20 +73,36 @@ function AdminStaffDashboardView() {
   const { t } = useTranslation();
   const { fullName, companyName, role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
+  const [memberStats, setMemberStats] = useState<MemberStats | null>(null);
+  const [planStats, setPlanStats] = useState<PlanStats | null>(null);
+  const [liveFeedbackStats, setLiveFeedbackStats] = useState<FeedbackStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [membersData, plansData, feedbacksData] = await Promise.all([
-        fetchMembers(),
-        fetchMembershipPlans().catch(() => []),
-        fetchAllFeedbacks(1, 50).catch(() => []),
-      ]);
+      const isStaff = role === "Staff";
+      const memberStatsPromise = isStaff ? fetchStaffMemberStats() : fetchAdminMemberStats();
+      const planStatsPromise = isStaff ? fetchStaffPlanStats() : fetchAdminPlanStats();
+      const feedbackStatsPromise = isStaff ? fetchStaffFeedbackStats() : fetchAdminFeedbackStats();
+
+      const [memberStatsData, planStatsData, feedbackStatsData, membersData, plansData, feedbacksData] =
+        await Promise.all([
+          memberStatsPromise.catch(() => null),
+          planStatsPromise.catch(() => null),
+          feedbackStatsPromise.catch(() => null),
+          fetchMembers(1, 10).catch(() => []),
+          fetchMembershipPlans(1, 50).catch(() => []),
+          fetchAllFeedbacks(1, 10).catch(() => []),
+        ]);
+
+      setMemberStats(memberStatsData);
+      setPlanStats(planStatsData);
+      setLiveFeedbackStats(feedbackStatsData);
       setMembers(membersData);
       setPlans(plansData);
       setFeedbacks(feedbacksData);
@@ -90,20 +117,20 @@ function AdminStaffDashboardView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role]);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
-  const totalMembers = members.length;
-  const activeMembers = members.filter(
+  const totalMembers = memberStats?.total ?? members.length;
+  const activeMembers = memberStats?.activeCount ?? members.filter(
     (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
   ).length;
-  const expiredMembers = members.filter(
+  const expiredMembers = memberStats?.expiredCount ?? members.filter(
     (m) => m.memberships?.[0]?.membershipStatus === "EXPIRED"
   ).length;
-  const bannedMembers = members.filter(
+  const bannedMembers = memberStats?.bannedCount ?? members.filter(
     (m) => m.accountStatus === "BANNED"
   ).length;
   const inactiveOrOther = totalMembers - activeMembers;
@@ -152,9 +179,9 @@ function AdminStaffDashboardView() {
     });
   }, [feedbacks]);
 
-  // Feedback statistics computed from real feedback data
+  // Feedback statistics computed from dedicated stats endpoint + real reviews
   const feedbackStats = useMemo(() => {
-    const total = feedbacks.length;
+    const total = liveFeedbackStats?.total ?? feedbacks.length;
     if (total === 0) {
       return {
         averageRating: "5.0",
@@ -169,15 +196,25 @@ function AdminStaffDashboardView() {
       (acc, f) => acc + (typeof f.rating === "number" ? f.rating : Number(f.rating) || 0),
       0
     );
-    const avg = (sum / total).toFixed(1);
-    const positive = feedbacks.filter((f) => (Number(f.rating) || 0) >= 4).length;
-    const positivePct = Math.round((positive / total) * 100);
-    const open = feedbacks.filter(
-      (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
-    ).length;
-    const resolved = feedbacks.filter(
-      (f) => f.feedbackStatus === "RESOLVED"
-    ).length;
+    const avg =
+      liveFeedbackStats?.averageRating !== null && liveFeedbackStats?.averageRating !== undefined
+        ? Number(liveFeedbackStats.averageRating).toFixed(1)
+        : feedbacks.length > 0
+        ? (sum / feedbacks.length).toFixed(1)
+        : "5.0";
+
+    const positive =
+      liveFeedbackStats?.positiveCount ??
+      feedbacks.filter((f) => (Number(f.rating) || 0) >= 4).length;
+    const positivePct = total > 0 ? Math.round((positive / total) * 100) : 100;
+    const open = liveFeedbackStats
+      ? liveFeedbackStats.openCount + liveFeedbackStats.inReviewCount
+      : feedbacks.filter(
+          (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
+        ).length;
+    const resolved =
+      liveFeedbackStats?.resolvedCount ??
+      feedbacks.filter((f) => f.feedbackStatus === "RESOLVED").length;
     const likes = feedbacks.reduce(
       (acc, f) => acc + (f.likeCount ?? f._count?.likes ?? 0),
       0
@@ -191,7 +228,7 @@ function AdminStaffDashboardView() {
       resolvedCount: resolved,
       totalLikes: likes,
     };
-  }, [feedbacks]);
+  }, [liveFeedbackStats, feedbacks]);
 
   // Podium (Top 3) & Runner-up list
   const podium = useMemo(() => {
@@ -441,7 +478,7 @@ function AdminStaffDashboardView() {
                 <Loader2 className="size-7 animate-spin text-toota-ink" />
               ) : (
                 <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {plans.length}
+                  {planStats?.total ?? plans.length}
                 </span>
               )}
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
@@ -534,7 +571,7 @@ function AdminStaffDashboardView() {
                   <ThumbsUp className="size-3.5" />
                   {feedbackStats.totalLikes} {t("likesCount", "Likes")}
                 </span>
-                <span>{feedbacks.length} {t("reviewsTotal", "Reviews Total")}</span>
+                <span>{liveFeedbackStats?.total ?? feedbacks.length} {t("reviewsTotal", "Reviews Total")}</span>
               </div>
             </div>
 
@@ -615,7 +652,7 @@ function AdminStaffDashboardView() {
                 href="/feedbacks"
                 className="text-xs font-medium text-toota-muted hover:text-toota-ink hover:underline"
               >
-                {t("viewAllReviews", "View all ({{count}})", { count: feedbacks.length })}
+                {t("viewAllReviews", "View all ({{count}})", { count: liveFeedbackStats?.total ?? feedbacks.length })}
               </Link>
             </div>
 

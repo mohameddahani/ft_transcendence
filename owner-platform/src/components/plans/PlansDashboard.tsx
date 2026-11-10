@@ -60,8 +60,7 @@ export default function PlansDashboard() {
       } else {
         setPlans([]);
       }
-    } catch (err: unknown) {
-      console.error("Failed to load plans:", err);
+    } catch {
       setError("Unable to load platform plans. Please check backend connection.");
       toast.error("Failed to load platform plans");
     } finally {
@@ -96,7 +95,6 @@ export default function PlansDashboard() {
         `Plan "${plan.planName}" is now ${newStatus ? "ACTIVE" : "INACTIVE"}`
       );
     } catch (err: unknown) {
-      console.error("Failed to toggle plan status:", err);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Could not update plan status.";

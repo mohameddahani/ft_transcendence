@@ -19,8 +19,13 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "GymFlow Management Platform",
-  description: "Configure your dashboard and scale your fitness brand.",
+  title: "Sportium",
+  description: "The complete platform to run your sports club.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -32,6 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${plusJakartaSans.variable} ${sora.variable} h-full antialiased`}
     >
       <head>

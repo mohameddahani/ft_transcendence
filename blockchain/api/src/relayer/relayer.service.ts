@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import 'dotenv/config';
-import { getAddress, isHexString, verifyTypedData } from 'ethers';
+import { getAddress, isHexString, verifyTypedData, ZeroAddress } from 'ethers';
 import { Interface } from 'ethers';
 import {
   FORWARDER_ABI,
@@ -32,7 +32,7 @@ const uint = (value: unknown): bigint => {
 };
 
 const allowedMethods = new Set([
-  'paySubscription',
+  'transfer',
   'addProduct',
   'editProduct',
   'removeProduct',
@@ -107,6 +107,12 @@ export class relayerService {
       const method = gymInterface.getFunction(body.data.slice(0, 10));
       if (!method || !allowedMethods.has(method.name))
         throw new Error('Method is not sponsored');
+
+      if (method.name === 'transfer') {
+        const [recipient, amount] = gymInterface.decodeFunctionData('transfer', body.data);
+        if (getAddress(recipient as string) === ZeroAddress || (amount as bigint) <= 0n)
+          throw new Error('Invalid transfer recipient or amount');
+      }
 
       stage = 'signature';
       const signed = { from, to, value, gas, nonce, deadline, data: body.data };

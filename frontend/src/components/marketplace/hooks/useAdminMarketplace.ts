@@ -1,5 +1,7 @@
 "use client";
 
+import { useTokenTransfer } from "./useTokenTransfer";
+
 import {
   CHAIN_ID,
   CONTRACT_ADDRESS,
@@ -39,7 +41,7 @@ export function useAdminMarketplace() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
-  const [tab, setTab] = useState<"MyProducts" | "sales" | "manage">(
+  const [tab, setTab] = useState<"MyProducts" | "sales" | "manage" | "transfer">(
     "MyProducts",
   );
   const [busy, setBusy] = useState(false);
@@ -98,7 +100,6 @@ export function useAdminMarketplace() {
           status: s.status,
         })),
       );
-      update_addressAdmin_forMember(account);
     } catch (error) {
       toast.error(parseError(error));
     }
@@ -129,8 +130,8 @@ export function useAdminMarketplace() {
         })) as string;
 
         setChainId(Number.parseInt(currentChain, 16));
-      } catch (err) {
-        console.warn("Failed to initialize Web3 provider:", err);
+      } catch {
+        // Web3 provider not connected or locked
       }
     };
 
@@ -231,8 +232,7 @@ export function useAdminMarketplace() {
     setBusy(true);
 
     try {
-      const hash = await fn();
-      console.log("Relayed transaction:", hash);
+      await fn();
       toast.success(successText);
       await refresh();
     } catch (error) {
@@ -323,6 +323,7 @@ export function useAdminMarketplace() {
   };
 
   const isSepolia = chainId === CHAIN_ID;
+  const transfer = useTokenTransfer({ provider, signer, account, chainId, tokenDecimals, refresh });
   const merchantMode = account;
   const balanceLabel = formatUnits(tokenBalance, tokenDecimals);
 
@@ -351,5 +352,6 @@ export function useAdminMarketplace() {
     isSepolia,
     merchantMode,
     balanceLabel,
+    transfer,
   };
 }
