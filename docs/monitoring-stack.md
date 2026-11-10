@@ -1,8 +1,8 @@
-# GymFlow Monitoring Stack
+# Sportium Monitoring Stack
 
 Oct 12, 2026 · @hi claude
 
-How Prometheus, Grafana, and Alertmanager work together to observe and alert on GymFlow services.
+How Prometheus, Grafana, and Alertmanager work together to observe and alert on Sportium services.
 
 ## What each tool is
 
@@ -66,7 +66,7 @@ When the condition resolves, Prometheus sends a resolved signal to Alertmanager,
 
 Grafana is **read-only** against Prometheus. It never writes metrics, never triggers alerts, and never touches Alertmanager. Its only job is to query Prometheus and draw the results.
 
-The connection is set up through a **datasource** — in GymFlow this is auto-provisioned from `grafana/provisioning/datasources/prometheus.yml` so Grafana knows to talk to `http://prometheus:9090` on startup, with no manual clicking required.
+The connection is set up through a **datasource** — in Sportium this is auto-provisioned from `grafana/provisioning/datasources/prometheus.yml` so Grafana knows to talk to `http://prometheus:9090` on startup, with no manual clicking required.
 
 **Dashboards** are collections of panels, each panel running a PromQL query against Prometheus. You can build them in the UI and export them as JSON, or import community dashboards by ID (e.g. `1860` for Node Exporter Full).
 

@@ -27,7 +27,7 @@ docker compose -p ft_transcendence -f devops/docker-compose.yml exec db psql -U 
 ```bash
 docker compose -p ft_transcendence -f devops/docker-compose.yml exec backup restore.sh
 # or with a specific file:
-docker compose -p ft_transcendence -f devops/docker-compose.yml exec backup restore.sh /backups/gymflow_20261014_020000.dump
+docker compose -p ft_transcendence -f devops/docker-compose.yml exec backup restore.sh /backups/sportium_20261014_020000.dump
 ```
 
 ### Step 5 — verify data is back:

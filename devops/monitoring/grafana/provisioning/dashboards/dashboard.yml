@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: GymFlow
+  - name: Sportium
     type: file
     disableDeletion: false      # allow deleting from UI
     updateIntervalSeconds: 30   # reload JSON files every 30s (hot reload)

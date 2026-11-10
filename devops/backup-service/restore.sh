@@ -6,7 +6,7 @@ BACKUP_DIR="/backups"
 if [ -n "$1" ]; then
   BACKUP_FILE="$1"
 else
-  BACKUP_FILE=$(ls -t "$BACKUP_DIR"/gymflow_*.dump 2>/dev/null | head -1)
+  BACKUP_FILE=$(ls -t "$BACKUP_DIR"/sportium_*.dump 2>/dev/null | head -1)
 fi
 
 if [ -z "$BACKUP_FILE" ]; then
