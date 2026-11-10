@@ -32,6 +32,7 @@ import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { LoggerMiddleware } from './core/middlewares/logger.middleware';
 import { RemoveInactiveUsers } from './jobs/remove-inactive-users.cron';
 import { DashboardModule } from './modules/dashboards/dashboards.module';
+import { OwnerSeederService } from './core/seeders/owner-seeder.service';
 
 @Module({
   imports: [
@@ -105,6 +106,9 @@ import { DashboardModule } from './modules/dashboards/dashboards.module';
     RemoveInactiveUsers,
     VisitCron,
     SentimentCron,
+
+    // * Seeders
+    OwnerSeederService,
   ],
 })
 
