@@ -66,6 +66,8 @@ const authRoutes = [
 // Public authentication, password management, and verification routes
 const publicAuthActionRoutes = [
   "/register",
+  "/terms",
+  "/privacy",
   "/email-verification",
   "/email-change",
   "/forgot-password",

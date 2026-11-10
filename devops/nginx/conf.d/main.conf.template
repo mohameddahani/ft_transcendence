@@ -32,7 +32,11 @@ server {
 	location ^~ /status {
 		return 302 https://status.${DOMAIN};
 	}
+<<<<<<< HEAD:devops/nginx/conf.d/main.conf.template
 
+=======
+	
+>>>>>>> block-chain:devops/nginx/conf.d/gym.conf.template
 	# Owner platform
 	location ^~ /owner-portal {
 		proxy_pass http://owner-portal:3000;

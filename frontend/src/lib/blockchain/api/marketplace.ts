@@ -10,25 +10,31 @@ type RelayerResponse = {
 export async function submitGaslessTransaction(
   payload: SignedForwardRequest
 ): Promise<string> {
-  const API_URL_RELAYER = process.env.NEXT_PUBLIC_API_URL_RELAYER;
+  try {
+    // Route via Next.js BFF proxy to avoid CORS and keep the relayer host private
+    const response = await api.post<RelayerResponse>(
+      "/api/blockchain/relayer",
+      payload
+    );
 
-  if (!API_URL_RELAYER) {
-    throw new Error("Relayer API URL is missing");
+    const { hash, error } = response.data;
+
+    if (!hash) {
+      throw new Error(error || "Relayer did not accept the transaction.");
+    }
+
+    return hash;
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response?.data) {
+      const serverError =
+        (err.response.data as { error?: string; message?: string })?.error ||
+        (err.response.data as { error?: string; message?: string })?.message;
+      if (serverError) {
+        throw new Error(serverError);
+      }
+    }
+    throw err;
   }
-
-  const response = await axios.post<RelayerResponse>(API_URL_RELAYER, payload, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  const { hash, error } = response.data;
-
-  if (!hash) {
-    throw new Error(error || "Relayer did not accept the transaction.");
-  }
-
-  return hash;
 }
 
 export const update_addressAdmin_forMember = async (address: string) => {

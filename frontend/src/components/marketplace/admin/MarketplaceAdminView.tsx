@@ -13,6 +13,7 @@ import {
   Store,
   Wallet,
   Sparkles,
+  Send,
 } from "lucide-react";
 import { Badge } from "@/components/marketplace/ui/badge";
 import { Button } from "@/components/marketplace/ui/button";
@@ -22,6 +23,7 @@ import { CHAIN_NAME, CONTRACT_ADDRESS } from "@/lib/blockchain/contract";
 import { ManageProductsTab } from "./ManageProductsTab";
 import { MyProductsTab } from "./MyProductsTab";
 import { SalesTab } from "./SalesTab";
+import { TransferTab } from "../TransferTab";
 
 export default function MarketplaceAdminView() {
   const {
@@ -49,6 +51,7 @@ export default function MarketplaceAdminView() {
     isSepolia,
     merchantMode,
     balanceLabel,
+    transfer,
   } = useAdminMarketplace();
 
   return (
@@ -184,12 +187,12 @@ export default function MarketplaceAdminView() {
         <Tabs
           value={tab}
           onValueChange={(val) =>
-            setTab(val as "MyProducts" | "sales" | "manage")
+            setTab(val as "MyProducts" | "sales" | "manage" | "transfer")
           }
           className="w-full"
         >
           <div className="flex flex-wrap items-center justify-between border-b border-outline-variant px-5 py-3.5 gap-3">
-            <TabsList className="bg-surface-container-low p-1 rounded-xl">
+            <TabsList className="h-auto max-w-full flex-wrap bg-surface-container-low p-1 rounded-xl">
               <TabsTrigger value="MyProducts" className="gap-2">
                 <Store className="size-4" />
                 <span>My Products</span>
@@ -202,6 +205,7 @@ export default function MarketplaceAdminView() {
                 <Plus className="size-4" />
                 <span>Manage</span>
               </TabsTrigger>
+              <TabsTrigger value="transfer" className="gap-2"><Send className="size-4" /><span>Send G</span></TabsTrigger>
             </TabsList>
 
             <Button
@@ -238,6 +242,7 @@ export default function MarketplaceAdminView() {
             setEditProduct={setEditProduct}
             setDeleteProduct={setDeleteProduct}
           />
+          <TransferTab transfer={transfer} tokenSymbol={tokenSymbol} balanceLabel={balanceLabel} account={account} isSepolia={isSepolia} />
         </Tabs>
       </Card>
 
