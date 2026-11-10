@@ -108,6 +108,7 @@ export class AttendancesService {
     memberId: string,
     page: number,
     limit: number,
+    attendanceMethod?: AttendanceMethod,
   ) {
     // * Get Admin id
     const adminId =
@@ -123,7 +124,13 @@ export class AttendancesService {
     );
 
     const attendances = await this.prisma.attendance.findMany({
-      where: { adminId: adminId, memberId: memberId },
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+
+        // * Filter attendance by attendance status
+        ...(attendanceMethod !== undefined ? { attendanceMethod } : {}),
+      },
       skip: (page - 1) * limit,
       take: limit,
       select: {
