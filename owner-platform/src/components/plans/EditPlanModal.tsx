@@ -70,7 +70,6 @@ export default function EditPlanModal({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to update plan:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to update plan. Please verify input values.";

@@ -22,6 +22,11 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { FeedbackItem, FeedbackStatus, SentimentType } from "@/types/feedback";
 import { fetchAllFeedbacks, updateFeedbackStatus } from "@/lib/api/feedbacks";
+import {
+  fetchAdminFeedbackStats,
+  fetchStaffFeedbackStats,
+  FeedbackStats,
+} from "@/lib/api/stats";
 import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
@@ -48,11 +53,12 @@ const starsDisagree = (f: FeedbackItem) =>
 
 function AdminStaffFeedbackView() {
   const { t } = useTranslation();
-  const { companyName } = useCurrentUser();
+  const { companyName, role } = useCurrentUser();
 
   // Data state
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [pagedFeedbacks, setPagedFeedbacks] = useState<FeedbackItem[]>([]);
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
@@ -75,11 +81,14 @@ function AdminStaffFeedbackView() {
   const loadFeedbacks = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [allData, pageData] = await Promise.all([
-        fetchAllFeedbacks(1, 500),
+      const statsPromise =
+        role === "Staff" ? fetchStaffFeedbackStats() : fetchAdminFeedbackStats();
+      const [statsData, pageData] = await Promise.all([
+        statsPromise.catch(() => null),
         fetchAllFeedbacks(1, pageSize),
       ]);
-      setFeedbacks(allData);
+      setFeedbackStats(statsData);
+      setFeedbacks(pageData);
       setPagedFeedbacks(pageData);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -91,21 +100,28 @@ function AdminStaffFeedbackView() {
     } finally {
       setIsLoading(false);
     }
-  }, [t, pageSize]);
+  }, [t, pageSize, role]);
 
   useEffect(() => {
     loadFeedbacks();
   }, [loadFeedbacks]);
 
-  // Statistics calculation across full dataset
+  // Statistics calculation across dedicated stats endpoint or dataset
   const stats = useMemo(() => {
-    const total = feedbacks.length;
-    const bySentiment = { POSITIVE: 0, NEUTRAL: 0, NEGATIVE: 0, NONE: 0 };
-    for (const f of feedbacks) {
-      if (f.sentiment && bySentiment[f.sentiment] !== undefined) {
-        bySentiment[f.sentiment] += 1;
-      } else {
-        bySentiment.NONE += 1;
+    const total = feedbackStats?.total ?? feedbacks.length;
+    const bySentiment = {
+      POSITIVE: feedbackStats?.positiveCount ?? 0,
+      NEUTRAL: feedbackStats?.neutralCount ?? 0,
+      NEGATIVE: feedbackStats?.negativeCount ?? 0,
+      NONE: 0,
+    };
+    if (!feedbackStats) {
+      for (const f of feedbacks) {
+        if (f.sentiment && bySentiment[f.sentiment] !== undefined) {
+          bySentiment[f.sentiment] += 1;
+        } else {
+          bySentiment.NONE += 1;
+        }
       }
     }
     const analysedCount =
@@ -127,16 +143,22 @@ function AdminStaffFeedbackView() {
       };
     }
 
-    const sumRating = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
-    const averageRating = (sumRating / total).toFixed(1);
+    const averageRating =
+      feedbackStats?.averageRating !== null && feedbackStats?.averageRating !== undefined
+        ? Number(feedbackStats.averageRating).toFixed(1)
+        : feedbacks.length > 0
+        ? (feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
+        : "5.0";
 
-    const openCount = feedbacks.filter(
-      (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
-    ).length;
+    const openCount = feedbackStats
+      ? feedbackStats.openCount + feedbackStats.inReviewCount
+      : feedbacks.filter(
+          (f) => f.feedbackStatus === "OPEN" || f.feedbackStatus === "IN_REVIEW"
+        ).length;
 
-    const resolvedCount = feedbacks.filter(
-      (f) => f.feedbackStatus === "RESOLVED"
-    ).length;
+    const resolvedCount =
+      feedbackStats?.resolvedCount ??
+      feedbacks.filter((f) => f.feedbackStatus === "RESOLVED").length;
 
     return {
       total,
@@ -147,7 +169,29 @@ function AdminStaffFeedbackView() {
       analysedCount,
       bySentiment,
     };
-  }, [feedbacks]);
+  }, [feedbackStats, feedbacks]);
+
+  //   return {
+  //     total,
+  //     averageRating,
+  //     openCount,
+  //     resolvedCount,
+  //     positivePercent,
+  //     analysedCount,
+  //     bySentiment,
+  //   };
+  // }, [feedbackStats, feedbacks]);
+
+  //   return {
+  //     total,
+  //     averageRating,
+  //     openCount,
+  //     resolvedCount,
+  //     positivePercent,
+  //     analysedCount,
+  //     bySentiment,
+  //   };
+  // }, [feedbacks]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -208,7 +252,7 @@ function AdminStaffFeedbackView() {
     ratingFilter !== "ALL" ||
     sentimentFilter !== "ALL"
   );
-  const totalItems = isFiltering ? filteredFeedbacks.length : feedbacks.length;
+  const totalItems = isFiltering ? filteredFeedbacks.length : (feedbackStats?.total ?? feedbacks.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const paginatedFeedbacks = useMemo(() => {

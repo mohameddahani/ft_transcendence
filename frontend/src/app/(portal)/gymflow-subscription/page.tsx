@@ -24,7 +24,7 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { GymflowSubscription } from "@/types/subscription";
 import { fetchMySubscription, fetchAllSubscriptions } from "@/lib/api/subscriptions";
-import { fetchMembers } from "@/lib/api/members";
+import { fetchAdminMemberStats } from "@/lib/api/stats";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,14 +58,14 @@ export default function GymflowSubscriptionPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [currentSub, allSubs, allMembers] = await Promise.all([
+      const [currentSub, allSubs, memberStats] = await Promise.all([
         fetchMySubscription().catch(() => null),
-        fetchAllSubscriptions(1, 100).catch(() => []),
-        fetchMembers(1, 1000).catch(() => []),
+        fetchAllSubscriptions(1, 50).catch(() => []),
+        fetchAdminMemberStats().catch(() => null),
       ]);
 
-      // Resolve true member count from actual member records
-      const actualCount = Array.isArray(allMembers) ? allMembers.length : 0;
+      // Resolve true member count from dedicated stats endpoint
+      const actualCount = memberStats ? memberStats.total : 0;
       setMemberCount(actualCount);
 
       // Prioritize active subscription; fallback to first active in ledger, or latest ledger record
@@ -271,7 +271,7 @@ export default function GymflowSubscriptionPage() {
       "Plan Name",
       "Member Capacity",
       "Cycle Duration (Days)",
-      "Amount Paid",
+      "Amount Paid (MAD)",
       "Status",
       "Started At",
       "Expires At",
@@ -451,7 +451,7 @@ export default function GymflowSubscriptionPage() {
                   <CreditCard className="size-4 text-toota-green" />
                 </div>
                 <div className="text-2xl font-bold tracking-tight text-toota-ink">
-                  ${subAmount.toFixed(2)}
+                  {subAmount.toFixed(2)} MAD
                   <span className="text-xs font-normal text-toota-muted ms-1.5">
                     / {cycleDays} {t("days", "days")}
                   </span>
@@ -459,7 +459,7 @@ export default function GymflowSubscriptionPage() {
                 <div className="text-[11px] text-toota-muted flex items-center gap-1.5">
                   <span className="size-1.5 rounded-full bg-toota-green" />
                   <span>
-                    ≈ ${dailyRate}/{t("dayLicense", "day license")}
+                    ≈ {dailyRate} MAD/{t("dayLicense", "day license")}
                   </span>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export default function GymflowSubscriptionPage() {
 
                         {/* Amount Billed */}
                         <TableCell className="px-6 py-3.5 font-bold text-toota-ink">
-                          ${Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)}
+                          {Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)} MAD
                         </TableCell>
 
                         {/* Status */}

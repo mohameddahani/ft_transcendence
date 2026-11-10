@@ -8,13 +8,13 @@ export const addMemberSchema = z.object({
     .trim()
     .min(2, "First name must be at least 2 characters")
     .max(30, "First name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "First name must contain only letters"),
+    .regex(/^[A-Za-z\s]+$/, "First name must contain only letters and spaces"),
   lastName: z
     .string()
     .trim()
     .min(2, "Last name must be at least 2 characters")
     .max(30, "Last name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "Last name must contain only letters"),
+    .regex(/^[A-Za-z\s]+$/, "Last name must contain only letters and spaces"),
   gender: GenderEnum,
   birthDate: z
     .string()
@@ -43,6 +43,14 @@ export const addMemberSchema = z.object({
     .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
       message: "Please enter a valid international emergency phone number (e.g. +212607080905)",
     }),
+  walletAddress: z
+    .string()
+    .trim()
+    .refine(
+      (val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val),
+      "Please enter a valid Ethereum wallet address (e.g. 0x...)"
+    )
+    .optional(),
   membershipPlanId: z.string().uuid("Please select a membership plan"),
   membershipPlanDurationId: z.string().uuid("Please select a duration"),
 });
@@ -53,14 +61,14 @@ export const updateMemberSchema = z.object({
     .trim()
     .min(2, "First name must be at least 2 characters")
     .max(30, "First name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "First name must contain only letters")
+    .regex(/^[A-Za-z\s]+$/, "First name must contain only letters and spaces")
     .optional(),
   lastName: z
     .string()
     .trim()
     .min(2, "Last name must be at least 2 characters")
     .max(30, "Last name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "Last name must contain only letters")
+    .regex(/^[A-Za-z\s]+$/, "Last name must contain only letters and spaces")
     .optional(),
   gender: GenderEnum.optional(),
   birthDate: z
@@ -91,6 +99,14 @@ export const updateMemberSchema = z.object({
     .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
       message: "Please enter a valid international emergency phone number",
     })
+    .optional(),
+  walletAddress: z
+    .string()
+    .trim()
+    .refine(
+      (val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val),
+      "Please enter a valid Ethereum wallet address (e.g. 0x...)"
+    )
     .optional(),
   membershipPlanId: z.string().uuid().optional(),
   membershipPlanDurationId: z.string().uuid().optional(),

@@ -47,7 +47,6 @@ export default function AddPlanModal({ isOpen, onClose, onSuccess }: AddPlanModa
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to create plan:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to create plan. Please verify the input values.";

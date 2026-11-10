@@ -5,14 +5,11 @@ import TopBar from "@/components/layout/TopBar";
 import SideBar from "@/components/layout/SideBar";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import { Plus } from "lucide-react";
+import { UserProvider } from "@/contexts/UserContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
 
-export default function PortalLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function PortalLayoutInner({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { role, isLoading } = useCurrentUser();
 
@@ -64,5 +61,17 @@ export default function PortalLayout({
         <AddMemberModal />
       )}
     </div>
+  );
+}
+
+export default function PortalLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <UserProvider>
+      <PortalLayoutInner>{children}</PortalLayoutInner>
+    </UserProvider>
   );
 }

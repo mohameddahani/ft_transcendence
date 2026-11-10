@@ -143,8 +143,8 @@ export function useMemberMarketplace() {
           method: "eth_chainId",
         })) as string;
         setChainId(Number.parseInt(currentChain, 16));
-      } catch (err) {
-        console.warn("Init web3 error:", err);
+      } catch {
+        // Web3 provider not connected or locked
       }
     };
     void initialize();

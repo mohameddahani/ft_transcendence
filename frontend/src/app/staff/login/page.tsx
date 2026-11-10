@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import StaffLoginForm from "@/components/auth/StaffLoginForm";
 
 export const metadata: Metadata = {
-  title: "Staff Sign In | GymFlow",
+  title: "Staff sign in | Sportium",
   description:
-    "Sign in to the GymFlow Staff Portal for front desk operations, member check-in, attendance, and member services.",
+    "Sign in to the Sportium staff portal for the front desk: member check-in, visits, attendance and member services.",
 };
 
 export default function StaffLoginPage() {

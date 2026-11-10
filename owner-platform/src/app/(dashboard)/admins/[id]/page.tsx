@@ -34,8 +34,8 @@ export default async function AdminDetailPage({ params }: PageProps) {
     if (res.ok) {
       admin = await res.json();
     }
-  } catch (error) {
-    console.error("Error fetching admin in page:", error);
+  } catch {
+    // Admin will remain null and render not-found state
   }
 
   if (!admin) {

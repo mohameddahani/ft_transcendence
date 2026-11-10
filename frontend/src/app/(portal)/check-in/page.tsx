@@ -23,6 +23,13 @@ import {
   checkInManual,
   checkInWithQr,
 } from "@/lib/api/visits";
+import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import {
+  fetchAdminVisitStats,
+  fetchStaffVisitStats,
+  VisitStats,
+} from "@/lib/api/stats";
+import { MembershipPlan } from "@/types/membership-plan";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
@@ -53,11 +60,13 @@ import {
 
 export default function CheckInPage() {
   const { t } = useTranslation();
-  const { companyName } = useCurrentUser();
+  const { companyName, role } = useCurrentUser();
 
   // State
   const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
   const [pagedVisits, setPagedVisits] = useState<TodayVisit[]>([]);
+  const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,16 +87,119 @@ export default function CheckInPage() {
   const [isCheckingInMap, setIsCheckingInMap] = useState<Record<string, boolean>>({});
   const [isScanningProcessing, setIsScanningProcessing] = useState(false);
 
+  // Helper to enrich visit with matched plan name
+  const enrichVisitWithPlan = useCallback(
+    (v: TodayVisit, loadedPlans: MembershipPlan[]): TodayVisit => {
+      const existingPlanName =
+        v.membership?.membershipPlan?.planName ||
+        v.membership?.membershipPlan?.name ||
+        v.membership?.plan?.planName ||
+        (v.membership as { planName?: string } | undefined)?.planName;
+
+      if (existingPlanName) {
+        return {
+          ...v,
+          membership: {
+            ...v.membership,
+            id: v.membership?.id || v.membershipId || "",
+            membershipPlan: {
+              ...v.membership?.membershipPlan,
+              planName: existingPlanName,
+            },
+          },
+        };
+      }
+
+      const targetPlanId =
+        v.membership?.membershipPlanId ||
+        v.membership?.membershipPlan?.id ||
+        (v.membership as { planId?: string } | undefined)?.planId ||
+        v.membershipId ||
+        v.membership?.id;
+
+      let matched = targetPlanId ? loadedPlans.find((p) => p.id === targetPlanId) : undefined;
+
+      // Check member's memberships if present
+      const memberObj = v.member as unknown as {
+        memberships?: Array<{
+          id?: string;
+          membershipStatus?: string;
+          membershipPlanId?: string;
+          membershipPlan?: { id?: string; planName?: string; name?: string; weeklyVisitLimit?: number };
+          plan?: { planName?: string };
+          planName?: string;
+        }>;
+      };
+      if (!matched && memberObj?.memberships && Array.isArray(memberObj.memberships)) {
+        const activeMem =
+          memberObj.memberships.find((m) => m.membershipStatus === "ACTIVE") ||
+          memberObj.memberships[0];
+        if (activeMem) {
+          const mPlanName =
+            activeMem.membershipPlan?.planName ||
+            activeMem.membershipPlan?.name ||
+            activeMem.plan?.planName ||
+            activeMem.planName;
+          if (mPlanName) {
+            return {
+              ...v,
+              membership: {
+                ...v.membership,
+                id: v.membership?.id || activeMem.id || v.membershipId || "",
+                membershipStatus: v.membership?.membershipStatus || activeMem.membershipStatus,
+                membershipPlan: {
+                  id: activeMem.membershipPlanId || activeMem.membershipPlan?.id || "",
+                  planName: mPlanName,
+                  weeklyVisitLimit: activeMem.membershipPlan?.weeklyVisitLimit,
+                },
+              },
+            };
+          }
+          if (activeMem.membershipPlanId) {
+            matched = loadedPlans.find((p) => p.id === activeMem.membershipPlanId);
+          }
+        }
+      }
+
+      if (matched) {
+        return {
+          ...v,
+          membership: {
+            ...v.membership,
+            id: v.membership?.id || v.membershipId || "",
+            membershipPlanId: matched.id,
+            membershipPlan: {
+              id: matched.id,
+              planName: matched.planName,
+              weeklyVisitLimit: matched.weeklyVisitLimit,
+            },
+          },
+        };
+      }
+      return v;
+    },
+    []
+  );
+
   // Load visits
   const loadVisits = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fullList, initialPage] = await Promise.all([
-        fetchTodayVisits(1, 500),
+      const statsPromise =
+        role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
+      const [statsData, initialPage, plansData] = await Promise.all([
+        statsPromise.catch(() => null),
         fetchTodayVisits(1, pageSize),
+        fetchMembershipPlans(1, 50).catch(() => []),
       ]);
-      setAllVisits(fullList);
-      setPagedVisits(initialPage);
+      const loadedPlans = Array.isArray(plansData) ? plansData : [];
+      setPlans(loadedPlans);
+      setVisitStats(statsData);
+
+      const enrichedInitial = initialPage.map((v) => enrichVisitWithPlan(v, loadedPlans));
+
+      setAllVisits(enrichedInitial);
+      setPagedVisits(enrichedInitial);
       setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -98,7 +210,7 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize, t]);
+  }, [pageSize, t, enrichVisitWithPlan, role]);
 
   useEffect(() => {
     loadVisits();
@@ -111,7 +223,9 @@ export default function CheckInPage() {
       setIsPageLoading(true);
       try {
         const pageData = await fetchTodayVisits(newPage, pageSize);
-        setPagedVisits(pageData);
+        const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+        setPagedVisits(enriched);
+        setAllVisits(enriched);
       } catch {
         // fail gracefully
       } finally {
@@ -120,13 +234,14 @@ export default function CheckInPage() {
     }
   };
 
-  // Statistics
+  // Statistics from dedicated stats endpoint
   const stats = useMemo(() => {
-    const total = allVisits.length;
-    const ready = allVisits.filter((v) => v.visitStatus === "READY").length;
-    const checkedIn = allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length;
-    return { total, ready, checkedIn };
-  }, [allVisits]);
+    return {
+      total: visitStats?.total ?? allVisits.length,
+      ready: visitStats?.readyCount ?? allVisits.filter((v) => v.visitStatus === "READY").length,
+      checkedIn: visitStats?.checkedInCount ?? allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length,
+    };
+  }, [visitStats, allVisits]);
 
   // Filtered visits
   const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
@@ -158,7 +273,7 @@ export default function CheckInPage() {
     });
   }, [allVisits, searchTerm, statusFilter]);
 
-  const totalItems = isFiltering ? filteredVisits.length : allVisits.length;
+  const totalItems = isFiltering ? filteredVisits.length : (visitStats?.total ?? allVisits.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const displayedVisits = useMemo(() => {
@@ -179,7 +294,10 @@ export default function CheckInPage() {
       // Find the visit for celebration
       const found = allVisits.find((v) => v.member.id === memberId);
       if (found) {
-        const updated = { ...found, visitStatus: "CHECKED_IN" as const };
+        const updated = enrichVisitWithPlan(
+          { ...found, visitStatus: "CHECKED_IN" as const },
+          plans
+        );
         setCelebrationVisit(updated);
         setCelebrationMethod("MANUAL");
       }
@@ -207,16 +325,17 @@ export default function CheckInPage() {
       // Close scanner modal
       setIsScannerOpen(false);
 
-      // Re-load to find the newly checked in member
-      const freshVisits = await fetchTodayVisits(1, 500);
-      setAllVisits(freshVisits);
+      // Re-load current page and refresh stats
       const currentPageData = await fetchTodayVisits(currentPage, pageSize);
-      setPagedVisits(currentPageData);
+      const enrichedFresh = currentPageData.map((v) => enrichVisitWithPlan(v, plans));
+      setAllVisits(enrichedFresh);
+      setPagedVisits(enrichedFresh);
+      loadVisits();
 
       // Find recently updated visit for celebration
-      const newlyCheckedIn = freshVisits.find((v) => v.visitStatus === "CHECKED_IN");
+      const newlyCheckedIn = enrichedFresh.find((v) => v.visitStatus === "CHECKED_IN");
       if (newlyCheckedIn) {
-        setCelebrationVisit(newlyCheckedIn);
+        setCelebrationVisit(enrichVisitWithPlan(newlyCheckedIn, plans));
         setCelebrationMethod("QR");
       }
     } catch (err: unknown) {
@@ -234,9 +353,9 @@ export default function CheckInPage() {
   const handleInspectVisit = async (visit: TodayVisit) => {
     try {
       const single = await fetchVisitById(visit.id).catch(() => visit);
-      setSelectedVisit(single);
+      setSelectedVisit(enrichVisitWithPlan(single, plans));
     } catch {
-      setSelectedVisit(visit);
+      setSelectedVisit(enrichVisitWithPlan(visit, plans));
     } finally {
       setIsDetailsOpen(true);
     }
@@ -299,7 +418,7 @@ export default function CheckInPage() {
                 </span>
               )}
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {allVisits.length} {t("total") || "total"}
+                / {stats.total} {t("total") || "total"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
@@ -484,8 +603,8 @@ export default function CheckInPage() {
                 {
                   value: "ALL",
                   label:
-                    t("allVisitsCount", { count: allVisits.length }) ||
-                    `All Visits (${allVisits.length})`,
+                    t("allVisitsCount", { count: stats.total }) ||
+                    `All Visits (${stats.total})`,
                 },
                 {
                   value: "READY",
@@ -656,10 +775,26 @@ export default function CheckInPage() {
                       {/* Membership Plan */}
                       <TableCell className="px-6 py-3.5">
                         <div className="font-medium text-toota-ink">
-                          {visit.membership?.plan?.planName || t("standardPlan") || "Standard Plan"}
+                          {(() => {
+                            const matchedPlan = plans.find(
+                              (p) =>
+                                p.id === visit.membership?.membershipPlanId ||
+                                p.id === visit.membership?.membershipPlan?.id ||
+                                p.id === visit.membershipId
+                            );
+                            return (
+                              visit.membership?.membershipPlan?.planName ||
+                              visit.membership?.membershipPlan?.name ||
+                              visit.membership?.plan?.planName ||
+                              matchedPlan?.planName ||
+                              (visit.membership || visit.membershipId
+                                ? t("activePlanText") || "Active Plan"
+                                : t("noActivePlan") || "No Active Plan")
+                            );
+                          })()}
                         </div>
                         <div className="text-[11px] text-toota-muted">
-                          {visit.membership?.status || t("activePlanText") || "Active"}
+                          {visit.membership?.membershipStatus || visit.membership?.status || t("activePlanText") || "Active"}
                         </div>
                       </TableCell>
 
@@ -757,6 +892,7 @@ export default function CheckInPage() {
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         visit={selectedVisit}
+        plans={plans}
         onConfirmCheckIn={handleManualCheckIn}
         isCheckingIn={
           selectedVisit ? isCheckingInMap[selectedVisit.member.id] || false : false
@@ -768,6 +904,7 @@ export default function CheckInPage() {
         isOpen={Boolean(celebrationVisit)}
         onClose={() => setCelebrationVisit(null)}
         visit={celebrationVisit}
+        plans={plans}
         method={celebrationMethod}
       />
     </div>

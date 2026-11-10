@@ -565,7 +565,7 @@ export default function MembershipPlansPage() {
                             <div className="flex items-center gap-3">
                               <div className="text-end">
                                 <span className="text-sm font-semibold text-toota-ink block leading-tight">
-                                  ${Number(dur.price).toFixed(2)}
+                                  {Number(dur.price).toFixed(2)} MAD
                                 </span>
                                 {dur.priceByG ? (
                                   <span className="text-[10px] font-medium text-toota-muted block leading-tight">

@@ -6,13 +6,13 @@ export const registerSchema = z.object({
     .trim()
     .min(2, "First name must be at least 2 characters")
     .max(30, "First name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "First name must contain only letters"),
+    .regex(/^[A-Za-z\s]+$/, "First name must contain only letters and spaces"),
   lastName: z
     .string()
     .trim()
     .min(2, "Last name must be at least 2 characters")
     .max(30, "Last name cannot exceed 30 characters")
-    .regex(/^[A-Za-z]+$/, "Last name must contain only letters"),
+    .regex(/^[A-Za-z\s]+$/, "Last name must contain only letters and spaces"),
   gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"], {
     message: "Please select a gender",
   }),

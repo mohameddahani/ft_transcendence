@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { animate, useMotionValue } from "framer-motion";
 import {
@@ -22,6 +22,12 @@ import {
 import axios from "axios";
 import { toast } from "react-toastify";
 import { fetchPayments } from "@/lib/api/payments";
+import {
+  fetchAdminPaymentStats,
+  fetchStaffPaymentStats,
+  PaymentStats,
+  StaffPaymentStats,
+} from "@/lib/api/stats";
 import { BackendPayment } from "@/types/payment";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
@@ -79,14 +85,15 @@ function AnimatedRevenue({ value }: { value: number }) {
     return () => controls.stop();
   }, [value, count]);
 
-  return <span>${displayValue}</span>;
+  return <span>{displayValue} MAD</span>;
 }
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
-  const { companyName } = useCurrentUser();
+  const { companyName, role } = useCurrentUser();
   const [payments, setPayments] = useState<BackendPayment[]>([]);
   const [pagedPayments, setPagedPayments] = useState<BackendPayment[]>([]);
+  const [paymentStats, setPaymentStats] = useState<PaymentStats | StaffPaymentStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
@@ -98,14 +105,17 @@ export default function PaymentsPage() {
   // Selected payment for side-panel detail view
   const [selectedPayment, setSelectedPayment] = useState<BackendPayment | null>(null);
 
-  const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fullList, initialPage] = await Promise.all([
-        fetchPayments(1, 1000),
+      const statsPromise =
+        role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
+      const [stats, initialPage] = await Promise.all([
+        statsPromise.catch(() => null),
         fetchPayments(1, pageSize),
       ]);
-      setPayments(fullList);
+      setPaymentStats(stats);
+      setPayments(initialPage);
       setPagedPayments(initialPage);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -117,11 +127,11 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, pageSize]);
 
   useEffect(() => {
     loadPayments();
-  }, []);
+  }, [loadPayments]);
 
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
@@ -131,6 +141,7 @@ export default function PaymentsPage() {
       try {
         const pageData = await fetchPayments(newPage, pageSize);
         setPagedPayments(pageData);
+        setPayments(pageData);
       } catch {
         // fail gracefully
       } finally {
@@ -169,7 +180,9 @@ export default function PaymentsPage() {
   }, [payments, searchTerm]);
 
   // Pagination
-  const totalItems = isFiltering ? filteredPayments.length : payments.length;
+  const totalItems = isFiltering
+    ? filteredPayments.length
+    : (paymentStats?.totalPayments ?? payments.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedPayments = useMemo(() => {
     if (isFiltering) {
@@ -181,10 +194,13 @@ export default function PaymentsPage() {
 
   // Statistics Calculation
   const totalCollected = useMemo(() => {
+    if (paymentStats && "totalAmount" in paymentStats && paymentStats.totalAmount !== null) {
+      return Number(paymentStats.totalAmount || 0);
+    }
     return payments
       .filter((p) => getEffectivePaymentStatus(p) === "PAID")
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  }, [payments]);
+  }, [paymentStats, payments]);
 
   const outstandingTotal = useMemo(() => {
     return payments
@@ -220,7 +236,7 @@ export default function PaymentsPage() {
       "Invoice ID",
       "Member Name",
       "Member Email",
-      "Amount ($)",
+      "Amount (MAD)",
       "Status",
       "Paid Date",
       "Created At",
@@ -265,7 +281,7 @@ export default function PaymentsPage() {
 Invoice Number : #INV-${payment.id.slice(0, 8)}
 Date Issued    : ${new Date(payment.createdAt).toLocaleDateString()}
 Payment Status : ${getEffectivePaymentStatus(payment)}
-Amount Due     : $${Number(payment.amount).toFixed(2)}
+Amount Due     : ${Number(payment.amount).toFixed(2)} MAD
 Paid At        : ${payment.paidAt ? new Date(payment.paidAt).toLocaleDateString() : "Pending"}
 Due Date       : ${payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : "N/A"}
 
@@ -454,7 +470,7 @@ Thank you for training with ${companyName || "us"}!
                 <Loader2 className="size-7 animate-spin text-amber-500" />
               ) : (
                 <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  ${outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} MAD
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
@@ -537,8 +553,8 @@ Thank you for training with ${companyName || "us"}!
                 }`}
                 style={{
                   width: `${
-                    payments.length > 0
-                      ? Math.min(100, Math.round((overdueCount / payments.length) * 100))
+                    totalItems > 0
+                      ? Math.min(100, Math.round((overdueCount / totalItems) * 100))
                       : 0
                   }%`,
                 }}
@@ -702,7 +718,7 @@ Thank you for training with ${companyName || "us"}!
 
                       {/* Amount */}
                       <TableCell className="px-6 py-3.5 font-semibold text-toota-ink text-sm">
-                        ${Number(payment.amount).toFixed(2)}
+                        {Number(payment.amount).toFixed(2)} MAD
                       </TableCell>
 
                       {/* Paid Date */}
@@ -833,7 +849,7 @@ Thank you for training with ${companyName || "us"}!
                       {t("amount") || "Amount"}
                     </span>
                     <p className="text-lg font-semibold text-toota-green mt-0.5">
-                      ${Number(selectedPayment.amount).toFixed(2)}
+                      {Number(selectedPayment.amount).toFixed(2)} MAD
                     </p>
                   </div>
                 </div>

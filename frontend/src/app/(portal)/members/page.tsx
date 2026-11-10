@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
@@ -18,6 +18,7 @@ import {
   Ban,
   Clock,
   X,
+  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -27,10 +28,17 @@ import {
   banMember,
 } from "@/lib/api/members";
 import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import {
+  fetchAdminMemberStats,
+  fetchStaffMemberStats,
+  MemberStats,
+} from "@/lib/api/stats";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BackendMember } from "@/types/member";
 import { MembershipPlan } from "@/types/membership-plan";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import EditMemberModal from "@/components/members/EditMemberModal";
+import RenewMembershipModal from "@/components/members/RenewMembershipModal";
 import Pagination from "@/components/ui/Pagination";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useTranslation } from "react-i18next";
@@ -58,8 +66,10 @@ import { Input } from "@/components/ui/input";
 
 export default function MembershipsPage() {
   const { t } = useTranslation();
+  const { role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
   const [pagedMembers, setPagedMembers] = useState<BackendMember[]>([]);
+  const [memberStats, setMemberStats] = useState<MemberStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
@@ -77,6 +87,8 @@ export default function MembershipsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [memberToEdit, setMemberToEdit] = useState<BackendMember | null>(null);
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [memberToRenew, setMemberToRenew] = useState<BackendMember | null>(null);
 
   // Portal Action Menu anchor state
   const [mounted, setMounted] = useState(false);
@@ -90,15 +102,19 @@ export default function MembershipsPage() {
     setMounted(true);
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [membersData, plansData] = await Promise.all([
-        fetchMembers(1, 1000),
-        fetchMembershipPlans(1, 100).catch(() => []),
+      const statsPromise =
+        role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
+      const [statsData, membersData, plansData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchMembers(1, pageSize),
+        fetchMembershipPlans(1, 50).catch(() => []),
       ]);
+      setMemberStats(statsData);
       setMembers(membersData);
-      setPagedMembers(membersData.slice(0, pageSize));
+      setPagedMembers(membersData);
       setPlans(plansData);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -110,11 +126,11 @@ export default function MembershipsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, pageSize]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
@@ -124,6 +140,7 @@ export default function MembershipsPage() {
       try {
         const pageData = await fetchMembers(newPage, pageSize);
         setPagedMembers(pageData);
+        setMembers(pageData);
       } catch {
         // fail gracefully
       } finally {
@@ -200,7 +217,7 @@ export default function MembershipsPage() {
 
   // Paginated members
   const isFiltering = Boolean(searchTerm || selectedStatus || selectedPlanId);
-  const totalItems = isFiltering ? filteredMembers.length : members.length;
+  const totalItems = isFiltering ? filteredMembers.length : (memberStats?.total ?? members.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedMembers = useMemo(() => {
     if (isFiltering) {
@@ -210,19 +227,19 @@ export default function MembershipsPage() {
     return pagedMembers;
   }, [isFiltering, filteredMembers, pagedMembers, currentPage, pageSize]);
 
-  // Statistics calculation based on backend structure
-  const totalCount = members.length;
-  const activeCount = members.filter((m) => {
+  // Statistics calculation based on dedicated stats endpoint
+  const totalCount = memberStats?.total ?? members.length;
+  const activeCount = memberStats?.activeCount ?? members.filter((m) => {
     if (m.accountStatus === "BANNED" || m.accountStatus === "PENDING") return false;
     return (
       m.memberships?.some((sub) => sub.membershipStatus === "ACTIVE") ||
       (!m.memberships?.length && m.accountStatus === "ACTIVE")
     );
   }).length;
-  const pendingCount = members.filter(
+  const pendingCount = memberStats?.pendingCount ?? members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
-  const bannedCount = members.filter(
+  const bannedCount = memberStats?.bannedCount ?? members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "BANNED"
   ).length;
 
@@ -270,6 +287,12 @@ export default function MembershipsPage() {
     setIsEditModalOpen(true);
   };
 
+  const handleOpenRenew = (member: BackendMember) => {
+    setMenuAnchor(null);
+    setMemberToRenew(member);
+    setIsRenewModalOpen(true);
+  };
+
   const handleToggleMenu = (
     e: React.MouseEvent<HTMLButtonElement>,
     member: BackendMember
@@ -281,7 +304,7 @@ export default function MembershipsPage() {
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const dropdownHeight = 220;
+    const dropdownHeight = 260;
     const spaceBelow = window.innerHeight - rect.bottom;
     const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
 
@@ -971,6 +994,16 @@ export default function MembershipsPage() {
         onSuccess={loadData}
       />
 
+      <RenewMembershipModal
+        member={memberToRenew}
+        isOpen={isRenewModalOpen}
+        onClose={() => {
+          setIsRenewModalOpen(false);
+          setMemberToRenew(null);
+        }}
+        onSuccess={loadData}
+      />
+
       {/* Portal Action Menu (Clean Toota Popover Style, never clipped) */}
       {mounted && menuAnchor && createPortal(
         <div
@@ -1003,6 +1036,19 @@ export default function MembershipsPage() {
           >
             <Edit className="size-4 text-toota-muted" />
             <span>{t("editDetails") || "Edit Details"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const m = menuAnchor.member;
+              setMenuAnchor(null);
+              handleOpenRenew(m);
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-colors cursor-pointer text-left rtl:text-right"
+          >
+            <Sparkles className="size-4 text-emerald-500" />
+            <span>{t("renewSubscription", "Renew Subscription")}</span>
           </button>
 
           <div className="h-px bg-border/40 my-1" />

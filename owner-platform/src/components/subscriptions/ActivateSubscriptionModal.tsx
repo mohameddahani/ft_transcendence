@@ -89,8 +89,7 @@ export default function ActivateSubscriptionModal({
             }
           }
         }
-      } catch (err) {
-        console.error("Failed to load plans:", err);
+      } catch {
         toast.error("Could not fetch available plans");
       } finally {
         if (isMounted) setLoadingPlans(false);
@@ -104,8 +103,8 @@ export default function ActivateSubscriptionModal({
         if (isMounted) {
           setUsers(allUsers);
         }
-      } catch (err) {
-        console.error("Failed to load users:", err);
+      } catch {
+        toast.error("Could not fetch gym owners");
       } finally {
         if (isMounted) setLoadingUsers(false);
       }
@@ -221,7 +220,6 @@ export default function ActivateSubscriptionModal({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to activate subscription:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to activate subscription. Please check if the username exists and is active.";
