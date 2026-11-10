@@ -18,7 +18,7 @@ help:
 	@echo "  make re                Fully clean, rebuild and start the project"
 
 up:
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d --build
 
 build:
 	$(COMPOSE) build
