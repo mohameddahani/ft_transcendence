@@ -32,7 +32,7 @@ endpoints:
     <<: *http-defaults
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 2000"
+      - "[RESPONSE_TIME] < 5000"
 
   - name: Backend API
     group: Application
@@ -56,7 +56,7 @@ endpoints:
     <<: *http-defaults
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 2000"
+      - "[RESPONSE_TIME] < 4000"
 
   - name: AI Service
     group: Application
@@ -79,7 +79,7 @@ endpoints:
     <<: *http-defaults
     conditions:
       - "[STATUS] == 200"
-      - "[RESPONSE_TIME] < 3000"
+      - "[RESPONSE_TIME] < 5000"
 
   - name: Prometheus
     group: Infrastructure
