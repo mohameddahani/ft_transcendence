@@ -443,10 +443,10 @@ export default function SideBar({
             {isLoading
               ? "..."
               : isMember
-              ? t("roleGymMember") || "Gym Member"
+              ? t("roleGymMember") || "Member"
               : isAdmin
               ? t("roleGymAdministrator") || "Administrator"
-              : t("roleGymStaff") || "Gym Staff"}
+              : t("roleGymStaff") || "Staff"}
           </span>
           <button
             type="button"

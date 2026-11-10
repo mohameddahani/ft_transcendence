@@ -18,6 +18,7 @@ import {
   Ban,
   Clock,
   X,
+  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -31,6 +32,7 @@ import { BackendMember } from "@/types/member";
 import { MembershipPlan } from "@/types/membership-plan";
 import AddMemberModal from "@/components/members/AddMemberModal";
 import EditMemberModal from "@/components/members/EditMemberModal";
+import RenewMembershipModal from "@/components/members/RenewMembershipModal";
 import Pagination from "@/components/ui/Pagination";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useTranslation } from "react-i18next";
@@ -77,6 +79,8 @@ export default function MembershipsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [memberToEdit, setMemberToEdit] = useState<BackendMember | null>(null);
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [memberToRenew, setMemberToRenew] = useState<BackendMember | null>(null);
 
   // Portal Action Menu anchor state
   const [mounted, setMounted] = useState(false);
@@ -270,6 +274,12 @@ export default function MembershipsPage() {
     setIsEditModalOpen(true);
   };
 
+  const handleOpenRenew = (member: BackendMember) => {
+    setMenuAnchor(null);
+    setMemberToRenew(member);
+    setIsRenewModalOpen(true);
+  };
+
   const handleToggleMenu = (
     e: React.MouseEvent<HTMLButtonElement>,
     member: BackendMember
@@ -281,7 +291,7 @@ export default function MembershipsPage() {
     }
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const dropdownHeight = 220;
+    const dropdownHeight = 260;
     const spaceBelow = window.innerHeight - rect.bottom;
     const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
 
@@ -971,6 +981,16 @@ export default function MembershipsPage() {
         onSuccess={loadData}
       />
 
+      <RenewMembershipModal
+        member={memberToRenew}
+        isOpen={isRenewModalOpen}
+        onClose={() => {
+          setIsRenewModalOpen(false);
+          setMemberToRenew(null);
+        }}
+        onSuccess={loadData}
+      />
+
       {/* Portal Action Menu (Clean Toota Popover Style, never clipped) */}
       {mounted && menuAnchor && createPortal(
         <div
@@ -1003,6 +1023,19 @@ export default function MembershipsPage() {
           >
             <Edit className="size-4 text-toota-muted" />
             <span>{t("editDetails") || "Edit Details"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const m = menuAnchor.member;
+              setMenuAnchor(null);
+              handleOpenRenew(m);
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-colors cursor-pointer text-left rtl:text-right"
+          >
+            <Sparkles className="size-4 text-emerald-500" />
+            <span>{t("renewSubscription", "Renew Subscription")}</span>
           </button>
 
           <div className="h-px bg-border/40 my-1" />

@@ -271,7 +271,7 @@ export default function GymflowSubscriptionPage() {
       "Plan Name",
       "Member Capacity",
       "Cycle Duration (Days)",
-      "Amount Paid",
+      "Amount Paid (MAD)",
       "Status",
       "Started At",
       "Expires At",
@@ -451,7 +451,7 @@ export default function GymflowSubscriptionPage() {
                   <CreditCard className="size-4 text-toota-green" />
                 </div>
                 <div className="text-2xl font-bold tracking-tight text-toota-ink">
-                  ${subAmount.toFixed(2)}
+                  {subAmount.toFixed(2)} MAD
                   <span className="text-xs font-normal text-toota-muted ms-1.5">
                     / {cycleDays} {t("days", "days")}
                   </span>
@@ -459,7 +459,7 @@ export default function GymflowSubscriptionPage() {
                 <div className="text-[11px] text-toota-muted flex items-center gap-1.5">
                   <span className="size-1.5 rounded-full bg-toota-green" />
                   <span>
-                    ≈ ${dailyRate}/{t("dayLicense", "day license")}
+                    ≈ {dailyRate} MAD/{t("dayLicense", "day license")}
                   </span>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export default function GymflowSubscriptionPage() {
 
                         {/* Amount Billed */}
                         <TableCell className="px-6 py-3.5 font-bold text-toota-ink">
-                          ${Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)}
+                          {Number(sub.amount ?? sub.planDuration?.price ?? 0).toFixed(2)} MAD
                         </TableCell>
 
                         {/* Status */}

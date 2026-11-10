@@ -16,6 +16,7 @@ import {
   Loader2,
   ArrowLeft,
   Phone,
+  Sparkles,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -25,8 +26,11 @@ import {
   activeMember,
   banMember,
 } from "@/lib/api/members";
+import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import { MembershipPlan } from "@/types/membership-plan";
 import { BackendMember } from "@/types/member";
 import EditMemberModal from "@/components/members/EditMemberModal";
+import RenewMembershipModal from "@/components/members/RenewMembershipModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -36,16 +40,22 @@ export default function MemberDetailPage() {
   const id = params?.id as string;
 
   const [member, setMember] = useState<BackendMember | null>(null);
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   const loadMemberData = useCallback(async () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      const data = await fetchMember(id);
+      const [data, plansData] = await Promise.all([
+        fetchMember(id),
+        fetchMembershipPlans(1, 100).catch(() => []),
+      ]);
       setMember(data);
+      setPlans(Array.isArray(plansData) ? plansData : []);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -121,12 +131,21 @@ export default function MemberDetailPage() {
       : membershipStatus || member.accountStatus || "ACTIVE"
   ).toUpperCase();
 
+  const matchedPlan = plans.find(
+    (p) => p.id === activeMembership?.membershipPlanId
+  );
   const planName =
     activeMembership?.membershipPlan?.planName ||
     activeMembership?.membershipPlan?.name ||
-    t("standardTier", "Standard Tier");
+    matchedPlan?.planName ||
+    (activeMembership ? t("standardPlan", "Standard Plan") : t("noPlan", "No Plan"));
 
-  let durationDays = activeMembership?.membershipPlanDuration?.durationDays;
+  const matchedDuration = matchedPlan?.membershipPlanDurations?.find(
+    (d) => d.id === activeMembership?.membershipPlanDurationId
+  );
+  let durationDays =
+    activeMembership?.membershipPlanDuration?.durationDays ||
+    matchedDuration?.durationDays;
   if (!durationDays && activeMembership?.startDate && activeMembership?.expiresAt) {
     const start = new Date(activeMembership.startDate).getTime();
     const end = new Date(activeMembership.expiresAt).getTime();
@@ -135,7 +154,8 @@ export default function MemberDetailPage() {
   }
   const durationLabel = durationDays
     ? `${durationDays} ${t("days", "days")}`
-    : activeMembership?.membershipPlanDuration?.duration || t("standardDuration", "Standard Duration");
+    : activeMembership?.membershipPlanDuration?.duration ||
+      (activeMembership ? t("standardDuration", "Standard Duration") : "—");
 
   const memberSince = member.createdAt
     ? new Date(member.createdAt).toLocaleDateString()
@@ -306,6 +326,19 @@ export default function MemberDetailPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <Button
+              type="button"
+              onClick={() => setIsRenewModalOpen(true)}
+              className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+            >
+              <Sparkles className="size-3.5 me-1.5" />
+              <span>
+                {membershipStatus === "EXPIRED"
+                  ? t("renewSubscription", "Renew Subscription")
+                  : t("renewPlan", "Renew / Change Plan")}
+              </span>
+            </Button>
+
             <Button
               type="button"
               variant="outline"
@@ -483,7 +516,7 @@ export default function MemberDetailPage() {
                           #{payment.id.slice(0, 8)}
                         </td>
                         <td className="px-6 py-3.5 text-xs font-bold font-mono text-toota-ink">
-                          ${Number(payment.amount).toFixed(2)}
+                          {Number(payment.amount).toFixed(2)} MAD
                         </td>
                         <td className="px-6 py-3.5">
                           {/* Crisp Outlined Micro-Badge */}
@@ -547,15 +580,30 @@ export default function MemberDetailPage() {
                 <p className="text-xs font-bold font-mono text-toota-ink">{durationLabel}</p>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsEditModalOpen(true)}
-                className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
-              >
-                <span>{t("updatePlanDetails", "Update Member Profile")}</span>
-                <ArrowUpRight className="size-3.5 ms-1.5 rtl:rotate-[-90deg]" />
-              </Button>
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  type="button"
+                  onClick={() => setIsRenewModalOpen(true)}
+                  className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs"
+                >
+                  <Sparkles className="size-3.5 me-1.5" />
+                  <span>
+                    {membershipStatus === "EXPIRED"
+                      ? t("renewSubscription", "Renew Subscription")
+                      : t("changeRenewPlan", "Renew / Change Plan")}
+                  </span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
+                >
+                  <span>{t("updateProfileDetails", "Edit Personal Details")}</span>
+                  <ArrowUpRight className="size-3.5 ms-1.5 rtl:rotate-[-90deg]" />
+                </Button>
+              </div>
             </div>
           </Card>
 
@@ -616,6 +664,14 @@ export default function MemberDetailPage() {
         member={member}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
+        onSuccess={loadMemberData}
+      />
+
+      {/* Renew Subscription Modal */}
+      <RenewMembershipModal
+        member={member}
+        isOpen={isRenewModalOpen}
+        onClose={() => setIsRenewModalOpen(false)}
         onSuccess={loadMemberData}
       />
     </div>

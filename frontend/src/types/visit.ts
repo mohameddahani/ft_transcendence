@@ -16,11 +16,30 @@ export interface VisitMember {
 export interface VisitMembership {
   id: string;
   status?: string;
+  membershipStatus?: string;
   startDate?: string;
   endDate?: string;
+  expiresAt?: string;
+  membershipPlanId?: string;
+  membershipPlanDurationId?: string;
+  membershipPlan?: {
+    id?: string;
+    planName?: string;
+    name?: string;
+    weeklyVisitLimit?: number;
+    price?: number;
+    maxMembers?: number;
+  };
+  membershipPlanDuration?: {
+    id?: string;
+    durationDays?: number;
+    duration?: string;
+    price?: number | string;
+  };
   plan?: {
     id?: string;
     planName?: string;
+    weeklyVisitLimit?: number;
     price?: number;
     maxMembers?: number;
   };

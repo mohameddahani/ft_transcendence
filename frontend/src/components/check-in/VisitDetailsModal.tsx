@@ -179,10 +179,13 @@ export default function VisitDetailsModal({
               <span>{t("membershipPlan", "Membership Plan")}</span>
             </div>
             <p className="text-sm font-bold text-toota-ink truncate">
-              {visit.membership?.plan?.planName || t("standardPlan", "Standard Tier")}
+              {visit.membership?.membershipPlan?.planName ||
+                visit.membership?.membershipPlan?.name ||
+                visit.membership?.plan?.planName ||
+                (visit.membership ? t("standardPlan", "Standard Tier") : t("noActivePlan", "No Active Plan"))}
             </p>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium">
-              {visit.membership?.status || t("inGoodStanding", "Active & In Good Standing")}
+              {visit.membership?.membershipStatus || visit.membership?.status || t("inGoodStanding", "Active & In Good Standing")}
             </p>
           </div>
         </div>

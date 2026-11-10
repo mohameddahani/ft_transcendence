@@ -23,6 +23,8 @@ import {
   checkInManual,
   checkInWithQr,
 } from "@/lib/api/visits";
+import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import { MembershipPlan } from "@/types/membership-plan";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
@@ -58,6 +60,7 @@ export default function CheckInPage() {
   // State
   const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
   const [pagedVisits, setPagedVisits] = useState<TodayVisit[]>([]);
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,16 +81,52 @@ export default function CheckInPage() {
   const [isCheckingInMap, setIsCheckingInMap] = useState<Record<string, boolean>>({});
   const [isScanningProcessing, setIsScanningProcessing] = useState(false);
 
+  // Helper to enrich visit with matched plan name
+  const enrichVisitWithPlan = useCallback(
+    (v: TodayVisit, loadedPlans: MembershipPlan[]) => {
+      const planName =
+        v.membership?.membershipPlan?.planName ||
+        v.membership?.membershipPlan?.name ||
+        v.membership?.plan?.planName;
+
+      if (!planName && v.membership?.membershipPlanId) {
+        const matched = loadedPlans.find((p) => p.id === v.membership?.membershipPlanId);
+        if (matched) {
+          return {
+            ...v,
+            membership: {
+              ...v.membership,
+              membershipPlan: {
+                id: matched.id,
+                planName: matched.planName,
+                weeklyVisitLimit: matched.weeklyVisitLimit,
+              },
+            },
+          };
+        }
+      }
+      return v;
+    },
+    []
+  );
+
   // Load visits
   const loadVisits = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fullList, initialPage] = await Promise.all([
+      const [fullList, initialPage, plansData] = await Promise.all([
         fetchTodayVisits(1, 500),
         fetchTodayVisits(1, pageSize),
+        fetchMembershipPlans(1, 100).catch(() => []),
       ]);
-      setAllVisits(fullList);
-      setPagedVisits(initialPage);
+      const loadedPlans = Array.isArray(plansData) ? plansData : [];
+      setPlans(loadedPlans);
+
+      const enrichedFull = fullList.map((v) => enrichVisitWithPlan(v, loadedPlans));
+      const enrichedInitial = initialPage.map((v) => enrichVisitWithPlan(v, loadedPlans));
+
+      setAllVisits(enrichedFull);
+      setPagedVisits(enrichedInitial);
       setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -98,7 +137,7 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize, t]);
+  }, [pageSize, t, enrichVisitWithPlan]);
 
   useEffect(() => {
     loadVisits();
@@ -111,7 +150,7 @@ export default function CheckInPage() {
       setIsPageLoading(true);
       try {
         const pageData = await fetchTodayVisits(newPage, pageSize);
-        setPagedVisits(pageData);
+        setPagedVisits(pageData.map((v) => enrichVisitWithPlan(v, plans)));
       } catch {
         // fail gracefully
       } finally {
@@ -209,12 +248,13 @@ export default function CheckInPage() {
 
       // Re-load to find the newly checked in member
       const freshVisits = await fetchTodayVisits(1, 500);
-      setAllVisits(freshVisits);
+      const enrichedFresh = freshVisits.map((v) => enrichVisitWithPlan(v, plans));
+      setAllVisits(enrichedFresh);
       const currentPageData = await fetchTodayVisits(currentPage, pageSize);
-      setPagedVisits(currentPageData);
+      setPagedVisits(currentPageData.map((v) => enrichVisitWithPlan(v, plans)));
 
       // Find recently updated visit for celebration
-      const newlyCheckedIn = freshVisits.find((v) => v.visitStatus === "CHECKED_IN");
+      const newlyCheckedIn = enrichedFresh.find((v) => v.visitStatus === "CHECKED_IN");
       if (newlyCheckedIn) {
         setCelebrationVisit(newlyCheckedIn);
         setCelebrationMethod("QR");
@@ -234,9 +274,9 @@ export default function CheckInPage() {
   const handleInspectVisit = async (visit: TodayVisit) => {
     try {
       const single = await fetchVisitById(visit.id).catch(() => visit);
-      setSelectedVisit(single);
+      setSelectedVisit(enrichVisitWithPlan(single, plans));
     } catch {
-      setSelectedVisit(visit);
+      setSelectedVisit(enrichVisitWithPlan(visit, plans));
     } finally {
       setIsDetailsOpen(true);
     }
@@ -656,10 +696,14 @@ export default function CheckInPage() {
                       {/* Membership Plan */}
                       <TableCell className="px-6 py-3.5">
                         <div className="font-medium text-toota-ink">
-                          {visit.membership?.plan?.planName || t("standardPlan") || "Standard Plan"}
+                          {visit.membership?.membershipPlan?.planName ||
+                            visit.membership?.membershipPlan?.name ||
+                            visit.membership?.plan?.planName ||
+                            t("standardPlan") ||
+                            "Standard Plan"}
                         </div>
                         <div className="text-[11px] text-toota-muted">
-                          {visit.membership?.status || t("activePlanText") || "Active"}
+                          {visit.membership?.membershipStatus || visit.membership?.status || t("activePlanText") || "Active"}
                         </div>
                       </TableCell>
 

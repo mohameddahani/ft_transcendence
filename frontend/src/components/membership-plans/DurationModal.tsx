@@ -266,17 +266,17 @@ export default function DurationModal({
             )}
           </div>
 
-          {/* Price (USD) */}
+          {/* Price (MAD) */}
           <div className="space-y-1.5">
             <label
               htmlFor="price"
               className="block text-xs font-semibold uppercase tracking-wider text-toota-muted"
             >
-              {t("price") || "Price (USD $)"} <span className="text-toota-red">*</span>
+              {t("price") || "Price (MAD)"} <span className="text-toota-red">*</span>
             </label>
             <div className="relative">
-              <span className="absolute start-3 top-1/2 -translate-y-1/2 text-toota-muted font-bold text-xs pointer-events-none">
-                $
+              <span className="absolute start-3 top-1/2 -translate-y-1/2 text-toota-muted font-bold text-[10px] pointer-events-none">
+                MAD
               </span>
               <Input
                 id="price"
@@ -293,7 +293,7 @@ export default function DurationModal({
                     }
                   },
                 })}
-                className="h-9 rounded-lg bg-toota-inner border-border/40 ps-7 pe-3 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring"
+                className="h-9 rounded-lg bg-toota-inner border-border/40 ps-11 pe-3 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-ring"
                 disabled={isSubmitting}
               />
             </div>
@@ -315,7 +315,7 @@ export default function DurationModal({
                 {t("priceInG") || "Price in G Tokens"}
               </label>
               <span className="text-[11px] text-toota-muted">
-                {t("autoCalculated") || "Matches USD 1:1"}
+                {t("autoCalculated") || "Matches MAD 1:1"}
               </span>
             </div>
             <div className="relative">
@@ -350,7 +350,7 @@ export default function DurationModal({
               </span>
               <span className="text-toota-muted">•</span>
               <span className="font-semibold text-toota-green">
-                ${Number(price || 0).toFixed(2)}
+                {Number(price || 0).toFixed(2)} MAD
               </span>
             </div>
           </div>

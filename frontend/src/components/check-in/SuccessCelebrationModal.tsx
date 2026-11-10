@@ -87,7 +87,10 @@ export default function SuccessCelebrationModal({
             {fullName}
           </p>
           <p className="text-xs text-toota-muted">
-            {(visit.membership?.plan?.planName || t("standardPlan", "Standard Tier"))} •{" "}
+            {(visit.membership?.membershipPlan?.planName ||
+              visit.membership?.membershipPlan?.name ||
+              visit.membership?.plan?.planName ||
+              (visit.membership ? t("standardPlan", "Standard Tier") : t("noActivePlan", "No Active Plan")))} •{" "}
             {t("facilityAccessGranted", "Facility access granted")}
           </p>
         </div>

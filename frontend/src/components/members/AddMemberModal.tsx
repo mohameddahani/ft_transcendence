@@ -484,7 +484,7 @@ export default function AddMemberModal({
                       }
                       options={currentDurations.map((d) => ({
                         value: d.id,
-                        label: `${d.durationDays} ${t("days", "days")} — $${Number(d.price).toFixed(2)}`,
+                        label: `${d.durationDays} ${t("days", "days")} — ${Number(d.price).toFixed(2)} MAD`,
                       }))}
                     />
                     {errors.membershipPlanDurationId && (

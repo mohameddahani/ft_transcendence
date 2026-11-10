@@ -79,7 +79,7 @@ function AnimatedRevenue({ value }: { value: number }) {
     return () => controls.stop();
   }, [value, count]);
 
-  return <span>${displayValue}</span>;
+  return <span>{displayValue} MAD</span>;
 }
 
 export default function PaymentsPage() {
@@ -220,7 +220,7 @@ export default function PaymentsPage() {
       "Invoice ID",
       "Member Name",
       "Member Email",
-      "Amount ($)",
+      "Amount (MAD)",
       "Status",
       "Paid Date",
       "Created At",
@@ -265,7 +265,7 @@ export default function PaymentsPage() {
 Invoice Number : #INV-${payment.id.slice(0, 8)}
 Date Issued    : ${new Date(payment.createdAt).toLocaleDateString()}
 Payment Status : ${getEffectivePaymentStatus(payment)}
-Amount Due     : $${Number(payment.amount).toFixed(2)}
+Amount Due     : ${Number(payment.amount).toFixed(2)} MAD
 Paid At        : ${payment.paidAt ? new Date(payment.paidAt).toLocaleDateString() : "Pending"}
 Due Date       : ${payment.dueDate ? new Date(payment.dueDate).toLocaleDateString() : "N/A"}
 
@@ -454,7 +454,7 @@ Thank you for training with ${companyName || "us"}!
                 <Loader2 className="size-7 animate-spin text-amber-500" />
               ) : (
                 <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  ${outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  {outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} MAD
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
@@ -702,7 +702,7 @@ Thank you for training with ${companyName || "us"}!
 
                       {/* Amount */}
                       <TableCell className="px-6 py-3.5 font-semibold text-toota-ink text-sm">
-                        ${Number(payment.amount).toFixed(2)}
+                        {Number(payment.amount).toFixed(2)} MAD
                       </TableCell>
 
                       {/* Paid Date */}
@@ -833,7 +833,7 @@ Thank you for training with ${companyName || "us"}!
                       {t("amount") || "Amount"}
                     </span>
                     <p className="text-lg font-semibold text-toota-green mt-0.5">
-                      ${Number(selectedPayment.amount).toFixed(2)}
+                      {Number(selectedPayment.amount).toFixed(2)} MAD
                     </p>
                   </div>
                 </div>
