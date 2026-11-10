@@ -11,18 +11,15 @@ import { relayForwarderMethod } from "@/lib/blockchain/gasless";
 import { parseError } from "@/lib/blockchain/marketplace-errors";
 import { update_walletAddress_member } from "@/lib/blockchain/api/marketplace";
 import type {
-  ApiMembershipPlan,
-  MembershipPlan,
   Product,
   Purchase,
   RawProductItem,
   RawPurchaseItem,
 } from "@/types/marketplace";
-import axios from "axios";
-import api from "@/lib/axios";
-import { BrowserProvider, Contract, JsonRpcSigner, formatUnits, getAddress, isAddress, parseUnits, ZeroAddress } from "ethers";
+import { BrowserProvider, Contract, JsonRpcSigner, formatUnits, getAddress, isAddress, ZeroAddress } from "ethers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
+import { useTokenTransfer } from "./useTokenTransfer";
 
 export function useMemberMarketplace() {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
@@ -37,38 +34,10 @@ export function useMemberMarketplace() {
   const [marketAddress, setMarketAddress] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [tab, setTab] = useState<"shop" | "purchases" | "subscription">("shop");
+  const [tab, setTab] = useState<"shop" | "purchases" | "transfer">("shop");
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [buyingId, setBuyingId] = useState<bigint | null>(null);
-
-  // Subscription state
-  const [subOwner, setSubOwner] = useState("");
-  const [plans, setPlans] = useState<MembershipPlan[]>([]);
-  const [subscribing, setSubscribing] = useState(false);
-
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState<string>("0");
-  const [selectedDurationIndex, setSelectedDurationIndex] =
-    useState<string>("0");
-
-  const activePlans = plans.filter((plan) => plan.isActive);
-
-  const planItems = activePlans.map((plan, index) => ({
-    label: plan.planName,
-    value: String(index),
-  }));
-  const selectedPlan = activePlans[Number(selectedPlanIndex)];
-
-  const durationItems = (selectedPlan?.durations ?? []).map(
-    (duration, index) => ({
-      value: String(index),
-      label: `${duration.durationDays} Days - ${duration.priceByG} G`,
-    }),
-  );
-
-  const selectedDuration =
-    selectedPlan?.durations[Number(selectedDurationIndex)];
-  const subAmount = selectedDuration?.priceByG.toString() ?? "";
 
   useEffect(() => {
     try {
@@ -76,12 +45,10 @@ export function useMemberMarketplace() {
       const user = storedUser ? JSON.parse(storedUser) : null;
       const owner = user?.adminWalletAddress;
       if (typeof owner === "string" && isAddress(owner) && getAddress(owner) !== ZeroAddress) {
-        setSubOwner(getAddress(owner));
         setMarketAddress(getAddress(owner));
       }
     } catch {
-      // Missing or invalid stored login data must not become a payment recipient.
-      setSubOwner("");
+      // Ignore invalid stored gym wallet data.
       setMarketAddress("");
     }
   }, []);
@@ -134,7 +101,8 @@ export function useMemberMarketplace() {
       }
 
       try {
-        const rawPurchases = await readContract.getPurchases();
+        // getPurchases() indexes the contract's history by _msgSender().
+        const rawPurchases = await readContract.getPurchases({ from: account });
         setPurchases(
           rawPurchases.map((p: RawPurchaseItem) => ({
             id: p.id,
@@ -209,45 +177,6 @@ export function useMemberMarketplace() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  useEffect(() => {
-    if (!readContract || !account) return;
-
-    async function fetch_plans() {
-      try {
-        const response = await api.get<ApiMembershipPlan[]>(
-          "/api/members/membership-plans?page=1&limit=1000"
-        );
-
-        const rawData = response.data;
-        const plansData = Array.isArray(rawData)
-          ? rawData
-          : Array.isArray((rawData as { data?: ApiMembershipPlan[] })?.data)
-          ? (rawData as { data: ApiMembershipPlan[] }).data
-          : [];
-
-        const mappedPlans: MembershipPlan[] = plansData.map((plan) => ({
-          planName: plan.planName,
-          description: plan.description,
-          isActive: plan.isActive,
-          durations: (plan.membershipPlanDurations || []).map((duration) => ({
-            durationDays: duration.durationDays,
-            priceByG: duration.priceByG,
-          })),
-        }));
-        setPlans(mappedPlans);
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error("Status:", error.response?.status);
-          console.error("Server error:", error.response?.data);
-          console.error("Message:", error.message);
-        } else {
-          console.error("Unexpected error:", error);
-        }
-      }
-    }
-    fetch_plans();
-  }, [readContract, account]);
 
   const connect = async () => {
     if (typeof window === "undefined" || !window.ethereum) {
@@ -360,46 +289,7 @@ export function useMemberMarketplace() {
     }
   };
 
-  const handlePaySubscription = async () => {
-    if (!provider || !signer || !account || !readContract) {
-      toast.error("Please connect your wallet first.");
-      return;
-    }
-    if (!GASLESS_ENABLED) {
-      toast.error("Gasless purchases require contract addresses to be configured.");
-      return;
-    }
-    if (chainId !== CHAIN_ID) {
-      toast.error("Switch your wallet to Sepolia first.");
-      return;
-    }
-    if (!isAddress(subOwner) || subOwner === ZeroAddress) {
-      toast.error("Your gym owner's wallet is missing. Please sign in again.");
-      return;
-    }
-    if (!selectedDuration || !Number.isFinite(selectedDuration.priceByG) || selectedDuration.priceByG <= 0) {
-      toast.error("Select a plan and duration with a valid G-token price.");
-      return;
-    }
-
-    setSubscribing(true);
-    try {
-      const decimals = Number(await readContract.decimals());
-      const amount = parseUnits(subAmount, decimals);
-      await relayForwarderMethod(provider, signer, "paySubscription", [
-        subOwner,
-        amount,
-      ]);
-      toast.success(
-        `Subscription payment sent (${subAmount} ${tokenSymbol})`,
-      );
-      await refresh();
-    } catch (error) {
-      toast.error(parseError(error));
-    } finally {
-      setSubscribing(false);
-    }
-  };
+  const transfer = useTokenTransfer({ provider, signer, account, chainId, tokenDecimals, refresh });
 
   const isSepolia = chainId === CHAIN_ID;
   const balanceLabel = formatUnits(tokenBalance, tokenDecimals);
@@ -416,25 +306,13 @@ export function useMemberMarketplace() {
     setTab,
     isRefreshing,
     buyingId,
-    subOwner,
-    subAmount,
-    subscribing,
-    selectedPlanIndex,
-    selectedDurationIndex,
-    setSelectedPlanIndex,
-    setSelectedDurationIndex,
-    activePlans,
-    planItems,
-    selectedPlan,
-    durationItems,
-    selectedDuration,
+    transfer,
     confirmBuyProduct,
     setConfirmBuyProduct,
     refresh,
     connect,
     switchToSepolia,
     buy,
-    handlePaySubscription,
     isSepolia,
     balanceLabel,
   };

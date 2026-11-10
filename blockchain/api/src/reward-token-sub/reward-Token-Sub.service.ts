@@ -1,110 +1,184 @@
 import {
-  ForbiddenException,
+  BadRequestException,
   Injectable,
+  Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JsonRpcProvider } from 'ethers';
-import { Wallet } from 'ethers';
-import type { Response, Request } from 'express';
-import { CHAIN_ID, GYMTOKEN_ABI } from '../lib/contract.js';
+import { timingSafeEqual } from 'node:crypto';
 import {
   Contract,
-  ContractTransactionResponse,
-  ContractTransactionReceipt,
+  FetchRequest,
+  JsonRpcProvider,
+  Wallet,
+  ZeroAddress,
+  getAddress,
+  isAddress,
 } from 'ethers';
-import { JwtService } from '@nestjs/jwt';
+import type { ContractTransactionResponse } from 'ethers';
+import { CHAIN_ID, GYMTOKEN_ABI } from '../lib/contract.js';
+import { MembershipRewardsStore } from './membership-rewards.store.js';
+
+const FORWARDER_ABI = [
+  'function nonces(address) view returns (uint256)',
+  'function execute((address from,address to,uint256 value,uint256 gas,uint48 deadline,bytes data,bytes signature) request) payable',
+];
+const FORWARD_TYPES = {
+  ForwardRequest: [
+    { name: 'from', type: 'address' },
+    { name: 'to', type: 'address' },
+    { name: 'value', type: 'uint256' },
+    { name: 'gas', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'deadline', type: 'uint48' },
+    { name: 'data', type: 'bytes' },
+  ],
+};
 
 @Injectable()
 export class rewardTokenSubService {
-  constructor(private readonly jwt: JwtService) {}
+  private readonly logger = new Logger(rewardTokenSubService.name);
+  constructor(private readonly rewards: MembershipRewardsStore) {}
 
-  async rewardClient(res: Response, req: Request, clientWallet: string) {
-    // * Check the Acces - Token is valid
-    const [tokenType, token] = req.headers.authorization?.split(' ') ?? [];
-
-    if (tokenType !== 'Bearer' || !token) {
-      throw new UnauthorizedException('Missing or invalid access token');
+  async rewardClient(secret: string | undefined, body: unknown) {
+    const expected = process.env.REWARD_INTERNAL_SECRET;
+    if (!expected || expected.length < 32)
+      throw new ServiceUnavailableException(
+        'Internal reward secret must contain at least 32 characters',
+      );
+    if (
+      !secret ||
+      Buffer.byteLength(secret) !== Buffer.byteLength(expected) ||
+      !timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
+    ) {
+      throw new UnauthorizedException('Invalid internal reward credentials');
     }
-
+    const data = body as {
+      membershipId?: unknown;
+      clientWallet?: unknown;
+    } | null;
+    if (
+      !data ||
+      typeof data.membershipId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        data.membershipId,
+      ) ||
+      typeof data.clientWallet !== 'string' ||
+      !isAddress(data.clientWallet) ||
+      getAddress(data.clientWallet) === ZeroAddress
+    ) {
+      throw new BadRequestException(
+        'A purchased membership ID and valid member wallet are required',
+      );
+    }
+    const membershipId = data.membershipId.toLowerCase();
+    if (
+      !process.env.SEPOLIA_RPC_URL ||
+      !process.env.REWARD_OWNER_PRIVATE_KEY ||
+      !process.env.GYMTOKEN_ADDRESS ||
+      !process.env.FORWARDER_ADDRESS
+    ) {
+      throw new ServiceUnavailableException(
+        'Reward chain configuration is missing',
+      );
+    }
+    const claim = await this.rewards.claim(membershipId);
+    if (!claim.inserted) {
+      return {
+        membershipId,
+        rewarded: claim.rewarded,
+        alreadyExists: true,
+        message: claim.rewarded
+          ? 'This membership was already rewarded.'
+          : 'Reward already claimed; it may be processing or need manual review. No new reward was sent.',
+      };
+    }
     try {
-      await this.jwt.verifyAsync(token, {
-        secret: process.env.JWT_ADMIN_ACCESS_SECRET,
-      });
+      const hash = await this.rewards.withOwnerLock(() =>
+        this.sendReward(membershipId, getAddress(data.clientWallet as string)),
+      );
+      await this.rewards.confirm(membershipId);
+      return { membershipId, rewarded: true, alreadyExists: false, hash };
     } catch {
-      throw new ForbiddenException();
+      this.logger.warn(
+        `Reward for membership ${membershipId} was not confirmed. Its existing record blocks further attempts; manual review is required.`,
+      );
+      throw new ServiceUnavailableException({
+        membershipId,
+        rewarded: false,
+        message:
+          'Reward not confirmed. The membership ID remains reserved; check the transaction manually before taking further action.',
+      });
     }
+  }
 
-    const privateKey = process.env.RELAYER_PRIVATE_KEY;
-    const Urpc = process.env.SEPOLIA_RPC_URL;
-    const GymTokenAddress = process.env.GYMTOKEN_ADDRESS;
-    const clientRecipient = clientWallet;
-    const amountReward = process.env.AMOUNTREWARD;
-
-    if (!Urpc || !privateKey || !GymTokenAddress || !clientRecipient)
-      return res
-        .status(503)
-        .json({ error: 'reward transactions are not configured.' });
-
-    let stage = 'rcp';
+  async sendReward(membershipId: string, recipient: string) {
+    const rpc = process.env.SEPOLIA_RPC_URL;
+    const key = process.env.REWARD_OWNER_PRIVATE_KEY;
+    const tokenAddress = process.env.GYMTOKEN_ADDRESS;
+    const forwarderAddress = process.env.FORWARDER_ADDRESS;
+    if (!rpc || !key || !tokenAddress || !forwarderAddress)
+      throw new Error('Reward chain configuration is missing');
+    const request = new FetchRequest(rpc);
+    request.timeout = 10000;
+    const provider = new JsonRpcProvider(request);
     try {
-      const provider = new JsonRpcProvider(Urpc);
       if (Number((await provider.getNetwork()).chainId) !== CHAIN_ID)
         throw new Error('Wrong network');
-
-      stage = 'owner';
-      const owner = new Wallet(privateKey, provider);
-      const gymToken_contract = new Contract(
-        GymTokenAddress,
-        GYMTOKEN_ABI,
-        owner,
+      const owner = new Wallet(key, provider);
+      const token = new Contract(tokenAddress, GYMTOKEN_ABI, owner);
+      if (getAddress((await token.owner()) as string) !== owner.address)
+        throw new Error('Reward signer must own GymToken');
+      const forwarder = new Contract(forwarderAddress, FORWARDER_ABI, owner);
+      if (!(await token.isTrustedForwarder(await forwarder.getAddress())))
+        throw new Error('Untrusted forwarder');
+      const nonce = await provider.getTransactionCount(
+        owner.address,
+        'pending',
       );
-
-      stage = 'estimate';
-      const estimatedGas =
-        await gymToken_contract.rewardTokenSubscription.estimateGas(
-          clientRecipient,
-          amountReward,
-        );
-
-      stage = 'submit';
-      const tx: ContractTransactionResponse =
-        await gymToken_contract.rewardTokenSubscription(
-          clientRecipient,
-          amountReward,
-          {
-            gasLimit: (estimatedGas * 12n) / 10n,
-          },
-        );
-
-      const receipt: ContractTransactionReceipt | null = await tx.wait();
-
-      if (!receipt || receipt.status !== 1) {
-        throw new Error('Reward transaction failed');
-      }
-      return {
-        success: true,
-        hash: receipt.hash,
+      if (
+        nonce !== (await provider.getTransactionCount(owner.address, 'latest'))
+      )
+        throw new Error('Owner already has a pending transaction');
+      const forwardRequest = {
+        from: owner.address,
+        to: await token.getAddress(),
+        value: 0n,
+        gas: 200000n,
+        nonce: (await forwarder.nonces(owner.address)) as bigint,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 600),
+        data: token.interface.encodeFunctionData('rewardTokenSubscription', [
+          recipient,
+          3n,
+        ]),
       };
-    } catch {
-      const errors: Record<string, [string, number]> = {
-        request: ['Invalid request or unsupported GymToken method.', 400],
-        signature: ['The wallet signature does not match this call.', 400],
-        rpc: [
-          'SEPOLIA_RPC_URL is not a working Sepolia JSON-RPC endpoint.',
-          503,
-        ],
-        owner: ['RELAYER_PRIVATE_KEY is not a valid wallet key.', 503],
-        estimate: [
-          'The call could not be estimated or exceeds the sponsored gas limit.',
-          400,
-        ],
-        submit: [
-          'The relayer could not submit the call. Check its Sepolia ETH balance and RPC access.',
-          503,
-        ],
-      };
-      const [error, status] = errors[stage];
-      return res.status(status).json({ error: error });
+      const signature = await owner.signTypedData(
+        {
+          name: 'GymTokenForwarder',
+          version: '1',
+          chainId: CHAIN_ID,
+          verifyingContract: await forwarder.getAddress(),
+        },
+        FORWARD_TYPES,
+        forwardRequest,
+      );
+      const { nonce: forwardNonce, ...call } = forwardRequest;
+      void forwardNonce;
+      const payload = { ...call, signature };
+      const gas = await forwarder.execute.estimateGas(payload);
+      const tx: ContractTransactionResponse = await forwarder.execute(payload, {
+        nonce,
+        gasLimit: (gas * 12n) / 10n,
+      });
+      this.logger.log(
+        `Membership ${membershipId}: reward transaction ${tx.hash}`,
+      );
+      const receipt = await tx.wait(3, 60000);
+      if (!receipt || receipt.status !== 1)
+        throw new Error('Reward transaction not confirmed');
+      return receipt.hash;
+    } finally {
+      provider.destroy();
     }
   }
 }

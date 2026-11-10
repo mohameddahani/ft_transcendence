@@ -29,7 +29,6 @@ export const GYMTOKEN_ABI = [
 
   // Subscription
   "function rewardTokenSubscription(address recipient, uint256 amount)",
-  "function paySubscription(address GymOwner, uint256 amount)",
 
   // Marketplace
   "function addProduct(uint256 _ProductId, string _name, string _description, uint256 _stok, uint256 _price, string[] _productImages)",

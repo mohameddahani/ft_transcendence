@@ -1,16 +1,15 @@
-import { Controller, Post, Res, Req, Body } from '@nestjs/common';
+import { Controller, Post, Headers, Body, HttpCode } from '@nestjs/common';
 import { rewardTokenSubService } from './reward-Token-Sub.service.js';
-import type { Response, Request } from 'express';
 
 @Controller('blockchain')
 export class rewardTokenSubController {
   constructor(private rewardTokenSubService: rewardTokenSubService) {}
   @Post('rewardClient')
+  @HttpCode(200)
   rewardTokenSub(
-    @Res() res: Response,
-    @Req() req: Request,
-    @Body() body: { clientWallet: string },
+    @Headers('x-reward-secret') secret: string | undefined,
+    @Body() body: unknown,
   ) {
-    return this.rewardTokenSubService.rewardClient(res, req, body.clientWallet);
+    return this.rewardTokenSubService.rewardClient(secret, body);
   }
 }

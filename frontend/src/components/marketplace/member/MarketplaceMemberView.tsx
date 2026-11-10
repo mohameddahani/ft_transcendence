@@ -5,7 +5,7 @@ import { useMemberMarketplace } from "@/components/marketplace/hooks/useMemberMa
 import { shorten } from "@/lib/blockchain/marketplace-format";
 import {
   AlertTriangle,
-  CreditCard,
+  Send,
   RefreshCw,
   ShoppingBag,
   Store,
@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/marketplace/ui/tabs";
 import { CHAIN_NAME, CONTRACT_ADDRESS, GASLESS_ENABLED } from "@/lib/blockchain/contract";
 import { MarketplaceTab } from "./MarketplaceTab";
 import { PurchasesTab } from "./PurchasesTab";
-import { SubscriptionTab } from "./SubscriptionTab";
+import { TransferTab } from "../TransferTab";
 
 export default function MarketplaceMemberView() {
   const {
@@ -34,24 +34,13 @@ export default function MarketplaceMemberView() {
     setTab,
     isRefreshing,
     buyingId,
-    subOwner,
-    selectedPlanIndex,
-    selectedDurationIndex,
-    subscribing,
-    setSelectedPlanIndex,
-    setSelectedDurationIndex,
-    activePlans,
-    planItems,
-    selectedPlan,
-    durationItems,
-    selectedDuration,
+    transfer,
     confirmBuyProduct,
     setConfirmBuyProduct,
     refresh,
     connect,
     switchToSepolia,
     buy,
-    handlePaySubscription,
     isSepolia,
     balanceLabel,
   } = useMemberMarketplace();
@@ -128,7 +117,7 @@ export default function MarketplaceMemberView() {
           </h2>
 
           <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
-            Buy supplements, gym apparel, pay memberships, and track all your verified blockchain
+            Buy supplements, gym apparel, send tokens, and track all your verified blockchain
             purchases with <span className="font-semibold text-primary">{tokenSymbol} tokens</span> directly
             on Sepolia with zero Ethereum gas fees.
           </p>
@@ -188,12 +177,12 @@ export default function MarketplaceMemberView() {
         <Tabs
           value={tab}
           onValueChange={(val) =>
-            setTab(val as "shop" | "purchases" | "subscription")
+            setTab(val as "shop" | "purchases" | "transfer")
           }
           className="w-full"
         >
           <div className="flex flex-wrap items-center justify-between border-b border-outline-variant px-5 py-3.5 gap-3">
-            <TabsList className="bg-surface-container-low p-1 rounded-xl">
+            <TabsList className="h-auto max-w-full flex-wrap bg-surface-container-low p-1 rounded-xl">
               <TabsTrigger value="shop" className="gap-2">
                 <Store className="size-4" />
                 <span>Marketplace</span>
@@ -202,9 +191,9 @@ export default function MarketplaceMemberView() {
                 <ShoppingBag className="size-4" />
                 <span>My Purchases</span>
               </TabsTrigger>
-              <TabsTrigger value="subscription" className="gap-2">
-                <CreditCard className="size-4" />
-                <span>Pay Subscription</span>
+              <TabsTrigger value="transfer" className="gap-2">
+                <Send className="size-4" />
+                <span>Send G</span>
               </TabsTrigger>
             </TabsList>
 
@@ -240,22 +229,7 @@ export default function MarketplaceMemberView() {
             tokenDecimals={tokenDecimals}
             tokenSymbol={tokenSymbol}
           />
-          <SubscriptionTab
-            tokenSymbol={tokenSymbol}
-            subOwner={subOwner}
-            selectedPlanIndex={selectedPlanIndex}
-            selectedDurationIndex={selectedDurationIndex}
-            planItems={planItems}
-            setSelectedPlanIndex={setSelectedPlanIndex}
-            setSelectedDurationIndex={setSelectedDurationIndex}
-            activePlans={activePlans}
-            durationItems={durationItems}
-            selectedPlan={selectedPlan}
-            selectedDuration={selectedDuration}
-            subscribing={subscribing}
-            account={account}
-            handlePaySubscription={handlePaySubscription}
-          />
+          <TransferTab transfer={transfer} tokenSymbol={tokenSymbol} balanceLabel={balanceLabel} account={account} isSepolia={isSepolia} />
         </Tabs>
       </Card>
 

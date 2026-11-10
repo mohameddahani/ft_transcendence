@@ -1,5 +1,7 @@
 "use client";
 
+import { useTokenTransfer } from "./useTokenTransfer";
+
 import {
   CHAIN_ID,
   CONTRACT_ADDRESS,
@@ -39,7 +41,7 @@ export function useAdminMarketplace() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
 
-  const [tab, setTab] = useState<"MyProducts" | "sales" | "manage">(
+  const [tab, setTab] = useState<"MyProducts" | "sales" | "manage" | "transfer">(
     "MyProducts",
   );
   const [busy, setBusy] = useState(false);
@@ -322,6 +324,7 @@ export function useAdminMarketplace() {
   };
 
   const isSepolia = chainId === CHAIN_ID;
+  const transfer = useTokenTransfer({ provider, signer, account, chainId, tokenDecimals, refresh });
   const merchantMode = account;
   const balanceLabel = formatUnits(tokenBalance, tokenDecimals);
 
@@ -350,5 +353,6 @@ export function useAdminMarketplace() {
     isSepolia,
     merchantMode,
     balanceLabel,
+    transfer,
   };
 }

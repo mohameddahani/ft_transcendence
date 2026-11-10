@@ -1,9 +1,9 @@
 // Set this to the address of the contract deployed from contracts/GymToken.sol.
 export const CONTRACT_ADDRESS =
-  process.env.NEXT_PUBLIC_GYMTOKEN_ADDRESS ||
+  process.env.GYMTOKEN_ADDRESS ||
   "0xabF153598239aC40BB6d02884c8aB4e49FFD76E5";
 export const FORWARDER_ADDRESS =
-  process.env.NEXT_PUBLIC_FORWARDER_ADDRESS ||
+  process.env.FORWARDER_ADDRESS ||
   "0xEF708a83a8dE406e6b619bFaA638E02A6F454B97";
 export const GASLESS_ENABLED = Boolean(
   CONTRACT_ADDRESS && FORWARDER_ADDRESS
@@ -35,7 +35,6 @@ export const GYMTOKEN_ABI = [
 
   // Subscription
   "function rewardTokenSubscription(address recipient, uint256 amount)",
-  "function paySubscription(address GymOwner, uint256 amount)",
 
   // Marketplace
   "function addProduct(uint256 _ProductId, string _name, string _description, uint256 _stok, uint256 _price, string[] _productImages)",
