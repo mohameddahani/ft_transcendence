@@ -182,18 +182,25 @@ export class MembersService {
         },
       });
 
-      // ! BLOCK_CHAINE
-      await axios.post(
-        this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
-        { membershipId: membership.id, clientWallet: member.walletAddress },
-        {
-          headers: {
-            'X-Reward-Secret': this.config.getOrThrow<string>(
-              'REWARD_INTERNAL_SECRET',
-            ),
+      try {
+        // ! BLOCK_CHAINE
+        await axios.post(
+          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+          {
+            membershipId: membership.id,
+            clientWallet: member.walletAddress,
           },
-        },
-      );
+          {
+            headers: {
+              'X-Reward-Secret': this.config.getOrThrow<string>(
+                'REWARD_INTERNAL_SECRET',
+              ),
+            },
+          },
+        );
+      } catch {
+        throw new InternalServerErrorException('Block Chain is Down');
+      }
 
       return member;
     });
@@ -423,21 +430,25 @@ export class MembersService {
           },
         });
 
-        // ! BLOCK_CHAINE
-        await axios.post(
-          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
-          {
-            membershipId: newMembership.id,
-            clientWallet: member.walletAddress,
-          },
-          {
-            headers: {
-              'X-Reward-Secret': this.config.getOrThrow<string>(
-                'REWARD_INTERNAL_SECRET',
-              ),
+        try {
+          // ! BLOCK_CHAINE
+          await axios.post(
+            this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+            {
+              membershipId: newMembership.id,
+              clientWallet: member.walletAddress,
             },
-          },
-        );
+            {
+              headers: {
+                'X-Reward-Secret': this.config.getOrThrow<string>(
+                  'REWARD_INTERNAL_SECRET',
+                ),
+              },
+            },
+          );
+        } catch {
+          throw new InternalServerErrorException('Block Chain is Down');
+        }
 
         return member;
       });
@@ -611,6 +622,8 @@ export class MembersService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    accountStatus?: AccountStatus,
+    membershipStatus?: MembershipStatus,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -621,6 +634,20 @@ export class MembersService {
     const members = await this.prisma.member.findMany({
       where: {
         adminId,
+
+        // * Filter by member account status
+        ...(accountStatus !== undefined ? { accountStatus } : {}),
+
+        // * Filter members having a membership with this status
+        ...(membershipStatus !== undefined
+          ? {
+              memberships: {
+                some: {
+                  membershipStatus,
+                },
+              },
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,
