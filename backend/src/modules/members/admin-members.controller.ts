@@ -90,6 +90,13 @@ export class AdminMembersController {
     return this.membersService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebers (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.membersService.memberStats(accessTokenPayload);
+  }
+
   // * Get one member
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -108,12 +115,5 @@ export class AdminMembersController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.membersService.resendSetPasswordMember(accessTokenPayload, id);
-  }
-
-  // * Get All Stats of Memebers (Admin)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
-    return this.membersService.memberStats(accessTokenPayload);
   }
 }

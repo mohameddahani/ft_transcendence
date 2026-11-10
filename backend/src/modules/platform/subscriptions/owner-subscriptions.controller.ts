@@ -50,16 +50,16 @@ export class OwnerSubscriptionsController {
     return this.subscriptionsService.findAll(page, limit);
   }
 
+  // * Get All Stats of subscriptions (Owner)
+  @Get('stats')
+  subscriptionStatsOfOwner() {
+    return this.subscriptionsService.subscriptionStatsOfOwner();
+  }
+
   // * Get one Subscriptions
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.subscriptionsService.findOne(id);
-  }
-
-  // * Get All Stats of subscriptions (Owner)
-  @Get('stats')
-  subscriptionStatsOfOwner() {
-    return this.subscriptionsService.subscriptionStatsOfOwner();
   }
 }

@@ -72,6 +72,15 @@ export class AdminWorkingHoursController {
     );
   }
 
+  // * Get All Stats of Working Hours (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  workingHourStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.workingHoursService.workingHourStats(accessTokenPayload);
+  }
+
   // * Get One Working Hour (Admin)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
@@ -93,14 +102,5 @@ export class AdminWorkingHoursController {
       accessTokenPayload.id,
       id,
     );
-  }
-
-  // * Get All Stats of Working Hours (Admin)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  workingHourStats(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.workingHoursService.workingHourStats(accessTokenPayload);
   }
 }

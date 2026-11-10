@@ -38,6 +38,15 @@ export class StaffPaymentsController {
     );
   }
 
+  // * Get All Stats of payments (Staff)
+  @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  paymentStatsOfStaff(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.paymentsService.paymentStatsOfStaff(accessTokenPayload);
+  }
+
   // * Get one payment (Staff)
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -46,14 +55,5 @@ export class StaffPaymentsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.paymentsService.findOnePayment(accessTokenPayload, id);
-  }
-
-  // * Get All Stats of payments (Staff)
-  @Get('stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
-  paymentStatsOfStaff(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.paymentsService.paymentStatsOfStaff(accessTokenPayload);
   }
 }

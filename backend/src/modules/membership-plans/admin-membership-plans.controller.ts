@@ -95,6 +95,15 @@ export class AdminMembershipPlansController {
     return this.membershipPlansService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebership plan (Admin)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  membershipPlanStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipPlansService.membershipPlanStats(accessTokenPayload);
+  }
+
   // * Get one membership Plan
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -103,14 +112,5 @@ export class AdminMembershipPlansController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.membershipPlansService.findOne(accessTokenPayload, id);
-  }
-
-  // * Get All Stats of Memebership plan (Admin)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  membershipPlanStats(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.membershipPlansService.membershipPlanStats(accessTokenPayload);
   }
 }

@@ -34,6 +34,15 @@ export class StaffMembershipsController {
     return this.membershipsService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebership (Staff)
+  @Get('stats')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  membershipStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipsService.membershipStats(accessTokenPayload);
+  }
+
   // * Get One Membership
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -42,14 +51,5 @@ export class StaffMembershipsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.membershipsService.findOne(accessTokenPayload, id);
-  }
-
-  // * Get All Stats of Memebership (Staff)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  membershipStats(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.membershipsService.membershipStats(accessTokenPayload);
   }
 }

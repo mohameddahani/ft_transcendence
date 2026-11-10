@@ -33,6 +33,13 @@ export class OwnersController {
     return this.ownersService.findAll(page, limit);
   }
 
+  // * Get All Stats of users (owner)
+  @Get('users/stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  userStats() {
+    return this.ownersService.userStats();
+  }
+
   // * Get one user
   @Get('users/:id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -60,12 +67,5 @@ export class OwnersController {
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   banUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.banUser(id);
-  }
-
-  // * Get All Stats of users (owner)
-  @Get('users/stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
-  userStats() {
-    return this.ownersService.userStats();
   }
 }

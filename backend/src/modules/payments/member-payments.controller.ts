@@ -38,6 +38,15 @@ export class MemberPaymentsController {
     );
   }
 
+  // * Get All Stats of payments (Member)
+  @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  paymentStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.paymentsService.paymentStatsOfMember(accessTokenPayload.id);
+  }
+
   // * Get one payment (Member)
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
@@ -46,14 +55,5 @@ export class MemberPaymentsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.paymentsService.findOnePaymentMember(accessTokenPayload.id, id);
-  }
-
-  // * Get All Stats of payments (Member)
-  @Get('stats')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
-  paymentStatsOfMember(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.paymentsService.paymentStatsOfMember(accessTokenPayload.id);
   }
 }
