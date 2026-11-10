@@ -164,7 +164,7 @@ services:
       req -x509 -nodes -days 365 -newkey rsa:2048
       -keyout /certs/self-signed.key
       -out /certs/self-signed.crt
-      -subj "/C=FR/ST=Paris/L=Paris/O=GymFlow/CN=localhost"
+      -subj "/C=FR/ST=Paris/L=Paris/O=Sportium/CN=localhost"
       -addext "subjectAltName=DNS:localhost,DNS:status.localhost"
     volumes:
       - certs:/certs
@@ -354,17 +354,17 @@ services:
 
 volumes:
   db_data:
-    name: "gymFlow_db_data"
+    name: "db_data"
   ai_data:
-    name: "gymFlow_ai_data"
+    name: "ai_data"
   redis_data:
-    name: "gymFlow_redis_data"
+    name: "redis_data"
   certs:
-    name: "gymFlow_certs"
+    name: "certs"
   prometheus_data:
-    name: "gymFlow_prometheus_data"
+    name: "prometheus_data"
   grafana_data:
-    name: "gymFlow_grafana_data"
+    name: "grafana_data"
 
 # ==============================================================================
 #                                  Networks
