@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -9,22 +8,30 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
-import {
-  Zap,
-  Quote,
-  Building2,
-  Lock,
-  ArrowRight,
-  Loader2,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { Building2, ChevronDown, Lock, Mail, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 
 import { registerSchema, RegisterFormValues } from "@/schemas/auth";
 import { registerAdmin } from "@/lib/api/auth";
 import { Gender } from "@/types/auth";
-import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+import AuthShell, { PortalBadge } from "@/components/auth/AuthShell";
+import { SetupIllustration } from "@/components/auth/illustrations";
+import {
+  eyeButton,
+  fieldError,
+  fieldIcon,
+  fieldLabel,
+  inputBase,
+  inputPlain,
+  inputRing,
+  limeUnderline,
+  muted,
+  selectBase,
+  submitArrow,
+  submitButton,
+} from "@/components/auth/authStyles";
+
+// the strength meter in the platform's colours: red, amber, green, then lime for a strong password
+const strengthColors = ["#ef4444", "#f59e0b", "#22c55e", "#a3e635"];
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -64,7 +71,6 @@ export default function RegisterForm() {
   };
 
   const strength = getPasswordStrength(passwordValue);
-  const strengthColors = ["#EF4444", "#F59E0B", "#10B981", "#6366f1"];
   const strengthLabels = [
     t("weak", "Weak"),
     t("fair", "Fair"),
@@ -124,453 +130,271 @@ export default function RegisterForm() {
   };
 
   return (
-    <main className="flex min-h-screen w-full relative bg-surface">
-      {/* Top right quick actions (Language & Theme) */}
-      <div className="fixed top-4 right-4 rtl:right-auto rtl:left-4 z-50 flex items-center gap-2">
-        <LanguageSwitcher />
-        <div className="p-1 rounded-xl bg-surface-container-high/80 backdrop-blur-md border border-outline-variant/60 shadow-xs flex items-center justify-center">
-          <ThemeToggle />
-        </div>
-      </div>
+    <AuthShell
+      panelTitle={t("registerPanelTitle", "Bring your club into one place.")}
+      illustration={<SetupIllustration />}
+      wide
+    >
+      {/* Form Header */}
+      <PortalBadge icon={<Building2 className="size-3.5" aria-hidden="true" />} label={t("registerBadge", "For club owners")} />
+      <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">{t("adminSignUp", "Admin Sign Up")}</h1>
+      <p className={`mt-2 text-sm leading-6 ${muted}`}>
+        {t("adminSignUpDesc", "Configure your enterprise dashboard and scale your fitness brand.")}
+      </p>
 
-      {/* Left Side: Brand Visual & Testimonial */}
-      <section className="hidden lg:flex lg:w-1/2 relative overflow-hidden brand-gradient select-none">
-        <div
-          className="absolute inset-0 opacity-40 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url('https://lh3.googleusercontent.com/aida-public/AB6AXuADjW5g6JIVJLUCJOCBbNK2CSQPUAvhuWECOkpFe3QEhjVFHqQDDfdMZciV1dLiElAGfRHLTDl2lwMIozeXkK3eqWTW-sJT7zizlUReujS0Vax1n980sRvNOHj8jM594jLW-1UXlUWUbaSEFBD9XQo_V0Lv1ZISeov63A8D4_F_e5eakfo8ypy0YY0QcdVwQfgR2NGiPYKvm4P5_clIAOnnAWsIxA9ur1RpHnGjZtutt0K7K8badFRK')",
-          }}
-        />
-        {/* Atmospheric Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
-
-        <div className="relative z-10 flex flex-col justify-between w-full p-12 lg:p-16 text-white">
-          {/* Branding */}
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-              <Zap className="w-7 h-7 fill-white text-white" />
-            </div>
-            <h1 className="font-bold text-3xl tracking-tight font-headline">
-              {t("brandName", "GymFlow")}
-            </h1>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-5" noValidate>
+        {/* Name Group */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="first_name">
+              {t("firstName", "First Name")}
+            </label>
+            <input
+              id="first_name"
+              type="text"
+              autoComplete="given-name"
+              placeholder={t("enterFirstName", "Enter first name")}
+              aria-invalid={errors.firstName ? true : undefined}
+              {...register("firstName")}
+              className={`${inputPlain} ${inputRing(!!errors.firstName)}`}
+            />
+            {errors.firstName && <p className={fieldError}>{errors.firstName.message}</p>}
           </div>
 
-          {/* Testimonial */}
-          <div className="max-w-md">
-            <div className="mb-6">
-              <Quote className="w-10 h-10 opacity-60 fill-current mb-3 rtl:scale-x-[-1]" />
-              <p className="font-headline text-xl lg:text-2xl italic leading-relaxed mb-4 text-white/95">
-                {t(
-                  "quote",
-                  "GymFlow didn't just organize my members, it revolutionized our entire financial and operational workflow. The data density is a game-changer for enterprise growth."
-                )}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/60 relative">
-                <Image
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvXNFjyojj_yI0lMjkCyA56T2hlRUutS9qDvaYaBjVfQp729H3qvb5hvD4LFsloWl3NAm_ZwHmQnvBbLJ_E7OdnpzEnbpNWsx9gLueO67jseyCe4Y7KeLK2bXs5lvwPoDTTuFvIgas4jSYmiLPVo4QjlfUBDxHWqXF9zZfinC6U1Ux3FgGTo93RIBMD8DbunbXnPwTFyIy9tIDSfHABXhr3DHzOZ0Y8yTAS4JGgYK1G81SoSe3ybgB"
-                  alt="Marcus Sterling"
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              </div>
-              <div>
-                <p className="font-semibold text-sm text-white">
-                  {t("founderName", "Marcus Sterling")}
-                </p>
-                <p className="text-xs text-white/80">
-                  {t("founderTitle", "Founder, Apex Athletic Clubs")}
-                </p>
-              </div>
-            </div>
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="last_name">
+              {t("lastName", "Last Name")}
+            </label>
+            <input
+              id="last_name"
+              type="text"
+              autoComplete="family-name"
+              placeholder={t("enterLastName", "Enter last name")}
+              aria-invalid={errors.lastName ? true : undefined}
+              {...register("lastName")}
+              className={`${inputPlain} ${inputRing(!!errors.lastName)}`}
+            />
+            {errors.lastName && <p className={fieldError}>{errors.lastName.message}</p>}
           </div>
         </div>
-      </section>
 
-      {/* Right Side: Registration Form */}
-      <section className="w-full lg:w-1/2 bg-surface brand-mesh flex justify-center items-center py-12 px-6 sm:px-12 lg:px-16 overflow-y-auto">
-        <div className="w-full max-w-xl my-auto">
-          <header className="mb-8 pt-8 lg:pt-0">
-            <h2 className="text-3xl font-bold text-on-surface tracking-tight font-headline mb-1">
-              {t("adminSignUp", "Admin Sign Up")}
-            </h2>
-            <p className="text-base text-on-surface-variant">
-              {t(
-                "adminSignUpDesc",
-                "Configure your enterprise dashboard and scale your fitness brand."
-              )}
-            </p>
-          </header>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            {/* Name Group */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="first_name"
-                >
-                  {t("firstName", "First Name")}
-                </label>
-                <input
-                  id="first_name"
-                  type="text"
-                  placeholder={t("enterFirstName", "Enter first name")}
-                  {...register("firstName")}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.firstName
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                />
-                {errors.firstName && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.firstName.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="last_name"
-                >
-                  {t("lastName", "Last Name")}
-                </label>
-                <input
-                  id="last_name"
-                  type="text"
-                  placeholder={t("enterLastName", "Enter last name")}
-                  {...register("lastName")}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.lastName
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                />
-                {errors.lastName && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.lastName.message}
-                  </p>
-                )}
-              </div>
+        {/* Details Group: Gender & Birth Date */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="gender">
+              {t("gender", "Gender")}
+            </label>
+            <div className="relative">
+              <select
+                id="gender"
+                defaultValue=""
+                aria-invalid={errors.gender ? true : undefined}
+                {...register("gender")}
+                className={`${selectBase} ${inputRing(!!errors.gender)}`}
+              >
+                <option disabled value="">
+                  {t("selectGender", "Select Gender")}
+                </option>
+                <option value="MALE">{t("male", "Male")}</option>
+                <option value="FEMALE">{t("female", "Female")}</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-[#8a9098] rtl:right-auto rtl:left-4" aria-hidden="true" />
             </div>
+            {errors.gender && <p className={fieldError}>{errors.gender.message}</p>}
+          </div>
 
-            {/* Details Group: Gender & Birth Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="gender"
-                >
-                  {t("gender", "Gender")}
-                </label>
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="birth_date">
+              {t("birthDate", "Birth Date")}
+            </label>
+            <input
+              id="birth_date"
+              type="date"
+              autoComplete="bday"
+              aria-invalid={errors.birthDate ? true : undefined}
+              {...register("birthDate")}
+              className={`${inputPlain} ${inputRing(!!errors.birthDate)}`}
+            />
+            {errors.birthDate && <p className={fieldError}>{errors.birthDate.message}</p>}
+          </div>
+        </div>
+
+        {/* Corporate Identity: Company Name */}
+        <div className="space-y-1.5">
+          <label className={fieldLabel} htmlFor="company_name">
+            {t("companyName", "Company Name")}
+          </label>
+          <div className="group relative">
+            <Building2 className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+            <input
+              id="company_name"
+              type="text"
+              autoComplete="organization"
+              placeholder={t("enterCompanyName", "e.g. Iron Gate Enterprise")}
+              aria-invalid={errors.companyName ? true : undefined}
+              {...register("companyName")}
+              className={`${inputBase} ${inputRing(!!errors.companyName)}`}
+            />
+          </div>
+          {errors.companyName && <p className={fieldError}>{errors.companyName.message}</p>}
+        </div>
+
+        {/* Contact: Phone Number & Email */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="phone">
+              {t("phone", "Phone Number")}
+            </label>
+            <div className="flex gap-2">
+              <div className="relative w-[128px] shrink-0">
                 <select
-                  id="gender"
-                  defaultValue=""
-                  {...register("gender")}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.gender
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
+                  aria-label={t("countryCode", "Country code")}
+                  {...register("countryCode")}
+                  className={`${selectBase} ${inputRing(false)} pr-8 rtl:pl-8`}
                 >
-                  <option disabled value="" className="bg-surface-container-lowest text-on-surface">
-                    {t("selectGender", "Select Gender")}
-                  </option>
-                  <option value="MALE" className="bg-surface-container-lowest text-on-surface">{t("male", "Male")}</option>
-                  <option value="FEMALE" className="bg-surface-container-lowest text-on-surface">{t("female", "Female")}</option>
+                  <option value="+212">+212 (MA)</option>
+                  <option value="+1">+1 (US)</option>
+                  <option value="+44">+44 (UK)</option>
+                  <option value="+33">+33 (FR)</option>
+                  <option value="+49">+49 (DE)</option>
+                  <option value="+61">+61 (AU)</option>
+                  <option value="+971">+971 (AE)</option>
+                  <option value="+966">+966 (SA)</option>
                 </select>
-                {errors.gender && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.gender.message}
-                  </p>
-                )}
+                <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-[#8a9098] rtl:right-auto rtl:left-3" aria-hidden="true" />
               </div>
-
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="birth_date"
-                >
-                  {t("birthDate", "Birth Date")}
-                </label>
-                <input
-                  id="birth_date"
-                  type="date"
-                  {...register("birthDate")}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.birthDate
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface`}
-                />
-                {errors.birthDate && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.birthDate.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Corporate Identity: Company Name */}
-            <div className="space-y-1">
-              <label
-                className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                htmlFor="company_name"
-              >
-                {t("companyName", "Company Name")}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                  <Building2 className="w-5 h-5" />
-                </span>
-                <input
-                  id="company_name"
-                  type="text"
-                  placeholder={t(
-                    "enterCompanyName",
-                    "e.g. Iron Gate Enterprise"
-                  )}
-                  {...register("companyName")}
-                  className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.companyName
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                />
-              </div>
-              {errors.companyName && (
-                <p className="text-xs text-error font-medium mt-1">
-                  {errors.companyName.message}
-                </p>
-              )}
-            </div>
-
-            {/* Contact: Phone Number & Email */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="phone"
-                >
-                  {t("phone", "Phone Number")}
-                </label>
-                <div className="flex">
-                  <select
-                    {...register("countryCode")}
-                    className="w-24 px-2 py-2.5 rounded-l-xl rtl:rounded-l-none rtl:rounded-r-xl bg-surface-container border-y border-l rtl:border-l-0 rtl:border-r border-outline-variant text-sm font-medium text-on-surface focus:outline-none"
-                  >
-                    <option value="+212" className="bg-surface-container text-on-surface">+212 (MA)</option>
-                    <option value="+1" className="bg-surface-container text-on-surface">+1 (US)</option>
-                    <option value="+44" className="bg-surface-container text-on-surface">+44 (UK)</option>
-                    <option value="+33" className="bg-surface-container text-on-surface">+33 (FR)</option>
-                    <option value="+49" className="bg-surface-container text-on-surface">+49 (DE)</option>
-                    <option value="+61" className="bg-surface-container text-on-surface">+61 (AU)</option>
-                    <option value="+971" className="bg-surface-container text-on-surface">+971 (AE)</option>
-                    <option value="+966" className="bg-surface-container text-on-surface">+966 (SA)</option>
-                  </select>
-                  <input
-                    id="phone"
-                    type="tel"
-                    placeholder="555-0123"
-                    {...register("phone")}
-                    className={`w-full px-4 py-2.5 rounded-r-xl rtl:rounded-r-none rtl:rounded-l-xl bg-surface-container-lowest border ${
-                      errors.phone
-                        ? "border-error focus:ring-error"
-                        : "border-outline-variant"
-                    } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.phone.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="email"
-                >
-                  {t("email", "Email Address")}
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder={t("enterEmail", "admin@yourgym.com")}
-                  {...register("email")}
-                  className={`w-full px-4 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.email
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                />
-                {errors.email && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Security: Password */}
-            <div className="space-y-1">
-              <label
-                className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                htmlFor="password"
-              >
-                {t("password", "Password")}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                  <Lock className="w-5 h-5" />
-                </span>
-                <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  {...register("password", {
-                    onChange: (e) => setPasswordValue(e.target.value),
-                  })}
-                  className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-2.5 rounded-xl bg-surface-container-lowest border ${
-                    errors.password
-                      ? "border-error focus:ring-error"
-                      : "border-outline-variant"
-                  } form-input-focus transition-all text-sm text-on-surface placeholder:text-outline`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 rtl:right-auto rtl:left-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* Strength Meter */}
-              <div className="flex gap-1.5 mt-2">
-                {[0, 1, 2, 3].map((index) => (
-                  <div
-                    key={index}
-                    className={`strength-meter-segment flex-1 h-1.5 rounded-full transition-all ${
-                      index < strength ? "" : "bg-surface-container-highest"
-                    }`}
-                    style={{
-                      backgroundColor:
-                        index < strength
-                          ? strengthColors[strength - 1]
-                          : undefined,
-                    }}
-                  />
-                ))}
-              </div>
-              <p
-                className={`text-xs mt-1 transition-colors ${
-                  strength > 0 ? "" : "text-on-surface-variant"
-                }`}
-                style={{
-                  color:
-                    strength > 0
-                      ? strengthColors[strength - 1]
-                      : undefined,
-                }}
-              >
-                {strength > 0
-                  ? `${t("passwordStrengthPrefix", "Password strength:")} ${
-                      strengthLabels[strength - 1]
-                    }`
-                  : t(
-                      "passwordFeedbackDefault",
-                      "Secure passwords use 8+ characters, with numbers & symbols."
-                    )}
-              </p>
-              {errors.password && (
-                <p className="text-xs text-error font-medium mt-1">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            {/* Terms */}
-            <div className="flex items-start gap-3 pt-1">
               <input
-                id="terms"
-                type="checkbox"
-                {...register("termsAccepted")}
-                className="mt-1 h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer accent-primary"
+                id="phone"
+                type="tel"
+                autoComplete="tel-national"
+                placeholder="555-0123"
+                aria-invalid={errors.phone ? true : undefined}
+                {...register("phone")}
+                className={`${inputPlain} ${inputRing(!!errors.phone)}`}
               />
-              <label
-                htmlFor="terms"
-                className="text-xs sm:text-sm text-on-surface-variant cursor-pointer select-none"
-              >
-                {t("termsAgreement", "I agree to the")}{" "}
-                <Link
-                  href="/terms"
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {t("termsOfService", "Terms of Service")}
-                </Link>{" "}
-                {t("and", "and")}{" "}
-                <Link
-                  href="/privacy"
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {t("privacyPolicy", "Privacy Policy")}
-                </Link>
-                .
-              </label>
             </div>
-            {errors.termsAccepted && (
-              <p className="text-xs text-error font-medium -mt-2">
-                {errors.termsAccepted.message}
-              </p>
-            )}
+            {errors.phone && <p className={fieldError}>{errors.phone.message}</p>}
+          </div>
 
-            {/* CTA Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full brand-gradient text-white font-semibold py-3.5 px-6 rounded-xl shadow-md hover:opacity-95 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-sm"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{t("processing", "Processing...")}</span>
-                </>
-              ) : (
-                <>
-                  <span>{t("createAccount", "Create Account")}</span>
-                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <footer className="mt-8 text-center">
-            <p className="text-sm text-on-surface-variant">
-              {t("alreadyHaveAccount", "Already have an account?")}{" "}
-              <Link
-                href="/login"
-                className="text-primary font-bold hover:underline"
-              >
-                {t("logIn", "Log in")}
-              </Link>
-            </p>
-          </footer>
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="email">
+              {t("email", "Email Address")}
+            </label>
+            <div className="group relative">
+              <Mail className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder={t("enterEmail", "admin@yourgym.com")}
+                aria-invalid={errors.email ? true : undefined}
+                {...register("email")}
+                className={`${inputBase} ${inputRing(!!errors.email)}`}
+              />
+            </div>
+            {errors.email && <p className={fieldError}>{errors.email.message}</p>}
+          </div>
         </div>
-      </section>
-    </main>
+
+        {/* Security: Password */}
+        <div className="space-y-1.5">
+          <label className={fieldLabel} htmlFor="password">
+            {t("password", "Password")}
+          </label>
+          <div className="group relative">
+            <Lock className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="••••••••"
+              aria-invalid={errors.password ? true : undefined}
+              {...register("password", {
+                onChange: (e) => setPasswordValue(e.target.value),
+              })}
+              className={`${inputBase} pr-12 rtl:pl-12 ${inputRing(!!errors.password)}`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className={eyeButton}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
+            </button>
+          </div>
+
+          {/* Strength Meter */}
+          <div className="flex gap-1.5 pt-1" aria-hidden="true">
+            {[0, 1, 2, 3].map((index) => (
+              <div
+                key={index}
+                className="h-1.5 flex-1 rounded-full bg-black/10 transition-colors dark:bg-white/10"
+                style={{ backgroundColor: index < strength ? strengthColors[strength - 1] : undefined }}
+              />
+            ))}
+          </div>
+          <p className={`flex items-center gap-1.5 text-xs ${muted}`}>
+            {strength > 0 ? (
+              <>
+                <span className="size-2 rounded-full" style={{ backgroundColor: strengthColors[strength - 1] }} />
+                {t("passwordStrengthPrefix", "Password strength:")}{" "}
+                <span className="font-semibold text-[var(--toota-ink)]">{strengthLabels[strength - 1]}</span>
+              </>
+            ) : (
+              t("passwordFeedbackDefault", "Secure passwords use 8+ characters, with numbers & symbols.")
+            )}
+          </p>
+          {errors.password && <p className={fieldError}>{errors.password.message}</p>}
+        </div>
+
+        {/* Terms */}
+        <div className="flex items-start gap-3 pt-1">
+          <input
+            id="terms"
+            type="checkbox"
+            {...register("termsAccepted")}
+            className="mt-0.5 size-4 shrink-0 cursor-pointer rounded accent-[#65a30d]"
+          />
+          <label htmlFor="terms" className={`cursor-pointer text-xs leading-5 select-none sm:text-sm ${muted}`}>
+            {t("termsAgreement", "I agree to the")}{" "}
+            <Link href="/terms" className={`font-semibold text-[var(--toota-ink)] ${limeUnderline}`}>
+              {t("termsOfService", "Terms of Service")}
+            </Link>{" "}
+            {t("and", "and")}{" "}
+            <Link href="/privacy" className={`font-semibold text-[var(--toota-ink)] ${limeUnderline}`}>
+              {t("privacyPolicy", "Privacy Policy")}
+            </Link>
+            .
+          </label>
+        </div>
+        {errors.termsAccepted && <p className={`${fieldError} -mt-2`}>{errors.termsAccepted.message}</p>}
+
+        {/* CTA Submit Button: the platform's dark pill, with the lime arrow */}
+        <button type="submit" disabled={isSubmitting} className={submitButton}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="size-5 animate-spin" />
+              <span>{t("processing", "Processing...")}</span>
+            </>
+          ) : (
+            <>
+              <span>{t("createAccount", "Create Account")}</span>
+              <span className={submitArrow}>
+                <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+              </span>
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* Footer */}
+      <p className={`mt-6 text-center text-sm ${muted}`}>
+        {t("alreadyHaveAccount", "Already have an account?")}{" "}
+        <Link href="/login" className={`font-semibold text-[var(--toota-ink)] ${limeUnderline} transition-[text-decoration-thickness] hover:decoration-[3px]`}>
+          {t("logIn", "Log in")}
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
@@ -12,6 +12,7 @@ import {
   User,
   ShieldCheck,
   UserCheck,
+  IdCard,
   ArrowRight,
   Loader2,
   MailCheck,
@@ -19,18 +20,33 @@ import {
   Sparkles,
   RotateCcw,
 } from "lucide-react";
+
 import {
   forgotPasswordAdminSchema,
   forgotPasswordUsernameSchema,
-  ForgotPasswordAdminFormValues,
-  ForgotPasswordUsernameFormValues,
 } from "@/schemas/auth";
 import {
   forgotPasswordAdmin,
   forgotPasswordStaff,
   forgotPasswordMember,
 } from "@/lib/api/auth";
-import AuthLayoutShell from "@/components/auth/AuthLayoutShell";
+import AuthShell, { PortalBadge } from "@/components/auth/AuthShell";
+import {
+  ManagementIllustration,
+  FrontDeskIllustration,
+  MemberIllustration,
+} from "@/components/auth/illustrations";
+import {
+  fieldError,
+  fieldIcon,
+  fieldLabel,
+  inputBase,
+  inputRing,
+  limeUnderline,
+  muted,
+  submitArrow,
+  submitButton,
+} from "@/components/auth/authStyles";
 
 export type ForgotPasswordRole = "admin" | "staff" | "member";
 
@@ -38,17 +54,28 @@ interface ForgotPasswordFormProps {
   role: ForgotPasswordRole;
 }
 
+type ForgotPasswordFormFields = {
+  email: string;
+  userName: string;
+};
+
 export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendResponse, setBackendResponse] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Configuration per role
+  // Configuration per role, exactly matching each role's login styling and theme
   const config = (() => {
     switch (role) {
       case "admin":
         return {
+          panelTitle: t("loginPanelTitle", "Run your club with clarity."),
+          illustration: <ManagementIllustration />,
+          portals: [
+            { href: "/member/login", label: t("switchToMemberPortal", "Member Portal Sign In") },
+            { href: "/staff/login", label: t("switchToStaffPortal", "Staff Portal Sign In") },
+          ],
           portalBadge: t("adminPortal", "Administrator Portal"),
           PortalIcon: ShieldCheck,
           title: t("forgotAdminPasswordTitle", "Reset Administrator Password"),
@@ -56,13 +83,8 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             "forgotAdminPasswordSubtitle",
             "Enter the email address associated with your administrator account."
           ),
-          heroTitle: t("adminRecoveryHeroTitle", "Account Recovery & Security."),
-          heroSubtitle: t(
-            "adminRecoveryHeroSubtitle",
-            "Enter your administrator email to receive a secure password reset link and restore dashboard access."
-          ),
-          fieldLabel: t("adminEmailLabel", "Administrator Email"),
-          fieldPlaceholder: "admin@gymflow.com",
+          fieldLabel: t("emailAddress", "Email Address"),
+          fieldPlaceholder: "owner@yourclub.com",
           FieldIcon: Mail,
           loginPath: "/login",
           loginLabel: t("returnToAdminSignIn", "Return to Admin Sign In"),
@@ -70,6 +92,12 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         };
       case "staff":
         return {
+          panelTitle: t("staffPanelTitle", "Keep the front desk moving."),
+          illustration: <FrontDeskIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/member/login", label: t("switchToMemberPortal", "Member Portal Sign In") },
+          ],
           portalBadge: t("staffPortal", "Staff Portal"),
           PortalIcon: UserCheck,
           title: t("forgotStaffPasswordTitle", "Reset Staff Password"),
@@ -77,13 +105,8 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             "forgotStaffPasswordSubtitle",
             "Enter your staff username to receive a password reset link at your registered email."
           ),
-          heroTitle: t("staffRecoveryHeroTitle", "Staff Credential Assistance."),
-          heroSubtitle: t(
-            "staffRecoveryHeroSubtitle",
-            "Enter your staff username and we'll dispatch password reset instructions to your verified staff email."
-          ),
-          fieldLabel: t("staffUsernameLabel", "Staff Username"),
-          fieldPlaceholder: "e.g. mohamed-dahani",
+          fieldLabel: t("username", "Username"),
+          fieldPlaceholder: "e.g. reception.club",
           FieldIcon: User,
           loginPath: "/staff/login",
           loginLabel: t("returnToStaffSignIn", "Return to Staff Sign In"),
@@ -91,20 +114,21 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
         };
       case "member":
         return {
+          panelTitle: t("memberPanelTitle", "Your club, in your pocket."),
+          illustration: <MemberIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/staff/login", label: t("switchToStaffPortal", "Staff Portal Sign In") },
+          ],
           portalBadge: t("memberPortal", "Member Portal"),
-          PortalIcon: User,
+          PortalIcon: IdCard,
           title: t("forgotMemberPasswordTitle", "Reset Member Password"),
           subtitle: t(
             "forgotMemberPasswordSubtitle",
             "Enter your member username to receive a password reset link at your registered email."
           ),
-          heroTitle: t("memberRecoveryHeroTitle", "Recover Your Gym Member Pass."),
-          heroSubtitle: t(
-            "memberRecoveryHeroSubtitle",
-            "Enter your unique member username to receive a password reset link at your personal email address."
-          ),
-          fieldLabel: t("memberUsernameLabel", "Member Username"),
-          fieldPlaceholder: "e.g. mohamed-dahani-x14s",
+          fieldLabel: t("memberUsername", "Member Username"),
+          fieldPlaceholder: "e.g. younes.benali",
           FieldIcon: User,
           loginPath: "/member/login",
           loginLabel: t("returnToMemberSignIn", "Return to Member Sign In"),
@@ -126,28 +150,23 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm<ForgotPasswordAdminFormValues | ForgotPasswordUsernameFormValues>({
-    resolver,
-    defaultValues: config.isEmail ? { email: "" } : { userName: "" },
+  } = useForm<ForgotPasswordFormFields>({
+    resolver: resolver as unknown as Resolver<ForgotPasswordFormFields>,
+    defaultValues: { email: "", userName: "" },
   });
 
-  const onSubmit = async (
-    data: ForgotPasswordAdminFormValues | ForgotPasswordUsernameFormValues
-  ) => {
+  const onSubmit = async (data: ForgotPasswordFormFields) => {
     setIsSubmitting(true);
     setApiError(null);
 
     try {
       let res: { message: string };
       if (role === "admin") {
-        const payload = data as ForgotPasswordAdminFormValues;
-        res = await forgotPasswordAdmin(payload.email.trim());
+        res = await forgotPasswordAdmin((data.email || "").trim());
       } else if (role === "staff") {
-        const payload = data as ForgotPasswordUsernameFormValues;
-        res = await forgotPasswordStaff(payload.userName.trim());
+        res = await forgotPasswordStaff((data.userName || "").trim());
       } else {
-        const payload = data as ForgotPasswordUsernameFormValues;
-        res = await forgotPasswordMember(payload.userName.trim());
+        res = await forgotPasswordMember((data.userName || "").trim());
       }
 
       const message =
@@ -185,202 +204,148 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
   };
 
   return (
-    <AuthLayoutShell
-      heroTitle={config.heroTitle}
-      heroSubtitle={config.heroSubtitle}
+    <AuthShell
+      panelTitle={config.panelTitle}
+      illustration={config.illustration}
+      portals={config.portals}
     >
-      <div className="w-full space-y-6">
-        {/* Portal Identifier Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-          <PortalIcon className="w-3.5 h-3.5" />
-          <span>{config.portalBadge}</span>
-        </div>
+      {/* Form Header */}
+      <PortalBadge
+        icon={<PortalIcon className="size-3.5" aria-hidden="true" />}
+        label={config.portalBadge}
+      />
+      <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">
+        {config.title}
+      </h1>
+      <p className={`mt-2 text-sm leading-6 ${muted}`}>{config.subtitle}</p>
 
-        {/* Dynamic Card: Success vs Form */}
-        {backendResponse ? (
-          /* ========================================================= */
-          /* SUCCESS STATE: Display Backend Response & Email Directions*/
-          /* ========================================================= */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-emerald-500/30 shadow-xl space-y-6 text-center animate-in zoom-in-95 duration-200">
-            {/* Animated Pulsing Icon */}
-            <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20">
-              <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-              <div className="relative w-full h-full rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <MailCheck className="w-8 h-8 sm:w-10 sm:h-10" />
+      {/* Dynamic Content: Success State vs Form */}
+      {backendResponse ? (
+        <div className="mt-6 space-y-5">
+          <div className="rounded-2xl bg-[var(--toota-pill)] p-5 ring-1 ring-black/5 dark:ring-white/10 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05]">
+                <MailCheck className="size-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-[var(--toota-ink)]">
+                  {t("checkYourEmailTitle", "Check Your Inbox")}
+                </p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#65a30d] dark:text-[#a3e635]">
+                  <Sparkles className="size-3" aria-hidden="true" />
+                  {t("requestDispatched", "Reset Email Dispatched")}
+                </span>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t("requestDispatched", "Reset Email Dispatched")}</span>
-              </div>
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface">
-                {t("checkYourEmailTitle", "Check Your Inbox")}
-              </h2>
-            </div>
-
-            {/* Exact Backend Response Message */}
-            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-medium text-sm leading-relaxed">
-              <p>{backendResponse}</p>
-            </div>
-
-            <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+            <p className="rounded-xl bg-black/5 dark:bg-white/5 p-3 text-xs font-medium text-[var(--toota-ink)] leading-relaxed">
+              {backendResponse}
+            </p>
+            <p className={`text-xs leading-5 ${muted}`}>
               {t(
                 "checkEmailInstructions",
                 "We have dispatched an email containing a secure link to reset your password. Please check your inbox (and spam folder) and click the link to proceed."
               )}
             </p>
-
-            <div className="space-y-2.5 pt-2">
-              <Link
-                href={config.loginPath}
-                className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer block"
-              >
-                <span>{config.loginLabel}</span>
-                <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="w-full py-2.5 px-4 rounded-xl border border-outline-variant text-xs font-bold text-on-surface hover:bg-surface-container transition-colors cursor-pointer flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>
-                  {config.isEmail
-                    ? t("tryAnotherEmail", "Try Another Email")
-                    : t("tryAnotherUsername", "Try Another Username")}
-                </span>
-              </button>
-            </div>
           </div>
-        ) : (
-          /* ========================================================= */
-          /* FORM STATE: Single input (email or username)              */
-          /* ========================================================= */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-outline-variant/60 shadow-xl space-y-6">
-            <div>
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface mb-1">
-                {config.title}
-              </h2>
-              <p className="text-xs sm:text-sm text-on-surface-variant">
-                {config.subtitle}
-              </p>
-            </div>
 
-            {/* Error Message if API fails */}
-            {apiError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="font-medium">{apiError}</p>
+          <Link href={config.loginPath} className={submitButton}>
+            <span>{config.loginLabel}</span>
+            <span className={submitArrow}>
+              <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+            </span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-black/10 dark:border-white/10 text-xs font-semibold text-[var(--toota-ink)] transition-colors hover:bg-[var(--toota-pill)]"
+          >
+            <RotateCcw className="size-3.5" aria-hidden="true" />
+            <span>
+              {config.isEmail
+                ? t("tryAnotherEmail", "Try Another Email")
+                : t("tryAnotherUsername", "Try Another Username")}
+            </span>
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-5" noValidate>
+          {apiError && (
+            <div className="rounded-2xl bg-red-500/10 p-4 text-xs font-medium text-red-600 dark:text-red-400 ring-1 ring-red-500/20 flex items-start gap-2.5">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="leading-snug">{apiError}</p>
+            </div>
+          )}
+
+          {config.isEmail ? (
+            <div className="space-y-1.5">
+              <label className={fieldLabel} htmlFor="email">
+                {config.fieldLabel}
+              </label>
+              <div className="group relative">
+                <FieldIcon className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={config.fieldPlaceholder}
+                  aria-invalid={errors.email ? true : undefined}
+                  {...register("email")}
+                  className={`${inputBase} ${inputRing(!!errors.email)}`}
+                />
               </div>
-            )}
-
-            <form
-              onSubmit={handleSubmit(onSubmit as (data: unknown) => Promise<void>)}
-              className="space-y-4"
-              noValidate
-            >
-              {config.isEmail ? (
-                /* Admin: Email Input */
-                <div className="space-y-1.5">
-                  <label
-                    className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="email"
-                  >
-                    {config.fieldLabel}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                      <FieldIcon className="w-5 h-5" />
-                    </span>
-                    <input
-                      id="email"
-                      type="email"
-                      placeholder={config.fieldPlaceholder}
-                      autoComplete="email"
-                      {...register("email" as const)}
-                      className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-3 bg-surface-container-lowest border ${
-                        (errors as Record<string, { message?: string }>).email
-                          ? "border-error focus:ring-error"
-                          : "border-outline-variant"
-                      } rounded-xl form-input-focus transition-all outline-none text-sm text-on-surface placeholder:text-outline`}
-                    />
-                  </div>
-                  {(errors as Record<string, { message?: string }>).email && (
-                    <p className="text-xs text-error font-medium mt-1">
-                      {(errors as Record<string, { message?: string }>).email?.message}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                /* Staff & Member: Username Input */
-                <div className="space-y-1.5">
-                  <label
-                    className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="userName"
-                  >
-                    {config.fieldLabel}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                      <FieldIcon className="w-5 h-5" />
-                    </span>
-                    <input
-                      id="userName"
-                      type="text"
-                      placeholder={config.fieldPlaceholder}
-                      autoComplete="username"
-                      {...register("userName" as const)}
-                      className={`w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-3 bg-surface-container-lowest border ${
-                        (errors as Record<string, { message?: string }>).userName
-                          ? "border-error focus:ring-error"
-                          : "border-outline-variant"
-                      } rounded-xl form-input-focus transition-all outline-none text-sm text-on-surface placeholder:text-outline`}
-                    />
-                  </div>
-                  {(errors as Record<string, { message?: string }>).userName && (
-                    <p className="text-xs text-error font-medium mt-1">
-                      {(errors as Record<string, { message?: string }>).userName?.message}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed pt-3"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{t("sendingResetLink", "Sending Reset Link...")}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{t("sendResetLinkBtn", "Send Reset Link")}</span>
-                    <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Back to sign in */}
-            <div className="pt-2 text-center">
-              <Link
-                href={config.loginPath}
-                className="text-xs text-primary font-semibold hover:underline transition-all"
-              >
-                {config.loginLabel}
-              </Link>
+              {errors.email && <p className={fieldError}>{errors.email.message}</p>}
             </div>
-          </div>
-        )}
-      </div>
-    </AuthLayoutShell>
+          ) : (
+            <div className="space-y-1.5">
+              <label className={fieldLabel} htmlFor="userName">
+                {config.fieldLabel}
+              </label>
+              <div className="group relative">
+                <FieldIcon className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+                <input
+                  id="userName"
+                  type="text"
+                  autoComplete="username"
+                  placeholder={config.fieldPlaceholder}
+                  aria-invalid={errors.userName ? true : undefined}
+                  {...register("userName")}
+                  className={`${inputBase} ${inputRing(!!errors.userName)}`}
+                />
+              </div>
+              {errors.userName && <p className={fieldError}>{errors.userName.message}</p>}
+            </div>
+          )}
+
+          {/* Submit Action */}
+          <button type="submit" disabled={isSubmitting} className={submitButton}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                <span>{t("sendingResetLink", "Sending Reset Link...")}</span>
+              </>
+            ) : (
+              <>
+                <span>{t("sendResetLinkBtn", "Send Reset Link")}</span>
+                <span className={submitArrow}>
+                  <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+                </span>
+              </>
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* Footnote / Secondary Link */}
+      <p className={`mt-6 text-center text-sm ${muted}`}>
+        {t("rememberPassword", "Remember your password?")}{" "}
+        <Link
+          href={config.loginPath}
+          className={`font-semibold text-[var(--toota-ink)] ${limeUnderline} transition-[text-decoration-thickness] hover:decoration-[3px]`}
+        >
+          {config.loginLabel}
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
-

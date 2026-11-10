@@ -11,6 +11,7 @@ export interface VisitMember {
   photo?: string | null;
   profileImage?: string | null;
   gender?: string;
+  memberships?: unknown[];
 }
 
 export interface VisitMembership {

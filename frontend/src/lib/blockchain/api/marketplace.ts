@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "react-toastify";
 import api from "@/lib/axios";
 import type { SignedForwardRequest } from "@/types/marketplace";
 
@@ -41,13 +42,11 @@ export const update_addressAdmin_forMember = async (address: string) => {
   try {
     await api.patch("/api/users/admins/edit-profile", { walletAddress: address });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
-    } else {
-      console.error("Unexpected error:", error);
-    }
+    const errorMsg =
+      axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
+        : "Failed to update admin wallet address";
+    toast.error(errorMsg);
   }
 };
 
@@ -55,13 +54,11 @@ export const update_walletAddress_member = async (address: string) => {
   try {
     await api.patch("/api/users/members/edit-profile", { walletAddress: address });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Status:", error.response?.status);
-      console.error("Server error:", error.response?.data);
-      console.error("Message:", error.message);
-    } else {
-      console.error("Unexpected error:", error);
-    }
+    const errorMsg =
+      axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
+        : "Failed to update member wallet address";
+    toast.error(errorMsg);
   }
 };
 

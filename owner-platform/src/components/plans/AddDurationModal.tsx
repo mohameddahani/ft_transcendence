@@ -49,7 +49,6 @@ export default function AddDurationModal({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to add duration:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to add duration. Please verify input values.";

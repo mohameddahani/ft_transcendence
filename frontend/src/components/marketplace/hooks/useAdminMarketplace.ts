@@ -128,8 +128,8 @@ export function useAdminMarketplace() {
         })) as string;
 
         setChainId(Number.parseInt(currentChain, 16));
-      } catch (err) {
-        console.warn("Failed to initialize Web3 provider:", err);
+      } catch {
+        // Web3 provider not connected or locked
       }
     };
 
@@ -230,8 +230,7 @@ export function useAdminMarketplace() {
     setBusy(true);
 
     try {
-      const hash = await fn();
-      console.log("Relayed transaction:", hash);
+      await fn();
       toast.success(successText);
       await refresh();
     } catch (error) {

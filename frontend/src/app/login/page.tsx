@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import LoginForm from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Login | GymFlow",
-  description: "Sign in to access your enterprise dashboard and manage your fitness brand.",
+  title: "Admin sign in | Sportium",
+  description: "Sign in to Sportium to run your club: members, plans, payments, check-ins and the AI assistant.",
 };
 
 export default function LoginPage() {

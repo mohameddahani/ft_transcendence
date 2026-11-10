@@ -113,6 +113,16 @@
   --color-toota-red: var(--toota-red);
   --color-toota-lime: var(--toota-lime);
 
+  --color-primary-hover: var(--primary-hover);
+  --color-selected: var(--selected);
+  --color-selected-foreground: var(--selected-foreground);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -742,4 +752,102 @@
 .dark .toota-mark,
 [data-theme="dark"] .toota-mark {
   background: #ffffff;
+}
+
+/* the landing page keeps its own colours (the platform's grey, white, near-black and lime) without changing other pages */
+.landing {
+  --background: #e8e8e8;
+  --foreground: #16191c;
+  --card: #f6f6f6;
+  --card-foreground: #16191c;
+  --popover: #ffffff;
+  --popover-foreground: #16191c;
+  --primary: #1b1f23;
+  --primary-hover: #2b3036;
+  --primary-foreground: #ffffff;
+  --selected: #a3e635;
+  --selected-foreground: #1a2e05;
+  --secondary: #ffffff;
+  --secondary-foreground: #16191c;
+  --muted: #ececec;
+  --muted-foreground: #565c63;
+  --accent: #ececec;
+  --accent-foreground: #16191c;
+  --destructive: #dc2626;
+  --border: rgba(22, 25, 28, 0.09);
+  --input: rgba(22, 25, 28, 0.14);
+  --ring: #a3e635;
+  --success: #166534;
+  --success-surface: #dcfce7;
+  --warning: #92400e;
+  --warning-surface: #fef3c7;
+  --info: #075985;
+  --info-surface: #e0f2fe;
+  --radius: 0.875rem;
+}
+.dark .landing,
+[data-theme="dark"] .landing {
+  --background: #15181c;
+  --foreground: #f3f4f6;
+  --card: #1a1e24;
+  --card-foreground: #f3f4f6;
+  --popover: #1f232a;
+  --popover-foreground: #f3f4f6;
+  --primary: #ffffff;
+  --primary-hover: #e5e7eb;
+  --primary-foreground: #0f1115;
+  --secondary: #1f232a;
+  --secondary-foreground: #f3f4f6;
+  --muted: #1e2229;
+  --muted-foreground: #a3a9b1;
+  --accent: #262b33;
+  --accent-foreground: #f3f4f6;
+  --destructive: #f87171;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
+  --success: #86efac;
+  --success-surface: #052e16;
+  --warning: #fcd34d;
+  --warning-surface: #451a03;
+  --info: #7dd3fc;
+  --info-surface: #082f49;
+}
+.landing :is(h1, h2, h3) {
+  font-family: var(--font-heading);
+}
+/* the lime highlighter under a word */
+.lime-marker {
+  background-image: linear-gradient(transparent 80%, var(--selected) 80%, var(--selected) 87%, transparent 87%);
+}
+/* a lime line that slides in under a link on hover */
+.lime-link {
+  position: relative;
+}
+.lime-link::after {
+  content: "";
+  position: absolute;
+  right: 0.875rem;
+  bottom: 0.3rem;
+  left: 0.875rem;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--selected);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lime-link:hover::after,
+.lime-link:focus-visible::after {
+  transform: scaleX(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lime-link::after {
+    transition: none;
+  }
+}
+/* anchor links (#features, #pricing...) glide only when the visitor allows motion */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }

@@ -43,6 +43,14 @@ export const addMemberSchema = z.object({
     .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
       message: "Please enter a valid international emergency phone number (e.g. +212607080905)",
     }),
+  walletAddress: z
+    .string()
+    .trim()
+    .refine(
+      (val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val),
+      "Please enter a valid Ethereum wallet address (e.g. 0x...)"
+    )
+    .optional(),
   membershipPlanId: z.string().uuid("Please select a membership plan"),
   membershipPlanDurationId: z.string().uuid("Please select a duration"),
 });
@@ -91,6 +99,14 @@ export const updateMemberSchema = z.object({
     .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
       message: "Please enter a valid international emergency phone number",
     })
+    .optional(),
+  walletAddress: z
+    .string()
+    .trim()
+    .refine(
+      (val) => !val || /^0x[a-fA-F0-9]{40}$/.test(val),
+      "Please enter a valid Ethereum wallet address (e.g. 0x...)"
+    )
     .optional(),
   membershipPlanId: z.string().uuid().optional(),
   membershipPlanDurationId: z.string().uuid().optional(),

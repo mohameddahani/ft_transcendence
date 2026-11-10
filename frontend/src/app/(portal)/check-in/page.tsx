@@ -83,27 +83,92 @@ export default function CheckInPage() {
 
   // Helper to enrich visit with matched plan name
   const enrichVisitWithPlan = useCallback(
-    (v: TodayVisit, loadedPlans: MembershipPlan[]) => {
-      const planName =
+    (v: TodayVisit, loadedPlans: MembershipPlan[]): TodayVisit => {
+      const existingPlanName =
         v.membership?.membershipPlan?.planName ||
         v.membership?.membershipPlan?.name ||
-        v.membership?.plan?.planName;
+        v.membership?.plan?.planName ||
+        (v.membership as { planName?: string } | undefined)?.planName;
 
-      if (!planName && v.membership?.membershipPlanId) {
-        const matched = loadedPlans.find((p) => p.id === v.membership?.membershipPlanId);
-        if (matched) {
-          return {
-            ...v,
-            membership: {
-              ...v.membership,
-              membershipPlan: {
-                id: matched.id,
-                planName: matched.planName,
-                weeklyVisitLimit: matched.weeklyVisitLimit,
-              },
+      if (existingPlanName) {
+        return {
+          ...v,
+          membership: {
+            ...v.membership,
+            id: v.membership?.id || v.membershipId || "",
+            membershipPlan: {
+              ...v.membership?.membershipPlan,
+              planName: existingPlanName,
             },
-          };
+          },
+        };
+      }
+
+      const targetPlanId =
+        v.membership?.membershipPlanId ||
+        v.membership?.membershipPlan?.id ||
+        (v.membership as { planId?: string } | undefined)?.planId ||
+        v.membershipId ||
+        v.membership?.id;
+
+      let matched = targetPlanId ? loadedPlans.find((p) => p.id === targetPlanId) : undefined;
+
+      // Check member's memberships if present
+      const memberObj = v.member as unknown as {
+        memberships?: Array<{
+          id?: string;
+          membershipStatus?: string;
+          membershipPlanId?: string;
+          membershipPlan?: { id?: string; planName?: string; name?: string; weeklyVisitLimit?: number };
+          plan?: { planName?: string };
+          planName?: string;
+        }>;
+      };
+      if (!matched && memberObj?.memberships && Array.isArray(memberObj.memberships)) {
+        const activeMem =
+          memberObj.memberships.find((m) => m.membershipStatus === "ACTIVE") ||
+          memberObj.memberships[0];
+        if (activeMem) {
+          const mPlanName =
+            activeMem.membershipPlan?.planName ||
+            activeMem.membershipPlan?.name ||
+            activeMem.plan?.planName ||
+            activeMem.planName;
+          if (mPlanName) {
+            return {
+              ...v,
+              membership: {
+                ...v.membership,
+                id: v.membership?.id || activeMem.id || v.membershipId || "",
+                membershipStatus: v.membership?.membershipStatus || activeMem.membershipStatus,
+                membershipPlan: {
+                  id: activeMem.membershipPlanId || activeMem.membershipPlan?.id || "",
+                  planName: mPlanName,
+                  weeklyVisitLimit: activeMem.membershipPlan?.weeklyVisitLimit,
+                },
+              },
+            };
+          }
+          if (activeMem.membershipPlanId) {
+            matched = loadedPlans.find((p) => p.id === activeMem.membershipPlanId);
+          }
         }
+      }
+
+      if (matched) {
+        return {
+          ...v,
+          membership: {
+            ...v.membership,
+            id: v.membership?.id || v.membershipId || "",
+            membershipPlanId: matched.id,
+            membershipPlan: {
+              id: matched.id,
+              planName: matched.planName,
+              weeklyVisitLimit: matched.weeklyVisitLimit,
+            },
+          },
+        };
       }
       return v;
     },
@@ -218,7 +283,10 @@ export default function CheckInPage() {
       // Find the visit for celebration
       const found = allVisits.find((v) => v.member.id === memberId);
       if (found) {
-        const updated = { ...found, visitStatus: "CHECKED_IN" as const };
+        const updated = enrichVisitWithPlan(
+          { ...found, visitStatus: "CHECKED_IN" as const },
+          plans
+        );
         setCelebrationVisit(updated);
         setCelebrationMethod("MANUAL");
       }
@@ -256,7 +324,7 @@ export default function CheckInPage() {
       // Find recently updated visit for celebration
       const newlyCheckedIn = enrichedFresh.find((v) => v.visitStatus === "CHECKED_IN");
       if (newlyCheckedIn) {
-        setCelebrationVisit(newlyCheckedIn);
+        setCelebrationVisit(enrichVisitWithPlan(newlyCheckedIn, plans));
         setCelebrationMethod("QR");
       }
     } catch (err: unknown) {
@@ -696,11 +764,23 @@ export default function CheckInPage() {
                       {/* Membership Plan */}
                       <TableCell className="px-6 py-3.5">
                         <div className="font-medium text-toota-ink">
-                          {visit.membership?.membershipPlan?.planName ||
-                            visit.membership?.membershipPlan?.name ||
-                            visit.membership?.plan?.planName ||
-                            t("standardPlan") ||
-                            "Standard Plan"}
+                          {(() => {
+                            const matchedPlan = plans.find(
+                              (p) =>
+                                p.id === visit.membership?.membershipPlanId ||
+                                p.id === visit.membership?.membershipPlan?.id ||
+                                p.id === visit.membershipId
+                            );
+                            return (
+                              visit.membership?.membershipPlan?.planName ||
+                              visit.membership?.membershipPlan?.name ||
+                              visit.membership?.plan?.planName ||
+                              matchedPlan?.planName ||
+                              (visit.membership || visit.membershipId
+                                ? t("activePlanText") || "Active Plan"
+                                : t("noActivePlan") || "No Active Plan")
+                            );
+                          })()}
                         </div>
                         <div className="text-[11px] text-toota-muted">
                           {visit.membership?.membershipStatus || visit.membership?.status || t("activePlanText") || "Active"}
@@ -801,6 +881,7 @@ export default function CheckInPage() {
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         visit={selectedVisit}
+        plans={plans}
         onConfirmCheckIn={handleManualCheckIn}
         isCheckingIn={
           selectedVisit ? isCheckingInMap[selectedVisit.member.id] || false : false
@@ -812,6 +893,7 @@ export default function CheckInPage() {
         isOpen={Boolean(celebrationVisit)}
         onClose={() => setCelebrationVisit(null)}
         visit={celebrationVisit}
+        plans={plans}
         method={celebrationMethod}
       />
     </div>

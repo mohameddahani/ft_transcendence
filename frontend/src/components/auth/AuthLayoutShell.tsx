@@ -2,10 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { Dumbbell } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
+import { SportiumIcon } from "@/components/brand/SportiumLogo";
 
 interface AuthLayoutShellProps {
   children: React.ReactNode;
@@ -46,11 +46,11 @@ export default function AuthLayoutShell({
         {/* Brand Identity on Imagery */}
         <div className="relative z-20 flex flex-col justify-between h-full p-12 lg:p-16 w-full text-white">
           <Link href="/" className="flex items-center gap-3 w-fit group">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform">
-              <Dumbbell className="w-6 h-6" />
+            <div className="size-10 rounded-xl bg-black flex items-center justify-center p-2 text-white shadow-lg group-hover:scale-105 transition-transform">
+              <SportiumIcon className="w-full h-full text-white" />
             </div>
             <span className="font-headline text-2xl font-bold tracking-tight text-white" suppressHydrationWarning>
-              {t("brandName", "GymFlow")}
+              Sportium
             </span>
           </Link>
 
@@ -82,11 +82,11 @@ export default function AuthLayoutShell({
         {/* Mobile Header Branding */}
         <div className="lg:hidden flex items-center gap-3 w-full max-w-[460px] mb-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white shadow-sm">
-              <Dumbbell className="w-5 h-5" />
+            <div className="size-9 rounded-xl bg-black flex items-center justify-center p-1.5 text-white shadow-sm">
+              <SportiumIcon className="w-full h-full text-white" />
             </div>
-            <span className="font-headline text-2xl font-bold text-primary">
-              {t("brandName", "GymFlow")}
+            <span className="font-headline text-2xl font-bold text-on-surface">
+              Sportium
             </span>
           </Link>
         </div>

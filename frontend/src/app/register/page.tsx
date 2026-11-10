@@ -2,8 +2,8 @@ import { Metadata } from "next";
 import RegisterForm from "@/components/auth/RegisterForm";
 
 export const metadata: Metadata = {
-  title: "GymFlow Admin Sign Up",
-  description: "Configure your dashboard and scale your fitness brand.",
+  title: "Register your club | Sportium",
+  description: "Create your Sportium owner account and bring your club into one place: members, plans, payments and check-ins."
 };
 
 export default function RegisterPage() {

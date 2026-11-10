@@ -461,6 +461,15 @@ export default function MemberDetailPage() {
                   <span>{member.address || "—"}</span>
                 </p>
               </div>
+
+              <div className="md:col-span-2 p-3.5 rounded-xl toota-inner border border-border/40 space-y-1">
+                <p className="text-[11px] font-mono uppercase tracking-wider text-toota-muted">
+                  {t("walletAddress", "Wallet Address")}
+                </p>
+                <p className="text-sm font-semibold font-mono text-toota-ink break-all">
+                  {member.walletAddress || "—"}
+                </p>
+              </div>
             </div>
           </Card>
 

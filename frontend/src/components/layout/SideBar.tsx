@@ -27,6 +27,7 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
 import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
+import { SportiumIcon } from "@/components/brand/SportiumLogo";
 
 interface SideBarProps {
   isMobileOpen: boolean;
@@ -136,14 +137,12 @@ export default function SideBar({
         <Link
           href="/dashboard"
           onClick={onCloseMobile}
-          className="flex items-center gap-2 hover:opacity-90 transition-opacity min-w-0"
+          className="flex items-center gap-2.5 hover:opacity-90 transition-opacity min-w-0"
         >
-          {/* Toota Lime Star Icon */}
-          <span className="text-[#a3e635] text-3xl font-black leading-none shrink-0">
-            ✻
-          </span>
+          {/* Sportium Brand Icon */}
+          <SportiumIcon className="size-8 text-white shrink-0" />
           <span className="font-sans font-bold text-xl tracking-wider uppercase text-white truncate">
-            {companyName || "TOOTA"}
+            {companyName || "SPORTIUM"}
           </span>
         </Link>
 

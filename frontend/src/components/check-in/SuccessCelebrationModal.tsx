@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { TodayVisit } from "@/types/visit";
+import { MembershipPlan } from "@/types/membership-plan";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +12,7 @@ interface SuccessCelebrationModalProps {
   onClose: () => void;
   visit: TodayVisit | null;
   method?: "QR" | "MANUAL";
+  plans?: MembershipPlan[];
 }
 
 export default function SuccessCelebrationModal({
@@ -18,6 +20,7 @@ export default function SuccessCelebrationModal({
   onClose,
   visit,
   method = "QR",
+  plans,
 }: SuccessCelebrationModalProps) {
   const { t } = useTranslation();
 
@@ -36,6 +39,45 @@ export default function SuccessCelebrationModal({
   const member = visit.member;
   const fullName =
     `${member.firstName || ""} ${member.lastName || ""}`.trim() || "Member";
+
+  const matchedPlan = plans?.find(
+    (p) =>
+      p.id === visit.membership?.membershipPlanId ||
+      p.id === visit.membership?.membershipPlan?.id ||
+      p.id === (visit.membership as { planId?: string } | undefined)?.planId ||
+      p.id === visit.membershipId ||
+      p.id === visit.membership?.id
+  );
+
+  const memberAny = member as {
+    memberships?: Array<{
+      membershipStatus?: string;
+      membershipPlanId?: string;
+      membershipPlan?: { planName?: string; name?: string };
+      plan?: { planName?: string };
+      planName?: string;
+    }>;
+  };
+  const memberActiveMembership =
+    memberAny?.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
+    memberAny?.memberships?.[0];
+  const matchedMemberPlan = plans?.find(
+    (p) => p.id === memberActiveMembership?.membershipPlanId
+  );
+
+  const resolvedPlanName =
+    visit.membership?.membershipPlan?.planName ||
+    visit.membership?.membershipPlan?.name ||
+    visit.membership?.plan?.planName ||
+    (visit.membership as { planName?: string } | undefined)?.planName ||
+    matchedPlan?.planName ||
+    memberActiveMembership?.membershipPlan?.planName ||
+    memberActiveMembership?.membershipPlan?.name ||
+    memberActiveMembership?.plan?.planName ||
+    matchedMemberPlan?.planName ||
+    (visit.membership || visit.membershipId || memberActiveMembership
+      ? t("activePlanText", "Active Plan")
+      : t("noActivePlan", "No Active Plan"));
 
   return (
     <div
@@ -87,11 +129,7 @@ export default function SuccessCelebrationModal({
             {fullName}
           </p>
           <p className="text-xs text-toota-muted">
-            {(visit.membership?.membershipPlan?.planName ||
-              visit.membership?.membershipPlan?.name ||
-              visit.membership?.plan?.planName ||
-              (visit.membership ? t("standardPlan", "Standard Tier") : t("noActivePlan", "No Active Plan")))} •{" "}
-            {t("facilityAccessGranted", "Facility access granted")}
+            {resolvedPlanName} • {t("facilityAccessGranted", "Facility access granted")}
           </p>
         </div>
 

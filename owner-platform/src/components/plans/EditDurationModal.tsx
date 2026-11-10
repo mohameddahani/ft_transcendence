@@ -67,7 +67,6 @@ export default function EditDurationModal({
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      console.error("Failed to update duration:", err);
       const errorMsg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Failed to update duration. Please verify input values.";
