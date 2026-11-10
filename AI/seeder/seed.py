@@ -483,7 +483,7 @@ def _feedback_status(row, rng: random.Random) -> str:
 
 _FEEDBACK_INSERT = """
 INSERT INTO feedbacks (
-    id, member_id, admin_id, content, rating, sentiment, sentiment_score,
+    id, member_id, admin_id, content, rating, sentiment_type, sentiment_score,
     feedback_status, created_at, updated_at
 )
 VALUES ($1, $2, $3, $4, $5, $6::"SentimentType", $7, $8::"FeedbackStatus", $9, $9)

@@ -32,5 +32,9 @@ GRANT SELECT ON feedbacks TO :"ai_user";
 
 GRANT SELECT (id, admin_id, role, account_status) ON staffs TO :"ai_user";
 
+GRANT SELECT (admin_id, day_of_week, start_time, end_time, is_closed) ON working_hours TO :"ai_user";
+
+GRANT SELECT (admin_id, start_date, end_date, start_time, end_time) ON special_hours TO :"ai_user";
+
 ALTER DEFAULT PRIVILEGES FOR ROLE :"USER" IN SCHEMA public
     REVOKE ALL ON TABLES FROM :"ai_user";
