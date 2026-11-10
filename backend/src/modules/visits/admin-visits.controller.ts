@@ -50,7 +50,6 @@ export class AdminVisitsController {
 
   // * Get All Stats of Visits (Admin)
   @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   visitStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.visitsService.visitStats(accessTokenPayload);
   }

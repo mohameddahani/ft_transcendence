@@ -38,6 +38,14 @@ export class AdminPaymentsController {
     );
   }
 
+  // * Get All Stats of Payments (Admin)
+  @Get('stats')
+  paymentStatsOfAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.paymentsService.paymentStatsOfAdmin(accessTokenPayload);
+  }
+
   // * Get one payment (Admin)
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })

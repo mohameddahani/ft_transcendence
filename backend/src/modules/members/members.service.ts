@@ -29,6 +29,7 @@ import {
 } from '@/core/constants/default-avatars.constants';
 import { AccessesService } from '@/core/access/access.service';
 import { privateMemberSelect } from '@/core/types/safe-selects.type';
+import axios from 'axios';
 
 @Injectable()
 export class MembersService {
@@ -181,6 +182,19 @@ export class MembersService {
         },
       });
 
+      // ! BLOCK_CHAINE
+      await axios.post(
+        this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+        { membershipId: membership.id, clientWallet: member.walletAddress },
+        {
+          headers: {
+            'X-Reward-Secret': this.config.getOrThrow<string>(
+              'REWARD_INTERNAL_SECRET',
+            ),
+          },
+        },
+      );
+
       return member;
     });
 
@@ -199,7 +213,7 @@ export class MembersService {
       data: {
         member: { connect: { id: result.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -409,6 +423,22 @@ export class MembersService {
           },
         });
 
+        // ! BLOCK_CHAINE
+        await axios.post(
+          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+          {
+            membershipId: newMembership.id,
+            clientWallet: member.walletAddress,
+          },
+          {
+            headers: {
+              'X-Reward-Secret': this.config.getOrThrow<string>(
+                'REWARD_INTERNAL_SECRET',
+              ),
+            },
+          },
+        );
+
         return member;
       });
     } else if (
@@ -525,7 +555,7 @@ export class MembersService {
     const existingToken = await this.prisma.memberActionToken.findFirst({
       where: {
         memberId: member.id,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -552,7 +582,7 @@ export class MembersService {
       data: {
         member: { connect: { id: member.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -634,6 +664,78 @@ export class MembersService {
     }
 
     return member;
+  }
+
+  // * Get All Stats of Memebers (Admin / Staff)
+  async memberStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
+    const [statusStats, expiredCount, total] = await Promise.all([
+      // * Count members grouped by account status
+      this.prisma.member.groupBy({
+        by: ['accountStatus'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count members that have at least one expired membership
+      // * and do not have any active membership
+      this.prisma.member.count({
+        where: {
+          adminId,
+          memberships: {
+            some: {
+              membershipStatus: MembershipStatus.EXPIRED,
+            },
+            none: {
+              membershipStatus: MembershipStatus.ACTIVE,
+            },
+          },
+        },
+      }),
+
+      this.prisma.member.count({
+        where: {
+          adminId,
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = stat._count._all;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      pendingCount,
+      bannedCount,
+      expiredCount,
+      total,
+    };
   }
 
   // ! Private Attributes

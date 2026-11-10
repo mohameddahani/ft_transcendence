@@ -21,7 +21,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 @UseGuards(MemberAccessTokenAuthGuard, AuthRolesGuard)
 @Roles([Role.MEMBER])
 export class MemberPaymentsController {
-  constructor(private readonly PaymentsService: PaymentsService) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
   // * Get all Payments (Member)
   @Get()
@@ -31,11 +31,19 @@ export class MemberPaymentsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
-    return this.PaymentsService.findAllPaymentsMember(
+    return this.paymentsService.findAllPaymentsMember(
       accessTokenPayload.id,
       page,
       limit,
     );
+  }
+
+  // * Get All Stats of payments (Member)
+  @Get('stats')
+  paymentStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.paymentsService.paymentStatsOfMember(accessTokenPayload.id);
   }
 
   // * Get one payment (Member)
@@ -45,6 +53,6 @@ export class MemberPaymentsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.PaymentsService.findOnePaymentMember(accessTokenPayload.id, id);
+    return this.paymentsService.findOnePaymentMember(accessTokenPayload.id, id);
   }
 }

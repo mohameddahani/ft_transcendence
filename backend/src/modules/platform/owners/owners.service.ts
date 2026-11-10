@@ -121,4 +121,95 @@ export class OwnersService {
       select: privateUserSelect,
     });
   }
+
+  // * Get All Stats of Users (Owner)
+  async userStats() {
+    const [statusStats, verificationStats, roleStats] = await Promise.all([
+      // * Count users grouped by account status
+      this.prisma.user.groupBy({
+        by: ['accountStatus'],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count users grouped by verification status
+      this.prisma.user.groupBy({
+        by: ['isAccountVerified'],
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count users grouped by role
+      this.prisma.user.groupBy({
+        by: ['role'],
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+
+    let verifiedCount = 0;
+    let unverifiedCount = 0;
+
+    let adminCount = 0;
+    let ownerCount = 0;
+
+    let total = 0;
+
+    // * Account status stats
+    for (const stat of statusStats) {
+      const count = stat._count._all;
+
+      total += count;
+
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = count;
+      }
+    }
+
+    // * Account verification stats
+    for (const stat of verificationStats) {
+      if (stat.isAccountVerified) {
+        verifiedCount = stat._count._all;
+      } else {
+        unverifiedCount = stat._count._all;
+      }
+    }
+
+    // * Role stats
+    for (const stat of roleStats) {
+      if (stat.role === Role.ADMIN) {
+        adminCount = stat._count._all;
+      }
+
+      if (stat.role === Role.OWNER) {
+        ownerCount = stat._count._all;
+      }
+    }
+
+    return {
+      total,
+      activeCount,
+      pendingCount,
+      bannedCount,
+      verifiedCount,
+      unverifiedCount,
+      adminCount,
+      ownerCount,
+    };
+  }
 }

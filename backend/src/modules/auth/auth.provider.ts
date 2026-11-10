@@ -148,7 +148,7 @@ export class AuthProvider {
       data: {
         user: { connect: { id: newUser.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.EMAIL_VERIFICATION,
+        actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
         expiresAt: expiresAt,
       },
     });
@@ -217,7 +217,7 @@ export class AuthProvider {
       const existingToken = await this.prisma.userActionToken.findFirst({
         where: {
           userId: user.id,
-          type: ActionTokenType.EMAIL_VERIFICATION,
+          actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
@@ -247,7 +247,7 @@ export class AuthProvider {
         data: {
           user: { connect: { id: user.id } },
           tokenHash: tokenHash,
-          type: ActionTokenType.EMAIL_VERIFICATION,
+          actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
           expiresAt: expiresAt,
         },
       });
@@ -507,7 +507,7 @@ export class AuthProvider {
       const existingToken = await this.prisma.staffActionToken.findFirst({
         where: {
           StaffId: staff.id,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
@@ -534,7 +534,7 @@ export class AuthProvider {
         data: {
           staff: { connect: { id: staff.id } },
           tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           expiresAt: expiresAt,
         },
       });
@@ -696,7 +696,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.staffActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+      },
       include: { staff: { select: privateStaffSelect } },
     });
     if (!token) {
@@ -753,7 +756,7 @@ export class AuthProvider {
           id: token.id,
           usedAt: null,
           expiresAt: { gt: new Date() },
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
         },
         data: {
           usedAt: new Date(),
@@ -769,7 +772,7 @@ export class AuthProvider {
       await tx.staffActionToken.updateMany({
         where: {
           StaffId: staff.id,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           usedAt: null,
           id: {
             not: token.id,
@@ -796,7 +799,7 @@ export class AuthProvider {
     const existingToken = await this.prisma.staffActionToken.findFirst({
       where: {
         StaffId: staff.id,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -823,7 +826,7 @@ export class AuthProvider {
       data: {
         staff: { connect: { id: staff.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -845,7 +848,8 @@ export class AuthProvider {
       );
     }
     return {
-      message: 'Please check your email and set your password',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
@@ -855,7 +859,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.staffActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
+      },
       include: { staff: { select: privateStaffSelect } },
     });
     if (!token) {
@@ -893,7 +900,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           StaffId: token.staff.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           expiresAt: {
             gt: new Date(),
@@ -923,7 +930,7 @@ export class AuthProvider {
       await tx.staffActionToken.updateMany({
         where: {
           StaffId: token.staff.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           id: {
             not: token.id,
@@ -955,7 +962,7 @@ export class AuthProvider {
     const token = await this.prisma.staffActionToken.findUnique({
       where: {
         tokenHash,
-        type: ActionTokenType.EMAIL_CHANGE,
+        actionTokenType: ActionTokenType.EMAIL_CHANGE,
         pendingEmail: {
           not: null,
         },
@@ -997,7 +1004,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           StaffId: token.staff.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail,
           usedAt: null,
           expiresAt: {
@@ -1028,7 +1035,7 @@ export class AuthProvider {
       await tx.staffActionToken.updateMany({
         where: {
           StaffId: token.staff.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
           id: {
             not: token.id,
@@ -1069,7 +1076,7 @@ export class AuthProvider {
       const existingToken = await this.prisma.memberActionToken.findFirst({
         where: {
           memberId: member.id,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
@@ -1096,7 +1103,7 @@ export class AuthProvider {
         data: {
           member: { connect: { id: member.id } },
           tokenHash: tokenHash,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           expiresAt: expiresAt,
         },
       });
@@ -1214,7 +1221,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.memberActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.SET_PASSWORD },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+      },
       include: { member: { select: privateMemberSelect } },
     });
     if (!token) {
@@ -1276,7 +1286,7 @@ export class AuthProvider {
           expiresAt: {
             gt: new Date(),
           },
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
         },
         data: {
           usedAt: new Date(),
@@ -1292,7 +1302,7 @@ export class AuthProvider {
       await tx.memberActionToken.updateMany({
         where: {
           memberId: member.id,
-          type: ActionTokenType.SET_PASSWORD,
+          actionTokenType: ActionTokenType.SET_PASSWORD,
           usedAt: null,
           id: {
             not: token.id,
@@ -1660,7 +1670,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.userActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.EMAIL_VERIFICATION },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
+      },
       include: { user: { select: privateUserSelect } },
     });
     if (!token) {
@@ -1691,7 +1704,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           userId: token.user.id,
-          type: ActionTokenType.EMAIL_VERIFICATION,
+          actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
           usedAt: null,
           expiresAt: {
             gt: new Date(),
@@ -1726,7 +1739,7 @@ export class AuthProvider {
       await tx.userActionToken.updateMany({
         where: {
           userId: token.user.id,
-          type: ActionTokenType.EMAIL_VERIFICATION,
+          actionTokenType: ActionTokenType.EMAIL_VERIFICATION,
           usedAt: null,
           id: {
             not: token.id,
@@ -1753,7 +1766,7 @@ export class AuthProvider {
     const existingToken = await this.prisma.userActionToken.findFirst({
       where: {
         userId: user.id,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -1780,7 +1793,7 @@ export class AuthProvider {
       data: {
         user: { connect: { id: user.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -1799,7 +1812,8 @@ export class AuthProvider {
       );
     }
     return {
-      message: 'Please check your email and set your password.',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
@@ -1809,7 +1823,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.userActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
+      },
       include: { user: { select: privateUserSelect } },
     });
     if (!token) {
@@ -1839,7 +1856,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           userId: token.user.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           expiresAt: {
             gt: new Date(),
@@ -1869,7 +1886,7 @@ export class AuthProvider {
       await tx.userActionToken.updateMany({
         where: {
           userId: token.user.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           id: {
             not: token.id,
@@ -1901,7 +1918,7 @@ export class AuthProvider {
     const token = await this.prisma.userActionToken.findUnique({
       where: {
         tokenHash,
-        type: ActionTokenType.EMAIL_CHANGE,
+        actionTokenType: ActionTokenType.EMAIL_CHANGE,
         pendingEmail: {
           not: null,
         },
@@ -1943,7 +1960,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           userId: token.user.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail,
           usedAt: null,
           expiresAt: {
@@ -1974,7 +1991,7 @@ export class AuthProvider {
       await tx.userActionToken.updateMany({
         where: {
           userId: token.user.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
           id: {
             not: token.id,
@@ -2001,7 +2018,7 @@ export class AuthProvider {
     const existingToken = await this.prisma.memberActionToken.findFirst({
       where: {
         memberId: member.id,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -2028,7 +2045,7 @@ export class AuthProvider {
       data: {
         member: { connect: { id: member.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.RESET_PASSWORD,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -2051,7 +2068,8 @@ export class AuthProvider {
     }
 
     return {
-      message: 'Please check your email and set your password.',
+      message:
+        'If this email is registered, a password reset link will be sent.',
     };
   }
 
@@ -2061,7 +2079,10 @@ export class AuthProvider {
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
 
     const token = await this.prisma.memberActionToken.findUnique({
-      where: { tokenHash: tokenHash, type: ActionTokenType.RESET_PASSWORD },
+      where: {
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.RESET_PASSWORD,
+      },
       include: { member: { select: privateMemberSelect } },
     });
     if (!token) {
@@ -2099,7 +2120,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           memberId: member.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           expiresAt: {
             gt: new Date(),
@@ -2129,7 +2150,7 @@ export class AuthProvider {
       await tx.memberActionToken.updateMany({
         where: {
           memberId: member.id,
-          type: ActionTokenType.RESET_PASSWORD,
+          actionTokenType: ActionTokenType.RESET_PASSWORD,
           usedAt: null,
           id: {
             not: token.id,
@@ -2161,7 +2182,7 @@ export class AuthProvider {
     const token = await this.prisma.memberActionToken.findUnique({
       where: {
         tokenHash,
-        type: ActionTokenType.EMAIL_CHANGE,
+        actionTokenType: ActionTokenType.EMAIL_CHANGE,
         pendingEmail: {
           not: null,
         },
@@ -2203,7 +2224,7 @@ export class AuthProvider {
         where: {
           id: token.id,
           memberId: token.member.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           pendingEmail,
           usedAt: null,
           expiresAt: {
@@ -2234,7 +2255,7 @@ export class AuthProvider {
       await tx.memberActionToken.updateMany({
         where: {
           memberId: token.member.id,
-          type: ActionTokenType.EMAIL_CHANGE,
+          actionTokenType: ActionTokenType.EMAIL_CHANGE,
           usedAt: null,
           id: {
             not: token.id,

@@ -24,6 +24,16 @@ import { NotificationsService } from './notifications.service';
 export class MemberNotificationsController {
   constructor(private readonly notificationService: NotificationsService) {}
 
+  // * Get All Stats of Notification (Member)
+  @Get('stats')
+  notificationStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.notificationStatsOfMember(
+      accessTokenPayload.id,
+    );
+  }
+
   // * Get One Notification
   @Get(':id')
   @SkipThrottle() // * Skip Rate Limiting

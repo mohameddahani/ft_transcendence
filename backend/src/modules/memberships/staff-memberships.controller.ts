@@ -34,6 +34,14 @@ export class StaffMembershipsController {
     return this.membershipsService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebership (Staff)
+  @Get('stats')
+  membershipStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipsService.membershipStats(accessTokenPayload);
+  }
+
   // * Get One Membership
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })

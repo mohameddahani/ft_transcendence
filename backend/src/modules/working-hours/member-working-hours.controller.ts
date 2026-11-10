@@ -39,6 +39,16 @@ export class MemberWorkingHoursController {
     );
   }
 
+  // * Get All Stats of Working Hours (Member)
+  @Get('stats')
+  workingHourStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.workingHoursService.workingHourStatsOfMember(
+      accessTokenPayload.id,
+    );
+  }
+
   // * Get One Working Hour (Member)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })

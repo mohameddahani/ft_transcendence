@@ -33,6 +33,12 @@ export class OwnersController {
     return this.ownersService.findAll(page, limit);
   }
 
+  // * Get All Stats of users (owner)
+  @Get('users/stats')
+  userStats() {
+    return this.ownersService.userStats();
+  }
+
   // * Get one user
   @Get('users/:id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })

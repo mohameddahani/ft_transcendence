@@ -36,6 +36,14 @@ export class StaffMembershipPlansController {
     return this.membershipPlansService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebership plan (Staff)
+  @Get('stats')
+  membershipPlanStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membershipPlansService.membershipPlanStats(accessTokenPayload);
+  }
+
   // * Get one membership Plan
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })

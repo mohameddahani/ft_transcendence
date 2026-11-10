@@ -44,4 +44,14 @@ export class AdminSubscriptionsController {
       limit,
     );
   }
+
+  // * Get All Stats of subscriptions (Admin)
+  @Get('stats')
+  subscriptionStatsOfAdmin(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.subscriptionsService.subscriptionStatsOfAdmin(
+      accessTokenPayload.id,
+    );
+  }
 }

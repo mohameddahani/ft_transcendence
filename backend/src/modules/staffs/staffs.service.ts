@@ -120,7 +120,7 @@ export class StaffsService {
       data: {
         staff: { connect: { id: result.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -344,7 +344,7 @@ export class StaffsService {
     const existingToken = await this.prisma.staffActionToken.findFirst({
       where: {
         StaffId: staff.id,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -371,7 +371,7 @@ export class StaffsService {
       data: {
         staff: { connect: { id: staff.id } },
         tokenHash: tokenHash,
-        type: ActionTokenType.SET_PASSWORD,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
       },
     });
@@ -393,5 +393,51 @@ export class StaffsService {
         'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
       );
     }
+  }
+
+  // * Get All Stats of Staffs (Admin)
+  async staffStats(adminId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    const statusStats = await this.prisma.staff.groupBy({
+      by: ['accountStatus'],
+      where: {
+        adminId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+    let total = 0;
+
+    for (const stat of statusStats) {
+      const count = stat._count._all;
+
+      total += count;
+
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = count;
+      }
+    }
+
+    return {
+      total,
+      activeCount,
+      pendingCount,
+      bannedCount,
+    };
   }
 }

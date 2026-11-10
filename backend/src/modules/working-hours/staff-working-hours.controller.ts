@@ -39,6 +39,14 @@ export class StaffWorkingHoursController {
     );
   }
 
+  // * Get All Stats of Working Hours (Staff)
+  @Get('stats')
+  workingHourStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.workingHoursService.workingHourStats(accessTokenPayload);
+  }
+
   // * Get One Working Hour (Staff)
   @Get(':id')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })

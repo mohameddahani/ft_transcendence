@@ -8,10 +8,10 @@ import {
   Validate,
   IsEnum,
   IsDate,
-  IsAlpha,
   IsOptional,
   IsEthereumAddress,
   IsNotEmpty,
+  Matches,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { IsValidPassword } from '@/core/utils/password.validator';
@@ -23,19 +23,34 @@ export class RegisterUserDto {
   @IsString()
   @MinLength(2)
   @MaxLength(30)
-  @IsAlpha()
+  // * ^ = start of text
+  // * [a-zA-Z ] = lowercase letters, uppercase letters, or spaces
+  // * + = one or more allowed characters
+  // * $ = end of text
+  @Matches(/^[a-zA-Z ]+$/, {
+    message: 'First name must contain only letters and spaces',
+  })
   // trim spaces from start and end
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,
   )
-  @ApiProperty({ example: 'Mohamed', description: 'User first name' }) // * Swagger Document
+  @ApiProperty({
+    example: 'Mohamed Amine',
+    description: 'User first name',
+  }) // * Swagger Document
   firstName!: string;
 
   // * Last Name
   @IsString()
   @MinLength(2)
   @MaxLength(30)
-  @IsAlpha()
+  // * ^ = start of text
+  // * [a-zA-Z ] = lowercase letters, uppercase letters, or spaces
+  // * + = one or more allowed characters
+  // * $ = end of text
+  @Matches(/^[a-zA-Z ]+$/, {
+    message: 'First name must contain only letters and spaces',
+  })
   // trim spaces from start and end
   @Transform(({ value }): string =>
     typeof value === 'string' ? value.trim() : value,

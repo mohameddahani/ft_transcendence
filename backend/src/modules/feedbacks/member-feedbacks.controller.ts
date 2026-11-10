@@ -57,6 +57,14 @@ export class MemberFeedbacksController {
     );
   }
 
+  // * Get All Stats of Feedbacks (Member)
+  @Get('stats')
+  feedbackStatsOfMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.feedbacksService.feedbackStatsOfMember(accessTokenPayload.id);
+  }
+
   // * Get One Feedback (Member)
   @Get(':id')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -107,14 +115,5 @@ export class MemberFeedbacksController {
       accessTokenPayload.id,
       id,
     );
-  }
-
-  // * Get All Stats of Feedbacks (Member)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  feedbackStatsOfMember(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.feedbacksService.feedbackStatsOfMember(accessTokenPayload.id);
   }
 }

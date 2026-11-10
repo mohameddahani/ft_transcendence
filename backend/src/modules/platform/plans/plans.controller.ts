@@ -74,6 +74,12 @@ export class PlansController {
     return this.plansService.findAll(page, limit);
   }
 
+  // * Get All Stats of plans (public)
+  @Get('stats')
+  planStats() {
+    return this.plansService.planStats();
+  }
+
   // * Get one Plan
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })

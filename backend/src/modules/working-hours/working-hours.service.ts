@@ -272,6 +272,64 @@ export class WorkingHoursService {
     return workingHour;
   }
 
+  // * Get All Stats of Working Hours (Member)
+  async workingHourStatsOfMember(memberId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const [workingHourStats, specialHoursCount] = await Promise.all([
+      // * Count working hours grouped by closed status
+      this.prisma.workingHour.groupBy({
+        by: ['isClosed'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count all special hour records
+      this.prisma.specialHour.count({
+        where: {
+          adminId,
+        },
+      }),
+    ]);
+
+    let openDaysCount = 0;
+    let closedDaysCount = 0;
+
+    for (const stat of workingHourStats) {
+      if (stat.isClosed) {
+        closedDaysCount = stat._count._all;
+      } else {
+        openDaysCount = stat._count._all;
+      }
+    }
+
+    return {
+      workingHours: {
+        total: openDaysCount + closedDaysCount,
+        openDaysCount,
+        closedDaysCount,
+      },
+      specialHours: {
+        total: specialHoursCount,
+      },
+    };
+  }
+
   // * Delete One Working Hour By (Admin)
   async deleteOneWorkingHour(adminId: string, workingHourId: string) {
     // * Check that the admin account, subscription, and associated plan are active.
@@ -299,6 +357,57 @@ export class WorkingHoursService {
 
     // * Delete from Cache Redis
     await this.cache.del(key);
+  }
+
+  // * Get All Stats of Working Hours and Special Hours (Admin / Staff)
+  async workingHourStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const [workingHourStats, specialHoursCount] = await Promise.all([
+      // * Count working hours grouped by closed status
+      this.prisma.workingHour.groupBy({
+        by: ['isClosed'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count all special hour records
+      this.prisma.specialHour.count({
+        where: {
+          adminId,
+        },
+      }),
+    ]);
+
+    let openDaysCount = 0;
+    let closedDaysCount = 0;
+
+    for (const stat of workingHourStats) {
+      if (stat.isClosed) {
+        closedDaysCount = stat._count._all;
+      } else {
+        openDaysCount = stat._count._all;
+      }
+    }
+
+    return {
+      workingHours: {
+        total: openDaysCount + closedDaysCount,
+        openDaysCount,
+        closedDaysCount,
+      },
+      specialHours: {
+        total: specialHoursCount,
+      },
+    };
   }
 
   /* 

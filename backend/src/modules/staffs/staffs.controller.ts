@@ -60,7 +60,13 @@ export class StaffsController {
     return this.staffsService.findAll(accessTokenPayload.id, page, limit);
   }
 
-  // * Get one member
+  // * Get All Stats of Staffs (Admin)
+  @Get('stats')
+  staffStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.staffsService.staffStats(accessTokenPayload.id);
+  }
+
+  // * Get one staff
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(

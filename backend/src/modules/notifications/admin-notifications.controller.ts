@@ -24,6 +24,14 @@ import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-aut
 export class AdminNotificationsController {
   constructor(private readonly notificationService: NotificationsService) {}
 
+  // * Get All Stats of Notification (Admin)
+  @Get('stats')
+  notificationStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.notificationService.notificationStats(accessTokenPayload.id);
+  }
+
   // * Get One Notification
   @Get(':id')
   @SkipThrottle() // * Skip Rate Limiting

@@ -55,7 +55,7 @@ export class FeedbacksService {
         staff: member.staffId ? { connect: { id: member.staffId } } : undefined,
         content: data.content,
         rating: data.rating,
-        sentiment: response?.sentiment ?? null,
+        sentimentType: response?.sentiment ?? null,
         sentimentScore: response?.score ?? null,
       },
     });
@@ -285,6 +285,8 @@ export class FeedbacksService {
     // * Check If The Member Has Permissions
     const adminId = await this.checkIfTheMemberHasPermissions(memberId);
 
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
     const [statusStats, sentimentStats, summary] = await Promise.all([
       this.prisma.feedback.groupBy({
         by: ['feedbackStatus'],
@@ -298,7 +300,7 @@ export class FeedbacksService {
       }),
 
       this.prisma.feedback.groupBy({
-        by: ['sentiment'],
+        by: ['sentimentType'],
         where: {
           adminId: adminId,
           memberId: memberId,
@@ -350,15 +352,15 @@ export class FeedbacksService {
     }
 
     for (const stat of sentimentStats) {
-      if (stat.sentiment === SentimentType.NEGATIVE) {
+      if (stat.sentimentType === SentimentType.NEGATIVE) {
         negativeCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.NEUTRAL) {
+      if (stat.sentimentType === SentimentType.NEUTRAL) {
         neutralCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.POSITIVE) {
+      if (stat.sentimentType === SentimentType.POSITIVE) {
         positiveCount = stat._count._all;
       }
     }
@@ -409,7 +411,7 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
-        sentiment: true,
+        sentimentType: true,
         sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
@@ -464,7 +466,7 @@ export class FeedbacksService {
         },
         content: true,
         rating: true,
-        sentiment: true,
+        sentimentType: true,
         sentimentScore: true,
         feedbackStatus: true,
         resolvedAt: true,
@@ -532,6 +534,8 @@ export class FeedbacksService {
         accessTokenPayload,
       );
 
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
     const [statusStats, sentimentStats, summary] = await Promise.all([
       this.prisma.feedback.groupBy({
         by: ['feedbackStatus'],
@@ -544,7 +548,7 @@ export class FeedbacksService {
       }),
 
       this.prisma.feedback.groupBy({
-        by: ['sentiment'],
+        by: ['sentimentType'],
         where: {
           adminId: adminId,
         },
@@ -594,15 +598,15 @@ export class FeedbacksService {
     }
 
     for (const stat of sentimentStats) {
-      if (stat.sentiment === SentimentType.NEGATIVE) {
+      if (stat.sentimentType === SentimentType.NEGATIVE) {
         negativeCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.NEUTRAL) {
+      if (stat.sentimentType === SentimentType.NEUTRAL) {
         neutralCount = stat._count._all;
       }
 
-      if (stat.sentiment === SentimentType.POSITIVE) {
+      if (stat.sentimentType === SentimentType.POSITIVE) {
         positiveCount = stat._count._all;
       }
     }

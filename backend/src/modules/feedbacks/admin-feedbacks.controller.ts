@@ -41,6 +41,14 @@ export class AdminFeedbacksController {
     );
   }
 
+  // * Get All Stats of Feedbacks (Admin)
+  @Get('stats')
+  feedbackStats(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.feedbacksService.feedbackStats(accessTokenPayload);
+  }
+
   // * Get One Feedback (Admin)
   @Get(':id')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -64,14 +72,5 @@ export class AdminFeedbacksController {
       id,
       body,
     );
-  }
-
-  // * Get All Stats of Feedbacks (Admin)
-  @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  feedbackStats(
-    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
-  ) {
-    return this.feedbacksService.feedbackStats(accessTokenPayload);
   }
 }

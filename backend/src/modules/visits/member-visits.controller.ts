@@ -92,7 +92,6 @@ export class MemberVisitsController {
 
   // * Get All Stats of Visits (Member)
   @Get('stats')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   visitStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

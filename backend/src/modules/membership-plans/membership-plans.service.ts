@@ -285,6 +285,55 @@ export class MembershipPlansService {
     return membershipPlan;
   }
 
+  // * Get All Stats of Membership Plans (Admin)
+  async membershipPlanStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const [membershipPlanStats, durationCount] = await Promise.all([
+      // * Count membership plans grouped by active status
+      this.prisma.membershipPlan.groupBy({
+        by: ['isActive'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count all durations belonging to the admin's membership plans
+      this.prisma.membershipPlanDuration.count({
+        where: {
+          membershipPlan: {
+            adminId,
+          },
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let inactiveCount = 0;
+
+    for (const stat of membershipPlanStats) {
+      if (stat.isActive) {
+        activeCount = stat._count._all;
+      } else {
+        inactiveCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      inactiveCount,
+      total: activeCount + inactiveCount,
+      durationCount,
+    };
+  }
+
   // * Get all membership Plans (Member)
   async findAllByMember(memberId: string, page: number, limit: number) {
     // * Get Admin Id from member

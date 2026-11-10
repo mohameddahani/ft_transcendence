@@ -14,7 +14,7 @@ export class SentimentCron {
   async getSentiment() {
     const feedbacks = await this.prisma.feedback.findMany({
       where: {
-        OR: [{ sentiment: null }, { sentimentScore: null }],
+        OR: [{ sentimentType: null }, { sentimentScore: null }],
       },
 
       orderBy: {
@@ -37,7 +37,7 @@ export class SentimentCron {
         await this.prisma.feedback.update({
           where: { id: feedback.id },
           data: {
-            sentiment: response.sentiment,
+            sentimentType: response.sentiment,
             sentimentScore: response.score,
           },
         });

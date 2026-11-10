@@ -90,6 +90,12 @@ export class StaffMembersController {
     return this.membersService.findAll(accessTokenPayload, page, limit);
   }
 
+  // * Get All Stats of Memebers (Member)
+  @Get('stats')
+  memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.membersService.memberStats(accessTokenPayload);
+  }
+
   // * Get one member
   @Get(':id')
   @Throttle({ default: { limit: 100, ttl: 60_000 } })
