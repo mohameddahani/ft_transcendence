@@ -28,6 +28,7 @@ import {
   pendingStaff,
   banStaff,
 } from "@/lib/api/staffs";
+import { fetchAdminStaffStats, AccountStats } from "@/lib/api/stats";
 import { BackendStaff } from "@/types/staff";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
@@ -61,6 +62,7 @@ export default function StaffsPage() {
   const { t } = useTranslation();
   const { companyName } = useCurrentUser();
   const [staffs, setStaffs] = useState<BackendStaff[]>([]);
+  const [staffStats, setStaffStats] = useState<AccountStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters & Search
@@ -91,7 +93,11 @@ export default function StaffsPage() {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchStaffs(1, 100);
+      const [statsData, data] = await Promise.all([
+        fetchAdminStaffStats().catch(() => null),
+        fetchStaffs(1, 50),
+      ]);
+      setStaffStats(statsData);
       setStaffs(data);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -139,15 +145,15 @@ export default function StaffsPage() {
     };
   }, [menuAnchor]);
 
-  // Statistics calculation
-  const totalCount = staffs.length;
-  const activeCount = staffs.filter(
+  // Statistics calculation from dedicated stats endpoint
+  const totalCount = staffStats?.total ?? staffs.length;
+  const activeCount = staffStats?.activeCount ?? staffs.filter(
     (s) => (s.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE"
   ).length;
-  const pendingCount = staffs.filter(
+  const pendingCount = staffStats?.pendingCount ?? staffs.filter(
     (s) => (s.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
-  const bannedCount = staffs.filter(
+  const bannedCount = staffStats?.bannedCount ?? staffs.filter(
     (s) => (s.accountStatus || "").toUpperCase() === "BANNED"
   ).length;
 

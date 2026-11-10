@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { animate, useMotionValue } from "framer-motion";
 import {
@@ -22,6 +22,12 @@ import {
 import axios from "axios";
 import { toast } from "react-toastify";
 import { fetchPayments } from "@/lib/api/payments";
+import {
+  fetchAdminPaymentStats,
+  fetchStaffPaymentStats,
+  PaymentStats,
+  StaffPaymentStats,
+} from "@/lib/api/stats";
 import { BackendPayment } from "@/types/payment";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useTranslation } from "react-i18next";
@@ -84,9 +90,10 @@ function AnimatedRevenue({ value }: { value: number }) {
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
-  const { companyName } = useCurrentUser();
+  const { companyName, role } = useCurrentUser();
   const [payments, setPayments] = useState<BackendPayment[]>([]);
   const [pagedPayments, setPagedPayments] = useState<BackendPayment[]>([]);
+  const [paymentStats, setPaymentStats] = useState<PaymentStats | StaffPaymentStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
@@ -98,14 +105,17 @@ export default function PaymentsPage() {
   // Selected payment for side-panel detail view
   const [selectedPayment, setSelectedPayment] = useState<BackendPayment | null>(null);
 
-  const loadPayments = async () => {
+  const loadPayments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fullList, initialPage] = await Promise.all([
-        fetchPayments(1, 1000),
+      const statsPromise =
+        role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
+      const [stats, initialPage] = await Promise.all([
+        statsPromise.catch(() => null),
         fetchPayments(1, pageSize),
       ]);
-      setPayments(fullList);
+      setPaymentStats(stats);
+      setPayments(initialPage);
       setPagedPayments(initialPage);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -117,11 +127,11 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, pageSize]);
 
   useEffect(() => {
     loadPayments();
-  }, []);
+  }, [loadPayments]);
 
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
@@ -131,6 +141,7 @@ export default function PaymentsPage() {
       try {
         const pageData = await fetchPayments(newPage, pageSize);
         setPagedPayments(pageData);
+        setPayments(pageData);
       } catch {
         // fail gracefully
       } finally {
@@ -169,7 +180,9 @@ export default function PaymentsPage() {
   }, [payments, searchTerm]);
 
   // Pagination
-  const totalItems = isFiltering ? filteredPayments.length : payments.length;
+  const totalItems = isFiltering
+    ? filteredPayments.length
+    : (paymentStats?.totalPayments ?? payments.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedPayments = useMemo(() => {
     if (isFiltering) {
@@ -181,10 +194,13 @@ export default function PaymentsPage() {
 
   // Statistics Calculation
   const totalCollected = useMemo(() => {
+    if (paymentStats && "totalAmount" in paymentStats && paymentStats.totalAmount !== null) {
+      return Number(paymentStats.totalAmount || 0);
+    }
     return payments
       .filter((p) => getEffectivePaymentStatus(p) === "PAID")
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  }, [payments]);
+  }, [paymentStats, payments]);
 
   const outstandingTotal = useMemo(() => {
     return payments
@@ -537,8 +553,8 @@ Thank you for training with ${companyName || "us"}!
                 }`}
                 style={{
                   width: `${
-                    payments.length > 0
-                      ? Math.min(100, Math.round((overdueCount / payments.length) * 100))
+                    totalItems > 0
+                      ? Math.min(100, Math.round((overdueCount / totalItems) * 100))
                       : 0
                   }%`,
                 }}

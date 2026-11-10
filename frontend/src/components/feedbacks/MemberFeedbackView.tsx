@@ -25,6 +25,7 @@ import {
   likeMemberFeedback,
   removeLikeMemberFeedback,
 } from "@/lib/api/member-portal";
+import { fetchMemberFeedbackStats, FeedbackStats } from "@/lib/api/stats";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import CreateFeedbackModal from "./CreateFeedbackModal";
 import MemberFeedbackDetailModal from "./MemberFeedbackDetailModal";
@@ -50,6 +51,7 @@ export default function MemberFeedbackView() {
   // Data state
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [pagedFeedbacks, setPagedFeedbacks] = useState<FeedbackItem[]>([]);
+  const [memberFeedbackStats, setMemberFeedbackStats] = useState<FeedbackStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
@@ -90,19 +92,19 @@ export default function MemberFeedbackView() {
   const loadFeedbacks = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      // Fetch full set (for statistics and client search) and first page (10 elements)
-      const [allData, pageData] = await Promise.all([
-        fetchMemberFeedbacks(1, 1000).catch(() => []),
+      const [statsData, pageData] = await Promise.all([
+        fetchMemberFeedbackStats().catch(() => null),
         fetchMemberFeedbacks(1, pageSize).catch(() => []),
       ]);
 
-      setFeedbacks(allData);
+      setMemberFeedbackStats(statsData);
+      setFeedbacks(pageData);
       setPagedFeedbacks(pageData);
       setCurrentPage(1);
 
       // Track liked IDs
       const liked = new Set<string>();
-      allData.forEach((item) => {
+      pageData.forEach((item) => {
         if (item.isLiked && item.id) {
           liked.add(item.id);
         }
@@ -219,9 +221,9 @@ export default function MemberFeedbackView() {
     }
   };
 
-  // Compute Statistics
+  // Compute Statistics from dedicated stats endpoint or dataset
   const stats = useMemo(() => {
-    const total = feedbacks.length;
+    const total = memberFeedbackStats?.total ?? feedbacks.length;
     if (total === 0) {
       return {
         total: 0,
@@ -233,11 +235,17 @@ export default function MemberFeedbackView() {
     }
 
     const sumRating = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
-    const averageRating = (sumRating / total).toFixed(1);
+    const averageRating =
+      memberFeedbackStats?.averageRating !== null && memberFeedbackStats?.averageRating !== undefined
+        ? Number(memberFeedbackStats.averageRating).toFixed(1)
+        : feedbacks.length > 0
+        ? (sumRating / feedbacks.length).toFixed(1)
+        : "5.0";
 
     const myCount = feedbacks.filter((f) => user?.id && f.member?.id === user.id).length;
-    const positiveCount = feedbacks.filter((f) => (f.rating || 0) >= 4).length;
-    const positivePercent = Math.round((positiveCount / total) * 100);
+    const positiveCount =
+      memberFeedbackStats?.positiveCount ?? feedbacks.filter((f) => (f.rating || 0) >= 4).length;
+    const positivePercent = total > 0 ? Math.round((positiveCount / total) * 100) : 100;
 
     const totalLikes = feedbacks.reduce((acc, f) => acc + (f._count?.likes || 0), 0);
 
@@ -248,7 +256,7 @@ export default function MemberFeedbackView() {
       positivePercent,
       totalLikes,
     };
-  }, [feedbacks, user?.id]);
+  }, [memberFeedbackStats, feedbacks, user?.id]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -298,7 +306,7 @@ export default function MemberFeedbackView() {
     statusFilter !== "ALL"
   );
 
-  const totalItems = isFiltering ? filteredFeedbacks.length : feedbacks.length;
+  const totalItems = isFiltering ? filteredFeedbacks.length : (memberFeedbackStats?.total ?? feedbacks.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Display only 10 elements on the page

@@ -847,7 +847,7 @@
 }
 /* anchor links (#features, #pricing...) glide only when the visitor allows motion */
 @media (prefers-reduced-motion: no-preference) {
-  html {
+  html[data-scroll-behavior="smooth"] {
     scroll-behavior: smooth;
   }
 }

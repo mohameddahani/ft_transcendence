@@ -92,7 +92,7 @@ export default function AddMemberModal({
     const loadPlans = async () => {
       setIsLoadingPlans(true);
       try {
-        const loaded = await fetchMembershipPlans(1, 100);
+        const loaded = await fetchMembershipPlans(1, 50);
         if (!isMounted) return;
         setPlans(loaded);
 

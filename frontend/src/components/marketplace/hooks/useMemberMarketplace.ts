@@ -216,7 +216,7 @@ export function useMemberMarketplace() {
     async function fetch_plans() {
       try {
         const response = await api.get<ApiMembershipPlan[]>(
-          "/api/members/membership-plans?page=1&limit=1000"
+          "/api/members/membership-plans?page=1&limit=50"
         );
 
         const rawData = response.data;

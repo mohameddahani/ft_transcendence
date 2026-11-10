@@ -24,7 +24,7 @@ import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { GymflowSubscription } from "@/types/subscription";
 import { fetchMySubscription, fetchAllSubscriptions } from "@/lib/api/subscriptions";
-import { fetchMembers } from "@/lib/api/members";
+import { fetchAdminMemberStats } from "@/lib/api/stats";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,14 +58,14 @@ export default function GymflowSubscriptionPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [currentSub, allSubs, allMembers] = await Promise.all([
+      const [currentSub, allSubs, memberStats] = await Promise.all([
         fetchMySubscription().catch(() => null),
-        fetchAllSubscriptions(1, 100).catch(() => []),
-        fetchMembers(1, 1000).catch(() => []),
+        fetchAllSubscriptions(1, 50).catch(() => []),
+        fetchAdminMemberStats().catch(() => null),
       ]);
 
-      // Resolve true member count from actual member records
-      const actualCount = Array.isArray(allMembers) ? allMembers.length : 0;
+      // Resolve true member count from dedicated stats endpoint
+      const actualCount = memberStats ? memberStats.total : 0;
       setMemberCount(actualCount);
 
       // Prioritize active subscription; fallback to first active in ledger, or latest ledger record

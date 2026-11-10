@@ -37,6 +37,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${plusJakartaSans.variable} ${sora.variable} h-full antialiased`}
     >
       <head>

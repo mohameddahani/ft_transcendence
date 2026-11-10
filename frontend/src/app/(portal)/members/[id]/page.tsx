@@ -52,7 +52,7 @@ export default function MemberDetailPage() {
     try {
       const [data, plansData] = await Promise.all([
         fetchMember(id),
-        fetchMembershipPlans(1, 100).catch(() => []),
+        fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       setMember(data);
       setPlans(Array.isArray(plansData) ? plansData : []);

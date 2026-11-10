@@ -55,7 +55,7 @@ export default function RenewMembershipModal({
   const loadPlans = useCallback(async () => {
     setIsLoadingPlans(true);
     try {
-      const loaded = await fetchMembershipPlans(1, 100);
+      const loaded = await fetchMembershipPlans(1, 50);
       const activePlans = loaded.filter((p) => p.isActive);
       setPlans(activePlans);
 

@@ -24,6 +24,11 @@ import {
   checkInWithQr,
 } from "@/lib/api/visits";
 import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import {
+  fetchAdminVisitStats,
+  fetchStaffVisitStats,
+  VisitStats,
+} from "@/lib/api/stats";
 import { MembershipPlan } from "@/types/membership-plan";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import QrScannerModal from "@/components/check-in/QrScannerModal";
@@ -55,11 +60,12 @@ import {
 
 export default function CheckInPage() {
   const { t } = useTranslation();
-  const { companyName } = useCurrentUser();
+  const { companyName, role } = useCurrentUser();
 
   // State
   const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
   const [pagedVisits, setPagedVisits] = useState<TodayVisit[]>([]);
+  const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
@@ -179,18 +185,20 @@ export default function CheckInPage() {
   const loadVisits = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [fullList, initialPage, plansData] = await Promise.all([
-        fetchTodayVisits(1, 500),
+      const statsPromise =
+        role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
+      const [statsData, initialPage, plansData] = await Promise.all([
+        statsPromise.catch(() => null),
         fetchTodayVisits(1, pageSize),
-        fetchMembershipPlans(1, 100).catch(() => []),
+        fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       const loadedPlans = Array.isArray(plansData) ? plansData : [];
       setPlans(loadedPlans);
+      setVisitStats(statsData);
 
-      const enrichedFull = fullList.map((v) => enrichVisitWithPlan(v, loadedPlans));
       const enrichedInitial = initialPage.map((v) => enrichVisitWithPlan(v, loadedPlans));
 
-      setAllVisits(enrichedFull);
+      setAllVisits(enrichedInitial);
       setPagedVisits(enrichedInitial);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -202,7 +210,7 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize, t, enrichVisitWithPlan]);
+  }, [pageSize, t, enrichVisitWithPlan, role]);
 
   useEffect(() => {
     loadVisits();
@@ -215,7 +223,9 @@ export default function CheckInPage() {
       setIsPageLoading(true);
       try {
         const pageData = await fetchTodayVisits(newPage, pageSize);
-        setPagedVisits(pageData.map((v) => enrichVisitWithPlan(v, plans)));
+        const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+        setPagedVisits(enriched);
+        setAllVisits(enriched);
       } catch {
         // fail gracefully
       } finally {
@@ -224,13 +234,14 @@ export default function CheckInPage() {
     }
   };
 
-  // Statistics
+  // Statistics from dedicated stats endpoint
   const stats = useMemo(() => {
-    const total = allVisits.length;
-    const ready = allVisits.filter((v) => v.visitStatus === "READY").length;
-    const checkedIn = allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length;
-    return { total, ready, checkedIn };
-  }, [allVisits]);
+    return {
+      total: visitStats?.total ?? allVisits.length,
+      ready: visitStats?.readyCount ?? allVisits.filter((v) => v.visitStatus === "READY").length,
+      checkedIn: visitStats?.checkedInCount ?? allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length,
+    };
+  }, [visitStats, allVisits]);
 
   // Filtered visits
   const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
@@ -262,7 +273,7 @@ export default function CheckInPage() {
     });
   }, [allVisits, searchTerm, statusFilter]);
 
-  const totalItems = isFiltering ? filteredVisits.length : allVisits.length;
+  const totalItems = isFiltering ? filteredVisits.length : (visitStats?.total ?? allVisits.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   const displayedVisits = useMemo(() => {
@@ -314,12 +325,12 @@ export default function CheckInPage() {
       // Close scanner modal
       setIsScannerOpen(false);
 
-      // Re-load to find the newly checked in member
-      const freshVisits = await fetchTodayVisits(1, 500);
-      const enrichedFresh = freshVisits.map((v) => enrichVisitWithPlan(v, plans));
-      setAllVisits(enrichedFresh);
+      // Re-load current page and refresh stats
       const currentPageData = await fetchTodayVisits(currentPage, pageSize);
-      setPagedVisits(currentPageData.map((v) => enrichVisitWithPlan(v, plans)));
+      const enrichedFresh = currentPageData.map((v) => enrichVisitWithPlan(v, plans));
+      setAllVisits(enrichedFresh);
+      setPagedVisits(enrichedFresh);
+      loadVisits();
 
       // Find recently updated visit for celebration
       const newlyCheckedIn = enrichedFresh.find((v) => v.visitStatus === "CHECKED_IN");
@@ -407,7 +418,7 @@ export default function CheckInPage() {
                 </span>
               )}
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {allVisits.length} {t("total") || "total"}
+                / {stats.total} {t("total") || "total"}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
@@ -592,8 +603,8 @@ export default function CheckInPage() {
                 {
                   value: "ALL",
                   label:
-                    t("allVisitsCount", { count: allVisits.length }) ||
-                    `All Visits (${allVisits.length})`,
+                    t("allVisitsCount", { count: stats.total }) ||
+                    `All Visits (${stats.total})`,
                 },
                 {
                   value: "READY",

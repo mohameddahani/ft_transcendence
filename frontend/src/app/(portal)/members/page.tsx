@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
@@ -28,6 +28,12 @@ import {
   banMember,
 } from "@/lib/api/members";
 import { fetchMembershipPlans } from "@/lib/api/membership-plans";
+import {
+  fetchAdminMemberStats,
+  fetchStaffMemberStats,
+  MemberStats,
+} from "@/lib/api/stats";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BackendMember } from "@/types/member";
 import { MembershipPlan } from "@/types/membership-plan";
 import AddMemberModal from "@/components/members/AddMemberModal";
@@ -60,8 +66,10 @@ import { Input } from "@/components/ui/input";
 
 export default function MembershipsPage() {
   const { t } = useTranslation();
+  const { role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
   const [pagedMembers, setPagedMembers] = useState<BackendMember[]>([]);
+  const [memberStats, setMemberStats] = useState<MemberStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
@@ -94,15 +102,19 @@ export default function MembershipsPage() {
     setMounted(true);
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [membersData, plansData] = await Promise.all([
-        fetchMembers(1, 1000),
-        fetchMembershipPlans(1, 100).catch(() => []),
+      const statsPromise =
+        role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
+      const [statsData, membersData, plansData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchMembers(1, pageSize),
+        fetchMembershipPlans(1, 50).catch(() => []),
       ]);
+      setMemberStats(statsData);
       setMembers(membersData);
-      setPagedMembers(membersData.slice(0, pageSize));
+      setPagedMembers(membersData);
       setPlans(plansData);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -114,11 +126,11 @@ export default function MembershipsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, pageSize]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
@@ -128,6 +140,7 @@ export default function MembershipsPage() {
       try {
         const pageData = await fetchMembers(newPage, pageSize);
         setPagedMembers(pageData);
+        setMembers(pageData);
       } catch {
         // fail gracefully
       } finally {
@@ -204,7 +217,7 @@ export default function MembershipsPage() {
 
   // Paginated members
   const isFiltering = Boolean(searchTerm || selectedStatus || selectedPlanId);
-  const totalItems = isFiltering ? filteredMembers.length : members.length;
+  const totalItems = isFiltering ? filteredMembers.length : (memberStats?.total ?? members.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const paginatedMembers = useMemo(() => {
     if (isFiltering) {
@@ -214,19 +227,19 @@ export default function MembershipsPage() {
     return pagedMembers;
   }, [isFiltering, filteredMembers, pagedMembers, currentPage, pageSize]);
 
-  // Statistics calculation based on backend structure
-  const totalCount = members.length;
-  const activeCount = members.filter((m) => {
+  // Statistics calculation based on dedicated stats endpoint
+  const totalCount = memberStats?.total ?? members.length;
+  const activeCount = memberStats?.activeCount ?? members.filter((m) => {
     if (m.accountStatus === "BANNED" || m.accountStatus === "PENDING") return false;
     return (
       m.memberships?.some((sub) => sub.membershipStatus === "ACTIVE") ||
       (!m.memberships?.length && m.accountStatus === "ACTIVE")
     );
   }).length;
-  const pendingCount = members.filter(
+  const pendingCount = memberStats?.pendingCount ?? members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
-  const bannedCount = members.filter(
+  const bannedCount = memberStats?.bannedCount ?? members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "BANNED"
   ).length;
 
