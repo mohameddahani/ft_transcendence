@@ -85,7 +85,7 @@ services:
       backend:
         condition: service_healthy
       ai:
-        condition: service_healthy
+        condition: service_started
 
   owner-portal:
     build:
