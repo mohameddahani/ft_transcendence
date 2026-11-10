@@ -1784,3 +1784,188 @@ Member → GET /api/members/working-hours/stats
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+Dashboard Statistics API
+These endpoints return member, membership-plan, and feedback statistics for the authenticated user's club.
+
+The frontend should use these values directly for dashboard cards. There is no need to fetch all members, plans, or feedbacks and calculate the statistics on the frontend.
+
+This document describes the supplied DashboardsService.dashboardStats() implementation and the endpoint paths provided for the Admin and Staff platforms.
+Admin Platform — Dashboard Stats
+GET /api/admins/dashboard/stats
+
+Returns dashboard statistics for the authenticated admin's club.
+Response Example
+{
+  "dashboard": {
+    "totalMembers": 338,
+    "activeMembers": 245,
+    "inactiveMembers": 93,
+    "expiredMembers": 68,
+    "bannedMembers": 25,
+    "totalPlans": 6,
+    "satisfactionScore": 97,
+    "totalReviews": 88
+  }
+}
+The values are illustrative. In this example, 85 of the 88 feedbacks have a rating above 4, producing a satisfaction score of 97 after rounding.
+Staff Platform — Dashboard Stats
+GET /api/staffs/dashboard/stats
+
+Returns dashboard statistics for the staff member's club. The backend resolves the club's adminId through its existing authorization service.
+
+The Admin and Staff endpoints return the same response structure. Staff statistics cover the club, rather than only records created by that staff member.
+Response Example
+{
+  "dashboard": {
+    "totalMembers": 338,
+    "activeMembers": 245,
+    "inactiveMembers": 93,
+    "expiredMembers": 68,
+    "bannedMembers": 25,
+    "totalPlans": 6,
+    "satisfactionScore": 97,
+    "totalReviews": 88
+  }
+}
+Request
+Use the project's existing authenticated API client and the session for the appropriate platform.
+
+The request needs no body or statistics filters. The frontend does not supply an adminId; the backend derives it from the authenticated user's access.
+
+No Member or Owner dashboard endpoint is documented here.
+Response Fields
+All fields are inside the dashboard object and are JSON numbers.
+Field	Meaning
+totalMembers	Total members with account status ACTIVE, PENDING, or BANNED in this club.
+activeMembers	Members whose account status is ACTIVE, regardless of their membership status.
+inactiveMembers	Members whose account status is PENDING or BANNED. Calculated as totalMembers - activeMembers.
+expiredMembers	Members with at least one membership marked EXPIRED and no membership marked ACTIVE, regardless of account status. Each member is counted once.
+bannedMembers	Members whose account status is BANNED. They are also included in inactiveMembers.
+totalPlans	Total club membership-plan records, including active and inactive plans. This is not the number of plan durations or platform subscription plans.
+satisfactionScore	Percentage of feedback records with rating > 4, rounded to the nearest whole number. Returns 0 when there are no feedback records.
+totalReviews	Total feedback records for the club, across all feedback statuses. This counts feedbacks, not distinct members or likes.
+
+
+Member Totals
+The backend calculates:
+totalMembers = activeMembers + pendingMembers + bannedMembers;
+inactiveMembers = totalMembers - activeMembers;
+pendingMembers is an internal calculation and is not returned as a separate response field.
+Account Status and Membership Status
+Account status and membership status measure different things. They are not mutually exclusive dashboard categories.
+Example member	Counted in
+ACTIVE account with an ACTIVE membership	totalMembers, activeMembers
+ACTIVE account with an EXPIRED membership and no ACTIVE membership	totalMembers, activeMembers, expiredMembers
+BANNED account with an EXPIRED membership and no ACTIVE membership	totalMembers, inactiveMembers, bannedMembers, expiredMembers
+PENDING account with no memberships	totalMembers, inactiveMembers
+ACTIVE account with both an old EXPIRED membership and an ACTIVE membership	totalMembers, activeMembers; excluded from expiredMembers
+
+
+Do not add all member cards together or show active, inactive, expired, and banned counts as separate slices of one total. expiredMembers can overlap the other categories, and bannedMembers is already part of inactiveMembers.
+
+The expiry query uses stored membership statuses. It does not compare expiresAt with the current time. A member with no memberships, or only cancelled memberships, does not meet the expired-member condition.
+Satisfaction Calculation
+Reviews are feedback records. A satisfied review has a rating strictly greater than 4.
+const satisfactionScore =
+  totalReviews === 0
+    ? 0
+    : Math.round((satisfiedReviews / totalReviews) * 100);
+For a 1–5 integer rating scale, only 5-star feedbacks count as satisfied. A rating of 4 does not count.
+
+Example:
+totalReviews = 88;
+satisfiedReviews = 85;
+
+Math.round((85 / 88) * 100); // 97
+Display 97 as 97%. The response already contains a percentage; do not multiply it by 100 again.
+
+satisfactionScore is not the average star rating. The internal satisfiedReviews count is not returned in the response.
+
+When totalReviews is 0, the API returns satisfactionScore: 0. The UI can display “No reviews yet” instead of suggesting that users are dissatisfied.
+Frontend Types
+export interface DashboardStatsResponse {
+  dashboard: {
+    totalMembers: number;
+    activeMembers: number;
+    inactiveMembers: number;
+    expiredMembers: number;
+    bannedMembers: number;
+    totalPlans: number;
+    satisfactionScore: number;
+    totalReviews: number;
+  };
+}
+Frontend Usage
+Use the correct endpoint for the current platform. In this example, authenticatedFetch is supplied by your application and handles the existing authentication and API base URL.
+const dashboardStatsEndpoints = {
+  admin: '/api/admins/dashboard/stats',
+  staff: '/api/staffs/dashboard/stats',
+} as const;
+
+async function fetchDashboardStats(
+  platform: keyof typeof dashboardStatsEndpoints,
+  authenticatedFetch: typeof fetch,
+): Promise<DashboardStatsResponse> {
+  const response = await authenticatedFetch(
+    dashboardStatsEndpoints[platform],
+  );
+
+  if (!response.ok) {
+    throw new Error('Unable to load dashboard statistics.');
+  }
+
+  return response.json();
+}
+The TypeScript interface describes the response contract; it does not validate JSON at runtime.
+Dashboard Cards
+Card label	Value
+Total Members	stats.dashboard.totalMembers
+Active Accounts	stats.dashboard.activeMembers
+Inactive Accounts	stats.dashboard.inactiveMembers
+Expired Memberships — Members	stats.dashboard.expiredMembers
+Banned Accounts	stats.dashboard.bannedMembers
+Membership Plans	stats.dashboard.totalPlans
+Satisfaction	${stats.dashboard.satisfactionScore}%
+Total Reviews	stats.dashboard.totalReviews
+
+
+Use clear labels or tooltips so account activity is not confused with membership validity. The expired card counts members, not membership records.
+
+Show a loading state while the request is pending and an error state if it fails. Do not replace a failed request with zero counts, because that would look like a valid empty club.
+Empty Response Example
+For a club without members, membership plans, or feedbacks:
+{
+  "dashboard": {
+    "totalMembers": 0,
+    "activeMembers": 0,
+    "inactiveMembers": 0,
+    "expiredMembers": 0,
+    "bannedMembers": 0,
+    "totalPlans": 0,
+    "satisfactionScore": 0,
+    "totalReviews": 0
+  }
+}
+Endpoint Summary
+Platform	Method	Endpoint
+Admin	GET	/api/admins/dashboard/stats
+Staff	GET	/api/staffs/dashboard/stats
+
+
+Consistency Note
+The implementation runs independent queries through Promise.all, without a shared transaction snapshot. Counts can briefly reflect different moments if club data changes during the request. The frontend should display the backend values rather than adjusting them to force totals to match.
+
+
+

@@ -31,6 +31,7 @@ import { ExternalApiModule } from './infrastructure/external-api/external-api.mo
 import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { LoggerMiddleware } from './core/middlewares/logger.middleware';
 import { RemoveInactiveUsers } from './jobs/remove-inactive-users.cron';
+import { DashboardModule } from './modules/dashboards/dashboards.module';
 
 @Module({
   imports: [
@@ -87,6 +88,7 @@ import { RemoveInactiveUsers } from './jobs/remove-inactive-users.cron';
     HealthModule,
     RedisModule,
     ExternalApiModule, // * imported for cron job sentiment.cron.ts because i don't wanna create a module for this Cron job
+    DashboardModule,
   ],
 
   providers: [
