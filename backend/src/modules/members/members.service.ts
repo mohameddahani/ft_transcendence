@@ -29,6 +29,7 @@ import {
 } from '@/core/constants/default-avatars.constants';
 import { AccessesService } from '@/core/access/access.service';
 import { privateMemberSelect } from '@/core/types/safe-selects.type';
+import axios from 'axios';
 
 @Injectable()
 export class MembersService {
@@ -180,6 +181,19 @@ export class MembersService {
           paidAt: membership.startDate,
         },
       });
+
+      // ! BLOCK_CHAINE
+      await axios.post(
+        this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+        { membershipId: membership.id, clientWallet: member.walletAddress },
+        {
+          headers: {
+            'X-Reward-Secret': this.config.getOrThrow<string>(
+              'REWARD_INTERNAL_SECRET',
+            ),
+          },
+        },
+      );
 
       return member;
     });
@@ -408,6 +422,22 @@ export class MembersService {
             paidAt: newMembership.startDate,
           },
         });
+
+        // ! BLOCK_CHAINE
+        await axios.post(
+          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+          {
+            membershipId: newMembership.id,
+            clientWallet: member.walletAddress,
+          },
+          {
+            headers: {
+              'X-Reward-Secret': this.config.getOrThrow<string>(
+                'REWARD_INTERNAL_SECRET',
+              ),
+            },
+          },
+        );
 
         return member;
       });
