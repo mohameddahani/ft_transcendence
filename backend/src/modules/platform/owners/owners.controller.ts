@@ -29,8 +29,9 @@ export class OwnersController {
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ) {
-    return this.ownersService.findAll(page, limit);
+    return this.ownersService.findAll(page, limit, search);
   }
 
   // * Get All Stats of users (owner)

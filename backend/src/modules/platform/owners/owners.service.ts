@@ -12,10 +12,23 @@ export class OwnersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Get all users
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, _search?: string) {
+    // * remove spaces
+    const search = _search?.trim();
+
     const users = await this.prisma.user.findMany({
       where: {
         role: { notIn: [Role.OWNER, Role.MEMBER] },
+
+        // * Search Filter
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,
