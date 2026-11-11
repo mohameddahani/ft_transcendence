@@ -182,8 +182,19 @@ export class SubscriptionsService {
   }
 
   // * Get all Subscriptions
-  async findAll(page: number, limit: number) {
+  async findAll(page: number, limit: number, _search?: string) {
+    // * remove spaces
+    const search = _search?.trim();
+
     const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        // * Search Filter
+        ...(search
+          ? {
+              id: { contains: search, mode: 'insensitive' },
+            }
+          : {}),
+      },
       skip: (page - 1) * limit,
       take: limit,
       include: {

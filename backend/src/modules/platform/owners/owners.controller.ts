@@ -25,7 +25,6 @@ export class OwnersController {
 
   // * Get all users
   @Get('users')
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
@@ -42,7 +41,6 @@ export class OwnersController {
 
   // * Get one user
   @Get('users/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.findOne(id);
   }
