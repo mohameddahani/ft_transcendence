@@ -300,6 +300,7 @@ export class VisitsService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    _search?: string,
   ) {
     const now = new Date();
     const startOfToday = startOfDay(now);
@@ -311,6 +312,8 @@ export class VisitsService {
         accessTokenPayload,
       );
 
+    const search = _search?.trim();
+
     const visitsToday = await this.prisma.visit.findMany({
       where: {
         adminId: adminId,
@@ -318,9 +321,20 @@ export class VisitsService {
           gte: startOfToday,
           lte: endOfToday,
         },
+        ...(search
+          ? {
+              member: {
+                OR: [
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                ],
+              },
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,
+      orderBy: [{ visitDateAndTime: 'asc' }],
       select: {
         id: true,
         admin: {
