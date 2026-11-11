@@ -624,12 +624,16 @@ export class MembersService {
     limit: number,
     accountStatus?: AccountStatus,
     membershipStatus?: MembershipStatus,
+    _search?: string,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
       await this.accessesService.authorizeAdminOrStaffAccess(
         accessTokenPayload,
       );
+
+    // * remove spaces
+    const search = _search?.trim();
 
     const members = await this.prisma.member.findMany({
       where: {
@@ -646,6 +650,16 @@ export class MembersService {
                   membershipStatus,
                 },
               },
+            }
+          : {}),
+
+        // * Search Filter
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+              ],
             }
           : {}),
       },

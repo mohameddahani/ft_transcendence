@@ -101,6 +101,7 @@ export class AdminMembersController {
       new ParseEnumPipe(MembershipStatus, { optional: true }),
     )
     membershipStatus?: MembershipStatus,
+    @Query('search') search?: string,
   ) {
     return this.membersService.findAll(
       accessTokenPayload,
@@ -108,6 +109,7 @@ export class AdminMembersController {
       limit,
       accountStatus,
       membershipStatus,
+      search,
     );
   }
 

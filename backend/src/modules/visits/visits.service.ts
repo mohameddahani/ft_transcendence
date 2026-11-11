@@ -312,6 +312,7 @@ export class VisitsService {
         accessTokenPayload,
       );
 
+    // * remove spaces
     const search = _search?.trim();
 
     const visitsToday = await this.prisma.visit.findMany({
@@ -321,6 +322,8 @@ export class VisitsService {
           gte: startOfToday,
           lte: endOfToday,
         },
+
+        // * Search Filter
         ...(search
           ? {
               member: {

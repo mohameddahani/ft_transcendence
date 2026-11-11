@@ -1,9 +1,14 @@
-import { Role } from '@/generated/prisma/enums';
+import {
+  AccountStatus,
+  MembershipStatus,
+  Role,
+} from '@/generated/prisma/enums';
 import {
   Body,
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -86,8 +91,26 @@ export class StaffMembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'accountStatus',
+      new ParseEnumPipe(AccountStatus, { optional: true }),
+    )
+    accountStatus?: AccountStatus,
+    @Query(
+      'membershipStatus',
+      new ParseEnumPipe(MembershipStatus, { optional: true }),
+    )
+    membershipStatus?: MembershipStatus,
+    @Query('search') search?: string,
   ) {
-    return this.membersService.findAll(accessTokenPayload, page, limit);
+    return this.membersService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      accountStatus,
+      membershipStatus,
+      search,
+    );
   }
 
   // * Get All Stats of Memebers (Member)
