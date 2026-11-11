@@ -30,11 +30,13 @@ export class AdminPaymentsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ) {
     return this.paymentsService.findAllPayments(
       accessTokenPayload,
       page,
       limit,
+      search,
     );
   }
 
