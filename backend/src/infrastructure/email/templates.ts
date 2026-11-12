@@ -1,13 +1,16 @@
 import type { EmailTemplateConfig } from '@/core/types/email-template.config.type';
 
 // ============================================================
-// Shared Helpers
+// Shared Brand Design Tokens & Helpers
 // ============================================================
 
 const FONT_FAMILY =
-  "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif";
+  "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
-// * Escape dynamic values before inserting them into HTML
+const HEADING_FONT =
+  "'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+// Escape dynamic values before inserting them into HTML
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -17,11 +20,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#039;');
 }
 
-// * Convert token expiration from ENV format to readable text
-// * 15m -> 15 minutes
-// * 1h  -> 1 hour
-// * 2h  -> 2 hours
-// * 1d  -> 1 day
+// Convert token expiration from ENV format to readable text
 function formatExpiresIn(value: string): string {
   const match = value.match(/^(\d+)(m|h|d)$/);
 
@@ -48,7 +47,7 @@ function formatExpiresIn(value: string): string {
 }
 
 // ============================================================
-// Action Button
+// Action Button (Sportium Signature Dark Pill with Lime Accent)
 // ============================================================
 
 function actionButton(link: string, label: string): string {
@@ -61,14 +60,15 @@ function actionButton(link: string, label: string): string {
       cellspacing="0"
       border="0"
       align="center"
-      style="margin: 32px auto;"
+      style="margin: 32px auto 28px;"
     >
       <tr>
         <td
           align="center"
-          bgcolor="#6d5dfc"
+          bgcolor="#0f1115"
           style="
-            border-radius: 8px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px rgba(15, 17, 21, 0.15);
           "
         >
           <a
@@ -76,16 +76,17 @@ function actionButton(link: string, label: string): string {
             target="_blank"
             style="
               display: inline-block;
-              padding: 14px 28px;
+              padding: 14px 34px;
               font-family: ${FONT_FAMILY};
-              font-size: 15px;
-              font-weight: 600;
+              font-size: 14px;
+              font-weight: 700;
               color: #ffffff;
               text-decoration: none;
-              border-radius: 8px;
+              border-radius: 9999px;
+              letter-spacing: 0.01em;
             "
           >
-            ${label}
+            ${label} &rarr;
           </a>
         </td>
       </tr>
@@ -94,7 +95,7 @@ function actionButton(link: string, label: string): string {
 }
 
 // ============================================================
-// Fallback Link
+// Fallback Link Box
 // ============================================================
 
 function fallbackLink(link: string): string {
@@ -104,19 +105,19 @@ function fallbackLink(link: string): string {
     <div
       style="
         margin-top: 28px;
-        padding: 16px;
-        background-color: #f8f8fb;
-        border: 1px solid #e8e8ef;
-        border-radius: 8px;
+        padding: 16px 18px;
+        background-color: #f9fafb;
+        border: 1px solid #eaecf0;
+        border-radius: 12px;
       "
     >
       <p
         style="
-          margin: 0 0 8px;
+          margin: 0 0 6px;
           font-family: ${FONT_FAMILY};
           font-size: 12px;
           font-weight: 600;
-          color: #555566;
+          color: #344054;
         "
       >
         Button not working?
@@ -135,8 +136,9 @@ function fallbackLink(link: string): string {
           href="${safeLink}"
           target="_blank"
           style="
-            color: #6d5dfc;
-            text-decoration: none;
+            color: #3525cd;
+            text-decoration: underline;
+            font-weight: 500;
           "
         >
           ${safeLink}
@@ -147,7 +149,7 @@ function fallbackLink(link: string): string {
 }
 
 // ============================================================
-// Information Box
+// Information Callout (Sportium Lime Alert Surface)
 // ============================================================
 
 function infoBox(text: string): string {
@@ -155,10 +157,11 @@ function infoBox(text: string): string {
     <div
       style="
         margin: 24px 0 0;
-        padding: 14px 16px;
-        background-color: #f8f8fb;
-        border: 1px solid #e8e8ef;
-        border-radius: 8px;
+        padding: 14px 18px;
+        background-color: #f7fee7;
+        border: 1px solid #d9f99d;
+        border-left: 4px solid #84cc16;
+        border-radius: 12px;
       "
     >
       <p
@@ -167,7 +170,7 @@ function infoBox(text: string): string {
           font-family: ${FONT_FAMILY};
           font-size: 13px;
           line-height: 1.6;
-          color: #666676;
+          color: #365314;
         "
       >
         ${text}
@@ -177,7 +180,7 @@ function infoBox(text: string): string {
 }
 
 // ============================================================
-// Shared Email Layout
+// Shared Email Layout (Sportium Modern Toota Canvas)
 // ============================================================
 
 function emailLayout(options: {
@@ -213,17 +216,8 @@ function emailLayout(options: {
 
 <head>
   <meta charset="UTF-8" />
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-
-  <meta
-    http-equiv="X-UA-Compatible"
-    content="IE=edge"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>${escapeHtml(title)}</title>
 </head>
 
@@ -231,7 +225,7 @@ function emailLayout(options: {
   style="
     margin: 0;
     padding: 0;
-    background-color: #f5f5f7;
+    background-color: #f4f5f8;
     font-family: ${FONT_FAMILY};
     -webkit-text-size-adjust: 100%;
   "
@@ -256,16 +250,12 @@ function emailLayout(options: {
     cellpadding="0"
     cellspacing="0"
     border="0"
-    style="
-      background-color: #f5f5f7;
-    "
+    style="background-color: #f4f5f8;"
   >
     <tr>
       <td
         align="center"
-        style="
-          padding: 48px 16px;
-        "
+        style="padding: 48px 16px 56px;"
       >
 
         <table
@@ -280,64 +270,111 @@ function emailLayout(options: {
           "
         >
 
-          <!-- Brand -->
+          <!-- Sportium Brand Header -->
           <tr>
             <td
               align="center"
-              style="
-                padding-bottom: 24px;
-              "
+              style="padding-bottom: 28px;"
             >
-              <span
-                style="
-                  font-family: ${FONT_FAMILY};
-                  font-size: 16px;
-                  font-weight: 700;
-                  color: #18181b;
-                  letter-spacing: -0.2px;
-                "
-              >
-                ${safeAppName}
-              </span>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 10px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td
+                          bgcolor="#0f1115"
+                          style="
+                            width: 34px;
+                            height: 34px;
+                            border-radius: 10px;
+                            text-align: center;
+                            vertical-align: middle;
+                          "
+                        >
+                          <span
+                            style="
+                              font-family: ${HEADING_FONT};
+                              font-size: 18px;
+                              font-weight: 900;
+                              color: #a3e635;
+                              line-height: 34px;
+                              display: inline-block;
+                            "
+                          >
+                            ST
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span
+                      style="
+                        font-family: ${HEADING_FONT};
+                        font-size: 21px;
+                        font-weight: 800;
+                        color: #0f1115;
+                        letter-spacing: -0.5px;
+                      "
+                    >
+                      ${safeAppName}
+                    </span>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Main Card -->
+          <!-- Main Card Container -->
           <tr>
             <td
               style="
                 background-color: #ffffff;
-                border: 1px solid #e7e7ec;
-                border-radius: 12px;
-                padding: 40px;
+                border: 1px solid #eaecf0;
+                border-radius: 24px;
+                padding: 44px 36px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
               "
             >
 
-              <!-- Label -->
-              <p
-                style="
-                  margin: 0 0 12px;
-                  font-family: ${FONT_FAMILY};
-                  font-size: 12px;
-                  font-weight: 700;
-                  color: #6d5dfc;
-                  letter-spacing: 0.08em;
-                  text-transform: uppercase;
-                "
-              >
-                ${escapeHtml(label)}
-              </p>
+              <!-- Category Badge (Sportium Lime Pill) -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td
+                    bgcolor="#f7fee7"
+                    style="
+                      padding: 5px 14px;
+                      border: 1px solid #d9f99d;
+                      border-radius: 9999px;
+                    "
+                  >
+                    <span
+                      style="
+                        font-family: ${FONT_FAMILY};
+                        font-size: 11px;
+                        font-weight: 700;
+                        color: #3f6212;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        display: inline-block;
+                      "
+                    >
+                      ${escapeHtml(label)}
+                    </span>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Heading -->
               <h1
                 style="
-                  margin: 0 0 16px;
-                  font-family: ${FONT_FAMILY};
-                  font-size: 28px;
-                  line-height: 1.25;
+                  margin: 0 0 14px;
+                  font-family: ${HEADING_FONT};
+                  font-size: 26px;
+                  line-height: 1.3;
                   font-weight: 700;
-                  color: #18181b;
-                  letter-spacing: -0.5px;
+                  color: #0f1115;
+                  letter-spacing: -0.4px;
                 "
               >
                 ${heading}
@@ -349,8 +386,8 @@ function emailLayout(options: {
                   margin: 0;
                   font-family: ${FONT_FAMILY};
                   font-size: 15px;
-                  line-height: 1.7;
-                  color: #66666f;
+                  line-height: 1.65;
+                  color: #525866;
                 "
               >
                 ${description}
@@ -358,12 +395,12 @@ function emailLayout(options: {
 
               ${content}
 
-              <!-- Security Footer -->
+              <!-- Security Footer Note -->
               <div
                 style="
                   margin-top: 32px;
-                  padding-top: 24px;
-                  border-top: 1px solid #ededf2;
+                  padding-top: 20px;
+                  border-top: 1px solid #f2f4f7;
                 "
               >
                 <p
@@ -372,7 +409,7 @@ function emailLayout(options: {
                     font-family: ${FONT_FAMILY};
                     font-size: 12px;
                     line-height: 1.6;
-                    color: #92929d;
+                    color: #858d9d;
                   "
                 >
                   ${footerText}
@@ -382,44 +419,41 @@ function emailLayout(options: {
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Global Footer -->
           <tr>
             <td
               align="center"
-              style="
-                padding-top: 24px;
-              "
+              style="padding-top: 28px;"
             >
 
               <p
                 style="
-                  margin: 0 0 6px;
+                  margin: 0 0 8px;
                   font-family: ${FONT_FAMILY};
-                  font-size: 11px;
+                  font-size: 12px;
                   line-height: 1.6;
-                  color: #9b9ba5;
+                  color: #858d9d;
                 "
               >
-                © ${new Date().getFullYear()} ${safeAppName}.
-                All rights reserved.
+                &copy; ${new Date().getFullYear()} ${safeAppName}. All rights reserved.
               </p>
 
               <p
                 style="
                   margin: 0;
                   font-family: ${FONT_FAMILY};
-                  font-size: 11px;
+                  font-size: 12px;
                   line-height: 1.6;
-                  color: #9b9ba5;
+                  color: #858d9d;
                 "
               >
                 Need help?
-
                 <a
                   href="mailto:${safeSupportEmail}"
                   style="
-                    color: #6d5dfc;
-                    text-decoration: none;
+                    color: #0f1115;
+                    font-weight: 600;
+                    text-decoration: underline;
                   "
                 >
                   ${safeSupportEmail}
@@ -441,7 +475,7 @@ function emailLayout(options: {
 }
 
 // ============================================================
-// Verification Email
+// 1. Verification Email
 // ============================================================
 
 export function verificationEmailTemplate(
@@ -449,7 +483,6 @@ export function verificationEmailTemplate(
   config: EmailTemplateConfig,
 ): string {
   const safeAppName = escapeHtml(config.appName);
-
   const expiration = formatExpiresIn(config.verificationExpiresIn);
 
   const content = `
@@ -464,30 +497,22 @@ export function verificationEmailTemplate(
 
   return emailLayout({
     appName: config.appName,
-
     supportEmail: config.supportEmail,
-
     title: `Verify your email | ${config.appName}`,
-
     preheader: 'Verify your email address to activate your account.',
-
     label: 'Email verification',
-
     heading: 'Verify your email address',
-
     description:
       `Thanks for creating an account with <strong>${safeAppName}</strong>. ` +
       'Please verify your email address to activate your account.',
-
     content,
-
     footerText:
       'If you did not create this account, you can safely ignore this email.',
   });
 }
 
 // ============================================================
-// Reset Password Email
+// 2. Reset Password Email
 // ============================================================
 
 export function resetPasswordEmailTemplate(
@@ -508,31 +533,22 @@ export function resetPasswordEmailTemplate(
 
   return emailLayout({
     appName: config.appName,
-
     supportEmail: config.supportEmail,
-
     title: `Reset your password | ${config.appName}`,
-
     preheader: 'Use this secure link to reset your password.',
-
     label: 'Password reset',
-
     heading: 'Reset your password',
-
     description:
       'We received a request to reset the password for your account. ' +
       'Use the button below to choose a new password.',
-
     content,
-
     footerText:
       'If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.',
   });
 }
 
 // ============================================================
-// Set Password Email
-// Member / Staff
+// 3. Set Password Email (Member / Staff Invitation)
 // ============================================================
 
 export function setPasswordEmailTemplate(
@@ -542,37 +558,41 @@ export function setPasswordEmailTemplate(
 ): string {
   const safeUsername = escapeHtml(username);
   const safeAppName = escapeHtml(config.appName);
-
   const expiration = formatExpiresIn(config.setPasswordExpiresIn);
 
   const content = `
     <div
       style="
         margin-top: 24px;
-        padding: 14px 16px;
-        background-color: #f8f8fb;
-        border: 1px solid #e8e8ef;
-        border-radius: 8px;
+        padding: 14px 18px;
+        background-color: #f9fafb;
+        border: 1px solid #eaecf0;
+        border-radius: 12px;
       "
     >
       <p
         style="
-          margin: 0;
+          margin: 0 0 4px;
           font-family: ${FONT_FAMILY};
-          font-size: 13px;
-          line-height: 1.6;
-          color: #666676;
+          font-size: 11px;
+          font-weight: 600;
+          color: #667085;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         "
       >
-        Username:
-
-        <strong
-          style="
-            color: #18181b;
-          "
-        >
-          ${safeUsername}
-        </strong>
+        Assigned Username
+      </p>
+      <p
+        style="
+          margin: 0;
+          font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+          font-size: 14px;
+          font-weight: 700;
+          color: #0f1115;
+        "
+      >
+        @${safeUsername}
       </p>
     </div>
 
@@ -587,30 +607,22 @@ export function setPasswordEmailTemplate(
 
   return emailLayout({
     appName: config.appName,
-
     supportEmail: config.supportEmail,
-
     title: `Set your password | ${config.appName}`,
-
     preheader: 'Your account is ready. Set your password to get started.',
-
     label: 'Account invitation',
-
     heading: `Welcome, ${safeUsername}`,
-
     description:
       `An account has been created for you on <strong>${safeAppName}</strong>. ` +
       'Set your password to activate your account and sign in.',
-
     content,
-
     footerText:
       'If you were not expecting this invitation, you can safely ignore this email.',
   });
 }
 
 // ============================================================
-// Email Change Verification
+// 4. Email Change Verification
 // ============================================================
 
 export function emailChangeTemplate(
@@ -631,24 +643,16 @@ export function emailChangeTemplate(
 
   return emailLayout({
     appName: config.appName,
-
     supportEmail: config.supportEmail,
-
     title: `Verify your new email | ${config.appName}`,
-
     preheader:
       'Verify this email address to complete your email change request.',
-
     label: 'Email change',
-
     heading: 'Verify your new email address',
-
     description:
       'We received a request to use this email address for your account. ' +
       'To complete the change, verify this email address using the button below.',
-
     content,
-
     footerText:
       'If you did not request this email change, you can safely ignore this email. Your current email address will remain unchanged.',
   });
