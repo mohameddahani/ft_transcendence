@@ -19,7 +19,8 @@ export interface FeedbackItem {
   content: string;
   rating: number;
   sentiment?: SentimentType | null;
-  sentimentType?: number | string | null;
+  sentimentType?: SentimentType | null;
+  sentimentScore?: number | string | null;
   feedbackStatus: FeedbackStatus;
   resolvedAt?: string | null;
   resolvedBy?: string | null;

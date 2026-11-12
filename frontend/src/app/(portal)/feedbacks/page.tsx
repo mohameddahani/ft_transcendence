@@ -42,9 +42,13 @@ import {
 } from "@/components/ui/avatar";
 
 // 5 stars with an angry text, or 1 star with a happy one: worth a second look
-const starsDisagree = (f: FeedbackItem) =>
-  (f.rating >= 4 && f.sentiment === "NEGATIVE") ||
-  (f.rating <= 2 && f.sentiment === "POSITIVE");
+const starsDisagree = (f: FeedbackItem) => {
+  const sentiment = f.sentimentType || f.sentiment;
+  return (
+    (f.rating >= 4 && sentiment === "NEGATIVE") ||
+    (f.rating <= 2 && sentiment === "POSITIVE")
+  );
+};
 
 function AdminStaffFeedbackView() {
   const { t } = useTranslation();
@@ -75,7 +79,6 @@ function AdminStaffFeedbackView() {
         statsPromise.catch(() => null),
         fetchAllFeedbacks(1, pageSize),
       ]);
-      console.log(pageData);
       setFeedbackStats(statsData);
       setFeedbacks(pageData);
       setCurrentPage(1);
@@ -105,8 +108,9 @@ function AdminStaffFeedbackView() {
     };
     if (!feedbackStats) {
       for (const f of feedbacks) {
-        if (f.sentiment && bySentiment[f.sentiment] !== undefined) {
-          bySentiment[f.sentiment] += 1;
+        const sentiment = f.sentimentType || f.sentiment;
+        if (sentiment && bySentiment[sentiment] !== undefined) {
+          bySentiment[sentiment] += 1;
         } else {
           bySentiment.NONE += 1;
         }
@@ -170,7 +174,6 @@ function AdminStaffFeedbackView() {
     try {
       const pageData = await fetchAllFeedbacks(newPage, pageSize);
       setFeedbacks(pageData);
-      console.log(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -232,8 +235,8 @@ function AdminStaffFeedbackView() {
       `"${f.member?.firstName || ""} ${f.member?.lastName || ""}"`,
       `"${f.member?.userName || ""}"`,
       f.rating,
-      f.sentiment ?? "",
-      f.sentimentType ?? "",
+      f.sentimentType ?? f.sentiment ?? "",
+      f.sentimentScore ?? "",
       f.feedbackStatus,
       `"${(f.content || "").replace(/"/g, '""')}"`,
       `"${(f.resolutionNote || "").replace(/"/g, '""')}"`,
@@ -661,7 +664,7 @@ function AdminStaffFeedbackView() {
                     )}
 
                     {/* Sentiment Badge */}
-                    {renderSentimentBadge(item.sentiment, item.sentimentType)}
+                    {renderSentimentBadge(item.sentimentType || item.sentiment, item.sentimentScore)}
 
                     {/* Status Badge */}
                     {renderFeedbackStatusBadge(item.feedbackStatus)}

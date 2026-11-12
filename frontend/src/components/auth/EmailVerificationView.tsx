@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -31,7 +31,7 @@ interface EmailVerificationViewProps {
   role?: EmailVerificationRole;
 }
 
-export default function EmailVerificationView({ role: propRole }: EmailVerificationViewProps) {
+function EmailVerificationContent({ role: propRole }: EmailVerificationViewProps) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { token, isReady } = useAuthToken();
@@ -209,5 +209,21 @@ export default function EmailVerificationView({ role: propRole }: EmailVerificat
         )}
       </div>
     </SimpleAuthShell>
+  );
+}
+
+export default function EmailVerificationView(props: EmailVerificationViewProps) {
+  return (
+    <Suspense
+      fallback={
+        <SimpleAuthShell>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="size-8 animate-spin text-toota-primary" />
+          </div>
+        </SimpleAuthShell>
+      }
+    >
+      <EmailVerificationContent {...props} />
+    </Suspense>
   );
 }

@@ -36,5 +36,9 @@ GRANT SELECT (admin_id, day_of_week, start_time, end_time, is_closed) ON working
 
 GRANT SELECT (admin_id, start_date, end_date, start_time, end_time) ON special_hours TO :"ai_user";
 
+GRANT SELECT (user_id, plan_id, subscription_status, expires_at) ON subscriptions TO :"ai_user";
+
+GRANT SELECT (id, is_active) ON plans TO :"ai_user";
+
 ALTER DEFAULT PRIVILEGES FOR ROLE :"USER" IN SCHEMA public
     REVOKE ALL ON TABLES FROM :"ai_user";
