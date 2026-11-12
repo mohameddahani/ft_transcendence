@@ -169,6 +169,8 @@ model PlanDuration {
   planId String @map("plan_id")
   plan   Plan   @relation(fields: [planId], references: [id])
 
+  isActive Boolean @default(true) @map("is_active")
+
   subscriptions Subscription[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -376,6 +378,8 @@ model MembershipPlanDuration {
 
   membershipPlanId String         @map("membership_plan_id")
   membershipPlan   MembershipPlan @relation(fields: [membershipPlanId], references: [id])
+
+  isActive Boolean @default(true) @map("is_active")
 
   memberships Membership[]
 
