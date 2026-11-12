@@ -1,7 +1,5 @@
 # Sportium Monitoring Stack
 
-Oct 12, 2026 · @hi claude
-
 How Prometheus, Grafana, and Alertmanager work together to observe and alert on Sportium services.
 
 ## What each tool is
