@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -13,7 +14,11 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MembersService } from './members.service';
-import { Role } from '@/generated/prisma/enums';
+import {
+  AccountStatus,
+  MembershipStatus,
+  Role,
+} from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { UpdateMemberDto } from './dtos/update-member.dto';
@@ -86,8 +91,26 @@ export class AdminMembersController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'accountStatus',
+      new ParseEnumPipe(AccountStatus, { optional: true }),
+    )
+    accountStatus?: AccountStatus,
+    @Query(
+      'membershipStatus',
+      new ParseEnumPipe(MembershipStatus, { optional: true }),
+    )
+    membershipStatus?: MembershipStatus,
+    @Query('search') search?: string,
   ) {
-    return this.membersService.findAll(accessTokenPayload, page, limit);
+    return this.membersService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      accountStatus,
+      membershipStatus,
+      search,
+    );
   }
 
   // * Get All Stats of Memebers (Admin)

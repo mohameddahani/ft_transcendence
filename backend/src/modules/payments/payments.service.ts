@@ -16,6 +16,7 @@ export class PaymentsService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    _search?: string,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -23,9 +24,24 @@ export class PaymentsService {
         accessTokenPayload,
       );
 
+    // * remove spaces
+    const search = _search?.trim();
+
     const payments = await this.prisma.payment.findMany({
       where: {
         adminId: adminId,
+
+        // * Search Filter
+        ...(search
+          ? {
+              member: {
+                OR: [
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                ],
+              },
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,

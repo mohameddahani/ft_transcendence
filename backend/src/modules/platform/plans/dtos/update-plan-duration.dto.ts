@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -37,4 +38,14 @@ export class UpdatePlanDurationDto {
     description: 'Price',
   }) // * Swagger Document
   price?: number;
+
+  // * Is Active
+  @IsBoolean()
+  @IsOptional()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: true,
+    description: 'is this Duration active',
+  }) // * Swagger Document
+  isActive?: boolean;
 }

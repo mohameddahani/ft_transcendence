@@ -46,8 +46,9 @@ export class OwnerSubscriptionsController {
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ) {
-    return this.subscriptionsService.findAll(page, limit);
+    return this.subscriptionsService.findAll(page, limit, search);
   }
 
   // * Get All Stats of subscriptions (Owner)

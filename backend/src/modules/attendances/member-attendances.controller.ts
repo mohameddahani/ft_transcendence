@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -13,7 +14,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AttendancesService } from './attendances.service';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { Role } from '@/generated/prisma/enums';
+import { AttendanceMethod, Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 
@@ -31,11 +32,17 @@ export class MemberAttendancesController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'attendanceMethod',
+      new ParseEnumPipe(AttendanceMethod, { optional: true }),
+    )
+    attendanceMethod?: AttendanceMethod,
   ) {
     return this.attendancesService.findAllAttendanceByMember(
       accessTokenPayload.id,
       page,
       limit,
+      attendanceMethod,
     );
   }
 
