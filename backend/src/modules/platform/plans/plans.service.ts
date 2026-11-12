@@ -176,6 +176,25 @@ export class PlansService {
       throw new ConflictException('Plan Duration is Duplicate');
     }
 
+    // * Check if status of duration will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any admin use this duration before desactive it
+        const NumAdmins = await this.prisma.subscription.count({
+          where: {
+            planId: duration.planId,
+            planDurationId: duration.id,
+            subscriptionStatus: SubscriptionStatus.ACTIVE,
+          },
+        });
+        if (NumAdmins > 0) {
+          throw new BadRequestException(
+            `The Are ${NumAdmins} Admin Use This Duration`,
+          );
+        }
+      }
+    }
+
     // * Update data.
     const updateDuration = await this.prisma.planDuration.update({
       where: {

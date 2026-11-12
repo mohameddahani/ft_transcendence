@@ -69,6 +69,9 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GYMTOKEN_ADDRESS: ${NEXT_PUBLIC_GYMTOKEN_ADDRESS}
+        NEXT_PUBLIC_FORWARDER_ADDRESS: ${NEXT_PUBLIC_FORWARDER_ADDRESS}
     image: frontend:latest
     container_name: frontend
     restart: unless-stopped

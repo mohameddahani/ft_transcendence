@@ -30,11 +30,13 @@ export class AdminVisitsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ) {
     return this.visitsService.findAllVisitsToday(
       accessTokenPayload,
       page,
       limit,
+      search,
     );
   }
 
