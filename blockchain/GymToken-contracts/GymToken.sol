@@ -50,7 +50,6 @@ contract GymToken is ERC20("GymToken", "G"), Ownable(msg.sender), ERC2771Context
     mapping(address => purchases[]) internal purchasesClinet;
 
 
-    event SubscriptionPaid(address indexed client, address indexed GymOwner, uint256 amount);
     event ProductBought(address indexed client, address indexed GymOwner, uint256 ProductId, uint256 quantity);
     event changeStatusSale(address indexed  gymOwner, sales sale, bool delivered);
     event addProductSucc(address indexed GymMarketplace, string productName, string description, uint256 stok, uint256 price);
@@ -59,12 +58,6 @@ contract GymToken is ERC20("GymToken", "G"), Ownable(msg.sender), ERC2771Context
 
     function rewardTokenSubscription(address recipient, uint256 amount) external onlyOwner {
         _mint(recipient, amount * 10 ** decimals());
-    }
-
-    function paySubscription(address GymOwner, uint256 amount) external {
-        address clinet = _msgSender();
-        _transfer(clinet, GymOwner, amount);
-        emit SubscriptionPaid(clinet, GymOwner, amount);
     }
 
     function addProduct(uint256 _ProductId, string memory _name, string memory _description, uint256 _stok, uint256 _price, string[] memory _productImages) external {
