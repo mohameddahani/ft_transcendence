@@ -181,7 +181,7 @@ flowchart LR
 │   ├── nginx/              # Reverse proxy and TLS
 │   │   ├── conf.d/
 │   │   └── nginx.conf
-│   ├── redis/				# Redis configuration
+│   ├── redis/              # Redis configuration
 │   └── docker-compose.yml
 ├── frontend/               # Main web application (Next.js)
 │   ├── public/
