@@ -1,10 +1,8 @@
 // Set this to the address of the contract deployed from contracts/GymToken.sol.
 export const CONTRACT_ADDRESS =
-  process.env.GYMTOKEN_ADDRESS ||
-  "0xabF153598239aC40BB6d02884c8aB4e49FFD76E5";
+  process.env.NEXT_PUBLIC_GYMTOKEN_ADDRESS?? '';
 export const FORWARDER_ADDRESS =
-  process.env.FORWARDER_ADDRESS ||
-  "0xEF708a83a8dE406e6b619bFaA638E02A6F454B97";
+  process.env.NEXT_PUBLIC_FORWARDER_ADDRESS?? '';
 export const GASLESS_ENABLED = Boolean(
   CONTRACT_ADDRESS && FORWARDER_ADDRESS
 );
