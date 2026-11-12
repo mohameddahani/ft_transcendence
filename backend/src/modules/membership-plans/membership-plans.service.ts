@@ -172,6 +172,26 @@ export class MembershipPlansService {
       throw new NotFoundException('Duration Membership Plan Not Found!');
     }
 
+    // * Check if status of membership plan duration will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any member use this membership plan before desactive it
+        const NumMembers = await this.prisma.membership.count({
+          where: {
+            adminId: adminId,
+            membershipPlanId: membershipPlan.id,
+            membershipPlanDurationId: duration.id,
+            membershipStatus: MembershipStatus.ACTIVE,
+          },
+        });
+        if (NumMembers > 0) {
+          throw new BadRequestException(
+            `The Are ${NumMembers} Member Use This Membership Plan`,
+          );
+        }
+      }
+    }
+
     // * check if Duration is Duplicate in Plan
     if (data.durationDays !== undefined && data.price !== undefined) {
       const existingMembershipPlanDuration =
