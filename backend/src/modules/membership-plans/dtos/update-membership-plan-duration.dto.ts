@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -32,6 +33,16 @@ export class UpdateMembershipPlanDurationDto {
   @IsNotEmpty()
   @ApiProperty({ example: 300, description: 'Price' }) // * Swagger Document
   price?: number;
+
+  // * Is Active
+  @IsBoolean()
+  @IsOptional()
+  @IsNotEmpty()
+  @ApiProperty({
+    example: true,
+    description: 'is this membership duration active',
+  }) // * Swagger Document
+  isActive?: boolean;
 
   // * priceByG
   @IsInt()
