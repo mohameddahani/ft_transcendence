@@ -26,6 +26,9 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG NEXT_PUBLIC_GYMTOKEN_ADDRESS
+ARG NEXT_PUBLIC_FORWARDER_ADDRESS
+
 RUN npm run build
 
 # ==============================================================================

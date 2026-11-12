@@ -35,7 +35,6 @@ import QrScannerModal from "@/components/check-in/QrScannerModal";
 import VisitDetailsModal from "@/components/check-in/VisitDetailsModal";
 import SuccessCelebrationModal from "@/components/check-in/SuccessCelebrationModal";
 import Pagination from "@/components/ui/Pagination";
-import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -63,18 +62,17 @@ export default function CheckInPage() {
   const { companyName, role } = useCurrentUser();
 
   // State
-  const [allVisits, setAllVisits] = useState<TodayVisit[]>([]);
-  const [pagedVisits, setPagedVisits] = useState<TodayVisit[]>([]);
+  const [visits, setVisits] = useState<TodayVisit[]>([]);
   const [visitStats, setVisitStats] = useState<VisitStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "READY" | "CHECKED_IN">("ALL");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 20;
 
   // Active Modals state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -189,7 +187,7 @@ export default function CheckInPage() {
         role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
       const [statsData, initialPage, plansData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchTodayVisits(1, pageSize),
+        fetchTodayVisits(1, pageSize, activeSearch),
         fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       const loadedPlans = Array.isArray(plansData) ? plansData : [];
@@ -197,9 +195,7 @@ export default function CheckInPage() {
       setVisitStats(statsData);
 
       const enrichedInitial = initialPage.map((v) => enrichVisitWithPlan(v, loadedPlans));
-
-      setAllVisits(enrichedInitial);
-      setPagedVisits(enrichedInitial);
+      setVisits(enrichedInitial);
       setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -210,79 +206,117 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize, t, enrichVisitWithPlan, role]);
+  }, [pageSize, t, enrichVisitWithPlan, role, activeSearch]);
 
   useEffect(() => {
     loadVisits();
   }, [loadVisits]);
 
-  // Handle page changes with explicit API calls
+  // Handle Search Submission (click button or press Enter)
+  const handleSearchSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = searchInput.trim();
+    setActiveSearch(query);
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchTodayVisits(1, pageSize, query);
+      const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+      setVisits(enriched);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadVisitsFailed") || "Failed to load today's visits roster.");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  // Handle Clear Search
+  const handleClearSearch = async () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchTodayVisits(1, pageSize, "");
+      const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+      setVisits(enriched);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadVisitsFailed") || "Failed to load visits roster");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsPageLoading(true);
+    try {
+      const statsPromise =
+        role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
+      const [statsData, pageData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchTodayVisits(currentPage, pageSize, activeSearch),
+      ]);
+      setVisitStats(statsData);
+      const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+      setVisits(enriched);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadVisitsFailed") || "Failed to load today's visits roster.");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage);
-    if (!searchTerm && statusFilter === "ALL") {
-      setIsPageLoading(true);
-      try {
-        const pageData = await fetchTodayVisits(newPage, pageSize);
-        const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
-        setPagedVisits(enriched);
-        setAllVisits(enriched);
-      } catch {
-        // fail gracefully
-      } finally {
-        setIsPageLoading(false);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchTodayVisits(newPage, pageSize, activeSearch);
+      const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
+      setVisits(enriched);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadVisitsFailed") || "Failed to load visits roster");
       }
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
   // Statistics from dedicated stats endpoint
   const stats = useMemo(() => {
     return {
-      total: visitStats?.total ?? allVisits.length,
-      ready: visitStats?.readyCount ?? allVisits.filter((v) => v.visitStatus === "READY").length,
-      checkedIn: visitStats?.checkedInCount ?? allVisits.filter((v) => v.visitStatus === "CHECKED_IN").length,
+      total: visitStats?.total ?? visits.length,
+      ready: visitStats?.readyCount ?? visits.filter((v) => v.visitStatus === "READY").length,
+      checkedIn: visitStats?.checkedInCount ?? visits.filter((v) => v.visitStatus === "CHECKED_IN").length,
     };
-  }, [visitStats, allVisits]);
+  }, [visitStats, visits]);
 
-  // Filtered visits
-  const isFiltering = Boolean(searchTerm || statusFilter !== "ALL");
-  const filteredVisits = useMemo(() => {
-    return allVisits.filter((v) => {
-      const member = v.member;
-      const fullName = `${member.firstName || ""} ${member.lastName || ""}`.toLowerCase();
-      const email = (member.email || "").toLowerCase();
-      const phone = (member.phoneNumber || "").toLowerCase();
-      const plan = (v.membership?.plan?.planName || "").toLowerCase();
-
-      // Search match
-      if (
-        searchTerm &&
-        !fullName.includes(searchTerm.toLowerCase()) &&
-        !email.includes(searchTerm.toLowerCase()) &&
-        !phone.includes(searchTerm.toLowerCase()) &&
-        !plan.includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Status match
-      if (statusFilter !== "ALL" && v.visitStatus !== statusFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allVisits, searchTerm, statusFilter]);
-
-  const totalItems = isFiltering ? filteredVisits.length : (visitStats?.total ?? allVisits.length);
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-
-  const displayedVisits = useMemo(() => {
+  const isFiltering = Boolean(activeSearch);
+  const totalItems = useMemo(() => {
     if (isFiltering) {
-      const start = (currentPage - 1) * pageSize;
-      return filteredVisits.slice(start, start + pageSize);
+      if (visits.length < pageSize) {
+        return (currentPage - 1) * pageSize + visits.length;
+      }
+      return currentPage * pageSize + 1;
     }
-    return pagedVisits;
-  }, [isFiltering, filteredVisits, pagedVisits, currentPage, pageSize]);
+    return visitStats?.total ?? visits.length;
+  }, [isFiltering, visits.length, currentPage, pageSize, visitStats?.total]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Manual Check-In action
   const handleManualCheckIn = async (memberId: string) => {
@@ -292,7 +326,7 @@ export default function CheckInPage() {
       toast.success(t("checkInSuccess") || "Member checked in successfully!");
 
       // Find the visit for celebration
-      const found = allVisits.find((v) => v.member.id === memberId);
+      const found = visits.find((v) => v.member.id === memberId);
       if (found) {
         const updated = enrichVisitWithPlan(
           { ...found, visitStatus: "CHECKED_IN" as const },
@@ -302,8 +336,15 @@ export default function CheckInPage() {
         setCelebrationMethod("MANUAL");
       }
 
-      // Reload roster
-      await loadVisits();
+      // Reload current roster & refresh stats
+      const statsPromise =
+        role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
+      const [statsData, pageData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchTodayVisits(currentPage, pageSize, activeSearch),
+      ]);
+      setVisitStats(statsData);
+      setVisits(pageData.map((v) => enrichVisitWithPlan(v, plans)));
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -326,11 +367,15 @@ export default function CheckInPage() {
       setIsScannerOpen(false);
 
       // Re-load current page and refresh stats
-      const currentPageData = await fetchTodayVisits(currentPage, pageSize);
+      const statsPromise =
+        role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
+      const [statsData, currentPageData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchTodayVisits(currentPage, pageSize, activeSearch),
+      ]);
+      setVisitStats(statsData);
       const enrichedFresh = currentPageData.map((v) => enrichVisitWithPlan(v, plans));
-      setAllVisits(enrichedFresh);
-      setPagedVisits(enrichedFresh);
-      loadVisits();
+      setVisits(enrichedFresh);
 
       // Find recently updated visit for celebration
       const newlyCheckedIn = enrichedFresh.find((v) => v.visitStatus === "CHECKED_IN");
@@ -431,12 +476,12 @@ export default function CheckInPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={loadVisits}
-              disabled={isLoading}
+              onClick={handleRefresh}
+              disabled={isLoading || isPageLoading}
               className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
             >
               <RefreshCw
-                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+                className={`size-3.5 me-2 ${isLoading || isPageLoading ? "animate-spin" : ""}`}
               />
               <span>{t("refresh") || "Refresh"}</span>
             </Button>
@@ -573,71 +618,51 @@ export default function CheckInPage() {
 
       {/* Filter & Search Bar Card */}
       <Card className="toota-card border-none p-4 sm:p-5">
-        {/* Search & Select Controls */}
-        <div className="flex flex-col md:flex-row items-center gap-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row items-center gap-3"
+        >
           {/* Search Input */}
           <div className="relative flex-1 w-full min-w-[240px]">
             <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="text"
-              placeholder={`${t("searchCheckInPlaceholder") || "Search members by name, email, phone, or plan..."}`}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              placeholder={`${t("searchCheckInPlaceholder") || "Search by first or last name..."}`}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
-          {/* Status Select Dropdown */}
-          <div className="w-full md:w-52 shrink-0">
-            <CustomSelect
-              value={statusFilter}
-              onChange={(val) => {
-                setStatusFilter(val as "ALL" | "READY" | "CHECKED_IN");
-                setCurrentPage(1);
-              }}
-              aria-label={t("status") || "Status"}
-              options={[
-                {
-                  value: "ALL",
-                  label:
-                    t("allVisitsCount", { count: stats.total }) ||
-                    `All Visits (${stats.total})`,
-                },
-                {
-                  value: "READY",
-                  label:
-                    t("awaitingCheckInCount", { count: stats.ready }) ||
-                    `Awaiting Check-in (${stats.ready})`,
-                },
-                {
-                  value: "CHECKED_IN",
-                  label:
-                    t("checkedInCount", { count: stats.checkedIn }) ||
-                    `Admitted (${stats.checkedIn})`,
-                },
-              ]}
-            />
-          </div>
+          {/* Search Button and optional Clear Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Button
+              type="submit"
+              disabled={isLoading || isPageLoading}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer w-full sm:w-auto"
+            >
+              {isPageLoading ? (
+                <Loader2 className="size-3.5 animate-spin me-1.5" />
+              ) : (
+                <Search className="size-3.5 me-1.5" />
+              )}
+              <span>{t("search") || "Search"}</span>
+            </Button>
 
-          {/* Clear Filters Button */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!isFiltering}
-            onClick={() => {
-              setSearchTerm("");
-              setStatusFilter("ALL");
-              setCurrentPage(1);
-            }}
-            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
-          >
-            <X className="size-3.5 me-1.5" />
-            <span>{t("clearFilters") || "Clear Filters"}</span>
-          </Button>
-        </div>
+            {Boolean(activeSearch || searchInput) && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isPageLoading}
+                onClick={handleClearSearch}
+                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+              >
+                <X className="size-3.5 me-1.5" />
+                <span>{t("clear") || "Clear"}</span>
+              </Button>
+            )}
+          </div>
+        </form>
       </Card>
 
       {/* Attendance Roster Table Card */}
@@ -670,7 +695,7 @@ export default function CheckInPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && displayedVisits.length === 0 && (
+          {!isLoading && visits.length === 0 && (
             <div className="py-20 text-center px-4">
               <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
                 <Users className="size-7" />
@@ -679,7 +704,7 @@ export default function CheckInPage() {
                 {t("noVisitsFound") || "No visits found"}
               </h4>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                {searchTerm
+                {activeSearch
                   ? t("noMatchingSearchVisits") || "No members match your search criteria."
                   : t("noVisitsScheduledToday") || "No members are currently scheduled for check-in today."}
               </p>
@@ -687,7 +712,7 @@ export default function CheckInPage() {
           )}
 
           {/* Populated Table */}
-          {!isLoading && displayedVisits.length > 0 && (
+          {!isLoading && visits.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
@@ -709,7 +734,7 @@ export default function CheckInPage() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-border/40 text-xs">
-                {displayedVisits.map((visit) => {
+                {visits.map((visit) => {
                   const member = visit.member;
                   const fullName =
                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||

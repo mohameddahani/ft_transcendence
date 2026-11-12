@@ -9,7 +9,7 @@ export default function ThemeToggle() {
   useEffect(() => {
     const syncTheme = () => {
       const savedTheme =
-        localStorage.getItem("toota-theme") || localStorage.getItem("theme");
+        localStorage.getItem("theme");
       const prefersDark =
         typeof window !== "undefined" &&
         window.matchMedia &&
@@ -49,7 +49,6 @@ export default function ThemeToggle() {
     }
 
     localStorage.setItem("theme", mode);
-    localStorage.setItem("toota-theme", mode);
     setIsDark(nextIsDark);
     window.dispatchEvent(new Event("themechange"));
   };

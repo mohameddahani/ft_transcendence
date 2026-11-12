@@ -17,20 +17,30 @@ export async function POST(req: NextRequest) {
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
-      return NextResponse.json(data || { message: "Failed to verify new email address" }, {
-        status: backendRes.status,
-      });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof data === "object" && data !== null
+            ? data
+            : { message: "Failed to verify new email address" }),
+        },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(
       data || { message: "Email changed successfully!" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error confirming email change:", error);
+  } catch {
     return NextResponse.json(
-      { message: "Failed to verify new email address on backend service" },
-      { status: 500 }
+      {
+        _isError: true,
+        statusCode: 500,
+        message: "Failed to verify new email address on backend service",
+      },
+      { status: 200 }
     );
   }
 }

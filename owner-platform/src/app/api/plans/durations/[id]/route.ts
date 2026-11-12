@@ -37,8 +37,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       { message: "Plan duration updated successfully" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error updating plan duration:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to update plan duration on backend service" },
       { status: 500 }

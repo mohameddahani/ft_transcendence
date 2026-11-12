@@ -57,7 +57,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
     <div
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+        "inline-flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/50",
         className
       )}
       {...props}
@@ -79,10 +79,10 @@ function TabsTrigger({ className, value, onClick, ...props }: TabsTriggerProps) 
       data-slot="tabs-trigger"
       data-state={isSelected ? "active" : "inactive"}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
         isSelected
-          ? "bg-background text-foreground shadow-xs font-semibold"
-          : "hover:bg-background/50 hover:text-foreground text-muted-foreground",
+          ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-semibold"
+          : "hover:bg-white/60 dark:hover:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400 font-medium",
         className
       )}
       onClick={(e) => {

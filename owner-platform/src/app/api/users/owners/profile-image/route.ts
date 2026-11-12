@@ -59,8 +59,7 @@ export async function POST(req: NextRequest) {
       { message: "Profile image updated successfully", data },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to upload profile image to server" },
       { status: 500 }
@@ -106,8 +105,7 @@ export async function DELETE(req: NextRequest) {
       { message: "Profile image removed successfully", data },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error deleting profile image:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to delete profile image on server" },
       { status: 500 }

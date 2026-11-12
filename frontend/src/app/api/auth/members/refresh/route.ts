@@ -3,6 +3,7 @@ import {
   performTokenRefresh,
   setAuthCookies,
   clearAuthCookies,
+  createProxyResponse,
 } from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
@@ -19,18 +20,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (!refreshToken) {
-      return NextResponse.json(
+      return createProxyResponse(
         { message: "Refresh token is missing or not provided" },
-        { status: 401 }
+        401
       );
     }
 
     const result = await performTokenRefresh(refreshToken);
 
     if (result.error || !result.newAccessToken) {
-      const response = NextResponse.json(
+      const response = createProxyResponse(
         { message: "Failed to refresh member session or token expired" },
-        { status: 401 }
+        401
       );
       return clearAuthCookies(response);
     }
@@ -44,11 +45,10 @@ export async function POST(req: NextRequest) {
       accessToken: result.newAccessToken,
       refreshToken: result.newRefreshToken,
     });
-  } catch (error: unknown) {
-    console.error("Member refresh proxy handler error:", error);
-    return NextResponse.json(
+  } catch {
+    return createProxyResponse(
       { message: "Internal server error during session refresh" },
-      { status: 500 }
+      500
     );
   }
 }

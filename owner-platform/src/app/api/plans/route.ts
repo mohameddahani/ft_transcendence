@@ -30,7 +30,16 @@ export async function GET(req: NextRequest) {
 
     if (!backendRes.ok) {
       const errorData = await backendRes.json().catch(() => ({}));
-      return NextResponse.json(errorData, { status: backendRes.status });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof errorData === "object" && errorData !== null
+            ? errorData
+            : { message: String(errorData) }),
+        },
+        { status: 200 }
+      );
     }
 
     const data = await backendRes.json();
@@ -42,8 +51,7 @@ export async function GET(req: NextRequest) {
       page: Number(page),
       limit: Number(limit),
     });
-  } catch (error) {
-    console.error("Error fetching plans from backend:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to retrieve plans from backend service" },
       { status: 500 }
@@ -82,7 +90,16 @@ export async function POST(req: NextRequest) {
 
     if (!createPlanRes.ok) {
       const errorData = await createPlanRes.json().catch(() => ({}));
-      return NextResponse.json(errorData, { status: createPlanRes.status });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: createPlanRes.status,
+          ...(typeof errorData === "object" && errorData !== null
+            ? errorData
+            : { message: String(errorData) }),
+        },
+        { status: 200 }
+      );
     }
 
     // 2. Fetch the newly created plan to get its ID
@@ -117,15 +134,14 @@ export async function POST(req: NextRequest) {
             price: Number(initialPrice),
           }),
         }
-      ).catch((err) => console.error("Failed to add initial duration:", err));
+      ).catch(() => {});
     }
 
     return NextResponse.json(
       { message: "Plan created successfully", plan: createdPlan },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Error creating plan:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to create plan on backend service" },
       { status: 500 }

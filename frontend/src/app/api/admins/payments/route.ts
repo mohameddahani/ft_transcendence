@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
-import { getAuthenticatedSession, attachSessionCookies } from "@/lib/server-auth";
+import {
+  getAuthenticatedSession,
+  attachSessionCookies,
+  createProxyResponse,
+} from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -10,7 +14,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
 
     const page = searchParams.get("page") || "1";
-    const limit = searchParams.get("limit") || "50";
+    const limit = searchParams.get("limit") || "20";
 
     const query = new URLSearchParams();
     query.set("page", page);
@@ -41,15 +45,9 @@ export async function GET(req: NextRequest) {
       return attachSessionCookies(res, newAccessToken);
     }
 
-    const res = NextResponse.json(backendRes.data, {
-      status: backendRes.status,
-    });
-    return attachSessionCookies(res, newAccessToken);
+    return createProxyResponse(backendRes.data, backendRes.status, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
-    return NextResponse.json(
-      { message: `Proxy error: ${message}` },
-      { status: 502 }
-    );
+    return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
   }
 }

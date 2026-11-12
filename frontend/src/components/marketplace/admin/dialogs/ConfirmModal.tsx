@@ -1,4 +1,4 @@
-import { Button } from "@/components/marketplace/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/marketplace/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 export function ConfirmModal({
   title,
@@ -29,23 +29,42 @@ export function ConfirmModal({
         if (!open) onClose();
       }}
     >
-      <DialogContent onClose={onClose}>
+      <DialogContent onClose={onClose} className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-destructive">{title}</DialogTitle>
-          <DialogDescription>{body}</DialogDescription>
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-rose-600 dark:text-rose-400">
+                {title}
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                {body}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={busy}>
+        <DialogFooter className="mt-6 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={busy}
+            className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+          >
             Cancel
           </Button>
           <Button
+            type="button"
             variant="destructive"
             disabled={busy}
             onClick={() => void onConfirm()}
+            className="toota-pill h-10 px-6 text-xs font-semibold cursor-pointer bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
           >
-            {busy && <Loader2 className="size-4 animate-spin mr-1.5" />}
-            Remove product
+            {busy && <Loader2 className="size-3.5 animate-spin mr-2" />}
+            Confirm Delete
           </Button>
         </DialogFooter>
       </DialogContent>

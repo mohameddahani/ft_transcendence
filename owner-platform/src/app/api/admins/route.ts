@@ -6,16 +6,18 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10", 10));
-    const search = searchParams.get("search")?.toLowerCase().trim() || "";
-    const status = searchParams.get("status") || "ALL";
-    const verified = searchParams.get("verified") || "ALL";
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20", 10));
+    const search = searchParams.get("search")?.trim() || "";
 
     const userToken = req.cookies.get("auth_token")?.value;
 
-    // Fetch full dataset from backend to determine true total count
+    let backendPath = `/api/owners/users?page=${page}&limit=${limit}`;
+    if (search) {
+      backendPath += `&search=${encodeURIComponent(search)}`;
+    }
+
     const backendRes = await fetchFromBackend(
-      "/api/owners/users?page=1&limit=10000",
+      backendPath,
       userToken,
       {
         method: "GET",
@@ -36,54 +38,38 @@ export async function GET(req: NextRequest) {
 
     if (!backendRes.ok) {
       const errorData = await backendRes.json().catch(() => ({}));
-      return NextResponse.json(errorData, { status: backendRes.status });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof errorData === "object" && errorData !== null
+            ? errorData
+            : { message: String(errorData) }),
+        },
+        { status: 200 }
+      );
     }
 
-    const data = await backendRes.json();
-    const rawUsers: AdminUser[] = Array.isArray(data) ? data : [];
+    const data = (await backendRes.json()) as
+      | AdminUser[]
+      | { users?: AdminUser[]; data?: AdminUser[]; total?: number };
+    const rawUsers: AdminUser[] = Array.isArray(data)
+      ? data
+      : data.users || data.data || [];
 
-    // Filter by search, status, and verified
-    const filteredUsers = rawUsers.filter((u) => {
-      const fullName = `${u.firstName || ""} ${u.lastName || ""}`.trim().toLowerCase();
-      const userName = (u.userName || "").toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      const company = (u.companyName || "").toLowerCase();
-      const phone = (u.phoneNumber || "").toLowerCase();
-
-      const matchesSearch =
-        !search ||
-        fullName.includes(search) ||
-        userName.includes(search) ||
-        email.includes(search) ||
-        company.includes(search) ||
-        phone.includes(search);
-
-      const matchesStatus = status === "ALL" || u.accountStatus === status;
-
-      const matchesVerified =
-        verified === "ALL" ||
-        (verified === "VERIFIED" && u.isAccountVerified) ||
-        (verified === "UNVERIFIED" && !u.isAccountVerified);
-
-      return matchesSearch && matchesStatus && matchesVerified;
-    });
-
-    const total = filteredUsers.length;
+    const total = Array.isArray(data)
+      ? (rawUsers.length < limit ? (page - 1) * limit + rawUsers.length : page * limit + 1)
+      : (data.total ?? rawUsers.length);
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
-    // Dynamic slice for requested page & limit
-    const startIndex = (page - 1) * limit;
-    const paginatedUsers = filteredUsers.slice(startIndex, startIndex + limit);
-
     return NextResponse.json({
-      users: paginatedUsers,
+      users: rawUsers,
       total,
       page,
       limit,
       totalPages,
     });
-  } catch (error) {
-    console.error("Error fetching admins from backend:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to retrieve admins from backend service" },
       { status: 500 }

@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
         validateStatus: () => true,
       }
     );
-  } catch (error) {
-    console.error("Backend member logout proxy error:", error);
+  } catch {
+    // Ignore backend logout errors - cookie clearing must succeed
   }
 
   const response = NextResponse.json(

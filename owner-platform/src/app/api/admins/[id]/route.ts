@@ -33,8 +33,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     const user = await backendRes.json();
     return NextResponse.json(user, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching admin details from backend:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to retrieve admin details from backend service" },
       { status: 500 }

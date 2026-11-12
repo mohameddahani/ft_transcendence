@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import axios from "axios";
+import { createProxyResponse } from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -7,6 +8,9 @@ export async function PATCH(req: NextRequest) {
   try {
     const token = req.cookies.get("auth_token")?.value;
     const body = await req.json();
+
+    // Guard: Backend rejects edit-profile requests that contain email
+    delete body.email;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -30,14 +34,9 @@ export async function PATCH(req: NextRequest) {
       }
     );
 
-    return NextResponse.json(backendRes.data, {
-      status: backendRes.status,
-    });
+    return createProxyResponse(backendRes.data, backendRes.status);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
-    return NextResponse.json(
-      { message: `Proxy error: ${message}` },
-      { status: 502 }
-    );
+    return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
   }
 }

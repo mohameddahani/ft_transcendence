@@ -440,7 +440,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
               />
             </svg>
           </div>
-          <span className="legal-brand-name">GymFlow</span>
+          <span className="legal-brand-name">Sportium</span>
         </Link>
 
         <p className="legal-page-eyebrow">Legal Documents</p>
@@ -483,7 +483,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
           aria-labelledby="tab-privacy"
         >
           <div className="legal-doc-intro">
-            GymFlow is committed to protecting your personal data. This policy
+            Sportium is committed to protecting your personal data. This policy
             explains what we collect, why we collect it, and how you can
             control it. <strong>We never sell personal data to third parties.</strong>
           </div>
@@ -493,10 +493,10 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <p className="legal-section-num">01</p>
             <h2 className="legal-h2">Who We Are</h2>
             <p className="legal-p">
-              GymFlow is a gym management platform that connects gym owners,
+              Sportium is a gym management platform that connects gym owners,
               staff, and members in a single system. The platform is operated by
-              the GymFlow team (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
-              For the purposes of this policy, GymFlow acts as the{" "}
+              the Sportium team (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
+              For the purposes of this policy, Sportium acts as the{" "}
               <strong>data controller</strong> for super-admin and gym-admin
               account data, and as a <strong>data processor</strong> on behalf
               of gym administrators for member data they manage.
@@ -678,7 +678,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
                 gym. They cannot access data belonging to another gym.
               </li>
               <li className="legal-li">
-                <strong>GymFlow super-admins</strong> — may access any data on
+                <strong>Sportium super-admins</strong> — may access any data on
                 the platform for support, compliance, and operational purposes.
               </li>
               <li className="legal-li">
@@ -829,11 +829,11 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <div className="legal-contact-block">
               <div>
                 <div className="label">Platform</div>
-                <div className="value">GymFlow</div>
+                <div className="value">Sportium</div>
               </div>
               <div>
                 <div className="label">Email</div>
-                <div className="value">privacy@gymflow.app</div>
+                <div className="value">privacy@sportium.io</div>
               </div>
               <div>
                 <div className="label">Subject line</div>
@@ -859,7 +859,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
           aria-labelledby="tab-terms"
         >
           <div className="legal-doc-intro">
-            These terms govern your use of GymFlow. By accessing or using the
+            These terms govern your use of Sportium. By accessing or using the
             platform you agree to them.{" "}
             <strong>If you do not agree, do not use the platform.</strong>
           </div>
@@ -870,11 +870,11 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <h2 className="legal-h2">Definitions</h2>
             <ul className="legal-ul">
               <li className="legal-li">
-                <strong>&quot;Platform&quot;</strong> — the GymFlow web
+                <strong>&quot;Platform&quot;</strong> — the Sportium web
                 application and all associated services.
               </li>
               <li className="legal-li">
-                <strong>&quot;GymFlow&quot; / &quot;we&quot;</strong> — the team
+                <strong>&quot;Sportium&quot; / &quot;we&quot;</strong> — the team
                 that operates and maintains the platform.
               </li>
               <li className="legal-li">
@@ -890,7 +890,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
                 a gym managed on the platform.
               </li>
               <li className="legal-li">
-                <strong>&quot;Super-Admin&quot;</strong> — GymFlow team members
+                <strong>&quot;Super-Admin&quot;</strong> — Sportium team members
                 with full administrative access.
               </li>
               <li className="legal-li">
@@ -916,7 +916,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
               You are responsible for keeping your login credentials
               confidential. You must notify us immediately at the contact
               address in Section 9 if you suspect unauthorised access to your
-              account. GymFlow will not be liable for any loss arising from
+              account. Sportium will not be liable for any loss arising from
               unauthorised use of your account where you have failed to keep your
               credentials secure.
             </p>
@@ -989,13 +989,13 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <h2 className="legal-h2">Membership &amp; Payments</h2>
             <p className="legal-p">
               Gym memberships and their associated fees are set by the Gym
-              Admin, not by GymFlow. GymFlow is not a party to the financial
+              Admin, not by Sportium. Sportium is not a party to the financial
               relationship between a gym and its members. Payment disputes,
               refunds, and billing inquiries must be addressed directly with the
               relevant gym.
             </p>
             <p className="legal-p">
-              GymFlow does not process, store, or have access to any payment
+              Sportium does not process, store, or have access to any payment
               card data. Any payment processing is handled outside the platform
               by the gym.
             </p>
@@ -1010,12 +1010,12 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <p className="legal-p">
               You retain ownership of any content you upload to the platform,
               including profile images and gym information. By uploading
-              content, you grant GymFlow a limited, non-exclusive licence to
+              content, you grant Sportium a limited, non-exclusive licence to
               store, display, and process that content solely to provide the
               service.
             </p>
             <p className="legal-p">
-              GymFlow does not claim ownership of member data entered by gym
+              Sportium does not claim ownership of member data entered by gym
               administrators. Gym admins are responsible for ensuring they have
               the right to upload and process the data of their members.
             </p>
@@ -1046,7 +1046,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <p className="legal-section-num">07</p>
             <h2 className="legal-h2">Limitation of Liability</h2>
             <p className="legal-p">
-              To the extent permitted by applicable law, GymFlow is not liable
+              To the extent permitted by applicable law, Sportium is not liable
               for:
             </p>
             <ul className="legal-ul">
@@ -1112,11 +1112,11 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
             <div className="legal-contact-block">
               <div>
                 <div className="label">Platform</div>
-                <div className="value">GymFlow</div>
+                <div className="value">Sportium</div>
               </div>
               <div>
                 <div className="label">Email</div>
-                <div className="value">legal@gymflow.app</div>
+                <div className="value">legal@sportium.io</div>
               </div>
               <div>
                 <div className="label">Subject line</div>
@@ -1128,7 +1128,7 @@ export default function LegalView({ initialTab = "privacy" }: LegalViewProps) {
 
         {/* Footer */}
         <div className="legal-doc-footer">
-          <span>&copy; 2026 GymFlow. All rights reserved.</span>
+          <span>&copy; 2026 Sportium. All rights reserved.</span>
           <span>Version 1.0 &nbsp;·&nbsp; Effective October 9, 2026</span>
         </div>
       </div>

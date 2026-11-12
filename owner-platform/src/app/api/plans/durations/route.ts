@@ -31,15 +31,23 @@ export async function POST(req: NextRequest) {
 
     if (!backendRes.ok) {
       const errorData = await backendRes.json().catch(() => ({}));
-      return NextResponse.json(errorData, { status: backendRes.status });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof errorData === "object" && errorData !== null
+            ? errorData
+            : { message: String(errorData) }),
+        },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(
       { message: "Plan duration added successfully" },
       { status: 201 }
     );
-  } catch (error) {
-    console.error("Error adding plan duration:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to add plan duration on backend service" },
       { status: 500 }
