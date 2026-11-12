@@ -22,6 +22,7 @@ import {
   Users,
   MessageSquareQuote,
   UserCheck,
+  Lock,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -222,7 +223,7 @@ function AdminStaffProfileView() {
       const payload: UpdateProfileInput = {
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
-        email: values.email.trim(),
+        // email: values.email.trim(),
         phoneNumber: values.phoneNumber.trim(),
         companyName: values.companyName.trim(),
         gender: values.gender,
@@ -1023,27 +1024,31 @@ function AdminStaffProfileView() {
 
           <CardContent className="p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Email */}
+              {/* Email (Read-Only - Changed via dedicated Email Change section) */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-medium text-toota-ink">
-                    {t("emailAddress", "Email Address")} <span className="text-rose-500">*</span>
+                    {t("emailAddress", "Email Address")}
                   </label>
-                  <span className="text-[10px] text-toota-muted">
-                    {t("changeEmailViaSection", "Use Email Change below")}
+                  <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                    <Lock className="size-2.5" />
+                    <span>{t("managedSeparately", "Changed via Email Change")}</span>
                   </span>
                 </div>
                 <div className="relative">
                   <Mail className="size-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                   <Input
                     type="email"
-                    {...register("email")}
+                    value={profile?.email || ""}
                     readOnly
                     disabled
                     title={t("useEmailChangeSection", "Use the dedicated Email Change section below to update your email")}
                     className="pl-10 rtl:pl-3.5 rtl:pr-10 h-10 bg-toota-inner/60 border-border/40 text-xs text-toota-muted opacity-80 cursor-not-allowed rounded-xl"
                   />
                 </div>
+                <p className="text-[11px] text-toota-muted">
+                  {t("emailChangeNote", "To update your login email, use the secure verification section below.")}
+                </p>
               </div>
 
               {/* Phone Number */}

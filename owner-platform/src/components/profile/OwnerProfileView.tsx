@@ -183,7 +183,6 @@ export default function OwnerProfileView() {
         lastName: data.lastName.trim(),
         gender: data.gender,
         birthDate: data.birthDate,
-        email: data.email.trim(),
         phoneNumber: data.phoneNumber.replace(/\s+/g, ""),
         companyName: data.companyName.trim(),
       };
@@ -401,24 +400,26 @@ export default function OwnerProfileView() {
                   <label className="block font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider">
                     Email Address
                   </label>
-                  <span className="text-[10px] text-on-surface-variant font-mono-data">
-                    Use section below to change
+                  <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant font-mono-data bg-surface-container-high px-1.5 py-0.5 rounded">
+                    <Lock className="size-2.5" />
+                    <span>Changed via Email Change below</span>
                   </span>
                 </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-on-surface-variant/50" />
                   <input
-                    {...register("email")}
                     type="email"
+                    value={profile?.email || ""}
                     readOnly
                     disabled
+                    title="Use the dedicated Email Change section below to update your email"
                     placeholder="mohamed@gmail.com"
                     className="w-full bg-surface-container-high/50 border border-outline-variant rounded pl-9 pr-3 py-2 font-body-md text-on-surface-variant opacity-80 cursor-not-allowed"
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
-                )}
+                <p className="text-[11px] text-on-surface-variant/70 mt-1">
+                  To update your login email, use the secure verification section below.
+                </p>
               </div>
 
               <div className="space-y-1">

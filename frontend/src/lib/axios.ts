@@ -42,7 +42,40 @@ const processQueue = (error: unknown) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If backend returned an error encapsulated with status 200 (to prevent red browser console network errors)
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      (response.data as { _isError?: boolean })._isError === true
+    ) {
+      const errorData = response.data as {
+        statusCode?: number;
+        message?: string | string[];
+        error?: string;
+      };
+      const status = errorData.statusCode || 400;
+      const message = Array.isArray(errorData.message)
+        ? errorData.message.join(", ")
+        : errorData.message || errorData.error || "Request failed";
+
+      const syntheticError = new AxiosError(
+        message,
+        String(status),
+        response.config,
+        response.request,
+        {
+          ...response,
+          status,
+          statusText: errorData.error || "Error",
+          data: errorData,
+        }
+      );
+
+      return Promise.reject(syntheticError);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
@@ -117,11 +150,14 @@ api.interceptors.response.use(
             : "/api/auth/admins/refresh";
 
         // Attempt to refresh the access token via Next.js proxy route
-        await axios.post(
+        const refreshRes = await axios.post(
           refreshEndpoint,
           {},
           { withCredentials: true }
         );
+        if (refreshRes.data?._isError) {
+          throw new Error("Session expired");
+        }
 
         // Refresh succeeded: process all queued requests and retry the original
         processQueue(null);

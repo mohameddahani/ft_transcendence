@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
+  compiler: {
+    removeConsole: true,
+  },
   images: {
     remotePatterns: [
       {

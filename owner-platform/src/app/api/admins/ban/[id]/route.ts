@@ -32,8 +32,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       { message: "User account suspended/banned successfully" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error banning user account:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to ban user account on backend service" },
       { status: 500 }

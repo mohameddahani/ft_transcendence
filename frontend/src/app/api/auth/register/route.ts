@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { createProxyResponse } from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -13,6 +14,10 @@ export async function POST(req: NextRequest) {
       },
       validateStatus: () => true, // Forward all status codes (200, 400, 401, 500)
     });
+
+    if (backendRes.status >= 400) {
+      return createProxyResponse(backendRes.data, backendRes.status);
+    }
 
     const res = NextResponse.json(backendRes.data, {
       status: backendRes.status,
@@ -29,11 +34,10 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error: unknown) {
-    console.error("Registration proxy error:", error);
     const message = error instanceof Error ? error.message : "Failed to connect to backend server";
-    return NextResponse.json(
+    return createProxyResponse(
       { message: `Proxy error: ${message}. Make sure backend is running on ${API_URL}` },
-      { status: 502 }
+      502
     );
   }
 }

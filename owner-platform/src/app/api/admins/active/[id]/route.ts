@@ -32,8 +32,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       { message: "User account activated successfully" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error activating user account:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to activate user account on backend service" },
       { status: 500 }

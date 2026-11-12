@@ -99,7 +99,7 @@ export default function AuthLayoutShell({
         {/* Footer */}
         <footer className="w-full max-w-[460px] text-center pt-8 mt-4">
           <p className="text-xs text-outline opacity-60">
-            {t("copyright", "© 2026 GymFlow SaaS. All rights reserved.")}
+            {t("copyright", "© 2026 Sportium SaaS. All rights reserved.")}
           </p>
         </footer>
       </section>

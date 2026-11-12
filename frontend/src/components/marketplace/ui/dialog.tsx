@@ -82,7 +82,7 @@ function DialogOverlay({ className, ...props }: React.HTMLAttributes<HTMLDivElem
     <div
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in-0 duration-200",
+        "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in-0 duration-200",
         className
       )}
       {...props}
@@ -131,7 +131,7 @@ function DialogContent({
           role="dialog"
           aria-modal="true"
           className={cn(
-            "relative z-50 grid w-full max-w-lg gap-4 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-xl duration-200 animate-in fade-in-0 zoom-in-95 max-h-[90vh] overflow-y-auto",
+            "relative z-50 grid w-full max-w-lg gap-5 rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 sm:p-7 text-zinc-900 dark:text-zinc-100 shadow-2xl duration-200 animate-in fade-in-0 zoom-in-95 max-h-[90vh] overflow-y-auto",
             className
           )}
           onClick={(e) => e.stopPropagation()}
@@ -141,7 +141,7 @@ function DialogContent({
           <button
             type="button"
             onClick={handleClose}
-            className="absolute top-4 right-4 rounded-sm p-1 text-muted-foreground opacity-70 transition-opacity hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+            className="absolute top-5 right-5 rounded-full p-1.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
           >
             <X className="size-4" />
             <span className="sr-only">Close</span>
@@ -156,7 +156,7 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)}
+      className={cn("flex flex-col space-y-1.5 text-start", className)}
       {...props}
     />
   );
@@ -166,7 +166,7 @@ function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   return (
     <div
       data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 pt-2", className)}
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2", className)}
       {...props}
     />
   );
@@ -176,7 +176,7 @@ function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingEl
   return (
     <h2
       data-slot="dialog-title"
-      className={cn("text-lg font-semibold leading-none tracking-tight text-foreground", className)}
+      className={cn("text-lg font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100", className)}
       {...props}
     />
   );

@@ -5,18 +5,18 @@ import { useMemberMarketplace } from "@/components/marketplace/hooks/useMemberMa
 import { shorten } from "@/lib/blockchain/marketplace-format";
 import {
   AlertTriangle,
-  Send,
+  ExternalLink,
+  Layers,
   RefreshCw,
+  Send,
   ShoppingBag,
   Store,
   Wallet,
-  Sparkles,
 } from "lucide-react";
-import { Badge } from "@/components/marketplace/ui/badge";
-import { Button } from "@/components/marketplace/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/marketplace/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/marketplace/ui/tabs";
-import { CHAIN_NAME, CONTRACT_ADDRESS, GASLESS_ENABLED } from "@/lib/blockchain/contract";
+import { CHAIN_NAME, CONTRACT_ADDRESS, EXPLORER_BASE, GASLESS_ENABLED } from "@/lib/blockchain/contract";
 import { MarketplaceTab } from "./MarketplaceTab";
 import { PurchasesTab } from "./PurchasesTab";
 import { TransferTab } from "../TransferTab";
@@ -46,134 +46,202 @@ export default function MarketplaceMemberView() {
   } = useMemberMarketplace();
 
   return (
-    <div className="space-y-8 max-w-container-max mx-auto pb-10">
-      {/* Top Banner / Actions Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
-            <ShoppingBag className="size-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-headline text-2xl font-bold text-on-surface">
-                Member Web3 Store
-              </h1>
-              <Badge variant="secondary" className="text-[10px] font-mono">
-                Decentralized
-              </Badge>
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+      {/* Overview & Action Header Card */}
+      <Card className="toota-card border-none">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100 shadow-2xs shrink-0">
+              <ShoppingBag className="size-5 text-toota-green" />
             </div>
-            <p className="text-xs text-on-surface-variant mt-0.5">
-              Decentralized Member Store & Token Commerce Hub
-            </p>
-          </div>
-        </div>
-
-        {/* Web3 Wallet State & Actions */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {!isSepolia && account && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs"
-              onClick={switchToSepolia}
-            >
-              <AlertTriangle className="size-3.5 mr-1" />
-              Switch to Sepolia
-            </Button>
-          )}
-
-          {account ? (
-            <div className="flex items-center gap-2.5 rounded-full border border-outline-variant bg-surface-container-low px-3.5 py-1.5 text-xs shadow-xs">
-              <span className="relative flex size-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-              </span>
-              <span className="font-mono text-on-surface-variant">
-                {shorten(account)}
-              </span>
-              <span className="border-l border-outline-variant pl-2.5 font-bold text-primary">
-                {balanceLabel} {tokenSymbol}
-              </span>
-            </div>
-          ) : (
-            <Button variant="default" size="default" onClick={connect}>
-              <Wallet className="size-4 mr-1.5" />
-              Connect Wallet
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Hero & Stats Section */}
-      <section className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="p-6 bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary w-fit">
-            <Sparkles className="size-3.5" />
-            <span>On-Chain Member Platform</span>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface font-headline">
-            Order from your Gym using <span className="text-primary">{tokenSymbol} tokens</span>.
-          </h2>
-
-          <p className="mt-3 text-sm text-on-surface-variant leading-relaxed">
-            Buy supplements, gym apparel, send tokens, and track all your verified blockchain
-            purchases with <span className="font-semibold text-primary">{tokenSymbol} tokens</span> directly
-            on Sepolia with zero Ethereum gas fees.
-          </p>
-        </div>
-
-        {/* Balance & Contract Card */}
-        <Card className="border-outline-variant bg-surface-container-lowest shadow-sm rounded-2xl">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                GymToken Contract
-              </span>
-              <Badge variant="outline" className="font-mono text-[11px]">
-                {shorten(CONTRACT_ADDRESS)}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div>
-              <div className="text-3xl font-extrabold tracking-tight text-on-surface">
-                <span className="text-primary">{balanceLabel}</span>{" "}
-                <span className="text-xl font-semibold text-primary">
-                  {tokenSymbol}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Member Web3 Store
+                </h1>
+                <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
+                  Decentralized
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span>{CHAIN_NAME}</span>
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant mt-0.5">
-                Available token balance in your connected wallet
+              <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
+                Purchase merchandise, supplements and apparel with zero ETH gas fees using GymTokens
               </p>
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
-                <span className="text-[11px] font-medium text-on-surface-variant block mb-0.5">
-                  Network
-                </span>
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  {CHAIN_NAME}
-                </div>
-              </div>
+          {/* Web3 Wallet State & Actions */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {!isSepolia && account && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="toota-pill h-10 px-4 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                onClick={switchToSepolia}
+              >
+                <AlertTriangle className="size-3.5 mr-1.5" />
+                Switch to Sepolia
+              </Button>
+            )}
 
-              <div className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
-                <span className="text-[11px] font-medium text-on-surface-variant block mb-0.5">
-                  Token
+            {account ? (
+              <div className="flex items-center gap-2.5 rounded-full border border-zinc-200/80 dark:border-zinc-800 bg-toota-inner px-4 py-2 text-xs shadow-2xs">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                 </span>
-                <span className="text-xs font-semibold text-primary">
-                  GymToken ({tokenSymbol})
+                <span className="font-mono text-zinc-700 dark:text-zinc-300 font-medium">
+                  {shorten(account)}
+                </span>
+                <span className="border-l border-zinc-300 dark:border-zinc-700 pl-2.5 font-bold text-zinc-900 dark:text-zinc-100">
+                  {balanceLabel} <span className="text-toota-green">{tokenSymbol}</span>
                 </span>
               </div>
+            ) : (
+              <Button
+                variant="default"
+                onClick={connect}
+                className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
+              >
+                <Wallet className="size-4 mr-2" />
+                Connect Wallet
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isRefreshing}
+              onClick={() => {
+                void refresh();
+              }}
+              className="toota-pill size-10 p-0 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
+              title="Refresh DApp data"
+            >
+              <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin text-toota-green" : ""}`} />
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Real Live 4-Card Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Metric 1: Token Balance */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              My Token Balance
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+              <Wallet className="size-5 text-toota-green" />
             </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-3xl font-semibold tracking-tight text-toota-ink">
+                {balanceLabel}{" "}
+                <span className="text-lg font-medium text-toota-green">
+                  {tokenSymbol}
+                </span>
+              </span>
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                Live
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              Ready for instant checkout
+            </p>
           </CardContent>
         </Card>
-      </section>
 
-      {/* Dashboard Card with Tabs */}
-      <Card className="border-outline-variant bg-surface-container-lowest shadow-sm rounded-2xl overflow-hidden">
+        {/* Metric 2: Available Products */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              Store Catalogue
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+              <Store className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-3xl font-semibold tracking-tight text-toota-ink">
+                {products.length}
+              </span>
+              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
+                Products
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              Available from current gym merchant
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Metric 3: My Orders */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              My Purchases
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+              <ShoppingBag className="size-5 text-toota-green" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-3xl font-semibold tracking-tight text-toota-ink">
+                {purchases.length}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span>On-Chain</span>
+              </span>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              Verified orders on Ethereum Sepolia
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Metric 4: Smart Contract */}
+        <Card className="toota-card border-none flex flex-col justify-between">
+          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+              GymToken Contract
+            </span>
+            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
+              <Layers className="size-5" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="flex items-baseline justify-between">
+              <span className="font-mono text-sm font-semibold tracking-tight text-toota-ink">
+                {shorten(CONTRACT_ADDRESS)}
+              </span>
+              <a
+                href={`${EXPLORER_BASE}/address/${CONTRACT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-toota-muted hover:text-toota-green transition-colors"
+              >
+                <span>Explorer</span>
+                <ExternalLink className="size-3" />
+              </a>
+            </div>
+            <p className="text-xs text-toota-muted mt-2">
+              Gasless forwarder: {GASLESS_ENABLED ? "Active" : "Disabled"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Tabs Card */}
+      <Card className="toota-card border-none p-0 overflow-hidden">
         <Tabs
           value={tab}
           onValueChange={(val) =>
@@ -181,34 +249,21 @@ export default function MarketplaceMemberView() {
           }
           className="w-full"
         >
-          <div className="flex flex-wrap items-center justify-between border-b border-outline-variant px-5 py-3.5 gap-3">
-            <TabsList className="h-auto max-w-full flex-wrap bg-surface-container-low p-1 rounded-xl">
-              <TabsTrigger value="shop" className="gap-2">
-                <Store className="size-4" />
-                <span>Marketplace</span>
+          <div className="border-b border-zinc-200/80 dark:border-zinc-800 px-6 py-4">
+            <TabsList className="h-auto max-w-full flex-wrap">
+              <TabsTrigger value="shop">
+                <Store className="size-3.5" />
+                <span>Marketplace Catalog</span>
               </TabsTrigger>
-              <TabsTrigger value="purchases" className="gap-2">
-                <ShoppingBag className="size-4" />
-                <span>My Purchases</span>
+              <TabsTrigger value="purchases">
+                <ShoppingBag className="size-3.5" />
+                <span>My Purchases ({purchases.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="transfer" className="gap-2">
-                <Send className="size-4" />
-                <span>Send G</span>
+              <TabsTrigger value="transfer">
+                <Send className="size-3.5" />
+                <span>Send G Tokens</span>
               </TabsTrigger>
             </TabsList>
-
-            <Button
-              variant="outline"
-              size="icon"
-              title="Refresh DApp data"
-              disabled={isRefreshing}
-              onClick={() => void refresh()}
-              className="rounded-xl"
-            >
-              <RefreshCw
-                className={`size-4 ${isRefreshing ? "animate-spin text-primary" : ""}`}
-              />
-            </Button>
           </div>
 
           <MarketplaceTab
@@ -229,7 +284,13 @@ export default function MarketplaceMemberView() {
             tokenDecimals={tokenDecimals}
             tokenSymbol={tokenSymbol}
           />
-          <TransferTab transfer={transfer} tokenSymbol={tokenSymbol} balanceLabel={balanceLabel} account={account} isSepolia={isSepolia} />
+          <TransferTab
+            transfer={transfer}
+            tokenSymbol={tokenSymbol}
+            balanceLabel={balanceLabel}
+            account={account}
+            isSepolia={isSepolia}
+          />
         </Tabs>
       </Card>
 

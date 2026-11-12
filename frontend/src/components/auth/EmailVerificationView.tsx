@@ -1,29 +1,80 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import {
-  MailCheck,
-  CheckCircle2,
+  ShieldCheck,
+  UserCheck,
+  IdCard,
   AlertCircle,
   ArrowRight,
   Loader2,
-  ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { verifyEmail } from "@/lib/api/auth";
-import AuthLayoutShell from "@/components/auth/AuthLayoutShell";
+import SimpleAuthShell from "@/components/auth/SimpleAuthShell";
+import { PortalBadge } from "@/components/auth/AuthShell";
+import {
+  muted,
+  submitButton,
+  submitArrow,
+  forgotLink,
+} from "@/components/auth/authStyles";
 
-export default function EmailVerificationView() {
+export type EmailVerificationRole = "admin" | "staff" | "member";
+
+interface EmailVerificationViewProps {
+  role?: EmailVerificationRole;
+}
+
+export default function EmailVerificationView({ role: propRole }: EmailVerificationViewProps) {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const { token, isReady } = useAuthToken();
+
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Resolve role from props or query param (fallback to admin)
+  const role: EmailVerificationRole = useMemo(() => {
+    if (propRole) return propRole;
+    const queryRole = searchParams.get("role")?.toLowerCase();
+    if (queryRole === "staff") return "staff";
+    if (queryRole === "member") return "member";
+    return "admin";
+  }, [propRole, searchParams]);
+
+  const roleMeta = useMemo(() => {
+    switch (role) {
+      case "staff":
+        return {
+          badgeLabel: t("staffPortal", "Staff Portal"),
+          badgeIcon: <UserCheck className="size-3.5" />,
+          signInHref: "/staff/login",
+          title: t("verifyStaffEmailTitle", "Verify Staff Email"),
+        };
+      case "member":
+        return {
+          badgeLabel: t("memberPortal", "Member Portal"),
+          badgeIcon: <IdCard className="size-3.5" />,
+          signInHref: "/member/login",
+          title: t("verifyMemberEmailTitle", "Verify Member Email"),
+        };
+      case "admin":
+      default:
+        return {
+          badgeLabel: t("adminPortal", "Admin Portal"),
+          badgeIcon: <ShieldCheck className="size-3.5" />,
+          signInHref: "/login",
+          title: t("verifyEmailTitle", "Verify Your Email"),
+        };
+    }
+  }, [role, t]);
 
   const handleVerify = async () => {
     if (!token) {
@@ -56,84 +107,62 @@ export default function EmailVerificationView() {
   };
 
   return (
-    <AuthLayoutShell
-      heroTitle={t("verifyEmailHeroTitle", "Confirm Your GymFlow Account.")}
-      heroSubtitle={t(
-        "verifyEmailHeroSubtitle",
-        "Verify your administrative email address to unlock full club access, telemetry, and automated operations."
-      )}
-    >
-      <div className="w-full space-y-6">
-        {/* Portal Tag */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>{t("accountSecurity", "Account Verification")}</span>
+    <SimpleAuthShell>
+      <div className="space-y-6">
+        {/* Portal / Role Badge */}
+        <div>
+          <PortalBadge icon={roleMeta.badgeIcon} label={roleMeta.badgeLabel} />
         </div>
 
-        {/* Dynamic Card depending on State */}
-        {isSuccess ? (
-          /* SUCCESS STATE */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-emerald-500/30 shadow-xl space-y-5 text-center animate-in zoom-in-95 duration-200">
-            <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20">
-              <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-              <div className="relative w-full h-full rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t("verifiedBadge", "Email Confirmed")}</span>
-              </div>
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface">
-                {t("verifiedTitle", "Account Verified!")}
-              </h2>
-              <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto">
-                {t(
-                  "verifiedSubtitle",
-                  "Your email address has been successfully confirmed. You can now sign in to your administrator portal."
+        {/* Header */}
+        <div className="space-y-1.5">
+          <h1 className="font-headline text-2xl font-bold tracking-tight text-[var(--toota-ink)] sm:text-3xl">
+            {roleMeta.title}
+          </h1>
+          <p className={`text-sm leading-relaxed ${muted}`}>
+            {isSuccess
+              ? t(
+                  "emailVerifiedSuccessSubtitle",
+                  "Your email address has been verified. You may now continue to your portal."
+                )
+              : t(
+                  "verifyEmailDesc",
+                  "Click the button below to confirm your email address and activate your account."
                 )}
-              </p>
+          </p>
+        </div>
+
+        {/* Dynamic State: Success vs. Pending */}
+        {isSuccess ? (
+          /* SUCCESS STATE: Simple sentence without animations or celebrations */
+          <div className="space-y-5 pt-2">
+            <div className="rounded-2xl bg-emerald-500/10 p-4 text-sm font-medium text-emerald-800 ring-1 ring-emerald-500/20 dark:text-emerald-300">
+              {t(
+                "emailVerifiedSuccessSentence",
+                "Your email address has been verified successfully. You can now sign in to your account."
+              )}
             </div>
 
-            <Link
-              href="/login"
-              className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer block"
-            >
+            <Link href={roleMeta.signInHref} className={submitButton}>
               <span>{t("proceedToLogin", "Proceed to Sign In")}</span>
-              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+              <span className={submitArrow}>
+                <ArrowRight className="size-4 rtl:rotate-180" />
+              </span>
             </Link>
           </div>
         ) : (
-          /* IDLE / PENDING / ERROR STATE */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-outline-variant/60 shadow-xl space-y-6">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shadow-xs">
-              <MailCheck className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-1.5">
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface">
-                {t("verifyEmailTitle", "Verify Your Email")}
-              </h2>
-              <p className="text-xs sm:text-sm text-on-surface-variant">
-                {t(
-                  "verifyEmailDesc",
-                  "Thank you for registering with GymFlow! Click the button below to complete your registration and activate your administrator profile."
-                )}
-              </p>
-            </div>
-
-            {/* Token Warning if missing */}
+          /* PENDING / ACTION STATE */
+          <div className="space-y-5 pt-2">
+            {/* Missing token warning */}
             {isReady && !token && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/10 p-4 text-xs text-amber-800 ring-1 ring-amber-500/20 dark:text-amber-300">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 <div>
                   <p className="font-semibold">{t("noTokenTitle", "Missing verification token")}</p>
-                  <p className="text-[11px] opacity-90 mt-0.5">
+                  <p className="mt-0.5 text-[11px] opacity-90">
                     {t(
                       "noTokenDesc",
-                      "Please ensure you clicked the full link sent to your inbox. The link should include #token=..."
+                      "Please ensure you clicked the full link sent to your inbox."
                     )}
                   </p>
                 </div>
@@ -142,8 +171,8 @@ export default function EmailVerificationView() {
 
             {/* Error Message if API fails */}
             {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 rounded-2xl bg-red-500/10 p-4 text-xs text-red-700 ring-1 ring-red-500/20 dark:text-red-400">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
                 <p className="font-medium">{errorMessage}</p>
               </div>
             )}
@@ -153,34 +182,32 @@ export default function EmailVerificationView() {
               type="button"
               onClick={handleVerify}
               disabled={isVerifying || (isReady && !token)}
-              className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className={submitButton}
             >
               {isVerifying ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
                   <span>{t("verifyingEmail", "Verifying...")}</span>
-                </>
+                </span>
               ) : (
                 <>
                   <span>{t("confirmVerificationBtn", "Verify Email Address")}</span>
-                  <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                  <span className={submitArrow}>
+                    <ArrowRight className="size-4 rtl:rotate-180" />
+                  </span>
                 </>
               )}
             </button>
 
-            {/* Back to sign in option */}
+            {/* Back to sign in */}
             <div className="pt-2 text-center">
-              <Link
-                href="/login"
-                className="text-xs text-primary font-semibold hover:underline transition-all"
-              >
+              <Link href={roleMeta.signInHref} className={forgotLink}>
                 {t("returnToSignIn", "Return to Sign In")}
               </Link>
             </div>
           </div>
         )}
       </div>
-    </AuthLayoutShell>
+    </SimpleAuthShell>
   );
 }
-

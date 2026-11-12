@@ -129,10 +129,10 @@ export default function TopBar({
         title: t("navMarketplace") || "Marketplace",
       };
     }
-    if (pathname.startsWith("/gymflow-subscription")) {
+    if (pathname.startsWith("/sportium-subscription") || pathname.startsWith("/gymflow-subscription")) {
       return {
         section: t("account") || "Account",
-        title: t("navGymflowSubscription") || "Subscription",
+        title: t("navSportiumSubscription") || t("navGymflowSubscription") || "Sportium Subscription",
       };
     }
     if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {

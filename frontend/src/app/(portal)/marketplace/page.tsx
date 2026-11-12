@@ -10,8 +10,11 @@ export default function MarketplacePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <Loader2 className="size-8 text-toota-green animate-spin" />
+        <span className="text-xs font-medium text-toota-muted">
+          Loading Web3 Marketplace…
+        </span>
       </div>
     );
   }

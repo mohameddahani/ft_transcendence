@@ -25,8 +25,7 @@ export async function GET(
 
     const subscription = await backendRes.json();
     return NextResponse.json(subscription);
-  } catch (error) {
-    console.error("Error fetching subscription details:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to retrieve subscription details" },
       { status: 500 }

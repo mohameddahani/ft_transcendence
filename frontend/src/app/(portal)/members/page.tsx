@@ -40,7 +40,6 @@ import AddMemberModal from "@/components/members/AddMemberModal";
 import EditMemberModal from "@/components/members/EditMemberModal";
 import RenewMembershipModal from "@/components/members/RenewMembershipModal";
 import Pagination from "@/components/ui/Pagination";
-import CustomSelect from "@/components/ui/CustomSelect";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -64,24 +63,22 @@ import {
 } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 
-export default function MembershipsPage() {
+export default function MembersPage() {
   const { t } = useTranslation();
   const { role } = useCurrentUser();
   const [members, setMembers] = useState<BackendMember[]>([]);
-  const [pagedMembers, setPagedMembers] = useState<BackendMember[]>([]);
   const [memberStats, setMemberStats] = useState<MemberStats | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Filters & Search
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPlanId, setSelectedPlanId] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 20;
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -109,12 +106,11 @@ export default function MembershipsPage() {
         role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
       const [statsData, membersData, plansData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchMembers(1, pageSize),
+        fetchMembers(1, pageSize, activeSearch),
         fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       setMemberStats(statsData);
       setMembers(membersData);
-      setPagedMembers(membersData);
       setPlans(plansData);
       setCurrentPage(1);
     } catch (err: unknown) {
@@ -126,26 +122,88 @@ export default function MembershipsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [role, pageSize]);
+  }, [role, pageSize, activeSearch]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  // Handle Search Submission (click button or press Enter)
+  const handleSearchSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = searchInput.trim();
+    setActiveSearch(query);
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchMembers(1, pageSize, query);
+      setMembers(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to search members");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  // Handle Clear Search
+  const handleClearSearch = async () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchMembers(1, pageSize, "");
+      setMembers(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsPageLoading(true);
+    try {
+      const statsPromise =
+        role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
+      const [statsData, pageData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchMembers(currentPage, pageSize, activeSearch),
+      ]);
+      setMemberStats(statsData);
+      setMembers(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to refresh members");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage);
-    if (!searchTerm && !selectedStatus && !selectedPlanId) {
-      setIsPageLoading(true);
-      try {
-        const pageData = await fetchMembers(newPage, pageSize);
-        setPagedMembers(pageData);
-        setMembers(pageData);
-      } catch {
-        // fail gracefully
-      } finally {
-        setIsPageLoading(false);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchMembers(newPage, pageSize, activeSearch);
+      setMembers(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to load members from backend");
       }
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -180,62 +238,24 @@ export default function MembershipsPage() {
     };
   }, [menuAnchor]);
 
-  // Filtered members
-  const filteredMembers = useMemo(() => {
-    return members.filter((member) => {
-      const fullName = `${member.firstName || ""} ${member.lastName || ""}`.toLowerCase();
-      const email = (member.email || "").toLowerCase();
-      const username = (member.userName || "").toLowerCase();
-      const query = searchTerm.toLowerCase();
-
-      const matchesSearch =
-        fullName.includes(query) ||
-        email.includes(query) ||
-        username.includes(query);
-
-      // Status check (check active membership or first membership status or accountStatus)
-      const currentMembership =
-        member.memberships?.find((m) => m.membershipStatus === "ACTIVE") ||
-        member.memberships?.[0];
-      const membershipStatus = currentMembership?.membershipStatus;
-      const effectiveStatus = (
-        member.accountStatus === "BANNED"
-          ? "BANNED"
-          : member.accountStatus === "PENDING"
-          ? "PENDING"
-          : membershipStatus || member.accountStatus || "ACTIVE"
-      ).toUpperCase();
-      const matchesStatus = !selectedStatus || effectiveStatus === selectedStatus.toUpperCase();
-
-      // Plan check
-      const memberPlanId = currentMembership?.membershipPlanId;
-      const matchesPlan = !selectedPlanId || memberPlanId === selectedPlanId;
-
-      return matchesSearch && matchesStatus && matchesPlan;
-    });
-  }, [members, searchTerm, selectedStatus, selectedPlanId]);
-
-  // Paginated members
-  const isFiltering = Boolean(searchTerm || selectedStatus || selectedPlanId);
-  const totalItems = isFiltering ? filteredMembers.length : (memberStats?.total ?? members.length);
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const paginatedMembers = useMemo(() => {
+  const isFiltering = Boolean(activeSearch);
+  const totalItems = useMemo(() => {
     if (isFiltering) {
-      const start = (currentPage - 1) * pageSize;
-      return filteredMembers.slice(start, start + pageSize);
+      if (members.length < pageSize) {
+        return (currentPage - 1) * pageSize + members.length;
+      }
+      return currentPage * pageSize + 1;
     }
-    return pagedMembers;
-  }, [isFiltering, filteredMembers, pagedMembers, currentPage, pageSize]);
+    return memberStats?.total ?? members.length;
+  }, [isFiltering, members.length, currentPage, pageSize, memberStats?.total]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Statistics calculation based on dedicated stats endpoint
   const totalCount = memberStats?.total ?? members.length;
-  const activeCount = memberStats?.activeCount ?? members.filter((m) => {
-    if (m.accountStatus === "BANNED" || m.accountStatus === "PENDING") return false;
-    return (
-      m.memberships?.some((sub) => sub.membershipStatus === "ACTIVE") ||
-      (!m.memberships?.length && m.accountStatus === "ACTIVE")
-    );
-  }).length;
+  const activeCount = memberStats?.activeCount ?? members.filter(
+    (m) => (m.accountStatus || "ACTIVE").toUpperCase() === "ACTIVE"
+  ).length;
   const pendingCount = memberStats?.pendingCount ?? members.filter(
     (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
@@ -317,7 +337,7 @@ export default function MembershipsPage() {
 
   // Export to CSV
   const handleExportCSV = () => {
-    if (filteredMembers.length === 0) {
+    if (members.length === 0) {
       toast.info("No members available to export.");
       return;
     }
@@ -335,7 +355,7 @@ export default function MembershipsPage() {
       "Join Date",
     ];
 
-    const rows = filteredMembers.map((m) => {
+    const rows = members.map((m) => {
       const curMem =
         m.memberships?.find((sub) => sub.membershipStatus === "ACTIVE") ||
         m.memberships?.[0];
@@ -352,7 +372,7 @@ export default function MembershipsPage() {
           ? "BANNED"
           : m.accountStatus === "PENDING"
           ? "PENDING"
-          : curMem?.membershipStatus || m.accountStatus || "ACTIVE",
+          : "ACTIVE",
         curMem?.membershipPlan?.planName || curPlan?.planName || "None",
         m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "",
       ];
@@ -378,9 +398,6 @@ export default function MembershipsPage() {
     if (s === "ACTIVE") return t("active") || "Active";
     if (s === "PENDING") return t("pending") || "Pending";
     if (s === "BANNED") return t("banned") || "Banned";
-    if (s === "EXPIRED") return t("expired") || "Expired";
-    if (s === "CANCELLED") return t("cancelled") || "Cancelled";
-    if (s === "INACTIVE") return t("inactive") || "Inactive";
     return status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : "";
   };
 
@@ -401,15 +418,6 @@ export default function MembershipsPage() {
       return (
         <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
           <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-          <span>{label}</span>
-        </span>
-      );
-    }
-
-    if (s === "EXPIRED") {
-      return (
-        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
           <span>{label}</span>
         </span>
       );
@@ -456,7 +464,7 @@ export default function MembershipsPage() {
           <div>
             <div className="flex items-baseline gap-2">
               <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("membersTitle") || "Memberships"}
+                {t("membersTitle") || "Members"}
               </h1>
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
                 / {totalCount} {t("total") || "total"}
@@ -464,7 +472,7 @@ export default function MembershipsPage() {
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("membersSubtitle") ||
-                "Manage and monitor active subscriber tiers across the facility."}
+                "Manage and monitor registered club members across the facility."}
             </p>
           </div>
 
@@ -472,12 +480,12 @@ export default function MembershipsPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={loadData}
-              disabled={isLoading}
+              onClick={handleRefresh}
+              disabled={isLoading || isPageLoading}
               className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
             >
               <RefreshCw
-                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+                className={`size-3.5 me-2 ${isLoading || isPageLoading ? "animate-spin" : ""}`}
               />
               <span>{t("refresh") || "Refresh"}</span>
             </Button>
@@ -644,83 +652,53 @@ export default function MembershipsPage() {
         </Card>
       </div>
 
-      {/* Filter & Search Bar Card */}
+      {/* Search Input & Button Card */}
       <Card className="toota-card border-none p-4 sm:p-5">
-        {/* Search & Select Controls */}
-        <div className="flex flex-col md:flex-row items-center gap-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row items-center gap-3"
+        >
           {/* Search Input */}
           <div className="relative flex-1 w-full min-w-[240px]">
             <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="text"
-              placeholder={t("searchMembersPlaceholder") || "Search by name, email, or username..."}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              placeholder={t("searchMembersPlaceholder") || "Search by first or last name..."}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
-          {/* Plan Filter Dropdown */}
-          <div className="w-full md:w-56 shrink-0">
-            <CustomSelect
-              value={selectedPlanId}
-              onChange={(val) => {
-                setSelectedPlanId(String(val));
-                setCurrentPage(1);
-              }}
-              aria-label={t("planName") || "Plan"}
-              placeholder={t("allPlans", "All Plan Types")}
-              options={[
-                { value: "", label: t("allPlans", "All Plan Types") },
-                ...plans.map((p) => ({
-                  value: p.id,
-                  label: p.planName,
-                })),
-              ]}
-            />
-          </div>
+          {/* Search Button and optional Clear Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Button
+              type="submit"
+              disabled={isLoading || isPageLoading}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer w-full sm:w-auto"
+            >
+              {isPageLoading ? (
+                <Loader2 className="size-3.5 animate-spin me-1.5" />
+              ) : (
+                <Search className="size-3.5 me-1.5" />
+              )}
+              <span>{t("search") || "Search"}</span>
+            </Button>
 
-          {/* Status Filter Dropdown */}
-          <div className="w-full md:w-44 shrink-0">
-            <CustomSelect
-              value={selectedStatus}
-              onChange={(val) => {
-                setSelectedStatus(String(val));
-                setCurrentPage(1);
-              }}
-              aria-label={t("status") || "Status"}
-              placeholder={t("allStatuses") || "All Statuses"}
-              options={[
-                { value: "", label: t("allStatuses") || "All Statuses" },
-                { value: "ACTIVE", label: t("active") || "Active" },
-                { value: "PENDING", label: t("pending") || "Pending" },
-                { value: "EXPIRED", label: t("expired") || "Expired" },
-                { value: "CANCELLED", label: t("cancelled") || "Cancelled" },
-                { value: "BANNED", label: t("banned") || "Banned" },
-              ]}
-            />
+            {Boolean(activeSearch || searchInput) && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isPageLoading}
+                onClick={handleClearSearch}
+                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+              >
+                <X className="size-3.5 me-1.5" />
+                <span>{t("clear") || "Clear"}</span>
+              </Button>
+            )}
           </div>
-
-          {/* Clear Filters Button */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!isFiltering}
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedPlanId("");
-              setSelectedStatus("");
-              setCurrentPage(1);
-            }}
-            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
-          >
-            <X className="size-3.5 me-1.5" />
-            <span>{t("clearFilters") || "Clear Filters"}</span>
-          </Button>
-        </div>
+        </form>
       </Card>
 
       {/* Members Table Card */}
@@ -753,22 +731,22 @@ export default function MembershipsPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && paginatedMembers.length === 0 && (
+          {!isLoading && members.length === 0 && (
             <div className="py-20 text-center px-4">
               <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
                 <Users className="size-7" />
               </div>
               <h4 className="font-medium text-base text-toota-ink">
-                {members.length === 0
-                  ? t("noMembersYet") || "No members registered yet"
-                  : t("noMatchingMembers") || "No matching members found"}
+                {activeSearch
+                  ? t("noMatchingMembers") || "No members match your search criteria."
+                  : t("noMembersYet") || "No members registered yet"}
               </h4>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 mb-4 leading-relaxed">
-                {members.length === 0
-                  ? t("clickAddMember") || "Click 'Add New Member' to register your first gym subscriber."
-                  : t("adjustFilter") || "Try adjusting your search query, plan filter, or status filter."}
+                {activeSearch
+                  ? t("noMatchingSearchMembers") || "No registered members found matching this name."
+                  : t("clickAddMember") || "Click 'Add New Member' to register your first gym subscriber."}
               </p>
-              {members.length === 0 && (
+              {!activeSearch && (
                 <Button
                   type="button"
                   onClick={() => setIsAddModalOpen(true)}
@@ -782,7 +760,7 @@ export default function MembershipsPage() {
           )}
 
           {/* Populated Table */}
-          {!isLoading && paginatedMembers.length > 0 && (
+          {!isLoading && members.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
@@ -810,7 +788,7 @@ export default function MembershipsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-border/40 text-xs">
-                {paginatedMembers.map((member) => {
+                {members.map((member) => {
                   const memberName =
                     `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
                     member.userName ||
@@ -855,14 +833,13 @@ export default function MembershipsPage() {
                     : activeMembership?.membershipPlanDuration?.duration ||
                       "—";
 
-                  const membershipStatus = activeMembership?.membershipStatus;
-                  const status = (
-                    member.accountStatus === "BANNED"
+                  const rawAccountStatus = (member.accountStatus || "").toUpperCase();
+                  const status =
+                    rawAccountStatus === "BANNED"
                       ? "BANNED"
-                      : member.accountStatus === "PENDING"
+                      : rawAccountStatus === "PENDING"
                       ? "PENDING"
-                      : membershipStatus || member.accountStatus || "ACTIVE"
-                  ).toUpperCase();
+                      : "ACTIVE";
 
                   const startDate = activeMembership?.startDate
                     ? new Date(activeMembership.startDate).toLocaleDateString()

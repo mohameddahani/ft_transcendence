@@ -23,14 +23,13 @@ export default function SubscriptionsTable() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState<boolean>(false);
 
-  // Filters & Sorting
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [sortBy, setSortBy] = useState<string>("latest-start");
+  // Filters & Search
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [activeSearch, setActiveSearch] = useState<string>("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   const [totalSubscriptions, setTotalSubscriptions] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
 
@@ -52,9 +51,7 @@ export default function SubscriptionsTable() {
         params: {
           page: currentPage,
           limit: itemsPerPage,
-          search: searchQuery || undefined,
-          status: statusFilter !== "ALL" ? statusFilter : undefined,
-          sortBy: sortBy || undefined,
+          search: activeSearch || undefined,
         },
       });
 
@@ -70,7 +67,19 @@ export default function SubscriptionsTable() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter, sortBy]);
+  }, [currentPage, itemsPerPage, activeSearch]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchInput.trim());
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setCurrentPage(1);
+  };
 
   const [now] = useState(() => Date.now());
 
@@ -195,66 +204,45 @@ export default function SubscriptionsTable() {
         </button>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-surface-container border border-outline-variant p-3 sm:p-container-padding flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center rounded-lg">
+      {/* Search Bar Form */}
+      <form
+        onSubmit={handleSearchSubmit}
+        className="bg-surface-container border border-outline-variant p-3 sm:p-container-padding flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center rounded-lg"
+      >
         {/* Search Input */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-on-surface-variant/60" />
           <input
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search Company or Admin ID..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by subscription ID (e.g. 89f622a1)..."
             type="text"
             className="w-full bg-surface-container-high border border-outline-variant rounded-lg pl-9 pr-3 py-1.5 font-body-md text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-on-surface-variant/50"
           />
         </div>
 
-        {/* Filters Group (Status & Sort) */}
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4">
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap hidden sm:inline">
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full sm:w-auto bg-surface-container-high border border-outline-variant rounded px-2 sm:px-container-padding py-1.5 font-body-md text-xs sm:text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+        {/* Action Buttons: Search & Clear */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-1.5 bg-primary text-on-primary rounded text-body-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5"
+          >
+            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+            <span>Search</span>
+          </button>
+          {Boolean(activeSearch || searchInput) && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              disabled={loading}
+              className="px-3 py-1.5 bg-surface-container-high border border-outline-variant text-on-surface rounded text-body-sm font-medium hover:border-primary transition-colors cursor-pointer"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="PENDING">Pending</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-
-          {/* Sort Filter */}
-          <div className="flex items-center gap-2">
-            <label className="font-label-caps text-label-caps text-on-surface-variant uppercase font-bold tracking-wider whitespace-nowrap hidden sm:inline">
-              Sort By
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full sm:w-auto bg-surface-container-high border border-outline-variant rounded px-2 sm:px-container-padding py-1.5 font-body-md text-xs sm:text-body-md text-on-surface focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="latest-start">Latest Start</option>
-              <option value="renewal-date">Renewal Date</option>
-              <option value="company-az">Company A-Z</option>
-            </select>
-          </div>
+              Clear
+            </button>
+          )}
         </div>
-      </div>
+      </form>
 
       {/* Subscriptions List / Table Container */}
       <div className="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm">
@@ -272,8 +260,8 @@ export default function SubscriptionsTable() {
                 No subscriptions found
               </p>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                {searchQuery || statusFilter !== "ALL"
-                  ? "Try adjusting your search criteria or filter options."
+                {activeSearch
+                  ? "No subscriptions match your search criteria."
                   : "Click 'Activate Subscription' above to provision your first gym license."}
               </p>
             </div>
@@ -418,8 +406,8 @@ export default function SubscriptionsTable() {
                           No subscriptions found
                         </p>
                         <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-                          {searchQuery || statusFilter !== "ALL"
-                            ? "Try adjusting your search criteria or filter options."
+                          {activeSearch
+                            ? "No subscriptions match your search criteria."
                             : "Click 'Activate Subscription' above to provision your first gym license."}
                         </p>
                       </div>

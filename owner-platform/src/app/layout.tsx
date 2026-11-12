@@ -27,6 +27,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
               (function() {
                 try {
+                  var noop = function() {};
+                  window.console.error = noop;
+                  window.console.warn = noop;
+                  window.addEventListener('unhandledrejection', function(e) {
+                    e.preventDefault();
+                  });
+                  window.addEventListener('error', function(e) {
+                    e.preventDefault();
+                  });
                   var stored = localStorage.getItem('theme');
                   var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
                   if (isDark) {

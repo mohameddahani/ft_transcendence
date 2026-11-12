@@ -21,7 +21,14 @@ export async function POST(req: Request) {
 
       // If backend rejected credentials (401, 400, etc.)
       if (backendRes.status >= 400) {
-        return NextResponse.json(data, { status: backendRes.status });
+        return NextResponse.json(
+          {
+            _isError: true,
+            statusCode: backendRes.status,
+            ...(typeof data === "object" && data !== null ? data : { message: String(data) }),
+          },
+          { status: 200 }
+        );
       }
 
       // Check user role from backend user object and JWT access token
@@ -34,9 +41,11 @@ export async function POST(req: Request) {
       if (!isRoleOwner) {
         return NextResponse.json(
           {
+            _isError: true,
+            statusCode: 403,
             message: "Access denied. Only platform owner accounts are authorized to log into this portal.",
           },
-          { status: 403 }
+          { status: 200 }
         );
       }
 
@@ -89,12 +98,16 @@ export async function POST(req: Request) {
 
       return res;
     }
-  } catch (err) {
-    console.error("Backend login fetch error:", err);
+  } catch {
+    // Backend login fetch failed
   }
 
   return NextResponse.json(
-    { message: "Backend service unavailable. Please ensure the API is running or use valid credentials." },
-    { status: 401 }
+    {
+      _isError: true,
+      statusCode: 401,
+      message: "Backend service unavailable. Please ensure the API is running or use valid credentials.",
+    },
+    { status: 200 }
   );
 }

@@ -4,9 +4,14 @@ import { getApiEndpoint } from "@/lib/api/config";
 
 export async function fetchPayments(
   page = 1,
-  limit = 500
+  limit = 20,
+  search?: string
 ): Promise<BackendPayment[]> {
-  const url = getApiEndpoint(`/api/admins/payments?page=${page}&limit=${limit}`);
+  let endpoint = `/api/admins/payments?page=${page}&limit=${limit}`;
+  if (search && search.trim().length > 0) {
+    endpoint += `&search=${encodeURIComponent(search.trim())}`;
+  }
+  const url = getApiEndpoint(endpoint);
   const response = await api.get<
     BackendPayment[] | { payments?: BackendPayment[]; data?: BackendPayment[] }
   >(url);

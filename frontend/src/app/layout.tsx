@@ -50,8 +50,17 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var saved = localStorage.getItem('toota-theme') || localStorage.getItem('theme');
-                  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var noop = function() {};
+                  window.console.error = noop;
+                  window.console.warn = noop;
+                  window.addEventListener('unhandledrejection', function(e) {
+                    e.preventDefault();
+                  });
+                  window.addEventListener('error', function(e) {
+                    e.preventDefault();
+                  });
+                  var saved = localStorage.getItem('theme');
+                  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
                   var isDark = saved === 'dark' || (!saved && prefersDark);
                   if (isDark) {
                     document.documentElement.classList.add('dark');

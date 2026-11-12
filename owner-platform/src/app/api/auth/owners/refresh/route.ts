@@ -19,8 +19,12 @@ export async function POST(req: NextRequest) {
 
     if (!refreshToken) {
       return NextResponse.json(
-        { message: "Refresh token is missing or not provided" },
-        { status: 401 }
+        {
+          _isError: true,
+          statusCode: 401,
+          message: "Refresh token is missing or not provided",
+        },
+        { status: 200 }
       );
     }
 
@@ -37,23 +41,32 @@ export async function POST(req: NextRequest) {
           validateStatus: () => true,
         }
       )
-      .catch((err) => {
-        console.error("Backend refresh request error:", err);
+      .catch(() => {
         return null;
       });
 
     if (!backendRes) {
       return NextResponse.json(
-        { message: "Backend authentication service is unavailable" },
-        { status: 503 }
+        {
+          _isError: true,
+          statusCode: 503,
+          message: "Backend authentication service is unavailable",
+        },
+        { status: 200 }
       );
     }
 
     if (backendRes.status >= 400) {
       const errorData = backendRes.data || { message: "Failed to refresh session" };
       const response = NextResponse.json(
-        errorData,
-        { status: backendRes.status }
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof errorData === "object" && errorData !== null
+            ? errorData
+            : { message: String(errorData) }),
+        },
+        { status: 200 }
       );
 
       // Refresh token is invalid/revoked/expired -> clear cookies
@@ -110,11 +123,14 @@ export async function POST(req: NextRequest) {
     }
 
     return response;
-  } catch (error) {
-    console.error("Error in refresh route handler:", error);
+  } catch {
     return NextResponse.json(
-      { message: "An unexpected error occurred during token refresh" },
-      { status: 500 }
+      {
+        _isError: true,
+        statusCode: 500,
+        message: "An unexpected error occurred during token refresh",
+      },
+      { status: 200 }
     );
   }
 }
