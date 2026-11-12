@@ -5,6 +5,7 @@ import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -62,6 +63,24 @@ export class PlansController {
     @Body() body: UpdatePlanDurationDto,
   ) {
     return this.plansService.updatePlanDuration(id, body);
+  }
+
+  // * Delete a Plan Duration
+  @Delete('durations/:id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
+  removePlanDuration(@Param('id', ParseUUIDPipe) id: string) {
+    return this.plansService.removePlanDuration(id);
+  }
+
+  // * Delete a Plan
+  @Delete(':id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
+  @Roles([Role.OWNER])
+  removePlan(@Param('id', ParseUUIDPipe) id: string) {
+    return this.plansService.removePlan(id);
   }
 
   // * Get all Plan
