@@ -3,6 +3,7 @@ export interface PlanDuration {
   durationDays: number;
   price: number | string;
   planId: string;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -41,4 +42,5 @@ export interface UpdatePlanDurationDto {
   planId: string;
   durationDays?: number;
   price?: number;
+  isActive?: boolean;
 }

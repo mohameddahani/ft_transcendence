@@ -14,6 +14,7 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
@@ -22,6 +23,8 @@ import AddPlanModal from "./AddPlanModal";
 import EditPlanModal from "./EditPlanModal";
 import AddDurationModal from "./AddDurationModal";
 import EditDurationModal from "./EditDurationModal";
+import DeletePlanModal from "./DeletePlanModal";
+import DeleteDurationModal from "./DeleteDurationModal";
 import AnimatedCounter from "./AnimatedCounter";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +41,19 @@ export default function PlansDashboard() {
     plan: PlatformPlan;
     duration: PlanDuration;
   } | null>(null);
+
+  // Delete state
+  const [planToDelete, setPlanToDelete] = useState<PlatformPlan | null>(null);
+  const [durationToDelete, setDurationToDelete] = useState<{
+    plan: PlatformPlan;
+    duration: PlanDuration;
+  } | null>(null);
+  const [isDeletingPlan, setIsDeletingPlan] = useState(false);
+  const [isDeletingDuration, setIsDeletingDuration] = useState(false);
+
+  // Toggling state
   const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
+  const [togglingDurationId, setTogglingDurationId] = useState<string | null>(null);
 
   // Filters state
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,7 +95,7 @@ export default function PlansDashboard() {
     };
   }, [fetchPlans]);
 
-  // Toggle active status
+  // Toggle plan active status
   const handleToggleStatus = async (plan: PlatformPlan) => {
     if (togglingPlanId) return;
     setTogglingPlanId(plan.id);
@@ -99,8 +114,92 @@ export default function PlansDashboard() {
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         "Could not update plan status.";
       toast.error(msg);
+      void fetchPlans();
     } finally {
       setTogglingPlanId(null);
+    }
+  };
+
+  // Toggle duration active status
+  const handleToggleDurationStatus = async (
+    plan: PlatformPlan,
+    duration: PlanDuration
+  ) => {
+    if (togglingDurationId) return;
+    setTogglingDurationId(duration.id);
+
+    const newStatus = duration.isActive === false; // If false -> activate (true), else deactivate (false)
+    try {
+      await api.patch(`/api/plans/durations/${duration.id}`, {
+        planId: plan.id,
+        isActive: newStatus,
+      });
+
+      setPlans((prev) =>
+        prev.map((p) => {
+          if (p.id !== plan.id) return p;
+          return {
+            ...p,
+            durations: (p.durations || []).map((d) =>
+              d.id === duration.id ? { ...d, isActive: newStatus } : d
+            ),
+          };
+        })
+      );
+
+      toast.success(
+        `${duration.durationDays}-day duration is now ${newStatus ? "ACTIVE" : "INACTIVE"}`
+      );
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Could not update duration status.";
+      toast.error(msg);
+      void fetchPlans();
+    } finally {
+      setTogglingDurationId(null);
+    }
+  };
+
+  // Delete Plan
+  const handleDeletePlan = async () => {
+    if (!planToDelete) return;
+    setIsDeletingPlan(true);
+
+    try {
+      await api.delete(`/api/plans/${planToDelete.id}`);
+      toast.success(`Plan "${planToDelete.planName}" deleted successfully!`);
+      setPlanToDelete(null);
+      await fetchPlans();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Could not delete plan.";
+      toast.error(msg);
+    } finally {
+      setIsDeletingPlan(false);
+    }
+  };
+
+  // Delete Duration
+  const handleDeleteDuration = async () => {
+    if (!durationToDelete) return;
+    setIsDeletingDuration(true);
+
+    try {
+      await api.delete(`/api/plans/durations/${durationToDelete.duration.id}`);
+      toast.success(
+        `${durationToDelete.duration.durationDays}-day duration deleted successfully!`
+      );
+      setDurationToDelete(null);
+      await fetchPlans();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Could not delete duration.";
+      toast.error(msg);
+    } finally {
+      setIsDeletingDuration(false);
     }
   };
 
@@ -157,194 +256,210 @@ export default function PlansDashboard() {
 
   return (
     <div className="space-y-layout-margin pb-12">
-      {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end gap-3 sm:gap-layout-margin mb-layout-margin">
+      {/* Top Banner / Actions Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-low border border-outline-variant p-layout-margin rounded-xl">
         <div>
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Platform Plans
+          <div className="flex items-center gap-2">
+            <h1 className="font-headline-lg text-title-lg sm:text-headline-lg text-on-surface font-bold tracking-tight">
+              Subscription Plans
             </h1>
-            <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-              / {plans.length} total
+            <span className="bg-primary/10 text-primary text-label-sm font-semibold px-2 py-0.5 rounded-full border border-primary/20">
+              {plans.length} Tiers
             </span>
           </div>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
-            Configure subscription tiers and member thresholds for SaaS clients.
+          <p className="font-body-md text-body-sm sm:text-body-md text-on-surface-variant mt-1">
+            Configure pricing tiers, member thresholds, and platform billing cycles.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-element-gap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
-            onClick={fetchPlans}
+            onClick={() => void fetchPlans()}
             disabled={loading}
-            className="flex-1 sm:flex-initial justify-center flex items-center gap-element-gap px-3 py-2 bg-surface-container-high border border-outline-variant rounded-md text-on-surface hover:border-primary transition-colors text-body-sm cursor-pointer disabled:opacity-50"
-            title="Refresh plans"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface rounded-lg transition-colors font-body-sm text-body-sm font-medium cursor-pointer"
+            title="Refresh plans list"
           >
             <RefreshCw className={cn("size-4", loading && "animate-spin text-primary")} />
-            <span>Refresh</span>
+            <span className="hidden sm:inline">Refresh</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsAddPlanOpen(true)}
-            className="flex-1 sm:flex-initial justify-center bg-primary text-on-primary px-container-padding h-row-height-md flex items-center gap-unit rounded-lg hover:opacity-90 active:scale-95 transition-all font-headline-sm text-headline-sm font-bold shadow-md cursor-pointer border-none"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary rounded-lg transition-colors font-body-sm text-body-sm font-semibold cursor-pointer shadow-sm"
           >
             <Plus className="size-4" />
-            <span>Add New Plan</span>
+            <span>Create Plan</span>
           </button>
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding mb-layout-margin flex flex-col md:flex-row gap-3 sm:gap-container-padding rounded-lg">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-unit text-on-surface-variant">
-            <Filter className="size-4 text-on-surface-variant" />
-            <span className="font-label-caps text-label-caps uppercase font-bold tracking-wider">
-              Filters:
-            </span>
+      {/* Filter and Search Controls */}
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="size-4 text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search plans by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-9 pr-4 py-2 text-body-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
+
+        {/* Filter & Sort Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Status Tabs */}
+          <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-1">
+            {(["ALL", "ACTIVE", "INACTIVE"] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={cn(
+                  "px-3 py-1 rounded text-body-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer",
+                  statusFilter === status
+                    ? "bg-primary text-on-primary"
+                    : "text-on-surface-variant hover:text-on-surface"
+                )}
+              >
+                {status}
+              </button>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-surface-container-high border border-outline-variant text-xs sm:text-body-sm px-2 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-
+          {/* Sort By Dropdown */}
+          <div className="flex items-center gap-1.5 bg-surface-container-low border border-outline-variant rounded-lg px-2.5 py-1">
+            <Filter className="size-3.5 text-on-surface-variant" />
+            <span className="text-[11px] text-on-surface-variant font-medium">Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-surface-container-high border border-outline-variant text-xs sm:text-body-sm px-2 py-1.5 rounded focus:ring-1 focus:ring-primary outline-none text-on-surface cursor-pointer"
+              className="bg-transparent text-body-xs font-semibold text-on-surface focus:outline-none cursor-pointer"
             >
-              <option value="NAME">Sort by Name</option>
-              <option value="PRICE">Sort by Price</option>
-              <option value="MEMBERS">Sort by Max Members</option>
+              <option value="NAME" className="bg-surface-container text-on-surface">
+                Name (A-Z)
+              </option>
+              <option value="MEMBERS" className="bg-surface-container text-on-surface">
+                Capacity (High-Low)
+              </option>
+              <option value="PRICE" className="bg-surface-container text-on-surface">
+                Price (High-Low)
+              </option>
             </select>
           </div>
         </div>
-
-        <div className="md:ml-auto flex items-center bg-surface-container-high border border-outline-variant rounded px-unit w-full md:w-64">
-          <Search className="size-4 text-on-surface-variant mx-1.5 shrink-0" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search plans..."
-            className="bg-transparent border-none focus:ring-0 text-body-sm font-body-md w-full py-1.5 text-on-surface placeholder:text-on-surface-variant/50 outline-none"
-          />
-        </div>
       </div>
 
-      {/* Plans Grid */}
-      {loading ? (
-        // Loading Skeleton
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-layout-margin">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="bg-surface-container border border-outline-variant rounded-lg p-container-padding space-y-4 animate-pulse"
-            >
-              <div className="flex justify-between items-start border-b border-outline-variant pb-3">
-                <div className="space-y-2">
-                  <div className="h-5 bg-surface-container-high rounded w-32" />
-                  <div className="h-3.5 bg-surface-container-high rounded w-24" />
-                </div>
-                <div className="w-10 h-5 bg-surface-container-high rounded-full" />
-              </div>
-              <div className="h-12 bg-surface-container-high rounded w-full" />
-              <div className="h-8 bg-surface-container-high rounded w-3/4" />
-            </div>
-          ))}
-        </div>
-      ) : error ? (
-        // Error state
-        <div className="bg-surface-container border border-outline-variant rounded-lg p-12 text-center">
-          <AlertCircle className="size-10 text-error mx-auto mb-3" />
-          <p className="text-on-surface font-headline-sm mb-2">{error}</p>
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 p-4 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="size-5 shrink-0" />
+            <span className="text-body-sm font-medium">{error}</span>
+          </div>
           <button
             type="button"
-            onClick={fetchPlans}
-            className="px-4 py-1.5 bg-primary text-on-primary rounded text-body-sm font-medium hover:opacity-90"
+            onClick={() => void fetchPlans()}
+            className="text-body-sm underline hover:text-rose-300 font-semibold cursor-pointer"
           >
             Try Again
           </button>
         </div>
-      ) : filteredPlans.length === 0 ? (
-        // Empty state
-        <div className="bg-surface-container border border-dashed border-outline-variant rounded-xl p-16 text-center space-y-3">
-          <Package className="size-12 text-on-surface-variant/40 mx-auto" />
-          <h3 className="font-headline-md text-headline-md text-on-surface font-bold">
-            No Platform Plans Found
-          </h3>
-          <p className="text-body-sm text-on-surface-variant max-w-md mx-auto">
-            {searchTerm || statusFilter !== "ALL"
-              ? "No plans match your selected filters. Try changing or clearing your search criteria."
-              : "Get started by creating your first SaaS subscription tier and member capacity thresholds."}
-          </p>
-          {!searchTerm && statusFilter === "ALL" && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setIsAddPlanOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg text-body-sm font-bold hover:opacity-90 transition-opacity"
-              >
-                <Plus className="size-4" />
-                <span>Create First Plan</span>
-              </button>
-            </div>
-          )}
+      )}
+
+      {/* Loading Skeleton */}
+      {loading && plans.length === 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-container-padding">
+          {[1, 2, 3].map((n) => (
+            <div
+              key={n}
+              className="bg-surface-container-low border border-outline-variant h-64 rounded-xl animate-pulse"
+            />
+          ))}
         </div>
-      ) : (
-        // Plans Cards
-        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-layout-margin">
-          {filteredPlans.map((plan, index) => {
-            const isTopCapacity = index === 0 && plan.maxMembers >= 1000;
+      )}
+
+      {/* Empty State */}
+      {!loading && plans.length === 0 && !error && (
+        <div className="bg-surface-container-low border border-dashed border-outline-variant rounded-xl p-12 text-center flex flex-col items-center justify-center">
+          <div className="size-12 rounded-full bg-surface-container-highest flex items-center justify-center text-primary mb-3">
+            <Package className="size-6" />
+          </div>
+          <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+            No Platform Plans Found
+          </h2>
+          <p className="font-body-md text-body-sm text-on-surface-variant max-w-sm mt-1 mb-6">
+            Get started by defining your first subscription tier with membership quotas and pricing.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIsAddPlanOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary rounded-lg transition-colors font-body-sm text-body-sm font-semibold cursor-pointer"
+          >
+            <Plus className="size-4" />
+            <span>Create First Plan</span>
+          </button>
+        </div>
+      )}
+
+      {/* Filtered 0-Result State */}
+      {!loading && plans.length > 0 && filteredPlans.length === 0 && (
+        <div className="bg-surface-container-low border border-outline-variant rounded-xl p-8 text-center">
+          <p className="font-body-md text-body-md text-on-surface font-medium">
+            No plans match your current search or filter criteria.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              setStatusFilter("ALL");
+            }}
+            className="mt-3 text-body-sm text-primary hover:underline font-semibold cursor-pointer"
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+
+      {/* Plans Grid */}
+      {!loading && filteredPlans.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-container-padding">
+          {filteredPlans.map((plan) => {
             const durations = plan.durations || [];
 
             return (
               <div
                 key={plan.id}
-                className="bg-surface-container border border-outline-variant hover:border-primary transition-colors flex flex-col rounded-lg overflow-hidden shadow-sm"
+                className={cn(
+                  "bg-surface-container-low border transition-all rounded-xl flex flex-col justify-between overflow-hidden shadow-xs",
+                  plan.isActive
+                    ? "border-outline-variant hover:border-primary/40"
+                    : "border-outline-variant/60 opacity-80"
+                )}
               >
                 {/* Card Header */}
-                <div className="p-container-padding border-b border-outline-variant flex justify-between items-start bg-surface-container-high/40">
-                  <div>
-                    <div className="flex items-center gap-unit mb-1">
-                      <h3 className="font-headline-md text-headline-md text-on-surface font-bold">
-                        {plan.planName}
-                      </h3>
-                      {isTopCapacity && (
-                        <span className="px-unit py-0.5 bg-primary-container text-on-primary-container font-label-caps text-[9px] uppercase font-bold rounded">
-                          Popular
-                        </span>
-                      )}
+                <div className="p-container-padding border-b border-outline-variant/60">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="size-7 rounded bg-surface-container-highest flex items-center justify-center text-primary shrink-0">
+                          <Package className="size-4" />
+                        </div>
+                        <h2 className="font-headline-md text-title-md font-bold text-on-surface truncate">
+                          {plan.planName}
+                        </h2>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-body-xs text-on-surface-variant font-mono-data mt-0.5">
+                        <Users className="size-3.5 text-primary shrink-0" />
+                        <span>Up to {plan.maxMembers.toLocaleString()} Gym Members</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-primary text-body-sm font-mono-data">
-                      <Users className="size-4 shrink-0" />
-                      <span>{plan.maxMembers.toLocaleString()} Max Members</span>
-                    </div>
-                  </div>
 
-                  {/* Actions & Status */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditPlanModalPlan(plan)}
-                      className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-md transition-colors cursor-pointer border border-transparent hover:border-outline-variant"
-                      title="Edit Plan Details"
-                      aria-label={`Edit ${plan.planName} plan`}
-                    >
-                      <Edit2 className="size-4" />
-                    </button>
-
-                    {/* Toggle Active Status */}
-                    <div className="flex flex-col items-end">
+                    {/* Status Pill & Switch */}
+                    <div className="flex flex-col items-end shrink-0">
                       <button
                         type="button"
                         role="switch"
@@ -406,36 +521,84 @@ export default function PlansDashboard() {
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        {durations.map((duration) => (
-                          <div
-                            key={duration.id}
-                            className="group bg-surface-container-high border border-outline-variant hover:border-primary/50 transition-colors px-2.5 py-1 rounded flex items-center gap-2 shadow-xs"
-                          >
-                            <span className="font-mono-data text-body-sm text-primary font-bold">
-                              {duration.durationDays} Days
-                            </span>
-                            <span className="w-[1px] h-3 bg-outline-variant" />
-                            <span className="font-mono-data text-body-sm text-on-surface font-semibold">
-                              ${Number(duration.price).toFixed(2)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setEditDurationState({ plan, duration })}
-                              className="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer ml-0.5"
-                              title="Edit duration & price"
-                              aria-label={`Edit duration ${duration.durationDays} days`}
+                        {durations.map((duration) => {
+                          const isDurActive = duration.isActive !== false;
+                          const isTogglingDur = togglingDurationId === duration.id;
+
+                          return (
+                            <div
+                              key={duration.id}
+                              className="group bg-surface-container-high border border-outline-variant hover:border-primary/50 transition-colors px-2.5 py-1 rounded flex items-center gap-2 shadow-xs"
                             >
-                              <Edit2 className="size-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <span className="font-mono-data text-body-sm text-primary font-bold">
+                                {duration.durationDays} Days
+                              </span>
+                              <span className="w-[1px] h-3 bg-outline-variant" />
+                              <span className="font-mono-data text-body-sm text-on-surface font-semibold">
+                                ${Number(duration.price).toFixed(2)}
+                              </span>
+
+                              {/* Duration Active Toggle Badge */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleDurationStatus(plan, duration)}
+                                disabled={isTogglingDur}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ml-0.5",
+                                  isDurActive
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                    : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                                )}
+                                title={
+                                  isDurActive
+                                    ? "Click to deactivate duration"
+                                    : "Click to activate duration"
+                                }
+                              >
+                                {isTogglingDur ? (
+                                  <Loader2 className="size-2.5 animate-spin" />
+                                ) : (
+                                  <span
+                                    className={cn(
+                                      "size-1.5 rounded-full",
+                                      isDurActive ? "bg-emerald-400" : "bg-rose-400"
+                                    )}
+                                  />
+                                )}
+                                <span>{isDurActive ? "Active" : "Inactive"}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setEditDurationState({ plan, duration })}
+                                className="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer ml-0.5"
+                                title="Edit duration & price"
+                                aria-label={`Edit duration ${duration.durationDays} days`}
+                              >
+                                <Edit2 className="size-3" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDurationToDelete({ plan, duration })
+                                }
+                                className="text-on-surface-variant hover:text-rose-400 transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer"
+                                title="Delete duration"
+                                aria-label={`Delete duration ${duration.durationDays} days`}
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-1.5 bg-surface-container-low border-t border-outline-variant grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-1">
+                <div className="p-1.5 bg-surface-container-low border-t border-outline-variant grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-1">
                   <button
                     type="button"
                     onClick={() => setEditPlanModalPlan(plan)}
@@ -473,6 +636,15 @@ export default function PlansDashboard() {
                       <CheckCircle2 className="size-3.5 text-emerald-400" />
                     )}
                     <span>{plan.isActive ? "Deactivate" : "Activate"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlanToDelete(plan)}
+                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors font-body-sm text-body-sm font-semibold rounded cursor-pointer border border-transparent"
+                    title="Delete Plan"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Delete</span>
                   </button>
                 </div>
               </div>
@@ -547,6 +719,23 @@ export default function PlansDashboard() {
         isOpen={!!editDurationState}
         onClose={() => setEditDurationState(null)}
         onSuccess={fetchPlans}
+      />
+
+      <DeletePlanModal
+        plan={planToDelete}
+        isOpen={Boolean(planToDelete)}
+        onClose={() => setPlanToDelete(null)}
+        onConfirm={handleDeletePlan}
+        isDeleting={isDeletingPlan}
+      />
+
+      <DeleteDurationModal
+        plan={durationToDelete?.plan || null}
+        duration={durationToDelete?.duration || null}
+        isOpen={Boolean(durationToDelete)}
+        onClose={() => setDurationToDelete(null)}
+        onConfirm={handleDeleteDuration}
+        isDeleting={isDeletingDuration}
       />
     </div>
   );

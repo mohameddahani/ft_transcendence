@@ -29,7 +29,7 @@ export default function SubscriptionsTable() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
+  const ITEMS_PER_PAGE = 10;
   const [totalSubscriptions, setTotalSubscriptions] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
 
@@ -50,7 +50,7 @@ export default function SubscriptionsTable() {
       }>("/api/subscriptions", {
         params: {
           page: currentPage,
-          limit: itemsPerPage,
+          limit: ITEMS_PER_PAGE,
           search: activeSearch || undefined,
         },
       });
@@ -60,14 +60,14 @@ export default function SubscriptionsTable() {
       setTotalSubscriptions(res.data?.total ?? list.length);
       setTotalPages(
         res.data?.totalPages ||
-          Math.max(1, Math.ceil((res.data?.total ?? list.length) / itemsPerPage))
+          Math.max(1, Math.ceil((res.data?.total ?? list.length) / ITEMS_PER_PAGE))
       );
     } catch {
       toast.error("Failed to load platform subscriptions");
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, activeSearch]);
+  }, [currentPage, activeSearch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,10 +100,9 @@ export default function SubscriptionsTable() {
     if (!subToCancel) return;
     try {
       setIsCancelling(true);
-      await api.patch("/api/subscriptions", {
+      await api.patch("/api/owners/subscriptions", {
         adminId: subToCancel.userId,
       });
-      console.log("here")
 
       toast.success(
         `Subscription for ${subToCancel.user?.companyName || subToCancel.user?.userName || "Admin"} has been cancelled.`
@@ -515,30 +514,11 @@ export default function SubscriptionsTable() {
               Showing{" "}
               {totalSubscriptions === 0
                 ? 0
-                : (currentPage - 1) * itemsPerPage + 1}{" "}
+                : (currentPage - 1) * ITEMS_PER_PAGE + 1}{" "}
               to{" "}
-              {Math.min(currentPage * itemsPerPage, totalSubscriptions)} of{" "}
+              {Math.min(currentPage * ITEMS_PER_PAGE, totalSubscriptions)} of{" "}
               {totalSubscriptions} subscriptions
             </span>
-
-            {/* Per-Page Limit Selector */}
-            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-              <span>Per page:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-surface-container-high border border-outline-variant text-on-surface text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-              >
-                <option value={2}>2</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
           </div>
 
           <div className="flex items-center gap-element-gap">

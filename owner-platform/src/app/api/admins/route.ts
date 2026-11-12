@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20", 10));
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10", 10));
     const search = searchParams.get("search")?.trim() || "";
 
     const userToken = req.cookies.get("auth_token")?.value;

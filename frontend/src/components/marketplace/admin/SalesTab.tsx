@@ -14,6 +14,7 @@ import {
 import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { CheckCircle2, Clock, Loader2, PackageCheck } from "lucide-react";
+import { useState } from "react";
 
 export function SalesTab({
   sales,
@@ -28,6 +29,17 @@ export function SalesTab({
   markDelivered: (id: bigint) => Promise<void>;
   busy: boolean;
 }) {
+  const [deliveringId, setDeliveringId] = useState<string | null>(null);
+
+  const handleDeliver = async (id: bigint) => {
+    try {
+      setDeliveringId(id.toString());
+      await markDelivered(id);
+    } finally {
+      setDeliveringId(null);
+    }
+  };
+
   return (
     <TabsContent value="sales" className="p-4 sm:p-7">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -107,10 +119,10 @@ export function SalesTab({
                         size="sm"
                         variant="default"
                         disabled={busy}
-                        onClick={() => void markDelivered(item.id)}
+                        onClick={() => void handleDeliver(item.id)}
                         className="toota-pill h-8 px-3 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-2xs"
                       >
-                        {busy ? (
+                        {deliveringId === item.id.toString() ? (
                           <Loader2 className="size-3 animate-spin mr-1.5" />
                         ) : (
                           <PackageCheck className="size-3 mr-1.5" />

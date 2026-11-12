@@ -207,7 +207,7 @@ export default function ActivateSubscriptionModal({
 
   const onSubmit = async (data: ActiveSubscriptionFormValues) => {
     try {
-      await api.post("/api/subscriptions", {
+      await api.post("/api/owners/subscriptions", {
         planId: data.planId,
         planDurationId: data.planDurationId,
         userName: data.userName.trim(),

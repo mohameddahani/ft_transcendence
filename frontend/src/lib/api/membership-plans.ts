@@ -7,6 +7,7 @@ import {
   UpdateMembershipPlanInput,
   AddMembershipPlanDurationInput,
   UpdateMembershipPlanDurationInput,
+  MembershipPlanDuration,
 } from "@/types/membership-plan";
 
 const CACHE_TTL_MS = 60_000; // 1 minute in-memory cache
@@ -62,6 +63,12 @@ export async function updateMembershipPlan(
   invalidatePlansCache();
 }
 
+export async function deleteMembershipPlan(id: string): Promise<void> {
+  const url = getApiEndpoint(`/api/membership-plans/${id}`);
+  await api.delete(url);
+  invalidatePlansCache();
+}
+
 export async function addMembershipPlanDuration(
   data: AddMembershipPlanDurationInput
 ): Promise<void> {
@@ -73,8 +80,29 @@ export async function addMembershipPlanDuration(
 export async function updateMembershipPlanDuration(
   id: string,
   data: UpdateMembershipPlanDurationInput
-): Promise<void> {
+): Promise<MembershipPlanDuration> {
   const url = getApiEndpoint(`/api/membership-plans/durations/${id}`);
-  await api.patch(url, data);
+  const response = await api.patch<MembershipPlanDuration>(url, data);
   invalidatePlansCache();
+  return response.data;
+}
+
+export async function deleteMembershipPlanDuration(id: string): Promise<void> {
+  const url = getApiEndpoint(`/api/membership-plans/durations/${id}`);
+  await api.delete(url);
+  invalidatePlansCache();
+}
+
+export async function toggleMembershipPlanDurationActive(
+  id: string,
+  membershipPlanId: string,
+  isActive: boolean
+): Promise<MembershipPlanDuration> {
+  const url = getApiEndpoint(`/api/membership-plans/durations/${id}`);
+  const response = await api.patch<MembershipPlanDuration>(url, {
+    membershipPlanId,
+    isActive,
+  });
+  invalidatePlansCache();
+  return response.data;
 }

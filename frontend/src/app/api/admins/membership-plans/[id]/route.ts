@@ -1,1 +1,1 @@
-export { GET, PATCH } from "@/app/api/membership-plans/[id]/route";
+export { GET, PATCH, DELETE } from "@/app/api/membership-plans/[id]/route";
