@@ -12,7 +12,9 @@ export async function updateAdminProfile(
   data: UpdateProfileInput
 ): Promise<void> {
   const url = getApiEndpoint("/api/users/admins/edit-profile");
-  await api.patch(url, data);
+  // Ensure email is never sent with edit-profile (email must be changed via dedicated /email-change flow)
+  const { email: _email, ...payload } = data;
+  await api.patch(url, payload);
 }
 
 export async function uploadAdminProfileImage(file: File): Promise<void> {

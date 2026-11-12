@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest) {
     if (body.lastName) payload.lastName = String(body.lastName).trim();
     if (body.gender) payload.gender = String(body.gender).toUpperCase();
     if (body.birthDate) payload.birthDate = new Date(body.birthDate).toISOString();
-    if (body.email) payload.email = String(body.email).trim();
+    // Do not include email in edit-profile payload; email changes are handled via /api/users/owners/email-change
     if (body.phoneNumber) payload.phoneNumber = String(body.phoneNumber).replace(/\s+/g, "");
     if (body.companyName) payload.companyName = String(body.companyName).trim();
     if (body.password && String(body.password).trim().length > 0) {
@@ -32,17 +32,21 @@ export async function PATCH(req: NextRequest) {
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
-      return NextResponse.json(data || { message: "Failed to update profile" }, {
-        status: backendRes.status,
-      });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof data === "object" && data !== null ? data : { message: "Failed to update profile" }),
+        },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(
       { message: "Profile updated successfully", data },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error updating owner profile:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to update owner profile on backend service" },
       { status: 500 }

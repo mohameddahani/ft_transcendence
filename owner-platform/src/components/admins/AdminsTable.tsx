@@ -29,11 +29,10 @@ export default function AdminsTable() {
   const [error, setError] = useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [verifiedFilter, setVerifiedFilter] = useState<string>("ALL");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   const [totalAdmins, setTotalAdmins] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -52,9 +51,7 @@ export default function AdminsTable() {
         params: {
           page: currentPage,
           limit: itemsPerPage,
-          search: searchTerm || undefined,
-          status: statusFilter !== "ALL" ? statusFilter : undefined,
-          verified: verifiedFilter !== "ALL" ? verifiedFilter : undefined,
+          search: activeSearch || undefined,
         },
       });
 
@@ -80,7 +77,19 @@ export default function AdminsTable() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchTerm, statusFilter, verifiedFilter]);
+  }, [currentPage, itemsPerPage, activeSearch]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchInput.trim());
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setCurrentPage(1);
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -166,64 +175,48 @@ export default function AdminsTable() {
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-surface-container p-2 sm:p-unit border border-outline-variant rounded-lg gap-2">
+        {/* Search Bar Form */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-surface-container p-2 sm:p-unit border border-outline-variant rounded-lg gap-2"
+        >
           <div className="flex items-center flex-1 px-container-padding gap-element-gap">
             <Search className="size-5 text-on-surface-variant shrink-0" aria-hidden="true" />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Search gym owners by name, email, company, or phone..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search users by first or last name..."
               className="bg-transparent border-none focus:outline-none focus:ring-0 text-body-md w-full placeholder:text-on-surface-variant/50 text-on-surface"
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 px-container-padding border-t sm:border-t-0 sm:border-l border-outline-variant pt-2 sm:pt-0">
-            {/* Filter by Status */}
-            <div className="flex items-center gap-2">
-              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold hidden sm:inline">
-                STATUS
-              </span>
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-auto bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="ACTIVE">Active</option>
-                <option value="PENDING">Pending</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="BANNED">Banned</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-2 px-container-padding">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-1.5 bg-primary text-on-primary rounded text-body-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              <span>Search</span>
+            </button>
 
-            {/* Filter by Verified */}
-            <div className="flex items-center gap-2 sm:border-l sm:border-outline-variant sm:pl-3">
-              <span className="text-label-caps text-on-surface-variant uppercase tracking-wider font-bold hidden sm:inline">
-                VERIFIED
-              </span>
-              <select
-                value={verifiedFilter}
-                onChange={(e) => {
-                  setVerifiedFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-auto bg-surface-container-high border border-outline-variant text-body-sm py-1 px-2 rounded focus:border-primary outline-none text-on-surface cursor-pointer"
+            {Boolean(activeSearch || searchInput) && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                disabled={loading}
+                className="px-3 py-1.5 bg-surface-container-high border border-outline-variant text-on-surface rounded text-body-sm font-medium hover:border-primary transition-colors cursor-pointer shrink-0"
               >
-                <option value="ALL">All</option>
-                <option value="VERIFIED">Verified</option>
-                <option value="UNVERIFIED">Unverified</option>
-              </select>
-            </div>
+                Clear
+              </button>
+            )}
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Data Container: Dual View (Cards on Mobile, Table on Desktop) */}

@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
       headers,
       validateStatus: () => true, // Proceed even if backend token is already invalid/expired
     });
-  } catch (error) {
-    console.error("Backend logout proxy error:", error);
+  } catch {
+    // Ignore backend logout errors - cookie clearing must succeed
   }
 
   const response = NextResponse.json(

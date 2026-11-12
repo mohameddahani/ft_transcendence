@@ -16,6 +16,7 @@ import {
   Moon,
   Info,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -45,6 +46,20 @@ export default function AdminStaffOperatingHoursView() {
 
   // Active Tab: 'regular' | 'special'
   const [activeTab, setActiveTab] = useState<"regular" | "special">("regular");
+
+  // Helper to format daily operating duration
+  const calculateDuration = (startTime?: string | null, endTime?: string | null): string | null => {
+    if (!startTime || !endTime) return null;
+    const [startH, startM] = startTime.split(":").map(Number);
+    const [endH, endM] = endTime.split(":").map(Number);
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return null;
+    let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (minutes === 0) return `${hours} hrs`;
+    return `${hours}h ${minutes}m`;
+  };
 
   // Filters for Special Hours
   const [closureFilter, setClosureFilter] = useState<"ALL" | "UPCOMING" | "PAST">("ALL");
@@ -620,7 +635,7 @@ export default function AdminStaffOperatingHoursView() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {daysMap.map((dayItem) => {
               const wh = workingHoursByDay.get(dayItem.day);
               const isConfigured = !!wh;
@@ -630,29 +645,31 @@ export default function AdminStaffOperatingHoursView() {
                 return (
                   <div
                     key={dayItem.day}
-                    className={`p-4 rounded-2xl border border-dashed border-border/60 bg-toota-inner/30 flex flex-col justify-between transition-all min-h-[200px] ${
-                      isToday ? "ring-1 ring-zinc-400 dark:ring-zinc-600" : ""
+                    className={`p-5 rounded-2xl border border-dashed border-border/80 bg-toota-inner/20 flex flex-col justify-between transition-all min-h-[220px] hover:border-border hover:bg-toota-inner/30 ${
+                      isToday ? "ring-2 ring-zinc-400 dark:ring-zinc-600" : ""
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-toota-ink">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-toota-ink">
                           {dayItem.name}
                         </span>
                         {isToday && (
-                          <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 bg-background text-toota-ink shadow-2xs">
                             <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
                             <span>{t("today")}</span>
                           </span>
                         )}
                       </div>
-                      <div className="mt-3">
-                        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-400 dark:text-zinc-500">
+
+                      <div className="mt-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 dark:text-zinc-400">
                           <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
                           <span>{t("unset")}</span>
                         </span>
                       </div>
-                      <p className="text-xs text-toota-muted/70 mt-3 leading-relaxed">
+
+                      <p className="text-xs text-toota-muted mt-3 leading-relaxed">
                         {t("noHoursSetForDay")}
                       </p>
                     </div>
@@ -660,7 +677,7 @@ export default function AdminStaffOperatingHoursView() {
                     <button
                       type="button"
                       onClick={() => handleOpenAddWorkingHour(dayItem.day)}
-                      className="w-full mt-4 py-2 px-3 bg-toota-inner hover:bg-toota-ink hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      className="w-full mt-5 py-2.5 px-3 bg-toota-inner hover:bg-toota-ink hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                     >
                       <Plus className="size-3.5" />
                       <span>{t("configureDay")}</span>
@@ -670,35 +687,37 @@ export default function AdminStaffOperatingHoursView() {
               }
 
               const isClosed = wh.isClosed;
+              const duration = calculateDuration(wh.startTime, wh.endTime);
 
               return (
                 <div
                   key={dayItem.day}
-                  className={`p-4 rounded-2xl border border-border/80 shadow-xs flex flex-col justify-between transition-all min-h-[200px] ${
+                  className={`p-5 rounded-2xl border shadow-xs flex flex-col justify-between transition-all min-h-[220px] ${
                     isClosed
-                      ? "bg-toota-inner/40 border-border/60"
-                      : "bg-card border-border/80 hover:border-emerald-500/40"
-                  } ${isToday ? "ring-2 ring-emerald-500/30" : ""}`}
+                      ? "bg-toota-inner/35 border-border/70"
+                      : "bg-card border-border/80 hover:border-emerald-500/40 hover:shadow-sm"
+                  } ${isToday ? "ring-2 ring-emerald-500/40" : ""}`}
                 >
                   <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-toota-ink">
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold text-toota-ink">
                         {dayItem.name}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {isToday && (
-                          <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ring-emerald-200 dark:ring-emerald-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ring-emerald-200 dark:ring-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-2xs">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                             <span>{t("today")}</span>
                           </span>
                         )}
                         {isClosed ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ring-rose-200 dark:ring-rose-800 bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300">
                             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
                             <span>{t("closed")}</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ring-emerald-200 dark:ring-emerald-800 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                             <span>{t("open")}</span>
                           </span>
@@ -706,62 +725,76 @@ export default function AdminStaffOperatingHoursView() {
                       </div>
                     </div>
 
+                    {/* Card Content */}
                     {isClosed ? (
-                      <div className="mt-4 space-y-1">
-                        <div className="size-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                          <Moon className="size-4" />
+                      <div className="mt-4 p-3 rounded-xl bg-background/60 border border-border/40 space-y-1">
+                        <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                          <Moon className="size-4 shrink-0" />
+                          <span className="text-xs font-bold text-toota-ink">
+                            {t("facilityClosed")}
+                          </span>
                         </div>
-                        <p className="text-xs font-bold text-toota-ink mt-2">
-                          {t("facilityClosed")}
-                        </p>
-                        <p className="text-[11px] text-toota-muted">
+                        <p className="text-[11px] text-toota-muted pl-6">
                           {t("allDayLong")}
                         </p>
                       </div>
                     ) : (
-                      <div className="mt-4 space-y-2">
-                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                          <Clock className="size-4 shrink-0" />
-                          <span className="text-xs font-extrabold font-mono">
-                            {wh.startTime} – {wh.endTime}
-                          </span>
+                      <div className="mt-4 p-3 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-500/15 space-y-2">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                            <Clock className="size-4 shrink-0" />
+                            <span className="text-sm font-extrabold font-mono tracking-tight">
+                              {wh.startTime} – {wh.endTime}
+                            </span>
+                          </div>
+                          {duration && (
+                            <span className="text-[11px] font-semibold text-emerald-700/80 dark:text-emerald-300/80 font-mono">
+                              {duration}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-toota-muted font-medium">
-                          {t("gymOpenForCheckins")}
-                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                          <CheckCircle2 className="size-3.5 shrink-0" />
+                          <span>{t("gymOpenForCheckins")}</span>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Actions for this day */}
-                  <div className="mt-4 pt-3 border-t border-border/40 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditWorkingHour(wh)}
-                      className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
-                      title={t("edit")}
-                    >
-                      <Edit className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDeleteModal({
-                          isOpen: true,
-                          type: "workingHour",
-                          id: wh.id,
-                          name: `${dayItem.name} (${
-                            wh.isClosed
-                              ? t("closed")
-                              : `${wh.startTime} - ${wh.endTime}`
-                          })`,
-                        })
-                      }
-                      className="p-1.5 rounded-lg text-toota-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                      title={t("delete")}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                  {/* Actions Footer */}
+                  <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between">
+                    <span className="text-[11px] text-toota-muted font-medium">
+                      {isClosed ? t("noCheckinAllowed", "Rest day") : t("staffedHours", "Standard check-in")}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditWorkingHour(wh)}
+                        className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+                        title={t("edit")}
+                      >
+                        <Edit className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeleteModal({
+                            isOpen: true,
+                            type: "workingHour",
+                            id: wh.id,
+                            name: `${dayItem.name} (${
+                              wh.isClosed
+                                ? t("closed")
+                                : `${wh.startTime} - ${wh.endTime}`
+                            })`,
+                          })
+                        }
+                        className="p-1.5 rounded-lg text-toota-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        title={t("delete")}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

@@ -31,8 +31,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     return NextResponse.json({ message: "Plan updated successfully" }, { status: 200 });
-  } catch (error) {
-    console.error("Error updating plan:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to update plan on backend service" },
       { status: 500 }

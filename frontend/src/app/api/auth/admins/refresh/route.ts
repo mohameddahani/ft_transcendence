@@ -4,6 +4,7 @@ import {
   performTokenRefresh,
   setAuthCookies,
   clearAuthCookies,
+  createProxyResponse,
 } from "@/lib/server-auth";
 
 export async function POST(req: NextRequest) {
@@ -21,9 +22,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (!refreshToken) {
-      return NextResponse.json(
+      return createProxyResponse(
         { message: "Refresh token is missing or not provided" },
-        { status: 401 }
+        401
       );
     }
 
@@ -32,9 +33,9 @@ export async function POST(req: NextRequest) {
     const roleUpper = (tokenPayload?.role || "").toUpperCase();
 
     if (roleUpper === "OWNER") {
-      const response = NextResponse.json(
+      const response = createProxyResponse(
         { message: "Owner accounts are not permitted on this platform." },
-        { status: 403 }
+        403
       );
       return clearAuthCookies(response);
     }
@@ -43,9 +44,9 @@ export async function POST(req: NextRequest) {
     const result = await performTokenRefresh(refreshToken);
 
     if (result.error || !result.newAccessToken) {
-      const response = NextResponse.json(
+      const response = createProxyResponse(
         { message: "Failed to refresh session or token expired" },
-        { status: 401 }
+        401
       );
       return clearAuthCookies(response);
     }
@@ -59,11 +60,10 @@ export async function POST(req: NextRequest) {
       accessToken: result.newAccessToken,
       refreshToken: result.newRefreshToken,
     });
-  } catch (error) {
-    console.error("Error in refresh route handler:", error);
-    return NextResponse.json(
+  } catch {
+    return createProxyResponse(
       { message: "An unexpected error occurred during token refresh" },
-      { status: 500 }
+      500
     );
   }
 }

@@ -21,8 +21,7 @@ export async function GET(req: NextRequest) {
 
     const data = await backendRes.json();
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching owner profile:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to retrieve owner profile from backend service" },
       { status: 500 }

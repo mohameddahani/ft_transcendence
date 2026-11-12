@@ -92,15 +92,15 @@ export default function PaymentsPage() {
   const { t } = useTranslation();
   const { companyName, role } = useCurrentUser();
   const [payments, setPayments] = useState<BackendPayment[]>([]);
-  const [pagedPayments, setPagedPayments] = useState<BackendPayment[]>([]);
   const [paymentStats, setPaymentStats] = useState<PaymentStats | StaffPaymentStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Filters
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 20;
 
   // Selected payment for side-panel detail view
   const [selectedPayment, setSelectedPayment] = useState<BackendPayment | null>(null);
@@ -112,11 +112,10 @@ export default function PaymentsPage() {
         role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
       const [stats, initialPage] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchPayments(1, pageSize),
+        fetchPayments(1, pageSize, activeSearch),
       ]);
       setPaymentStats(stats);
       setPayments(initialPage);
-      setPagedPayments(initialPage);
       setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -127,26 +126,86 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [role, pageSize]);
+  }, [role, pageSize, activeSearch]);
 
   useEffect(() => {
     loadPayments();
   }, [loadPayments]);
 
+  const handleSearchSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = searchInput.trim();
+    setActiveSearch(query);
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchPayments(1, pageSize, query);
+      setPayments(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to search payments");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleClearSearch = async () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setCurrentPage(1);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchPayments(1, pageSize, "");
+      setPayments(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsPageLoading(true);
+    try {
+      const statsPromise =
+        role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
+      const [statsData, pageData] = await Promise.all([
+        statsPromise.catch(() => null),
+        fetchPayments(currentPage, pageSize, activeSearch),
+      ]);
+      setPaymentStats(statsData);
+      setPayments(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to refresh payments");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
   // Handle page changes with explicit API calls
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage);
-    if (!searchTerm) {
-      setIsPageLoading(true);
-      try {
-        const pageData = await fetchPayments(newPage, pageSize);
-        setPagedPayments(pageData);
-        setPayments(pageData);
-      } catch {
-        // fail gracefully
-      } finally {
-        setIsPageLoading(false);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchPayments(newPage, pageSize, activeSearch);
+      setPayments(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error("Failed to load payments from backend");
       }
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -161,36 +220,18 @@ export default function PaymentsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Filtered Payments
-  const isFiltering = Boolean(searchTerm);
-  const filteredPayments = useMemo(() => {
-    return payments.filter((payment) => {
-      const member = payment.member;
-      const memberName = `${member?.firstName || ""} ${member?.lastName || ""}`.toLowerCase();
-      const email = (member?.email || "").toLowerCase();
-      const invoiceId = payment.id.toLowerCase();
-      const query = searchTerm.toLowerCase();
-
-      return (
-        memberName.includes(query) ||
-        email.includes(query) ||
-        invoiceId.includes(query)
-      );
-    });
-  }, [payments, searchTerm]);
-
-  // Pagination
-  const totalItems = isFiltering
-    ? filteredPayments.length
-    : (paymentStats?.totalPayments ?? payments.length);
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const paginatedPayments = useMemo(() => {
+  const isFiltering = Boolean(activeSearch);
+  const totalItems = useMemo(() => {
     if (isFiltering) {
-      const start = (currentPage - 1) * pageSize;
-      return filteredPayments.slice(start, start + pageSize);
+      if (payments.length < pageSize) {
+        return (currentPage - 1) * pageSize + payments.length;
+      }
+      return currentPage * pageSize + 1;
     }
-    return pagedPayments;
-  }, [isFiltering, filteredPayments, pagedPayments, currentPage, pageSize]);
+    return paymentStats?.totalPayments ?? payments.length;
+  }, [isFiltering, payments.length, currentPage, pageSize, paymentStats?.totalPayments]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Statistics Calculation
   const totalCollected = useMemo(() => {
@@ -227,7 +268,7 @@ export default function PaymentsPage() {
 
   // Export to CSV
   const handleExportCSV = () => {
-    if (filteredPayments.length === 0) {
+    if (payments.length === 0) {
       toast.info("No payment records available to export.");
       return;
     }
@@ -242,7 +283,7 @@ export default function PaymentsPage() {
       "Created At",
     ];
 
-    const rows = filteredPayments.map((p) => [
+    const rows = payments.map((p) => [
       `#INV-${p.id.slice(0, 8)}`,
       `"${(p.member?.firstName || "") + " " + (p.member?.lastName || "")}"`,
       p.member?.email || "",
@@ -273,7 +314,7 @@ export default function PaymentsPage() {
   // Download single invoice text receipt
   const handleDownloadInvoice = (payment: BackendPayment) => {
     const member = payment.member;
-    const gymTitle = (companyName || "GymFlow").toUpperCase();
+    const gymTitle = (companyName || "Sportium").toUpperCase();
     const invoiceText = `
 ========================================
        ${gymTitle} INVOICE
@@ -393,12 +434,12 @@ Thank you for training with ${companyName || "us"}!
             <Button
               type="button"
               variant="outline"
-              onClick={loadPayments}
-              disabled={isLoading}
+              onClick={handleRefresh}
+              disabled={isLoading || isPageLoading}
               className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
             >
               <RefreshCw
-                className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`}
+                className={`size-3.5 me-2 ${isLoading || isPageLoading ? "animate-spin" : ""}`}
               />
               <span>{t("refresh") || "Refresh"}</span>
             </Button>
@@ -564,40 +605,53 @@ Thank you for training with ${companyName || "us"}!
         </Card>
       </div>
 
-      {/* Filter & Search Bar Card */}
+      {/* Search Input & Button Card */}
       <Card className="toota-card border-none p-4 sm:p-5">
-        {/* Search & Select Controls */}
-        <div className="flex flex-col md:flex-row items-center gap-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row items-center gap-3"
+        >
           {/* Search Input */}
           <div className="relative flex-1 w-full min-w-[240px]">
             <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="text"
-              placeholder={`${t("search") || "Search"}...`}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              placeholder={t("searchPaymentsPlaceholder") || "Search by first or last name..."}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
-          {/* Clear Filters Button */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!isFiltering}
-            onClick={() => {
-              setSearchTerm("");
-              setCurrentPage(1);
-            }}
-            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
-          >
-            <X className="size-3.5 me-1.5" />
-            <span>{t("clearFilters") || "Clear Filters"}</span>
-          </Button>
-        </div>
+          {/* Search Button and optional Clear Button */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Button
+              type="submit"
+              disabled={isLoading || isPageLoading}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer w-full sm:w-auto"
+            >
+              {isPageLoading ? (
+                <Loader2 className="size-3.5 animate-spin me-1.5" />
+              ) : (
+                <Search className="size-3.5 me-1.5" />
+              )}
+              <span>{t("search") || "Search"}</span>
+            </Button>
+
+            {Boolean(activeSearch || searchInput) && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isPageLoading}
+                onClick={handleClearSearch}
+                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+              >
+                <X className="size-3.5 me-1.5" />
+                <span>{t("clear") || "Clear"}</span>
+              </Button>
+            )}
+          </div>
+        </form>
       </Card>
 
       {/* Payments Ledger Table Card */}
@@ -630,7 +684,7 @@ Thank you for training with ${companyName || "us"}!
           )}
 
           {/* Empty State */}
-          {!isLoading && paginatedPayments.length === 0 && (
+          {!isLoading && payments.length === 0 && (
             <div className="py-20 text-center px-4">
               <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
                 <Receipt className="size-7" />
@@ -639,13 +693,15 @@ Thank you for training with ${companyName || "us"}!
                 {t("noPaymentsRecorded") || "No payment records found"}
               </h4>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                {t("adjustFilter") || "Try adjusting your search query or status filter."}
+                {activeSearch
+                  ? t("noMatchingSearchPayments") || "No payments match your search criteria."
+                  : t("noPaymentsYet") || "No payments have been recorded yet."}
               </p>
             </div>
           )}
 
           {/* Populated Table */}
-          {!isLoading && paginatedPayments.length > 0 && (
+          {!isLoading && payments.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
@@ -667,7 +723,7 @@ Thank you for training with ${companyName || "us"}!
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-border/40 text-xs">
-                {paginatedPayments.map((payment) => {
+                {payments.map((payment) => {
                   const member = payment.member;
                   const memberName =
                     `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||

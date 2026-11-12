@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import axios from "axios";
-import { getAuthenticatedSession, attachSessionCookies } from "@/lib/server-auth";
+import {
+  getAuthenticatedSession,
+  createProxyResponse,
+} from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -25,15 +28,9 @@ export async function PATCH(
       }
     );
 
-    const res = NextResponse.json(backendRes.data, {
-      status: backendRes.status,
-    });
-    return attachSessionCookies(res, newAccessToken);
+    return createProxyResponse(backendRes.data, backendRes.status, newAccessToken);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Error connecting to backend";
-    return NextResponse.json(
-      { message: `Proxy error: ${message}` },
-      { status: 502 }
-    );
+    return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
   }
 }

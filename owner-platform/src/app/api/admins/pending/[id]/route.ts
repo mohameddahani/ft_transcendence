@@ -32,8 +32,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       { message: "User account moved to pending status" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error setting user to pending:", error);
+  } catch {
     return NextResponse.json(
       { message: "Failed to set user account to pending on backend service" },
       { status: 500 }

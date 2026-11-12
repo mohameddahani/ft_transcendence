@@ -108,7 +108,7 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
           title: t("setMemberPasswordTitle", "Set Your Password"),
           subtitle: t(
             "setMemberPasswordSubtitle",
-            "Welcome to GymFlow! Establish your personal password to unlock attendance, QR passes, and your workouts."
+            "Welcome to Sportium! Establish your personal password to unlock attendance, QR passes, and your workouts."
           ),
           heroTitle: t("memberSetHeroTitle", "Welcome to Your Gym Journey."),
           heroSubtitle: t(
@@ -158,7 +158,7 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
           title: t("setStaffPasswordTitle", "Set Staff Password"),
           subtitle: t(
             "setStaffPasswordSubtitle",
-            "Welcome to the GymFlow operational staff team! Set your access credentials to proceed."
+            "Welcome to the Sportium operational staff team! Set your access credentials to proceed."
           ),
           heroTitle: t("staffSetHeroTitle", "Empowering Front Desk & Floor Operations."),
           heroSubtitle: t(

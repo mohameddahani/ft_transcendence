@@ -22,8 +22,7 @@ export const updateProfileSchema = z.object({
     .refine((v) => !isNaN(Date.parse(v)), { message: "Invalid date format" }),
   email: z
     .string()
-    .email("Invalid email address")
-    .transform((v) => v.trim()),
+    .optional(),
   phoneNumber: z
     .string()
     .min(8, "Phone number must be at least 8 digits")

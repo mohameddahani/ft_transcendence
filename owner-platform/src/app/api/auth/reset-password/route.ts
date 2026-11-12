@@ -22,20 +22,30 @@ export async function POST(req: NextRequest) {
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
-      return NextResponse.json(data || { message: "Failed to reset password" }, {
-        status: backendRes.status,
-      });
+      return NextResponse.json(
+        {
+          _isError: true,
+          statusCode: backendRes.status,
+          ...(typeof data === "object" && data !== null
+            ? data
+            : { message: "Failed to reset password" }),
+        },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(
       data || { message: "Password reset successfully!" },
       { status: 200 }
     );
-  } catch (error) {
-    console.error("Error resetting password:", error);
+  } catch {
     return NextResponse.json(
-      { message: "Failed to reset password on backend service" },
-      { status: 500 }
+      {
+        _isError: true,
+        statusCode: 500,
+        message: "Failed to reset password on backend service",
+      },
+      { status: 200 }
     );
   }
 }

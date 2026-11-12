@@ -226,7 +226,7 @@ export default function EmailChangeSection({
                   <Input
                     id="new-email-field"
                     type="email"
-                    placeholder="e.g. new.email@gymflow.com"
+                    placeholder="e.g. new.email@sportium.com"
                     autoComplete="email"
                     {...register("email")}
                     className={`pl-10 rtl:pl-3.5 rtl:pr-10 h-10 bg-toota-inner text-xs text-toota-ink rounded-xl ${

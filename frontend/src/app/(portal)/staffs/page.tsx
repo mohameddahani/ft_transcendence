@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
@@ -35,7 +35,6 @@ import { useTranslation } from "react-i18next";
 import AddStaffModal from "@/components/staffs/AddStaffModal";
 import EditStaffModal from "@/components/staffs/EditStaffModal";
 import Pagination from "@/components/ui/Pagination";
-import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -66,12 +65,13 @@ export default function StaffsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters & Search
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const pageSize = 20;
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -90,15 +90,16 @@ export default function StaffsPage() {
     setMounted(true);
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     try {
       const [statsData, data] = await Promise.all([
         fetchAdminStaffStats().catch(() => null),
-        fetchStaffs(1, 50),
+        fetchStaffs(1, pageSize, activeSearch, forceRefresh),
       ]);
       setStaffStats(statsData);
       setStaffs(data);
+      setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -108,7 +109,7 @@ export default function StaffsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
+  }, [t, pageSize, activeSearch]);
 
   useEffect(() => {
     loadData();
@@ -164,36 +165,37 @@ export default function StaffsPage() {
   const bannedPercent =
     totalCount > 0 ? Math.round((bannedCount / totalCount) * 100) : 0;
 
-  // Filtered staffs
-  const isFiltering = Boolean(searchTerm || selectedStatus);
-  const filteredStaffs = useMemo(() => {
-    return staffs.filter((staff) => {
-      const fullName = `${staff.firstName || ""} ${staff.lastName || ""}`.toLowerCase();
-      const email = (staff.email || "").toLowerCase();
-      const username = (staff.userName || "").toLowerCase();
-      const phone = (staff.phoneNumber || "").toLowerCase();
-      const query = searchTerm.toLowerCase();
-
-      const matchesSearch =
-        fullName.includes(query) ||
-        email.includes(query) ||
-        username.includes(query) ||
-        phone.includes(query);
-
-      const currentStatus = (staff.accountStatus || "ACTIVE").toUpperCase();
-      const matchesStatus = !selectedStatus || currentStatus === selectedStatus.toUpperCase();
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [staffs, searchTerm, selectedStatus]);
-
-  // Paginated staffs
-  const totalItems = filteredStaffs.length;
+  // Filter & Pagination state
+  const isFiltering = Boolean(activeSearch);
+  const totalItems = isFiltering ? staffs.length : (staffStats?.total ?? staffs.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const paginatedStaffs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredStaffs.slice(start, start + pageSize);
-  }, [filteredStaffs, currentPage, pageSize]);
+
+  const handlePageChange = async (newPage: number) => {
+    setCurrentPage(newPage);
+    setIsPageLoading(true);
+    try {
+      const data = await fetchStaffs(newPage, pageSize, activeSearch);
+      setStaffs(data);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadStaffFailed") || "Failed to load staff roster from server");
+      }
+    } finally {
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchInput.trim());
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setActiveSearch("");
+  };
 
   // Status Action Handlers
   const handleMakeActive = async (staff: BackendStaff) => {
@@ -286,7 +288,7 @@ export default function StaffsPage() {
 
   // Export to CSV
   const handleExportCSV = () => {
-    if (filteredStaffs.length === 0) {
+    if (staffs.length === 0) {
       toast.info(t("noStaffToExport") || "No staff records available to export.");
       return;
     }
@@ -304,7 +306,7 @@ export default function StaffsPage() {
       "Created At",
     ];
 
-    const rows = filteredStaffs.map((s) => [
+    const rows = staffs.map((s) => [
       s.id,
       s.firstName || "",
       s.lastName || "",
@@ -430,8 +432,8 @@ export default function StaffsPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={loadData}
-              disabled={isLoading}
+              onClick={() => loadData(true)}
+              disabled={isLoading || isPageLoading}
               className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
             >
               <RefreshCw
@@ -602,60 +604,54 @@ export default function StaffsPage() {
         </Card>
       </div>
 
-      {/* Filter & Search Bar Card */}
-      <Card className="toota-card border-none p-4 sm:p-5">
-        {/* Search & Select Controls */}
-        <div className="flex flex-col md:flex-row items-center gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 w-full min-w-[240px]">
-            <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      {/* Search Bar */}
+      <Card className="toota-card border-none p-4">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex flex-col sm:flex-row items-center gap-3"
+        >
+          <div className="relative flex-1 w-full">
+            <Search className="size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
             <Input
               type="text"
-              placeholder={`${t("searchStaffPlaceholder") || "Search staff by name, email, username, or phone..."}`}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
+              placeholder={
+                t("searchStaffPlaceholder") ||
+                "Search by first or last name..."
+              }
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full h-10 ps-10 pe-4 rounded-full bg-toota-inner border-border/40 text-xs font-medium text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635]"
             />
           </div>
 
-          {/* Status Select Dropdown */}
-          <div className="w-full md:w-52 shrink-0">
-            <CustomSelect
-              value={selectedStatus}
-              onChange={(val) => {
-                setSelectedStatus(String(val));
-                setCurrentPage(1);
-              }}
-              aria-label={t("status") || "Status"}
-              placeholder={t("allStatuses") || "All Statuses"}
-              options={[
-                { value: "", label: t("allStatuses") || "All Statuses" },
-                { value: "ACTIVE", label: t("active") || "Active" },
-                { value: "PENDING", label: t("pending") || "Pending" },
-                { value: "BANNED", label: t("banned") || "Banned" },
-              ]}
-            />
-          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Button
+              type="submit"
+              disabled={isLoading || isPageLoading}
+              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer w-full sm:w-auto"
+            >
+              {isPageLoading ? (
+                <Loader2 className="size-3.5 animate-spin me-1.5" />
+              ) : (
+                <Search className="size-3.5 me-1.5" />
+              )}
+              <span>{t("search") || "Search"}</span>
+            </Button>
 
-          {/* Clear Filters Button */}
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!isFiltering}
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedStatus("");
-              setCurrentPage(1);
-            }}
-            className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0 w-full md:w-auto"
-          >
-            <X className="size-3.5 me-1.5" />
-            <span>{t("clearFilters") || "Clear Filters"}</span>
-          </Button>
-        </div>
+            {Boolean(activeSearch || searchInput) && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isPageLoading}
+                onClick={handleClearSearch}
+                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+              >
+                <X className="size-3.5 me-1.5" />
+                <span>{t("clear") || "Clear"}</span>
+              </Button>
+            )}
+          </div>
+        </form>
       </Card>
 
       {/* Staff Ledger Table Card */}
@@ -670,7 +666,7 @@ export default function StaffsPage() {
             </span>
           </div>
 
-          {isLoading && (
+          {(isLoading || isPageLoading) && (
             <div className="flex items-center gap-2 text-xs text-toota-muted">
               <Loader2 className="size-3.5 animate-spin" />
               <span>{t("loading") || "Updating..."}</span>
@@ -688,22 +684,22 @@ export default function StaffsPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && paginatedStaffs.length === 0 && (
+          {!isLoading && staffs.length === 0 && (
             <div className="py-20 text-center px-4">
               <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
                 <Users className="size-7" />
               </div>
               <h4 className="font-medium text-base text-toota-ink">
-                {staffs.length === 0
-                  ? t("noStaffYet") || "No staff members recorded yet"
-                  : t("noMatchingStaff") || "No staff matching your search filter"}
+                {activeSearch
+                  ? t("noMatchingStaff") || "No staff matching your search filter"
+                  : t("noStaffYet") || "No staff members recorded yet"}
               </h4>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                {staffs.length === 0
-                  ? t("clickAddStaff") || "Click 'Add New Staff' to invite team members."
-                  : t("adjustFilter") || "Try adjusting your search query or status filter."}
+                {activeSearch
+                  ? t("adjustFilter") || "Try adjusting your search query."
+                  : t("clickAddStaff") || "Click 'Add New Staff' to invite team members."}
               </p>
-              {staffs.length === 0 && (
+              {!activeSearch && (
                 <Button
                   type="button"
                   onClick={() => setIsAddModalOpen(true)}
@@ -717,7 +713,7 @@ export default function StaffsPage() {
           )}
 
           {/* Populated Table */}
-          {!isLoading && paginatedStaffs.length > 0 && (
+          {!isLoading && staffs.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow className="border-border/40 hover:bg-transparent text-[11px] font-semibold text-toota-muted uppercase tracking-wider bg-black/[0.02] dark:bg-white/[0.02]">
@@ -745,7 +741,7 @@ export default function StaffsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-border/40 text-xs">
-                {paginatedStaffs.map((staff) => {
+                {staffs.map((staff) => {
                   const staffName =
                     `${staff.firstName || ""} ${staff.lastName || ""}`.trim() ||
                     staff.userName ||
@@ -863,8 +859,8 @@ export default function StaffsPage() {
             totalPages={totalPages}
             totalItems={totalItems}
             pageSize={pageSize}
-            onPageChange={setCurrentPage}
-            isLoading={isLoading}
+            onPageChange={handlePageChange}
+            isLoading={isPageLoading}
             itemLabel={t("staff") || "staff"}
           />
         )}

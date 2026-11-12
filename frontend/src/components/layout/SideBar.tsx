@@ -53,7 +53,7 @@ export default function SideBar({
   useEffect(() => {
     const syncTheme = () => {
       const savedTheme =
-        localStorage.getItem("toota-theme") || localStorage.getItem("theme");
+        localStorage.getItem("theme");
       const prefersDark =
         typeof window !== "undefined" &&
         window.matchMedia &&
@@ -83,13 +83,11 @@ export default function SideBar({
       document.documentElement.classList.add("dark");
       document.documentElement.dataset.theme = "dark";
       localStorage.setItem("theme", "dark");
-      localStorage.setItem("toota-theme", "dark");
       setIsDark(true);
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.dataset.theme = "light";
       localStorage.setItem("theme", "light");
-      localStorage.setItem("toota-theme", "light");
       setIsDark(false);
     }
     window.dispatchEvent(new Event("themechange"));
@@ -364,16 +362,18 @@ export default function SideBar({
 
             {isAdmin && (
               <Link
-                href="/gymflow-subscription"
+                href="/sportium-subscription"
                 onClick={onCloseMobile}
                 aria-current={
-                  isRouteActive("/gymflow-subscription") ? "page" : undefined
+                  isRouteActive("/sportium-subscription") || isRouteActive("/gymflow-subscription") ? "page" : undefined
                 }
-                className={getPillClasses(isRouteActive("/gymflow-subscription"))}
+                className={getPillClasses(
+                  isRouteActive("/sportium-subscription") || isRouteActive("/gymflow-subscription")
+                )}
               >
                 <Crown className="w-4 h-4 shrink-0" />
                 <span className="truncate">
-                  {t("navGymflowSubscription") || "Subscription"}
+                  {t("navSportiumSubscription") || t("navGymflowSubscription") || "Sportium Subscription"}
                 </span>
               </Link>
             )}

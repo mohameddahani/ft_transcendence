@@ -19,7 +19,7 @@ export interface PlatformPlanDuration {
   updatedAt?: string;
 }
 
-export interface GymflowSubscription {
+export interface SportiumSubscription {
   id?: string;
   subscriptionStatus: SubscriptionStatus;
   startedAt: string;
@@ -28,3 +28,6 @@ export interface GymflowSubscription {
   plan: PlatformPlan;
   planDuration: PlatformPlanDuration;
 }
+
+// Backwards compatibility alias
+export type GymflowSubscription = SportiumSubscription;

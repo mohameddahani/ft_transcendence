@@ -15,14 +15,13 @@ import {
   Copy,
   Check,
   Sparkles,
-  Search,
   Loader2,
   Headphones,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
-import { GymflowSubscription } from "@/types/subscription";
+import { SportiumSubscription } from "@/types/subscription";
 import { fetchMySubscription, fetchAllSubscriptions } from "@/lib/api/subscriptions";
 import { fetchAdminMemberStats } from "@/lib/api/stats";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -37,20 +36,16 @@ import {
   TableCell,
 } from "@/components/ui/table";
 
-export default function GymflowSubscriptionPage() {
+export default function SportiumSubscriptionPage() {
   const { t } = useTranslation();
   const { companyName } = useCurrentUser();
 
   // Data state
-  const [activeSubscription, setActiveSubscription] = useState<GymflowSubscription | null>(null);
-  const [allSubscriptions, setAllSubscriptions] = useState<GymflowSubscription[]>([]);
+  const [activeSubscription, setActiveSubscription] = useState<SportiumSubscription | null>(null);
+  const [allSubscriptions, setAllSubscriptions] = useState<SportiumSubscription[]>([]);
   const [memberCount, setMemberCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState<string | null>(null);
-
-  // Filters for ledger
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "EXPIRED" | "CANCELLED">("ALL");
 
   // Upgrade / Support Modal state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -232,37 +227,9 @@ export default function GymflowSubscriptionPage() {
     );
   };
 
-  // Filtered History Ledger
-  const filteredHistory = useMemo(() => {
-    return allSubscriptions.filter((sub) => {
-      const planName = sub.plan?.planName || "";
-      const amountStr = String(sub.amount || "");
-      const startStr = sub.startedAt || "";
-      const endStr = sub.expiresAt || "";
-
-      // Search term
-      if (
-        searchTerm &&
-        !planName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !amountStr.includes(searchTerm) &&
-        !startStr.includes(searchTerm) &&
-        !endStr.includes(searchTerm)
-      ) {
-        return false;
-      }
-
-      // Status filter
-      if (statusFilter !== "ALL" && sub.subscriptionStatus !== statusFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [allSubscriptions, searchTerm, statusFilter]);
-
   // Export history to CSV
   const handleExportCSV = () => {
-    if (filteredHistory.length === 0) {
+    if (allSubscriptions.length === 0) {
       toast.info("No subscription records available to export.");
       return;
     }
@@ -277,7 +244,7 @@ export default function GymflowSubscriptionPage() {
       "Expires At",
     ];
 
-    const rows = filteredHistory.map((sub) => {
+    const rows = allSubscriptions.map((sub) => {
       let subDurationDays = sub.planDuration?.durationDays;
       if (!subDurationDays && sub.startedAt && sub.expiresAt) {
         const s = new Date(sub.startedAt).getTime();
@@ -305,7 +272,7 @@ export default function GymflowSubscriptionPage() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `gymflow_subscriptions_${new Date().toISOString().split("T")[0]}.csv`
+      `sportium_subscriptions_${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -322,7 +289,7 @@ export default function GymflowSubscriptionPage() {
           <div>
             <div className="flex items-baseline gap-2">
               <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("gymflowSubscriptionTitle") || "Platform Subscription"}
+                {t("sportiumSubscriptionTitle") || t("gymflowSubscriptionTitle") || "Sportium Subscription"}
               </h1>
               {activeSubscription?.plan?.planName && (
                 <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
@@ -334,8 +301,9 @@ export default function GymflowSubscriptionPage() {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
-              {t("gymflowSubscriptionSubtitle") ||
-                "Manage your core GymFlow platform license, allocated capacity, and complete billing ledger."}
+              {t("sportiumSubscriptionSubtitle") ||
+                t("gymflowSubscriptionSubtitle") ||
+                "Manage your core Sportium platform license, allocated capacity, and complete billing ledger."}
             </p>
           </div>
 
@@ -566,7 +534,7 @@ export default function GymflowSubscriptionPage() {
             </h2>
             <p className="text-xs sm:text-sm text-toota-muted mt-1.5 leading-relaxed">
               {t("noActiveLicenseDesc") ||
-                "Your gym currently does not have an active GymFlow platform license. Contact your platform administrator to activate your plan."}
+                "Your gym currently does not have an active Sportium platform license. Contact your platform administrator to activate your plan."}
             </p>
           </div>
           <Button
@@ -584,42 +552,6 @@ export default function GymflowSubscriptionPage() {
       {/* SUBSCRIPTION HISTORY & BILLING LEDGER SECTION                             */}
       {/* ========================================================================= */}
       <div className="space-y-4">
-        {/* Filter Card */}
-        <Card className="toota-card border-none p-4">
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1 w-full">
-              <Search className="size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
-              <input
-                type="text"
-                placeholder={t("searchSubscriptions") || "Search ledger by plan tier, date, or amount..."}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 ps-10 pe-4 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink placeholder:text-toota-muted outline-none focus:outline-none focus:ring-1 focus:ring-[#a3e635] focus:border-[#a3e635] transition-all"
-              />
-            </div>
-
-            {/* Status Filter Dropdown */}
-            <div className="w-full sm:w-48 shrink-0">
-              <select
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(
-                    e.target.value as "ALL" | "ACTIVE" | "EXPIRED" | "CANCELLED"
-                  )
-                }
-                aria-label="Filter status"
-                className="w-full h-10 px-3.5 rounded-full bg-toota-inner border border-border/40 text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
-              >
-                <option value="ALL">{t("allRecords") || "All Statuses"}</option>
-                <option value="ACTIVE">{t("activeOnly") || "Active"}</option>
-                <option value="EXPIRED">{t("expiredOnly") || "Expired"}</option>
-                <option value="CANCELLED">{t("cancelledOnly") || "Cancelled"}</option>
-              </select>
-            </div>
-          </div>
-        </Card>
-
         {/* History Table Card */}
         <Card className="toota-card border-none p-0 overflow-hidden">
           <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
@@ -628,7 +560,7 @@ export default function GymflowSubscriptionPage() {
                 {t("subscriptionHistory") || "Billing & Subscription History"}
               </CardTitle>
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {filteredHistory.length} {t("allRecords") || "records"}
+                / {allSubscriptions.length} {t("allRecords") || "records"}
               </span>
             </div>
 
@@ -641,20 +573,16 @@ export default function GymflowSubscriptionPage() {
           </CardHeader>
 
           <CardContent className="p-0">
-            {filteredHistory.length === 0 ? (
+            {allSubscriptions.length === 0 ? (
               <div className="py-16 text-center px-4">
                 <div className="size-14 rounded-full bg-toota-inner flex items-center justify-center mx-auto mb-3 text-toota-muted">
                   <CreditCard className="size-7" />
                 </div>
                 <h4 className="font-medium text-base text-toota-ink">
-                  {allSubscriptions.length === 0
-                    ? t("noSubscriptionsYet") || "No subscription records found"
-                    : t("noMatchingRecords") || "No matching subscription records"}
+                  {t("noSubscriptionsYet") || "No subscription records found"}
                 </h4>
                 <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                  {allSubscriptions.length === 0
-                    ? "When your facility activates or renews platform tiers, records will appear here automatically."
-                    : "Try adjusting your search query or status filter to see other records."}
+                  When your facility activates or renews platform tiers, records will appear here automatically.
                 </p>
               </div>
             ) : (
@@ -670,7 +598,7 @@ export default function GymflowSubscriptionPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/40 text-xs">
-                  {filteredHistory.map((sub, index) => {
+                  {allSubscriptions.map((sub, index) => {
                     const status = sub.subscriptionStatus;
 
                     const startDate = sub.startedAt
@@ -690,7 +618,7 @@ export default function GymflowSubscriptionPage() {
 
                     const refId = sub.id
                       ? `#SUB-${sub.id.slice(0, 8)}`
-                      : `GF-SUB-${index + 101}`;
+                      : `SP-SUB-${index + 101}`;
 
                     return (
                       <TableRow
@@ -818,7 +746,7 @@ export default function GymflowSubscriptionPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-toota-ink">
-                    {t("upgradeSubscriptionTitle", "Upgrade GymFlow Subscription")}
+                    {t("upgradeSubscriptionTitle", "Upgrade Sportium Subscription")}
                   </h3>
                   <p className="text-xs text-toota-muted">
                     {t("upgradeSubscriptionSubtitle", "Expand member capacity or extend your facility license")}
@@ -833,7 +761,7 @@ export default function GymflowSubscriptionPage() {
                   {t("howLicensingWorksTitle", "How Licensing Works")}
                 </h4>
                 <p className="text-xs text-toota-muted leading-relaxed">
-                  {t("howLicensingWorksDesc", "GymFlow subscriptions are provisioned directly by the Platform Administrator / GymFlow Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.")}
+                  {t("howLicensingWorksDesc", "Sportium subscriptions are provisioned directly by the Platform Administrator / Sportium Owner. Upgrading unlocks higher member quotas, multiple simultaneous staff logins, and priority feature access.")}
                 </p>
               </div>
 
@@ -861,7 +789,7 @@ export default function GymflowSubscriptionPage() {
               <div className="p-4 rounded-xl bg-toota-inner border border-border/40 text-xs text-toota-ink leading-relaxed">
                 <strong>{t("needQuotaExtension", "Need immediate quota extension?")}</strong>{" "}
                 {t("reachOutSupport", "Reach out to your account executive or email")}{" "}
-                <span className="font-mono font-semibold underline">support@gymflow.io</span>{" "}
+                <span className="font-mono font-semibold underline">support@sportium.io</span>{" "}
                 {t("withGymId", "with your Gym ID.")}
               </div>
             </div>
@@ -882,3 +810,5 @@ export default function GymflowSubscriptionPage() {
     </div>
   );
 }
+
+export { SportiumSubscriptionPage as GymflowSubscriptionPage };

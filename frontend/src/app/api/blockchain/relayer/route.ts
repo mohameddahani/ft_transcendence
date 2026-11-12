@@ -40,7 +40,6 @@ export async function POST(req: NextRequest) {
       status: backendRes.status,
     });
   } catch (error: unknown) {
-    console.error("Relayer BFF proxy error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to connect to blockchain relayer service";
     return NextResponse.json(

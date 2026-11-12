@@ -4,8 +4,6 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Star,
   RefreshCw,
-  Search,
-  Filter,
   CheckCircle2,
   Clock,
   Download,
@@ -14,7 +12,6 @@ import {
   TrendingUp,
   Loader2,
   AlertTriangle,
-  Sparkles,
   Inbox,
 } from "lucide-react";
 import axios from "axios";
@@ -31,7 +28,6 @@ import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
 import Pagination from "@/components/ui/Pagination";
-import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -39,7 +35,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Avatar,
   AvatarImage,
@@ -57,20 +52,13 @@ function AdminStaffFeedbackView() {
 
   // Data state
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
-  const [pagedFeedbacks, setPagedFeedbacks] = useState<FeedbackItem[]>([]);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | FeedbackStatus>("ALL");
-  const [ratingFilter, setRatingFilter] = useState<number | "ALL">("ALL");
-  const [sentimentFilter, setSentimentFilter] = useState<"ALL" | "NONE" | SentimentType>("ALL");
+  const pageSize = 20;
 
   // Modal state
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(null);
@@ -87,9 +75,9 @@ function AdminStaffFeedbackView() {
         statsPromise.catch(() => null),
         fetchAllFeedbacks(1, pageSize),
       ]);
+      console.log(pageData);
       setFeedbackStats(statsData);
       setFeedbacks(pageData);
-      setPagedFeedbacks(pageData);
       setCurrentPage(1);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -171,113 +159,26 @@ function AdminStaffFeedbackView() {
     };
   }, [feedbackStats, feedbacks]);
 
-  //   return {
-  //     total,
-  //     averageRating,
-  //     openCount,
-  //     resolvedCount,
-  //     positivePercent,
-  //     analysedCount,
-  //     bySentiment,
-  //   };
-  // }, [feedbackStats, feedbacks]);
-
-  //   return {
-  //     total,
-  //     averageRating,
-  //     openCount,
-  //     resolvedCount,
-  //     positivePercent,
-  //     analysedCount,
-  //     bySentiment,
-  //   };
-  // }, [feedbacks]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, ratingFilter, sentimentFilter]);
-
-  // Filtered List
-  const filteredFeedbacks = useMemo(() => {
-    return feedbacks.filter((f) => {
-      const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
-      const content = (f.content || "").toLowerCase();
-      const note = (f.resolutionNote || "").toLowerCase();
-      const email = (f.member?.email || "").toLowerCase();
-      const phone = (f.member?.phoneNumber || "").toLowerCase();
-      const username = (f.member?.userName || "").toLowerCase();
-
-      // Search matching
-      if (
-        searchTerm &&
-        !memberName.includes(searchTerm.toLowerCase()) &&
-        !content.includes(searchTerm.toLowerCase()) &&
-        !note.includes(searchTerm.toLowerCase()) &&
-        !email.includes(searchTerm.toLowerCase()) &&
-        !phone.includes(searchTerm.toLowerCase()) &&
-        !username.includes(searchTerm.toLowerCase())
-      ) {
-        return false;
-      }
-
-      // Status matching
-      if (statusFilter !== "ALL" && f.feedbackStatus !== statusFilter) {
-        return false;
-      }
-
-      // Rating matching
-      if (ratingFilter !== "ALL" && f.rating !== ratingFilter) {
-        return false;
-      }
-
-      // Sentiment matching ("NONE" = not analysed yet)
-      if (sentimentFilter === "NONE" && f.sentiment) return false;
-      if (
-        sentimentFilter !== "ALL" &&
-        sentimentFilter !== "NONE" &&
-        f.sentiment !== sentimentFilter
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [feedbacks, searchTerm, statusFilter, ratingFilter, sentimentFilter]);
-
-  // Paginated Feedbacks
-  const isFiltering = Boolean(
-    searchTerm ||
-    statusFilter !== "ALL" ||
-    ratingFilter !== "ALL" ||
-    sentimentFilter !== "ALL"
-  );
-  const totalItems = isFiltering ? filteredFeedbacks.length : (feedbackStats?.total ?? feedbacks.length);
+  // Pagination
+  const totalItems = feedbackStats?.total ?? feedbacks.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  const paginatedFeedbacks = useMemo(() => {
-    if (isFiltering) {
-      const start = (currentPage - 1) * pageSize;
-      return filteredFeedbacks.slice(start, start + pageSize);
-    }
-    return pagedFeedbacks.length > 0
-      ? pagedFeedbacks
-      : feedbacks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [isFiltering, filteredFeedbacks, pagedFeedbacks, feedbacks, currentPage, pageSize]);
-
-  // Handle page changes with explicit API calls when not filtering
+  // Handle page changes
   const handlePageChange = async (newPage: number) => {
     setCurrentPage(newPage);
-    if (!isFiltering) {
-      setIsPageLoading(true);
-      try {
-        const pageData = await fetchAllFeedbacks(newPage, pageSize);
-        setPagedFeedbacks(pageData);
-      } catch {
-        // fail gracefully
-      } finally {
-        setIsPageLoading(false);
+    setIsPageLoading(true);
+    try {
+      const pageData = await fetchAllFeedbacks(newPage, pageSize);
+      setFeedbacks(pageData);
+      console.log(pageData);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(t("loadFeedbackFailed") || "Failed to load member feedback roster.");
       }
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -309,7 +210,7 @@ function AdminStaffFeedbackView() {
 
   // Export to CSV
   const handleExportCSV = () => {
-    if (filteredFeedbacks.length === 0) {
+    if (feedbacks.length === 0) {
       toast.info(t("noFeedbackToExport") || "No feedback records available to export.");
       return;
     }
@@ -327,12 +228,12 @@ function AdminStaffFeedbackView() {
       "Resolved At",
     ];
 
-    const rows = filteredFeedbacks.map((f) => [
+    const rows = feedbacks.map((f) => [
       `"${f.member?.firstName || ""} ${f.member?.lastName || ""}"`,
       `"${f.member?.userName || ""}"`,
       f.rating,
       f.sentiment ?? "",
-      f.sentimentScore ?? "",
+      f.sentimentType ?? "",
       f.feedbackStatus,
       `"${(f.content || "").replace(/"/g, '""')}"`,
       `"${(f.resolutionNote || "").replace(/"/g, '""')}"`,
@@ -349,7 +250,7 @@ function AdminStaffFeedbackView() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `gymflow_feedbacks_${new Date().toISOString().split("T")[0]}.csv`
+      `sportium_feedbacks_${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -622,129 +523,23 @@ function AdminStaffFeedbackView() {
                 style={{ width: `${stats.positivePercent ?? 0}%` }}
               />
             </div>
-            {/* Sentiment split breakdown links */}
+            {/* Sentiment split breakdown */}
             <div className="flex items-center gap-2 pt-0.5 text-[10px] font-medium flex-wrap">
-              <button
-                type="button"
-                onClick={() => setSentimentFilter("POSITIVE")}
-                className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                title={t("positiveOnly") || "Filter positive reviews"}
-              >
+              <span className="text-emerald-600 dark:text-emerald-400">
                 {stats.bySentiment.POSITIVE} {t("sentiment_POSITIVE")?.toLowerCase() || "positive"}
-              </button>
+              </span>
               <span className="text-toota-muted">•</span>
-              <button
-                type="button"
-                onClick={() => setSentimentFilter("NEUTRAL")}
-                className="text-slate-600 dark:text-slate-400 hover:underline cursor-pointer"
-                title={t("neutralOnly") || "Filter neutral reviews"}
-              >
+              <span className="text-slate-600 dark:text-slate-400">
                 {stats.bySentiment.NEUTRAL} {t("sentiment_NEUTRAL")?.toLowerCase() || "neutral"}
-              </button>
+              </span>
               <span className="text-toota-muted">•</span>
-              <button
-                type="button"
-                onClick={() => setSentimentFilter("NEGATIVE")}
-                className="text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-                title={t("negativeOnly") || "Filter negative reviews"}
-              >
+              <span className="text-rose-600 dark:text-rose-400">
                 {stats.bySentiment.NEGATIVE} {t("sentiment_NEGATIVE")?.toLowerCase() || "negative"}
-              </button>
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Filter & Search Toolbar */}
-      <Card className="toota-card border-none">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
-          {/* Search Input */}
-          <div className="lg:col-span-4 relative">
-            <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
-            <Input
-              type="text"
-              placeholder={t("searchFeedbackPlaceholder") || "Search by member, comment, note..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 bg-toota-inner border-border/40 text-xs text-toota-ink placeholder:text-toota-muted rounded-xl focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635]"
-            />
-          </div>
-
-          {/* Status Filter */}
-          <div className="lg:col-span-3">
-            <CustomSelect
-              value={statusFilter}
-              onChange={(val) => setStatusFilter(val as "ALL" | FeedbackStatus)}
-              icon={<Filter className="size-4" />}
-              className="rounded-xl"
-              placeholder={t("allStatuses") || "All Statuses"}
-              options={[
-                {
-                  value: "ALL",
-                  label: `${t("allStatuses") || "All Statuses"} (${feedbacks.length})`,
-                },
-                { value: "OPEN", label: t("statusOpen") || "Open" },
-                { value: "IN_REVIEW", label: t("statusInReview") || "In Review" },
-                { value: "RESOLVED", label: t("statusResolved") || "Resolved" },
-                { value: "DISMISSED", label: t("statusDismissed") || "Dismissed" },
-              ]}
-            />
-          </div>
-
-          {/* Rating Filter */}
-          <div className="lg:col-span-2">
-            <CustomSelect
-              value={ratingFilter}
-              onChange={(val) =>
-                setRatingFilter(val === "ALL" ? "ALL" : Number(val))
-              }
-              icon={<Star className="size-4" />}
-              className="rounded-xl"
-              placeholder={t("allStarRatings") || "All Ratings"}
-              options={[
-                { value: "ALL", label: t("allStarRatings") || "All Ratings" },
-                { value: 5, label: t("fiveStarsOnly") || "5 Stars" },
-                { value: 4, label: t("fourStars") || "4 Stars" },
-                { value: 3, label: t("threeStars") || "3 Stars" },
-                { value: 2, label: t("twoStars") || "2 Stars" },
-                { value: 1, label: t("oneStarOnly") || "1 Star" },
-              ]}
-            />
-          </div>
-
-          {/* Sentiment Filter */}
-          <div className="lg:col-span-3">
-            <CustomSelect
-              value={sentimentFilter}
-              onChange={(val) =>
-                setSentimentFilter(val as typeof sentimentFilter)
-              }
-              icon={<Sparkles className="size-4" />}
-              className="rounded-xl"
-              placeholder={t("allSentiments") || "All Sentiments"}
-              options={[
-                { value: "ALL", label: t("allSentiments") || "All Sentiments" },
-                {
-                  value: "NEGATIVE",
-                  label: `${t("negativeOnly") || "Negative"} (${stats.bySentiment.NEGATIVE})`,
-                },
-                {
-                  value: "NEUTRAL",
-                  label: `${t("neutralOnly") || "Neutral"} (${stats.bySentiment.NEUTRAL})`,
-                },
-                {
-                  value: "POSITIVE",
-                  label: `${t("positiveOnly") || "Positive"} (${stats.bySentiment.POSITIVE})`,
-                },
-                {
-                  value: "NONE",
-                  label: `${t("sentimentNotAnalysed") || "Not Analyzed"} (${stats.bySentiment.NONE})`,
-                },
-              ]}
-            />
-          </div>
-        </div>
-      </Card>
 
       {/* Feedback Feed Cards List */}
       <div className="space-y-4">
@@ -755,7 +550,7 @@ function AdminStaffFeedbackView() {
               {t("loadingFeedback") || "Loading member feedback roster..."}
             </p>
           </Card>
-        ) : paginatedFeedbacks.length === 0 ? (
+        ) : feedbacks.length === 0 ? (
           <Card className="toota-card border-none p-16 text-center space-y-3">
             <div className="size-14 rounded-2xl bg-toota-inner flex items-center justify-center mx-auto text-toota-muted">
               <Inbox className="size-7 opacity-50" />
@@ -765,14 +560,12 @@ function AdminStaffFeedbackView() {
                 {t("noFeedbackSubmissions") || "No feedback submissions found"}
               </p>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1">
-                {isFiltering
-                  ? t("noMatchingFilterReviews") || "No feedback matches the selected filters. Try broadening your criteria."
-                  : t("emptyFeedbackPortalHint") || "Members have not submitted any feedback reviews yet."}
+                {t("emptyFeedbackPortalHint") || "Members have not submitted any feedback reviews yet."}
               </p>
             </div>
           </Card>
         ) : (
-          paginatedFeedbacks.map((item) => {
+          feedbacks.map((item) => {
             const member = item.member;
             const fullName =
               `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
@@ -868,7 +661,7 @@ function AdminStaffFeedbackView() {
                     )}
 
                     {/* Sentiment Badge */}
-                    {renderSentimentBadge(item.sentiment, item.sentimentScore)}
+                    {renderSentimentBadge(item.sentiment, item.sentimentType)}
 
                     {/* Status Badge */}
                     {renderFeedbackStatusBadge(item.feedbackStatus)}

@@ -19,7 +19,7 @@ const protectedRoutes = [
   "/reports",
   "/settings",
   "/profile",
-  "/gymflow-subscription",
+  "/sportium-subscription",
   "/check-in",
   "/feedbacks",
   "/operating-hours",
@@ -38,6 +38,7 @@ const memberForbiddenRoutes = [
   "/classes",
   "/reports",
   "/gymflow-subscription",
+  "/sportium-subscription",
   "/check-in",
   "/settings",
   "/assistant/documents",
@@ -50,6 +51,7 @@ const adminOnlyRoutes = [
   "/operating-hours",
   "/staffs",
   "/gymflow-subscription",
+  "/sportium-subscription",
   "/assistant/documents",
 ];
 
@@ -94,10 +96,6 @@ function hasAdminOrStaffAccess(token?: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  // logging request
-  const { method, nextUrl } = request;
-  console.log(`[frontend] ${method} ${nextUrl.pathname}${nextUrl.search}`);
-
   let token = request.cookies.get("auth_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;

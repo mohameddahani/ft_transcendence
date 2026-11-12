@@ -317,3 +317,31 @@ export function attachSessionCookies(
 
   return setAuthCookies(res, { accessToken, refreshToken });
 }
+
+/**
+ * Creates a clean JSON NextResponse.
+ * When the backend returns an error status (>= 400), it encapsulates the error
+ * with HTTP 200 OK and `_isError: true` so the browser's native XMLHttpRequest/Fetch
+ * does not log red HTTP 4xx/5xx network errors in DevTools Console.
+ */
+export function createProxyResponse(
+  backendData: unknown,
+  backendStatus: number,
+  sessionOrToken?: string | AuthenticatedSession,
+  explicitRefreshToken?: string
+): NextResponse {
+  if (backendStatus >= 400) {
+    const errorPayload = {
+      _isError: true,
+      statusCode: backendStatus,
+      ...(typeof backendData === "object" && backendData !== null
+        ? (backendData as Record<string, unknown>)
+        : { message: String(backendData) }),
+    };
+    const res = NextResponse.json(errorPayload, { status: 200 });
+    return attachSessionCookies(res, sessionOrToken, explicitRefreshToken);
+  }
+
+  const res = NextResponse.json(backendData, { status: backendStatus });
+  return attachSessionCookies(res, sessionOrToken, explicitRefreshToken);
+}
