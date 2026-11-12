@@ -103,6 +103,7 @@ export default function SubscriptionsTable() {
       await api.patch("/api/subscriptions", {
         adminId: subToCancel.userId,
       });
+      console.log("here")
 
       toast.success(
         `Subscription for ${subToCancel.user?.companyName || subToCancel.user?.userName || "Admin"} has been cancelled.`
