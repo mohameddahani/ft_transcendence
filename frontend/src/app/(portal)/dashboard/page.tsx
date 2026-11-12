@@ -127,11 +127,11 @@ function AdminStaffDashboardView() {
   const activeMembers = memberStats?.activeCount ?? members.filter(
     (m) => m.memberships?.[0]?.membershipStatus === "ACTIVE"
   ).length;
-  const expiredMembers = memberStats?.expiredCount ?? members.filter(
-    (m) => m.memberships?.[0]?.membershipStatus === "EXPIRED"
+  const bannedCount = memberStats?.bannedCount ?? members.filter(
+    (m) => (m.accountStatus || "").toUpperCase() === "BANNED"
   ).length;
-  const bannedMembers = memberStats?.bannedCount ?? members.filter(
-    (m) => m.accountStatus === "BANNED"
+  const pendingCount = memberStats?.pendingCount ?? members.filter(
+    (m) => (m.accountStatus || "").toUpperCase() === "PENDING"
   ).length;
   const inactiveOrOther = totalMembers - activeMembers;
   const activePercent =
@@ -448,10 +448,11 @@ function AdminStaffDashboardView() {
                 <span>{totalMembers > 0 ? `${inactivePercent}%` : "—"}</span>
               </span>
             </div>
-            <p className="text-xs text-toota-muted mt-2 truncate">
-              {expiredMembers > 0 || bannedMembers > 0
-                ? `${expiredMembers} ${t("expired") || "expired"} · ${bannedMembers} ${t("banned") || "banned"}`
-                : t("inactive") || "Inactive status"}
+            <p
+              title={`${bannedCount} ${t("banned") || "banned"} · ${pendingCount} ${t("pending") || "pending"}`}
+              className="text-xs text-toota-muted mt-2 truncate"
+            >
+              {`${bannedCount} ${t("banned") || "banned"} · ${pendingCount} ${t("pending") || "pending"}`}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
@@ -616,19 +617,23 @@ function AdminStaffDashboardView() {
                         ? new Date(feedbacks[0].createdAt).toLocaleDateString()
                         : "—"}
                     </span>
-                    {feedbacks[0].sentiment ? (
-                      <span
-                        className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-full ${
-                          feedbacks[0].sentiment === "POSITIVE"
-                            ? "bg-toota-green/15 text-toota-green"
-                            : feedbacks[0].sentiment === "NEGATIVE"
-                            ? "bg-toota-red/15 text-toota-red"
-                            : "bg-toota-muted/15 text-toota-muted"
-                        }`}
-                      >
-                        {feedbacks[0].sentiment}
-                      </span>
-                    ) : null}
+                    {(() => {
+                      const sentiment = feedbacks[0].sentimentType || feedbacks[0].sentiment;
+                      if (!sentiment) return null;
+                      return (
+                        <span
+                          className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-full ${
+                            sentiment === "POSITIVE"
+                              ? "bg-toota-green/15 text-toota-green"
+                              : sentiment === "NEGATIVE"
+                              ? "bg-toota-red/15 text-toota-red"
+                              : "bg-toota-muted/15 text-toota-muted"
+                          }`}
+                        >
+                          {sentiment}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

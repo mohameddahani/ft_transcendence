@@ -15,9 +15,13 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const starsDisagree = (f: FeedbackItem) =>
-  (f.rating >= 4 && f.sentiment === "NEGATIVE") ||
-  (f.rating <= 2 && f.sentiment === "POSITIVE");
+const starsDisagree = (f: FeedbackItem) => {
+  const sentiment = f.sentimentType || f.sentiment;
+  return (
+    (f.rating >= 4 && sentiment === "NEGATIVE") ||
+    (f.rating <= 2 && sentiment === "POSITIVE")
+  );
+};
 
 interface ResolveFeedbackModalProps {
   isOpen: boolean;

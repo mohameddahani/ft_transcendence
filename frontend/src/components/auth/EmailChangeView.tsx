@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
@@ -31,7 +31,7 @@ interface EmailChangeViewProps {
   role?: EmailChangeRole;
 }
 
-export default function EmailChangeView({ role: propRole }: EmailChangeViewProps) {
+function EmailChangeContent({ role: propRole }: EmailChangeViewProps) {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const { token, isReady } = useAuthToken();
@@ -239,5 +239,21 @@ export default function EmailChangeView({ role: propRole }: EmailChangeViewProps
         )}
       </div>
     </SimpleAuthShell>
+  );
+}
+
+export default function EmailChangeView(props: EmailChangeViewProps) {
+  return (
+    <Suspense
+      fallback={
+        <SimpleAuthShell>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="size-8 animate-spin text-toota-primary" />
+          </div>
+        </SimpleAuthShell>
+      }
+    >
+      <EmailChangeContent {...props} />
+    </Suspense>
   );
 }
