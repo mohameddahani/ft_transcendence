@@ -2,28 +2,10 @@
 
 # Sportium
 
-## Description
-
-**Sportium** is a multi-tenant platform for managing sports facilities such as gyms and swimming pools. A facility's owner, staff, and members all work in one place, and the Sportium team (the *platform owners*) manages the businesses that use it.
-
-**Goal:** give every facility one system for memberships, attendance, payments, and member feedback, with an AI assistant on top and a blockchain-powered rewards marketplace for members.
-
-### Key features
-
-- Role-based access for four roles: platform owner, admin (the facility), staff, and member
-- Member, staff, plan, and membership management for each facility
-- QR-code check-in and attendance tracking
-- Payments with due-date tracking and notifications
-- Member feedback with sentiment analysis
-- AI assistant: chatbot, recommendations, and member information lookups
-- Marketplace powered by blockchain: members earn rewards and spend them on products, confirmed through MetaMask
-- Full monitoring, status page, and automated database backups
-
-## Table of contents
+## Table of Contents
 
 - [Description](#description)
   - [Key features](#key-features)
-- [Project structure](#project-structure)
 - [Instructions](#instructions)
   - [Prerequisites](#prerequisites)
   - [Setup and run](#setup-and-run)
@@ -32,42 +14,36 @@
 - [Team Information](#team-information)
 - [Project Management](#project-management)
 - [Technical Stack](#technical-stack)
-  - [Infrastructure and DevOps](#infrastructure-and-devops)
-  - [Key technical decisions](#key-technical-decisions)
 - [Architecture](#architecture)
+- [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
-  - [Tables](#tables)
 - [Features List](#features-list)
+- [Modules](#modules)
 - [Individual Contributions](#individual-contributions)
 - [Resources](#resources)
   - [Documentation](#documentation)
   - [How AI was used](#how-ai-was-used)
 
-## Project structure
+## Description
 
-The repository is organized by application service and infrastructure responsibility. The following is a high-level view; individual source files and supporting configuration files are omitted.
+**Sportium** is a multi-tenant platform for managing sports facilities such as gyms and swimming pools. A facility's owner, staff, and members all work in one place, and the Sportium team (the *platform owners*) manages the businesses that use it.
 
-```bash
-.
-├── .github/workflows/        # Github Actions
-├── AI/                       # Python AI service
-├── backend/                  # Main NestJS API
-├── blockchain/               # Blockchain API
-├── devops/
-│   ├── backup-service/       # Backup Service
-│   ├── monitoring/           # Monitoring Stack Service
-│   ├── nginx/                # Nginx Configuration
-│   ├── redis/                # Redis Configuration
-│   ├── docker-compose.yml    # Multi-service Docker Compose configuration
-│   └── backups/              # Database backup files
-├── docs/                     # Documentations
-├── frontend/                 # Facility-facing web application
-├── owner-platform/           # Platform owner web application
-├── .gitignore                # Ignored files by git
-├── Makefile                  # Common Docker Compose commands
-├── setup-env                 # Creates service .env files from .env.example files
-└── README.md
-```
+**Goal:** give every facility one system for memberships, attendance, payments, and member feedback, with an AI assistant on top and a blockchain-powered rewards marketplace for members.
+
+### Key features
+
+- Role-based access with an advanced permissions system for four roles: platform owner, admin (the facility), staff, and member
+- Member, staff, plan, and membership management for each facility
+- QR-code check-in and attendance tracking
+- Payments with due-date tracking
+- Notifications for create, update, and delete actions
+- Advanced search with filters, sorting, and pagination
+- Activity analytics and a data visualization dashboard
+- Member feedback with sentiment analysis
+- AI assistant: chatbot, recommendations, and member information lookups
+- Marketplace powered by blockchain: members earn rewards and spend them on products, confirmed through MetaMask
+- Multiple languages, including right-to-left support
+- Full monitoring, status page, and automated database backups
 
 ## Instructions
 
@@ -80,23 +56,23 @@ The repository is organized by application service and infrastructure responsibi
 ### Setup and run
 
 1. Clone the repository and go to its root.
-2. Run the environment setup script:
+2. Prepare the environment files:
    ```bash
    ./setup-env
    ```
-   The script copies the available service `.env.example` files to their corresponding `.env` files only when the destination files do not already exist. Existing `.env` files are left unchanged: the script does not overwrite them or add missing variables. Review each service's environment example and configure its `.env` file as needed.
+   Each service has its own `.env`. This script copies each service's `.env.example` to `.env` when the `.env` does not exist yet. It never overwrites an existing `.env` and does not add missing variables to it. Open the created files and fill in any missing values before the next step. After pulling updates, compare your `.env` files with the `.env.example` files for new variables.
 3. Start everything:
    ```bash
    make up
    ```
-4. Run `make help` or `make` to list the available commands.
+4. Run `make` with no arguments to list all available commands.
 
 ### Access
 
 | Service | URL |
 |---|---|
 | Application | https://localhost |
-| Owner portal | https://localhost/owner-portal |
+| Owner platform | https://localhost/owner-portal |
 | Grafana (dashboards) | https://localhost/grafana |
 | Status page (Gatus) | https://status.localhost |
 
@@ -104,9 +80,7 @@ The TLS certificate is self-signed and generated automatically when the nginx im
 
 ### Backup and restore
 
-Database backups run automatically on the configured schedule and are saved to `devops/backups/` (7 days of history are kept). A backup also runs once when the stack starts.
-
-For the backup and restore verification procedure, including the database disaster simulation, test-data creation, restore, and data-integrity checks, see [`db-disaster-simulation.md`](docs/db-disaster-simulation.md). It documents the commands used to validate that backups can be restored successfully.
+The database is backed up automatically on a schedule, and backups are saved to `devops/backups/`. Running a backup manually, restoring one, and verifying the whole procedure (adding data, destroying it, restoring, and checking that it came back) are described step by step in [`docs/db-disaster-simulation.md`](docs/db-disaster-simulation.md).
 
 ## Team Information
 
@@ -143,7 +117,7 @@ For the backup and restore verification procedure, including the database disast
 
 - **Docker and Docker Compose:** every service runs in a container, and one command starts the whole stack.
 - **Prometheus, Grafana, Alertmanager:** metrics collection, dashboards, and alert routing to Discord. Exporters cover the host (node), nginx, PostgreSQL, and Redis.
-- **Gatus:** public status page that checks whether each service is reachable, from the outside like a real user. Gatus also sends its own alerts to Discord.
+- **Gatus:** status page that checks whether each service is reachable, from the outside like a real user, and alerts Discord when one is not.
 - **Automated backups:** scheduled `pg_dump` backups in a dedicated container, with a tested restore script.
 - **GitHub Actions:** continuous integration that lints and builds every service and builds every Docker image on each push and pull request.
 
@@ -159,20 +133,68 @@ For the backup and restore verification procedure, including the database disast
 
 ```mermaid
 flowchart LR
-    Browser --> nginx
-    nginx --> frontend[Frontend / Owner platform<br/>Next.js]
-    frontend --> backend[Backend<br/>NestJS]
-    backend --> postgres[(PostgreSQL)]
-    backend --> redis[(Redis)]
-    backend --> blockchain[Blockchain API<br/>NestJS]
-    backend --> ai[AI service<br/>Python]
-    ai --> postgres
-    nginx --> grafana[Grafana]
-    nginx --> gatus[Gatus status page]
-    gatus --> discord
-    prometheus[Prometheus] --> grafana
-    prometheus --> alertmanager[Alertmanager] --> discord[Discord]
-    backup[Backup service] --> postgres
+	Browser --> nginx
+	nginx --> frontend[Frontend / Owner platform<br/>Next.js]
+	frontend --> backend[Backend<br/>NestJS]
+	backend --> postgres[(PostgreSQL)]
+	backend --> redis[(Redis)]
+	backend --> blockchain[Blockchain API<br/>NestJS]
+	backend --> ai[AI service<br/>Python]
+	ai --> postgres
+	nginx --> grafana[Grafana]
+	nginx --> gatus[Gatus status page]
+	prometheus[Prometheus] --> grafana
+	prometheus --> alertmanager[Alertmanager] --> discord[Discord]
+	gatus -->|alerts| discord
+	gatus -.->|health checks| nginx
+	backup[Backup service] --> postgres
+```
+
+## Project Structure
+
+```bash
+.
+├── .github/
+│   └── workflows/          # CI: lint, build, and Docker image builds
+├── AI/                     # AI service (Python)
+│   ├── app/
+│   ├── scripts/
+│   ├── seeder/             # Seed data and the read-only database role
+│   └── Dockerfile
+├── backend/                # Backend API (NestJS)
+│   ├── helpers/
+│   ├── prisma/             # Schema and migrations
+│   ├── src/
+│   └── Dockerfile
+├── block-chain/
+│   └── api/                # Blockchain API (NestJS)
+│       ├── src/
+│       └── Dockerfile
+├── devops/
+│   ├── backup-service/     # Scheduled backups and restore scripts
+│   ├── backups/            # Backup files (not committed)
+│   ├── monitoring/
+│   │   ├── alertmanager/
+│   │   ├── gatus/
+│   │   ├── grafana/        # Provisioned datasource and dashboards
+│   │   └── prometheus/     # Scrape config and alert rules
+│   ├── nginx/              # Reverse proxy and TLS
+│   │   ├── conf.d/
+│   │   └── nginx.conf
+│   ├── redis/				# Redis configuration
+│   └── docker-compose.yml
+├── frontend/               # Main web application (Next.js)
+│   ├── public/
+│   ├── src/
+│   └── Dockerfile
+├── owner-platform/         # Platform owner dashboard (Next.js)
+│   ├── public/
+│   ├── src/
+│   └── Dockerfile
+├── .gitignore
+├── Makefile
+├── setup-env               # Creates each service's .env from .env.example
+└── README.md
 ```
 
 ## Database Schema
@@ -181,24 +203,24 @@ The database is PostgreSQL, managed through Prisma. The core relationships are s
 
 ```mermaid
 erDiagram
-    User ||--o{ Staff : employs
-    User ||--o{ Member : manages
-    Staff ||--o{ Member : registers
-    User ||--o{ Subscription : subscribes
-    Plan ||--o{ PlanDuration : has
-    Plan ||--o{ Subscription : covers
-    User ||--o{ MembershipPlan : offers
-    MembershipPlan ||--o{ MembershipPlanDuration : has
-    Member ||--o{ Membership : holds
-    MembershipPlan ||--o{ Membership : defines
-    Member ||--o{ Visit : books
-    Membership ||--o{ Attendance : records
-    Visit ||--o| Attendance : confirms
-    Member ||--o{ Payment : pays
-    Member ||--o{ Feedback : writes
-    Feedback ||--o{ FeedbackLike : receives
-    User ||--o{ WorkingHour : sets
-    User ||--o{ SpecialHour : sets
+	User ||--o{ Staff : employs
+	User ||--o{ Member : manages
+	Staff ||--o{ Member : registers
+	User ||--o{ Subscription : subscribes
+	Plan ||--o{ PlanDuration : has
+	Plan ||--o{ Subscription : covers
+	User ||--o{ MembershipPlan : offers
+	MembershipPlan ||--o{ MembershipPlanDuration : has
+	Member ||--o{ Membership : holds
+	MembershipPlan ||--o{ Membership : defines
+	Member ||--o{ Visit : books
+	Membership ||--o{ Attendance : records
+	Visit ||--o| Attendance : confirms
+	Member ||--o{ Payment : pays
+	Member ||--o{ Feedback : writes
+	Feedback ||--o{ FeedbackLike : receives
+	User ||--o{ WorkingHour : sets
+	User ||--o{ SpecialHour : sets
 ```
 
 ### Tables
@@ -247,26 +269,97 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 
 | Feature | Description | Team members |
 |---|---|---|
-| **Authentication and roles** | JWT login with access and refresh tokens. Roles: owner, admin, staff, member. | mdahani |
-| **Platform owner dashboard** (`owner-portal`) | Manage client businesses (gyms, pools) and their admins. | ael-jama (frontend), mdahani (backend) |
+| **Authentication and user management** | JWT login with access and refresh tokens, email verification, and password reset. Roles: owner, admin, staff, member. | mdahani (backend), ael-jama (frontend) |
+| **Advanced permissions** | Each role can only see and do what its permissions allow. | mdahani (backend), ael-jama (frontend) |
+| **Platform owner dashboard** (`owner-platform`) | Manage client businesses (gyms, pools) and their admins. | ael-jama (frontend), mdahani (backend) |
 | **Member management** | Create and edit members and manage account status. | ael-jama (frontend), mdahani (backend) |
 | **Memberships and plans** | Plans, durations, and payments. | ael-jama (frontend), mdahani (backend) |
 | **Attendance / check-in** | QR-based visits and attendance records. | ael-jama (frontend), mdahani (backend) |
-| **Feedback** | Members submit feedback. | ael-jama (frontend), mdahani (backend), oboussel (AI) |
+| **Feedback with sentiment analysis** | Members submit feedback, and each message is analyzed for sentiment. | ael-jama (frontend), mdahani (backend), oboussel (AI) |
+| **Notifications** | Notifications for create, update, and delete actions. | mdahani |
+| **Advanced search** | Search with filters, sorting, and pagination. | mdahani (backend), ael-jama (frontend) |
+| **Analytics dashboards** | User activity insights and a dashboard with data visualization. | mdahani (backend), ael-jama (frontend) |
+| **Design system** | Reusable components with a shared color palette, typography, and icons. | ael-jama |
+| **Languages and RTL** | Multiple languages, including right-to-left layout. | ael-jama |
+| **Server-side rendering and browser support** | Pages rendered on the server, and the interface works on additional browsers. | ael-jama |
 | **AI assistant** | Chatbot that gives recommendations and looks up member information. | oboussel |
 | **Blockchain marketplace** | Members earn rewards and spend them on products. Sensitive requests are confirmed with MetaMask. | obarais |
 | **Infrastructure, monitoring, status page, backups** | nginx configuration, Prometheus, Grafana, Alertmanager, Gatus, and automated `pg_dump` backups. | mait-all |
+
+## Modules
+
+### Summary
+
+| # | Module | Type | Points | Team members |
+|---|---|---|---|---|
+| 1 | Use a frontend framework (Next.js) | Minor | 1 | ael-jama |
+| 2 | Use a backend framework (NestJS) | Minor | 1 | mdahani |
+| 3 | Use an ORM for the database (Prisma) | Minor | 1 | mdahani |
+| 4 | A complete notification system for all creation, update, and deletion actions | Minor | 1 | mdahani |
+| 5 | Server-Side Rendering (SSR) for improved performance and SEO | Minor | 1 | ael-jama |
+| 6 | Custom-made design system with reusable components | Minor | 1 | ael-jama |
+| 7 | Advanced search functionality with filters, sorting, and pagination | Minor | 1 | mdahani (backend), ael-jama (frontend) |
+| 8 | Support for multiple languages (at least 3) | Minor | 1 | ael-jama |
+| 9 | Right-to-left (RTL) language support | Minor | 1 | ael-jama |
+| 10 | Support for additional browsers | Minor | 1 | ael-jama |
+| 11 | Standard user management and authentication | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+| 12 | Advanced permissions system | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+| 13 | User activity analytics and insights dashboard | Minor | 1 | mdahani (backend), ael-jama (frontend) |
+| 14 | A complete LLM system interface | **Major** | 2 | oboussel |
+| 15 | Sentiment analysis for user-generated content | Minor | 1 | oboussel |
+| 16 | Monitoring system with Prometheus and Grafana | **Major** | 2 | mait-all |
+| 17 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
+| 18 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+
+**Point calculation:** 13 Minor modules × 1 point + 5 Major modules × 2 points = 13 + 10 = **23 points**.
+
+### Justification and implementation
+
+**Frameworks and technical foundation**
+
+- **Next.js (module 1):** one framework for both web applications (`frontend` and `owner-platform`), with routing and rendering built in. Both apps are Next.js projects served behind nginx.
+- **NestJS (module 2):** its modular structure keeps a large API with many roles organized. The backend is split into modules per domain (authentication, members, memberships, attendance, feedback, and so on).
+- **Prisma (module 3):** type-safe database access and versioned migrations. The whole schema is defined in `backend/prisma` and migrations are applied automatically at startup.
+- **Server-side rendering (module 5):** Next.js renders pages on the server, which improves first load time and makes pages indexable.
+
+**User management and security**
+
+- **Standard user management and authentication (module 11):** four account types (owner, admin, staff, member) share one login system based on JWT access and refresh tokens. Refresh tokens are stored hashed and can be revoked, and email verification and password reset use one-time tokens. The backend exposes the endpoints and the frontend provides the login, registration, and profile screens.
+- **Advanced permissions (module 12):** access is based on roles and enforced on the backend for every request, so permissions don't depend on what the interface shows. The frontend adapts menus and actions to the signed-in role.
+
+**Data, search, and analytics**
+
+- **Advanced search (module 7):** list pages support free-text search, filters, sorting, and pagination. The backend does the filtering and paging in the database, and the frontend provides the controls.
+- **User activity analytics (module 13):** admins can see how members use their facility, such as attendance and activity over time. The backend aggregates the data and the frontend displays it.
+- **Advanced analytics dashboard (module 18):** charts and key figures give facility admins and platform owners an overview of their business. The backend computes the aggregates and the frontend renders the visualizations.
+- **Notification system (module 4):** creating, updating, or deleting key records generates notifications for the admins, staff, or members concerned. They are stored per account type and have a read/unread status.
+
+**User experience**
+
+- **Design system (module 6):** a library of reusable components with one color palette, typography, and icon set, used across both web applications for a consistent look.
+- **Multiple languages and RTL (modules 8 and 9):** the interface is translated into at least three languages, one of which is right-to-left. Layout mirrors automatically for RTL.
+- **Additional browsers (module 10):** the interface was tested and fixed so it works on more browsers than the main development browser.
+
+**AI**
+
+- **LLM system interface (module 14):** a chatbot that works as an assistant for facility staff. It answers questions, gives recommendations, and looks up member information. It reads data through a read-only database role limited to the columns it needs.
+- **Sentiment analysis (module 15):** feedback written by members is analyzed, and a sentiment and a score are stored with each feedback entry so admins can spot problems quickly.
+
+**DevOps**
+
+- **Monitoring with Prometheus and Grafana (module 16):** Prometheus scrapes metrics from the host, nginx, PostgreSQL, and Redis through exporters. Grafana is provisioned automatically with its datasource and custom dashboards and is secured behind nginx with local credentials, no anonymous access, and no sign-ups. Alert rules (service down, high memory, database and nginx problems) go through Alertmanager to Discord.
+- **Health check, status page, backups, and disaster recovery (module 17):** Gatus provides a status page that checks every application and infrastructure service and alerts Discord on failures. A dedicated container runs scheduled `pg_dump` backups and a restore script. The recovery procedure is documented and was verified by destroying data and restoring it (see [`docs/db-disaster-simulation.md`](docs/db-disaster-simulation.md)).
 
 ## Individual Contributions
 
 ### oboussel (Product Owner)
 - Defined and prioritized the product backlog.
-- Built the AI service: the chatbot, recommendations, and member information lookups.
-- Contributed the AI side of the feedback feature.
+- Built the AI service: the LLM chatbot interface, recommendations, member information lookups, and the sentiment analysis of feedback.
 
 ### mdahani (Project Manager)
 - Planned and coordinated the team's work.
-- Built the backend: JWT authentication with access and refresh tokens, role-based access, and the APIs for the owner platform, members, memberships and plans, attendance, and feedback.
+- Built the backend with NestJS and Prisma: authentication with JWT access and refresh tokens, the permissions system, and the APIs for the owner platform, members, memberships and plans, attendance, and feedback.
+- Built the notification system, advanced search, and the analytics endpoints behind both dashboards.
 
 ### mait-all (Tech Lead)
 - Designed the container architecture and `docker-compose` setup, plus the nginx reverse proxy with HTTPS (certificates generated at build time).
@@ -274,7 +367,7 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 - Built the Gatus status page.
 - Built automated PostgreSQL backups with a tested restore procedure.
 - Set up GitHub Actions CI: lint, build, and Docker image builds for every service.
-- Set up startup automation: migrations, the read-only database role for the AI service.
+- Set up startup automation: migrations, the read-only database role for the AI service, and the platform owner account.
 
 **Challenges and how they were solved**
 
@@ -282,7 +375,9 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 - *Stopping Redis did not trigger an alert, but stopping its exporter did.* The built-in `up` metric only shows whether Prometheus can reach the exporter. We added rules on the exporter's own metrics (`redis_up`, `pg_up`, `nginx_up`) so a service failing behind a running exporter is also caught.
 
 ### ael-jama (Developer)
-- Built the frontend: the owner platform and facility interfaces for members, memberships and plans, attendance, and feedback.
+- Built the frontend with Next.js, including the owner platform and the facility interfaces for members, memberships and plans, attendance, and feedback.
+- Built the design system, server-side rendering, multi-language and RTL support, and additional browser support.
+- Built the interfaces for authentication, permissions, search, and both analytics dashboards.
 
 ### obarais (Developer)
 - Built the blockchain API and the marketplace: rewards, products, and MetaMask confirmation of requests.
@@ -307,11 +402,11 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 
 ### How AI was used
 
-AI assistants were used as helpers, not as replacements for the team's own work. The tasks included:
+AI assistants were used as a helper, not as a replacement for the team's own work. The tasks were:
 
-- **Learning and explanations:** explaining technical concepts, tools, and workflows to help team members understand the technologies used in the project.
 - **Frontend:** help with some designs and improvements to the interface.
 - **Code review:** checking our code and suggesting improvements.
 - **Debugging:** debugging tips and help organizing issues. For example, when the login succeeded but the redirect to the dashboard failed, the assistant suggested adding request loggers in the frontend and backend to trace how requests reached each service, which is how we found the problem.
-- **DevOps:** troubleshooting for the monitoring stack.
+- **Learning:** explaining concepts and technologies we were less familiar with.
+- **DevOps:** help with troubleshooting for the monitoring stack. All suggestions was tested and verified by the Tech Lead.
 - **Documentation:** generating drafts of documentation, including this README, which the team reviewed and corrected.
