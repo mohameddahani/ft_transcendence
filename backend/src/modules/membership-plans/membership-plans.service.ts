@@ -252,6 +252,84 @@ export class MembershipPlansService {
     });
   }
 
+  // * Delete a Membership Plan Duration
+  async removeMembershipPlanDuration(adminId: string, id: string) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if membership duration is belong to this admin
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
+      where: {
+        id,
+        membershipPlan: { adminId },
+      },
+    });
+
+    if (!duration) {
+      throw new NotFoundException('Duration Membership Plan Not Found!');
+    }
+
+    // * Check if any member use this membership plan before delete it
+    const NumMembers = await this.prisma.membership.count({
+      where: {
+        adminId: adminId,
+        membershipPlanDurationId: id,
+      },
+    });
+
+    if (NumMembers > 0) {
+      throw new BadRequestException(
+        `The Are ${NumMembers} Member Use This Membership Plan`,
+      );
+    }
+
+    // * Delete duration
+    await this.prisma.membershipPlanDuration.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  // * Delete a Membership Plan
+  async removeMembershipPlan(adminId: string, id: string) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if this membership plan already exist
+    await this.findOneById(adminId, id);
+
+    // * Check if any member use this membership plan before delete it
+    const NumMembers = await this.prisma.membership.count({
+      where: {
+        adminId: adminId,
+        membershipPlanId: id,
+      },
+    });
+
+    if (NumMembers > 0) {
+      throw new BadRequestException(
+        `The Are ${NumMembers} Member Use This Membership Plan`,
+      );
+    }
+
+    // Delete the memership plan's durations, then the memership plan.
+    // If either operation fails, both are rolled back.
+    await this.prisma.$transaction([
+      this.prisma.membershipPlanDuration.deleteMany({
+        where: {
+          membershipPlanId: id,
+        },
+      }),
+
+      this.prisma.membershipPlan.delete({
+        where: {
+          id,
+        },
+      }),
+    ]);
+  }
+
   // * Get all membership Plans
   async findAll(
     accessTokenPayload: AccessTokenPayload,
