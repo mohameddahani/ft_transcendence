@@ -234,7 +234,7 @@ export class PlansService {
       );
     }
 
-    // * Delete Plan
+    // * Delete duration
     await this.prisma.planDuration.delete({
       where: {
         id,
@@ -278,6 +278,7 @@ export class PlansService {
         },
       }),
 
+      // * Delete Plan
       this.prisma.plan.delete({
         where: {
           id,
