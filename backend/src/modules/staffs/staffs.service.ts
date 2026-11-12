@@ -202,13 +202,31 @@ export class StaffsService {
   }
 
   // * Get All Staffs
-  async findAll(adminId: string, page: number, limit: number) {
+  async findAll(
+    adminId: string,
+    page: number,
+    limit: number,
+    _search?: string,
+  ) {
     // * Check that the admin account, subscription, and associated plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * remove spaces
+    const search = _search?.trim();
 
     const staffs = await this.prisma.staff.findMany({
       where: {
         adminId,
+
+        // * Search Filter
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,

@@ -56,8 +56,14 @@ export class StaffsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
   ) {
-    return this.staffsService.findAll(accessTokenPayload.id, page, limit);
+    return this.staffsService.findAll(
+      accessTokenPayload.id,
+      page,
+      limit,
+      search,
+    );
   }
 
   // * Get All Stats of Staffs (Admin)
