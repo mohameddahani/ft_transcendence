@@ -209,6 +209,86 @@ export class PlansService {
     return updateDuration;
   }
 
+  // * Delete a Plan Duration
+  async removePlanDuration(id: string) {
+    // * Check if this plan duration exists.
+    const duration = await this.prisma.planDuration.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!duration) {
+      throw new NotFoundException('Duration Plan Not Found!');
+    }
+
+    // * Check if any admin use this duration before desactive it
+    const NumAdmins = await this.prisma.subscription.count({
+      where: {
+        planDurationId: id,
+      },
+    });
+    if (NumAdmins > 0) {
+      throw new BadRequestException(
+        `The Are ${NumAdmins} Admin Use This Duration`,
+      );
+    }
+
+    // * Delete Plan
+    await this.prisma.planDuration.delete({
+      where: {
+        id,
+      },
+    });
+
+    // * Delete parent plan cache.
+    await this.cache.del(`platform:plans:${duration.planId}`);
+  }
+
+  // * Delete a Plan
+  async removePlan(id: string) {
+    // * Check if this plan already exist
+    // * Get fresh plan data from database
+    const plan = await this.prisma.plan.findUnique({
+      where: {
+        id: id,
+      },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Plan Not Found!');
+    }
+
+    // * Check if any admin use this plan before delete it
+    const NumAdmins = await this.prisma.subscription.count({
+      where: {
+        planId: plan.id,
+      },
+    });
+    if (NumAdmins > 0) {
+      throw new BadRequestException(`The Are ${NumAdmins} Admin Use This Plan`);
+    }
+
+    // Delete the plan's durations, then the plan.
+    // If either operation fails, both are rolled back.
+    await this.prisma.$transaction([
+      this.prisma.planDuration.deleteMany({
+        where: {
+          planId: id,
+        },
+      }),
+
+      this.prisma.plan.delete({
+        where: {
+          id,
+        },
+      }),
+    ]);
+
+    // * Delete stale plan cache
+    await this.cache.del(`platform:plans:${id}`);
+  }
+
   // * Get all Plans
   async findAll(page: number, limit: number) {
     const plans = await this.prisma.plan.findMany({

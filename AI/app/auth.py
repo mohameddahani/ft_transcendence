@@ -34,6 +34,15 @@ def _find_gym(role: str, user_id: str) -> str | None:
     return row["admin_id"] if row else None
 
 
+# like the backend: the gym must have an active platform subscription on an active plan, or nobody of it gets in
+def _has_subscription(admin_id: str) -> bool:
+    row = db.fetch_one("""
+        SELECT 1 FROM subscriptions s JOIN plans p ON p.id = s.plan_id
+        WHERE s.user_id = %s AND s.subscription_status = 'ACTIVE' AND s.expires_at > now() AND p.is_active
+        LIMIT 1""", (admin_id,))
+    return row is not None
+
+
 def current_user(authorization: str = Header(default="")) -> User: # FastAPI fill this parameter from the HTTP Authorization header
     token = authorization.removeprefix("Bearer ")
     for role, secret in config.JWT_SECRETS.items():
@@ -47,6 +56,9 @@ def current_user(authorization: str = Header(default="")) -> User: # FastAPI fil
             continue
         admin_id = _find_gym(role, payload["id"])
         if admin_id:
+            # 403, not 401: the login is valid, the gym's subscription is not
+            if not _has_subscription(admin_id):
+                raise HTTPException(403, "An active admin subscription is required to continue.")
             return User(id=payload["id"], role=role, admin_id=admin_id)
         break
     raise HTTPException(401, "Invalid or expired token")
