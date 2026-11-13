@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/marketplace/ui/dialog";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ConfirmModal({
   title,
@@ -22,6 +23,8 @@ export function ConfirmModal({
   onConfirm: () => Promise<void>;
   busy: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <Dialog
       open
@@ -54,7 +57,7 @@ export function ConfirmModal({
             disabled={busy}
             className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
           >
-            Cancel
+            {t("cancel") || "Cancel"}
           </Button>
           <Button
             type="button"
@@ -63,8 +66,8 @@ export function ConfirmModal({
             onClick={() => void onConfirm()}
             className="toota-pill h-10 px-6 text-xs font-semibold cursor-pointer bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
           >
-            {busy && <Loader2 className="size-3.5 animate-spin mr-2" />}
-            Confirm Delete
+            {busy && <Loader2 className="size-3.5 animate-spin mr-2 rtl:mr-0 rtl:ml-2" />}
+            {t("confirmDelete") || "Confirm Delete"}
           </Button>
         </DialogFooter>
       </DialogContent>

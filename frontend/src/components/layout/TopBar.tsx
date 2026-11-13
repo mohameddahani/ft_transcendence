@@ -93,7 +93,7 @@ export default function TopBar({
           role === "Member"
             ? t("memberPortal") || "Member portal"
             : t("frontDesk") || "Front desk",
-        title: t("navVisVisits") || "Visits & Attendances",
+        title: t("navVisits") || "Visits & Attendances",
       };
     }
     if (pathname.startsWith("/operating-hours")) {
@@ -127,6 +127,17 @@ export default function TopBar({
             ? t("memberPortal") || "Member portal"
             : t("frontDesk") || "Front desk",
         title: t("navMarketplace") || "Marketplace",
+      };
+    }
+    if (pathname.startsWith("/assistant")) {
+      return {
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("insight") || "Insight",
+        title: pathname.startsWith("/assistant/documents")
+          ? t("manageDocuments") || "Knowledge Documents"
+          : t("navAiAssistant") || "AI assistant",
       };
     }
     if (pathname.startsWith("/sportium-subscription") || pathname.startsWith("/gymflow-subscription")) {

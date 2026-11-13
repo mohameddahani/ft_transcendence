@@ -28,6 +28,7 @@ export interface FeedbackStats {
   positiveCount: number;
   total: number;
   averageRating: number | null;
+  myCount?: number;
 }
 
 export interface AccountStats {

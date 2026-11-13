@@ -13,6 +13,7 @@ import {
 import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { ShoppingBag } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function MyProductsTab({
   products,
@@ -25,19 +26,21 @@ export function MyProductsTab({
   tokenSymbol: string;
   merchantMode: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <TabsContent value="MyProducts" className="p-4 sm:p-7">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Storefront Catalog
+            {t("storefrontCatalog") || "Storefront Catalog"}
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
-            Active products and inventory stored directly on the smart contract.
+            {t("storefrontCatalogSubtitle") || "Active products and inventory stored directly on the smart contract."}
           </p>
         </div>
         <Badge variant="outline" className="font-mono text-xs px-3 py-1 rounded-full w-fit">
-          {products.length} {products.length === 1 ? "Listed Item" : "Listed Items"}
+          {products.length} {products.length === 1 ? (t("listedItem") || "Listed Item") : (t("listedItems") || "Listed Items")}
         </Badge>
       </div>
 
@@ -54,11 +57,11 @@ export function MyProductsTab({
         </div>
       ) : (
         <EmptyState
-          title="No products listed"
+          title={t("noProductsListed") || "No products listed"}
           body={
             merchantMode
-              ? `No inventory items are registered on-chain for ${shorten(merchantMode)}.`
-              : "Connect your Web3 wallet or add products in the Manage Inventory tab."
+              ? (t("noProductsFoundMerchant", { address: shorten(merchantMode), defaultValue: `No inventory items are registered on-chain for ${shorten(merchantMode)}.` }))
+              : (t("connectWalletToExplore") || "Connect your Web3 wallet or add products in the Manage Inventory tab.")
           }
         />
       )}
@@ -75,6 +78,7 @@ function ProductCard({
   decimals: number;
   symbol: string;
 }) {
+  const { t } = useTranslation();
   const price = formatUnits(product.price, decimals);
   const isOutOfStock = product.stock === 0n;
 
@@ -98,21 +102,21 @@ function ProductCard({
           </div>
         )}
 
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3">
           <span className="inline-flex items-center rounded-lg bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-mono font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-inset ring-zinc-200/60 dark:ring-zinc-800/60">
             #{product.id.toString()}
           </span>
         </div>
 
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3">
           {isOutOfStock ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-semibold text-white">
-              Sold out
+              {t("soldOut") || "Sold Out"}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs">
               <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
-              <span>{product.stock.toString()} available</span>
+              <span>{t("inStock", { count: product.stock.toString(), defaultValue: `${product.stock.toString()} available` })}</span>
             </span>
           )}
         </div>
@@ -123,7 +127,7 @@ function ProductCard({
           {product.name}
         </CardTitle>
         <CardDescription className="line-clamp-2 min-h-[34px] text-xs text-toota-muted leading-relaxed mt-1">
-          {product.description || "No description provided."}
+          {product.description || (t("noDescriptionProvided") || "No description provided.")}
         </CardDescription>
       </CardHeader>
 
@@ -139,7 +143,7 @@ function ProductCard({
       </CardContent>
 
       <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/80 p-3.5 px-5 text-xs text-toota-muted font-mono flex items-center justify-between">
-        <span>Merchant:</span>
+        <span>{t("merchant") || "Merchant"}:</span>
         <span className="text-zinc-700 dark:text-zinc-300 font-medium">
           {shorten(product.merchant)}
         </span>

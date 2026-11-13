@@ -15,6 +15,7 @@ import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { CheckCircle2, Clock, Loader2, PackageCheck } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function SalesTab({
   sales,
@@ -29,6 +30,7 @@ export function SalesTab({
   markDelivered: (id: bigint) => Promise<void>;
   busy: boolean;
 }) {
+  const { t } = useTranslation();
   const [deliveringId, setDeliveringId] = useState<string | null>(null);
 
   const handleDeliver = async (id: bigint) => {
@@ -45,14 +47,14 @@ export function SalesTab({
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Sales & Order Fulfillment
+            {t("salesOrderFulfillment") || "Sales & Order Fulfillment"}
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
-            Monitor incoming member purchases and mark physical items as delivered.
+            {t("salesOrderFulfillmentSubtitle") || "Monitor incoming member purchases and mark physical items as delivered."}
           </p>
         </div>
         <Badge variant="outline" className="font-mono text-xs px-3 py-1 rounded-full w-fit">
-          {sales.length} {sales.length === 1 ? "Recorded Order" : "Recorded Orders"}
+          {sales.length} {sales.length === 1 ? (t("recordedOrder") || "Recorded Order") : (t("recordedOrdersCount") || "Recorded Orders")}
         </Badge>
       </div>
 
@@ -61,13 +63,13 @@ export function SalesTab({
           <Table>
             <TableHeader className="bg-zinc-50/50 dark:bg-zinc-800/40">
               <TableRow className="border-b border-zinc-200/60 dark:border-zinc-800">
-                <TableHead className="w-[80px] text-xs font-semibold text-toota-muted">Order</TableHead>
-                <TableHead className="text-xs font-semibold text-toota-muted">Product</TableHead>
-                <TableHead className="text-xs font-semibold text-toota-muted">Client Wallet</TableHead>
-                <TableHead className="text-center text-xs font-semibold text-toota-muted">Qty</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-toota-muted">Total Price</TableHead>
-                <TableHead className="text-center text-xs font-semibold text-toota-muted">Status</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-toota-muted">Action</TableHead>
+                <TableHead className="w-[80px] text-xs font-semibold text-toota-muted">{t("orderCol") || "Order"}</TableHead>
+                <TableHead className="text-xs font-semibold text-toota-muted">{t("productCol") || "Product"}</TableHead>
+                <TableHead className="text-xs font-semibold text-toota-muted">{t("clientWalletCol") || "Client Wallet"}</TableHead>
+                <TableHead className="text-center text-xs font-semibold text-toota-muted">{t("qtyCol") || "Qty"}</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-toota-muted">{t("totalPriceCol") || "Total Price"}</TableHead>
+                <TableHead className="text-center text-xs font-semibold text-toota-muted">{t("status") || "Status"}</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-toota-muted">{t("actions") || "Action"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -99,20 +101,20 @@ export function SalesTab({
                   <TableCell className="text-center">
                     {item.status ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
-                        <CheckCircle2 className="size-3" />
-                        Delivered
+                        <CheckCircle2 className="size-3 text-toota-green" />
+                        {t("statusDelivered") || "Delivered"}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
                         <Clock className="size-3" />
-                        Pending
+                        {t("statusPending") || "Pending"}
                       </span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
                     {item.status ? (
                       <span className="text-xs text-toota-muted font-medium">
-                        Completed
+                        {t("statusCompleted") || "Completed"}
                       </span>
                     ) : (
                       <Button
@@ -123,11 +125,11 @@ export function SalesTab({
                         className="toota-pill h-8 px-3 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-2xs"
                       >
                         {deliveringId === item.id.toString() ? (
-                          <Loader2 className="size-3 animate-spin mr-1.5" />
+                          <Loader2 className="size-3 animate-spin mr-1.5 rtl:mr-0 rtl:ml-1.5" />
                         ) : (
-                          <PackageCheck className="size-3 mr-1.5" />
+                          <PackageCheck className="size-3 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
                         )}
-                        Mark Delivered
+                        {t("markDelivered") || "Mark Delivered"}
                       </Button>
                     )}
                   </TableCell>
@@ -139,8 +141,8 @@ export function SalesTab({
       ) : (
         <EmptyState
           icon={<PackageCheck className="size-6 text-zinc-500 dark:text-zinc-400" />}
-          title="No sales yet"
-          body="Customer orders for your gym products will appear here once purchases are made on-chain."
+          title={t("noSalesYet") || "No sales yet"}
+          body={t("noSalesYetBody") || "Customer orders for your gym products will appear here once purchases are made on-chain."}
         />
       )}
     </TabsContent>

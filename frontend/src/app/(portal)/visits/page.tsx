@@ -8,9 +8,6 @@ import {
   Plus,
   RefreshCw,
   Loader2,
-  CheckCircle2,
-  QrCode,
-  UserCheck,
   Ban,
   Eye,
   X,
@@ -22,10 +19,8 @@ import {
   fetchTodayVisits,
   fetchTodayVisitById,
   cancelMemberVisit,
-  fetchMemberAttendances,
-  fetchMemberAttendanceById,
 } from "@/lib/api/member-portal";
-import { MemberVisit, MemberAttendance } from "@/types/member-portal";
+import { MemberVisit } from "@/types/member-portal";
 import {
   Card,
   CardHeader,
@@ -37,10 +32,9 @@ import BookVisitModal from "@/components/visits/BookVisitModal";
 export default function MemberVisitsPage() {
   const { t } = useTranslation();
 
-  const [activeTab, setActiveTab] = useState<"upcoming" | "today" | "attendances">("upcoming");
+  const [activeTab, setActiveTab] = useState<"upcoming" | "today">("upcoming");
   const [upcomingVisits, setUpcomingVisits] = useState<MemberVisit[]>([]);
   const [todayVisits, setTodayVisits] = useState<MemberVisit[]>([]);
-  const [attendances, setAttendances] = useState<MemberAttendance[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -48,19 +42,16 @@ export default function MemberVisitsPage() {
 
   // Single Item View Detail Modals
   const [selectedVisit, setSelectedVisit] = useState<MemberVisit | null>(null);
-  const [selectedAttendance, setSelectedAttendance] = useState<MemberAttendance | null>(null);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [upcoming, today, att] = await Promise.all([
+      const [upcoming, today] = await Promise.all([
         fetchUpcomingVisits(1, 50).catch(() => []),
         fetchTodayVisits(1, 50).catch(() => []),
-        fetchMemberAttendances(1, 50).catch(() => []),
       ]);
       setUpcomingVisits(upcoming);
       setTodayVisits(today);
-      setAttendances(att);
     } catch {
       toast.error(t("failedToLoadVisits", "Failed to load visits data"), {
         position: "top-right",
@@ -105,17 +96,6 @@ export default function MemberVisitsPage() {
       // Fallback to in-memory item
       const found = todayVisits.find((v) => v.id === visitId) || upcomingVisits.find((v) => v.id === visitId);
       if (found) setSelectedVisit(found);
-    }
-  };
-
-  // Inspect Single Attendance
-  const handleInspectAttendance = async (attendanceId: string) => {
-    try {
-      const att = await fetchMemberAttendanceById(attendanceId);
-      setSelectedAttendance(att);
-    } catch {
-      const found = attendances.find((a) => a.id === attendanceId);
-      if (found) setSelectedAttendance(found);
     }
   };
 
@@ -175,9 +155,7 @@ export default function MemberVisitsPage() {
               >
                 / {activeTab === "upcoming"
                   ? `${upcomingVisits.length} ${t("upcomingVisits", "upcoming")}`
-                  : activeTab === "today"
-                  ? `${todayVisits.length} ${t("today", "today")}`
-                  : `${attendances.length} ${t("sessions", "sessions")}`}
+                  : `${todayVisits.length} ${t("today", "today")}`}
               </span>
             </div>
             <p
@@ -186,7 +164,7 @@ export default function MemberVisitsPage() {
             >
               {t(
                 "myGymVisitsSubtitle",
-                "Schedule workouts ahead of time, check upcoming sessions, and review your workout history."
+                "Schedule workouts ahead of time and check upcoming sessions."
               )}
             </p>
           </div>
@@ -215,8 +193,8 @@ export default function MemberVisitsPage() {
         </div>
       </Card>
 
-      {/* 2. 3 Bento KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      {/* 2. Bento KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Metric 1: Upcoming Visits */}
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
@@ -315,56 +293,6 @@ export default function MemberVisitsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Metric 3: Completed Check-ins */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span
-              suppressHydrationWarning
-              className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
-            >
-              {t("totalAttendances", "Completed Check-ins")}
-            </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
-              <CheckCircle2 className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between gap-2">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-green" />
-              ) : (
-                <span className="text-3xl font-bold tracking-tight text-toota-green font-mono">
-                  {attendances.length}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span suppressHydrationWarning>{t("sessions", "sessions")}</span>
-              </span>
-            </div>
-            <p
-              suppressHydrationWarning
-              className="text-xs text-toota-muted mt-2 truncate"
-            >
-              {attendances.length > 0
-                ? `${t("lastCheckinMethod", "Last")}: ${
-                    attendances[0].attendanceMethod === "QR_CODE"
-                      ? t("qrCheckIn", "QR Check-in")
-                      : t("manualCheckIn", "Front Desk")
-                  }`
-                : t("noAttendancesYet", "No check-ins recorded yet")}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  attendances.length > 0 ? "bg-toota-green" : "bg-toota-muted"
-                }`}
-                style={{ width: attendances.length > 0 ? "100%" : "0%" }}
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* 3. Segmented Navigation Tabs */}
@@ -398,22 +326,6 @@ export default function MemberVisitsPage() {
           <span suppressHydrationWarning>{t("todaysVisits", "Today's Schedule")}</span>
           <span className="font-mono text-[11px] tabular-nums opacity-75">
             ({todayVisits.length})
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("attendances")}
-          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
-            activeTab === "attendances"
-              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
-              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
-          }`}
-        >
-          <UserCheck className="size-3.5" />
-          <span suppressHydrationWarning>{t("attendanceHistory", "Attendance History")}</span>
-          <span className="font-mono text-[11px] tabular-nums opacity-75">
-            ({attendances.length})
           </span>
         </button>
       </div>
@@ -644,100 +556,6 @@ export default function MemberVisitsPage() {
         </div>
       )}
 
-      {/* 6. Tab 3: Attendance History */}
-      {activeTab === "attendances" && (
-        <Card className="toota-card border-none p-0 overflow-hidden shadow-xs">
-          <div className="p-4 sm:p-5 border-b border-border/40 flex items-center justify-between">
-            <div className="flex items-baseline gap-2">
-              <h2
-                suppressHydrationWarning
-                className="text-xs sm:text-sm font-semibold text-toota-ink"
-              >
-                {t("attendanceLogs", "Check-in Logs")}
-              </h2>
-              <span
-                suppressHydrationWarning
-                className="font-mono text-xs text-toota-muted tabular-nums"
-              >
-                / {attendances.length} {t("sessions", "sessions")}
-              </span>
-            </div>
-          </div>
-
-          {attendances.length === 0 ? (
-            <div
-              suppressHydrationWarning
-              className="p-12 text-center text-xs text-toota-muted"
-            >
-              {t("noAttendancesYet", "No attendance check-ins recorded yet.")}
-            </div>
-          ) : (
-            <div className="divide-y divide-border/40">
-              {attendances.map((item) => {
-                const checkedInDate = new Date(item.checkedInAt);
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-toota-inner/40 transition-colors"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="size-10 rounded-full bg-toota-inner text-toota-green flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="size-5" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="font-semibold text-sm text-toota-ink">
-                          {checkedInDate.toLocaleDateString(undefined, {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-toota-muted">
-                          <span className="font-mono tabular-nums">
-                            {checkedInDate.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          <span>•</span>
-                          <span className="inline-flex items-center gap-1.5 font-medium text-toota-ink">
-                            {item.attendanceMethod === "QR_CODE" ? (
-                              <>
-                                <QrCode className="size-3 text-toota-muted" />
-                                <span suppressHydrationWarning>{t("qrCheckIn", "QR Check-in")}</span>
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="size-3 text-toota-muted" />
-                                <span suppressHydrationWarning>{t("manualCheckIn", "Front Desk Check-in")}</span>
-                              </>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleInspectAttendance(item.id)}
-                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
-                      >
-                        <Eye className="size-3.5 me-1 text-toota-muted" />
-                        <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-      )}
-
       {/* Booking Modal */}
       <BookVisitModal
         isOpen={isBookModalOpen}
@@ -802,76 +620,6 @@ export default function MemberVisitsPage() {
             <Button
               type="button"
               onClick={() => setSelectedVisit(null)}
-              className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
-              variant="outline"
-            >
-              <span suppressHydrationWarning>{t("close", "Close")}</span>
-            </Button>
-          </Card>
-        </div>
-      )}
-
-      {/* Inspect Attendance Detail Modal */}
-      {selectedAttendance && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-150"
-        >
-          <Card className="toota-card border-none shadow-2xl relative w-full max-w-md p-6 space-y-5">
-            <button
-              type="button"
-              onClick={() => setSelectedAttendance(null)}
-              className="absolute top-5 end-5 p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
-            >
-              <X className="size-4" />
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-toota-inner text-toota-green flex items-center justify-center">
-                <CheckCircle2 className="size-5" />
-              </div>
-              <div>
-                <h3
-                  suppressHydrationWarning
-                  className="font-semibold text-base text-toota-ink"
-                >
-                  {t("attendanceDetails", "Attendance Details")}
-                </h3>
-                <p className="text-xs text-toota-muted font-mono tabular-nums">
-                  {selectedAttendance.id.slice(0, 8)}...
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2.5 text-xs text-toota-ink">
-              <div className="flex items-center justify-between">
-                <span className="text-toota-muted">{t("checkedInAt", "Checked In At")}:</span>
-                <span className="font-semibold text-toota-ink font-mono tabular-nums">
-                  {new Date(selectedAttendance.checkedInAt).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-toota-muted">{t("method", "Method")}:</span>
-                <span className="inline-flex items-center gap-1.5 font-medium text-toota-ink">
-                  {selectedAttendance.attendanceMethod === "QR_CODE" ? (
-                    <>
-                      <QrCode className="size-3 text-toota-muted" />
-                      <span suppressHydrationWarning>{t("qrCheckIn", "QR Check-in")}</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserCheck className="size-3 text-toota-muted" />
-                      <span suppressHydrationWarning>{t("manualCheckIn", "Front Desk Check-in")}</span>
-                    </>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              onClick={() => setSelectedAttendance(null)}
               className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"
               variant="outline"
             >

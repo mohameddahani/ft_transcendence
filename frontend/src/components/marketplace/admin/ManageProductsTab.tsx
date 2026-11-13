@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { Package, Plus, Trash2, Edit3, ShoppingBag } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function ManageProductsTab({
   products,
@@ -20,15 +21,17 @@ export function ManageProductsTab({
   setEditProduct: (value: Product) => void;
   setDeleteProduct: (value: Product) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <TabsContent value="manage" className="p-4 sm:p-7">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Inventory & Product Management
+            {t("inventoryProductManagement") || "Inventory & Product Management"}
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
-            Add, update pricing, or remove products associated with your connected merchant wallet.
+            {t("inventoryProductManagementSubtitle") || "Add, update pricing, or remove products associated with your connected merchant wallet."}
           </p>
         </div>
 
@@ -37,8 +40,8 @@ export function ManageProductsTab({
           onClick={() => setShowAdd(true)}
           className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm w-fit"
         >
-          <Plus className="size-4 mr-1.5" />
-          Add Product
+          <Plus className="size-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+          {t("addProduct") || "Add Product"}
         </Button>
       </div>
 
@@ -82,7 +85,7 @@ export function ManageProductsTab({
                     </div>
 
                     <p className="line-clamp-1 text-xs text-toota-muted mt-0.5">
-                      {product.description || "No description provided"}
+                      {product.description || (t("noDescriptionProvided") || "No description provided")}
                     </p>
 
                     <div className="mt-1.5 flex items-center gap-2.5 text-xs">
@@ -92,11 +95,11 @@ export function ManageProductsTab({
                       <span className="text-zinc-300 dark:text-zinc-700">•</span>
                       {isOutOfStock ? (
                         <span className="text-rose-500 font-medium text-[11px]">
-                          Out of stock
+                          {t("outOfStock") || "Out of stock"}
                         </span>
                       ) : (
                         <span className="text-toota-muted text-[11px]">
-                          {product.stock.toString()} units in stock
+                          {t("unitsInStock", { count: product.stock.toString(), defaultValue: `${product.stock.toString()} units in stock` })}
                         </span>
                       )}
                     </div>
@@ -110,8 +113,8 @@ export function ManageProductsTab({
                     onClick={() => setEditProduct(product)}
                     className="toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
                   >
-                    <Edit3 className="size-3.5 mr-1 text-toota-muted" />
-                    Edit
+                    <Edit3 className="size-3.5 mr-1 rtl:mr-0 rtl:ml-1 text-toota-muted" />
+                    {t("edit") || "Edit"}
                   </Button>
                   <Button
                     size="sm"
@@ -129,16 +132,16 @@ export function ManageProductsTab({
       ) : (
         <EmptyState
           icon={<Package className="size-6 text-zinc-500 dark:text-zinc-400" />}
-          title="No products yet"
-          body="Start selling by listing your first product on the decentralized gym store."
+          title={t("noProductsYet") || "No products yet"}
+          body={t("noProductsYetBody") || "Start selling by listing your first product on the decentralized gym store."}
           action={
             <Button
               variant="default"
               onClick={() => setShowAdd(true)}
               className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
             >
-              <Plus className="size-3.5 mr-1" />
-              Add First Product
+              <Plus className="size-3.5 mr-1 rtl:mr-0 rtl:ml-1" />
+              {t("addFirstProduct") || "Add First Product"}
             </Button>
           }
         />

@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   basePath: '/owner-portal',
   compiler: {
-    removeConsole: false,
+    removeConsole: true,
   },
 };
 

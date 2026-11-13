@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { EXPLORER_BASE } from "@/lib/blockchain/contract";
 import type { useTokenTransfer } from "./hooks/useTokenTransfer";
+import { useTranslation } from "react-i18next";
 
 export function TransferTab({
   transfer,
@@ -22,6 +23,7 @@ export function TransferTab({
   account: string;
   isSepolia: boolean;
 }) {
+  const { t } = useTranslation();
   const hash = transfer.pendingHash ?? transfer.lastHash;
 
   const handleMaxClick = () => {
@@ -42,10 +44,10 @@ export function TransferTab({
             </div>
             <div>
               <CardTitle className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Send {tokenSymbol} Tokens
+                {t("sendTokensTitle", { symbol: tokenSymbol, defaultValue: `Send ${tokenSymbol} Tokens` })}
               </CardTitle>
               <CardDescription className="text-xs text-toota-muted mt-0.5">
-                Transfer GymTokens to any wallet address on Ethereum Sepolia.
+                {t("sendTokensSubtitle") || "Transfer GymTokens to any wallet address on Ethereum Sepolia."}
               </CardDescription>
             </div>
           </div>
@@ -56,7 +58,7 @@ export function TransferTab({
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-toota-inner border border-zinc-200/60 dark:border-zinc-800/80">
             <div className="flex items-center gap-2">
               <Wallet className="size-4 text-toota-muted" />
-              <span className="text-xs text-toota-muted">Available in wallet:</span>
+              <span className="text-xs text-toota-muted">{t("availableInWallet") || "Available in wallet:"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -70,7 +72,7 @@ export function TransferTab({
                 onClick={handleMaxClick}
                 className="ms-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-zinc-200/70 hover:bg-zinc-300/70 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
               >
-                Max
+                {t("max") || "Max"}
               </button>
             </div>
           </div>
@@ -92,7 +94,7 @@ export function TransferTab({
                 htmlFor="transfer-recipient"
                 className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
               >
-                Recipient Wallet Address
+                {t("recipientWalletAddress") || "Recipient Wallet Address"}
               </Label>
               <Input
                 id="transfer-recipient"
@@ -116,7 +118,7 @@ export function TransferTab({
                 htmlFor="transfer-amount"
                 className="text-xs font-semibold uppercase tracking-wider text-toota-muted"
               >
-                Amount to Send ({tokenSymbol})
+                {t("amountToSend", { symbol: tokenSymbol, defaultValue: `Amount to Send (${tokenSymbol})` })}
               </Label>
               <Input
                 id="transfer-amount"
@@ -143,13 +145,13 @@ export function TransferTab({
 
             {!account && (
               <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                Please connect your Web3 wallet first to initiate transfers.
+                {t("connectWalletToTransfer") || "Please connect your Web3 wallet first to initiate transfers."}
               </p>
             )}
 
             {account && !isSepolia && (
               <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                Please switch your wallet network to Sepolia to continue.
+                {t("switchNetworkToTransfer") || "Please switch your wallet network to Sepolia to continue."}
               </p>
             )}
 
@@ -157,19 +159,19 @@ export function TransferTab({
               <div className="space-y-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-toota-inner p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-                    Transfer Summary
+                    {t("transferSummary") || "Transfer Summary"}
                   </span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-toota-muted">Amount:</span>
+                    <span className="text-toota-muted">{t("transferAmountLabel") || "Amount:"}</span>
                     <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">
                       {transfer.review.amount} {tokenSymbol}
                     </span>
                   </div>
                   <div className="flex justify-between items-start gap-4">
-                    <span className="text-toota-muted shrink-0">Recipient:</span>
+                    <span className="text-toota-muted shrink-0">{t("recipient") || "Recipient:"}</span>
                     <span className="break-all font-mono text-end text-zinc-800 dark:text-zinc-200">
                       {transfer.review.recipient}
                     </span>
@@ -177,7 +179,7 @@ export function TransferTab({
                 </div>
 
                 <p className="text-[11px] text-toota-muted leading-relaxed">
-                  Verify the recipient wallet carefully. This action triggers an on-chain ERC20 transaction that will be confirmed in your wallet.
+                  {t("transferWarning") || "Verify the recipient wallet carefully. This action triggers an on-chain ERC20 transaction that will be confirmed in your wallet."}
                 </p>
 
                 <div className="flex gap-2.5 pt-1">
@@ -188,7 +190,7 @@ export function TransferTab({
                     onClick={transfer.cancelReview}
                     className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
                   >
-                    Back
+                    {t("back") || "Back"}
                   </Button>
                   <Button
                     type="button"
@@ -197,11 +199,11 @@ export function TransferTab({
                     className="toota-pill flex-1 h-10 px-6 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
                   >
                     {transfer.sending ? (
-                      <Loader2 className="size-3.5 animate-spin mr-2" />
+                      <Loader2 className="size-3.5 animate-spin mr-2 rtl:mr-0 rtl:ml-2" />
                     ) : (
-                      <ArrowRight className="size-3.5 mr-2" />
+                      <ArrowRight className="size-3.5 mr-2 rtl:mr-0 rtl:ml-2 rtl:rotate-180" />
                     )}
-                    {transfer.sending ? "Authorizing Transfer…" : "Confirm and Send"}
+                    {transfer.sending ? (t("authorizingTransfer") || "Authorizing Transfer…") : (t("confirmAndSend") || "Confirm and Send")}
                   </Button>
                 </div>
               </div>
@@ -213,9 +215,9 @@ export function TransferTab({
                 className="toota-pill w-full h-11 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
               >
                 {transfer.sending && (
-                  <Loader2 className="size-4 animate-spin mr-2" />
+                  <Loader2 className="size-4 animate-spin mr-2 rtl:mr-0 rtl:ml-2" />
                 )}
-                Check Transaction Status
+                {t("checkTxStatus") || "Check Transaction Status"}
               </Button>
             ) : (
               <Button
@@ -228,8 +230,8 @@ export function TransferTab({
                   !transfer.amount.trim()
                 }
               >
-                <ArrowRight className="size-3.5 mr-2" />
-                Review Transfer
+                <ArrowRight className="size-3.5 mr-2 rtl:mr-0 rtl:ml-2 rtl:rotate-180" />
+                {t("reviewTransfer") || "Review Transfer"}
               </Button>
             )}
           </form>
@@ -248,7 +250,7 @@ export function TransferTab({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span>View on Explorer</span>
+                <span>{t("viewOnExplorer") || "View on Explorer"}</span>
                 <ExternalLink className="size-3" />
               </a>
             </div>

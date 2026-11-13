@@ -15,8 +15,8 @@ import {
   ArrowRight,
   Loader2,
   ShieldCheck,
-  User,
   UserCheck,
+  IdCard,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -30,7 +30,24 @@ import {
   setPasswordStaff,
   resetPasswordStaff,
 } from "@/lib/api/auth";
-import AuthLayoutShell from "@/components/auth/AuthLayoutShell";
+import AuthShell, { PortalBadge } from "@/components/auth/AuthShell";
+import {
+  ManagementIllustration,
+  FrontDeskIllustration,
+  MemberIllustration,
+} from "@/components/auth/illustrations";
+import {
+  eyeButton,
+  fieldError,
+  fieldIcon,
+  fieldLabel,
+  inputBase,
+  inputRing,
+  limeUnderline,
+  muted,
+  submitArrow,
+  submitButton,
+} from "@/components/auth/authStyles";
 import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
 
 export type PasswordSetupMode =
@@ -72,23 +89,23 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
   const passwordValue = watch("password") || "";
   const confirmPasswordValue = watch("confirmPassword") || "";
 
-  // Configuration per mode
+  // Configuration per mode matching the app's portal styling
   const config = (() => {
     switch (mode) {
       case "admin-reset":
         return {
+          panelTitle: t("loginPanelTitle", "Run your club with clarity."),
+          illustration: <ManagementIllustration />,
+          portals: [
+            { href: "/member/login", label: t("switchToMemberPortal", "Member Portal Sign In") },
+            { href: "/staff/login", label: t("switchToStaffPortal", "Staff Portal Sign In") },
+          ],
           portalBadge: t("adminPortal", "Administrator Portal"),
-          portalIcon: ShieldCheck,
-          badgeColor: "bg-primary/10 text-primary border-primary/20",
+          PortalIcon: ShieldCheck,
           title: t("resetAdminPasswordTitle", "Reset Your Password"),
           subtitle: t(
             "resetAdminPasswordSubtitle",
             "Create a new strong password to regain access to your administrative workspace."
-          ),
-          heroTitle: t("adminResetHeroTitle", "Restore Administrator Access."),
-          heroSubtitle: t(
-            "adminResetHeroSubtitle",
-            "Secure credentials ensure your gym network, staff assignments, and financial ledgers stay protected."
           ),
           buttonText: t("resetPasswordBtn", "Update Password"),
           successTitle: t("passwordResetSuccessTitle", "Password Updated!"),
@@ -102,18 +119,18 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
         };
       case "member-set":
         return {
+          panelTitle: t("memberPanelTitle", "Your club, in your pocket."),
+          illustration: <MemberIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/staff/login", label: t("switchToStaffPortal", "Staff Portal Sign In") },
+          ],
           portalBadge: t("memberPortal", "Member Portal"),
-          portalIcon: User,
-          badgeColor: "bg-primary/10 text-primary border-primary/20",
+          PortalIcon: IdCard,
           title: t("setMemberPasswordTitle", "Set Your Password"),
           subtitle: t(
             "setMemberPasswordSubtitle",
             "Welcome to Sportium! Establish your personal password to unlock attendance, QR passes, and your workouts."
-          ),
-          heroTitle: t("memberSetHeroTitle", "Welcome to Your Gym Journey."),
-          heroSubtitle: t(
-            "memberSetHeroSubtitle",
-            "Track your workouts, reserve gym slots, and unlock your digital membership pass."
           ),
           buttonText: t("setMemberPasswordBtn", "Set Password & Activate"),
           successTitle: t("memberPasswordSetTitle", "Account Activated!"),
@@ -127,18 +144,18 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
         };
       case "member-reset":
         return {
+          panelTitle: t("memberPanelTitle", "Your club, in your pocket."),
+          illustration: <MemberIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/staff/login", label: t("switchToStaffPortal", "Staff Portal Sign In") },
+          ],
           portalBadge: t("memberPortal", "Member Portal"),
-          portalIcon: User,
-          badgeColor: "bg-primary/10 text-primary border-primary/20",
+          PortalIcon: IdCard,
           title: t("resetMemberPasswordTitle", "Reset Member Password"),
           subtitle: t(
             "resetMemberPasswordSubtitle",
             "Enter and confirm your new password to restore access to your member profile."
-          ),
-          heroTitle: t("memberResetHeroTitle", "Get Back in the Flow."),
-          heroSubtitle: t(
-            "memberResetHeroSubtitle",
-            "Regain access to your gym schedule, subscription details, and training achievements."
           ),
           buttonText: t("resetMemberPasswordBtn", "Update Member Password"),
           successTitle: t("memberPasswordResetTitle", "Password Reset Complete!"),
@@ -152,18 +169,18 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
         };
       case "staff-set":
         return {
+          panelTitle: t("staffPanelTitle", "Keep the front desk moving."),
+          illustration: <FrontDeskIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/member/login", label: t("switchToMemberPortal", "Member Portal Sign In") },
+          ],
           portalBadge: t("staffPortal", "Staff Portal"),
-          portalIcon: UserCheck,
-          badgeColor: "bg-primary/10 text-primary border-primary/20",
+          PortalIcon: UserCheck,
           title: t("setStaffPasswordTitle", "Set Staff Password"),
           subtitle: t(
             "setStaffPasswordSubtitle",
             "Welcome to the Sportium operational staff team! Set your access credentials to proceed."
-          ),
-          heroTitle: t("staffSetHeroTitle", "Empowering Front Desk & Floor Operations."),
-          heroSubtitle: t(
-            "staffSetHeroSubtitle",
-            "Verify arrivals, manage member check-ins, and streamline day-to-day gym workflows."
           ),
           buttonText: t("setStaffPasswordBtn", "Establish Staff Password"),
           successTitle: t("staffPasswordSetTitle", "Staff Account Ready!"),
@@ -177,18 +194,18 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
         };
       case "staff-reset":
         return {
+          panelTitle: t("staffPanelTitle", "Keep the front desk moving."),
+          illustration: <FrontDeskIllustration />,
+          portals: [
+            { href: "/login", label: t("switchToAdminPortal", "Admin Portal Sign In") },
+            { href: "/member/login", label: t("switchToMemberPortal", "Member Portal Sign In") },
+          ],
           portalBadge: t("staffPortal", "Staff Portal"),
-          portalIcon: UserCheck,
-          badgeColor: "bg-primary/10 text-primary border-primary/20",
+          PortalIcon: UserCheck,
           title: t("resetStaffPasswordTitle", "Reset Staff Password"),
           subtitle: t(
             "resetStaffPasswordSubtitle",
             "Update your staff password to restore terminal access and front desk tools."
-          ),
-          heroTitle: t("staffResetHeroTitle", "Restore Front Desk Terminal Access."),
-          heroSubtitle: t(
-            "staffResetHeroSubtitle",
-            "Ensure operational continuity with high-security staff credentials."
           ),
           buttonText: t("resetStaffPasswordBtn", "Update Staff Password"),
           successTitle: t("staffPasswordResetTitle", "Staff Password Updated!"),
@@ -203,7 +220,7 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
     }
   })();
 
-  const PortalIcon = config.portalIcon;
+  const PortalIcon = config.PortalIcon;
 
   const onSubmit = async (data: SetPasswordFormValues) => {
     if (!token) {
@@ -219,7 +236,7 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
       setIsSuccess(true);
       toast.success(res.message || t("operationSuccessful", "Password configured successfully!"));
 
-      // Automatically route after 2 seconds or let user click button
+      // Route to login after 2.5 seconds
       setTimeout(() => {
         router.push(config.loginPath);
       }, 2500);
@@ -241,220 +258,174 @@ export default function PasswordSetupForm({ mode }: PasswordSetupFormProps) {
   };
 
   return (
-    <AuthLayoutShell
-      heroTitle={config.heroTitle}
-      heroSubtitle={config.heroSubtitle}
+    <AuthShell
+      panelTitle={config.panelTitle}
+      illustration={config.illustration}
+      portals={config.portals}
     >
-      <div className="w-full space-y-6">
-        {/* Portal Identifier Badge */}
-        <div
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${config.badgeColor}`}
-        >
-          <PortalIcon className="w-3.5 h-3.5" />
-          <span>{config.portalBadge}</span>
+      {/* Form Header */}
+      <PortalBadge
+        icon={<PortalIcon className="size-3.5" aria-hidden="true" />}
+        label={config.portalBadge}
+      />
+      <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">
+        {config.title}
+      </h1>
+      <p className={`mt-2 text-sm leading-6 ${muted}`}>{config.subtitle}</p>
+
+      {/* Dynamic Content: Success State vs Form */}
+      {isSuccess ? (
+        <div className="mt-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+          <div className="rounded-2xl bg-[var(--toota-pill)] p-5 ring-1 ring-black/5 dark:ring-white/10 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05]">
+                <CheckCircle2 className="size-5" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-[var(--toota-ink)]">
+                  {config.successTitle}
+                </p>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#65a30d] dark:text-[#a3e635]">
+                  <Sparkles className="size-3" aria-hidden="true" />
+                  {t("securityConfirmed", "Credentials Saved")}
+                </span>
+              </div>
+            </div>
+            <p className={`text-xs leading-5 ${muted}`}>
+              {config.successSubtitle}
+            </p>
+          </div>
+
+          <Link href={config.loginPath} className={submitButton}>
+            <span>{config.loginLabel}</span>
+            <span className={submitArrow}>
+              <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+            </span>
+          </Link>
         </div>
-
-        {/* Dynamic Card */}
-        {isSuccess ? (
-          /* SUCCESS STATE */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-emerald-500/30 shadow-xl space-y-5 text-center animate-in zoom-in-95 duration-200">
-            <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20">
-              <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-              <div className="relative w-full h-full rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-5" noValidate>
+          {/* Missing Token Warning */}
+          {isReady && !token && (
+            <div className="rounded-2xl bg-amber-500/10 p-4 text-xs font-medium text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 flex items-start gap-2.5">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">{t("noTokenTitle", "Missing or invalid token")}</p>
+                <p className="opacity-90 mt-0.5">
+                  {t(
+                    "noTokenCheckUrl",
+                    "Ensure the URL includes #token=... from the email you received."
+                  )}
+                </p>
               </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t("successBadge", "Security Confirmed")}</span>
-              </div>
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface">
-                {config.successTitle}
-              </h2>
-              <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto">
-                {config.successSubtitle}
-              </p>
+          {/* API Error Alert */}
+          {apiError && (
+            <div className="rounded-2xl bg-red-500/10 p-4 text-xs font-medium text-red-600 dark:text-red-400 ring-1 ring-red-500/20 flex items-start gap-2.5">
+              <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+              <p className="leading-snug">{apiError}</p>
             </div>
+          )}
 
-            <Link
-              href={config.loginPath}
-              className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer block"
-            >
-              <span>{config.loginLabel}</span>
-              <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-            </Link>
-          </div>
-        ) : (
-          /* FORM STATE */
-          <div className="p-6 sm:p-8 bg-surface-bright rounded-3xl border border-outline-variant/60 shadow-xl space-y-5">
-            {/* Header */}
-            <div>
-              <h2 className="font-headline text-2xl sm:text-3xl font-bold text-on-surface mb-1">
-                {config.title}
-              </h2>
-              <p className="text-xs sm:text-sm text-on-surface-variant">
-                {config.subtitle}
-              </p>
-            </div>
-
-            {/* Token Warning Banner if token missing */}
-            {isReady && !token && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold">{t("noTokenTitle", "Missing or invalid token")}</p>
-                  <p className="text-[11px] opacity-90 mt-0.5">
-                    {t(
-                      "noTokenCheckUrl",
-                      "Ensure the URL includes #token=... from the email you received."
-                    )}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* API Error Message */}
-            {apiError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="font-medium">{apiError}</p>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              {/* Password Field */}
-              <div className="space-y-1.5">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="password"
-                >
-                  {t("newPassword", "New Password")}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                    <Lock className="w-5 h-5" />
-                  </span>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    {...register("password")}
-                    className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-3 bg-surface-container-lowest border ${
-                      errors.password
-                        ? "border-error focus:ring-error"
-                        : "border-outline-variant"
-                    } rounded-xl form-input-focus transition-all outline-none text-sm text-on-surface placeholder:text-outline`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 rtl:right-auto rtl:left-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-1.5">
-                <label
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="confirmPassword"
-                >
-                  {t("confirmPassword", "Confirm Password")}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-outline">
-                    <Lock className="w-5 h-5" />
-                  </span>
-                  <input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    {...register("confirmPassword")}
-                    className={`w-full pl-11 pr-11 rtl:pl-11 rtl:pr-11 py-3 bg-surface-container-lowest border ${
-                      errors.confirmPassword
-                        ? "border-error focus:ring-error"
-                        : "border-outline-variant"
-                    } rounded-xl form-input-focus transition-all outline-none text-sm text-on-surface placeholder:text-outline`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 rtl:right-auto rtl:left-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
-                    aria-label={
-                      showConfirmPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-xs text-error font-medium mt-1">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Requirements Checklist & Strength Meter */}
-              <PasswordStrengthMeter
-                password={passwordValue}
-                confirmPassword={confirmPasswordValue}
-                showConfirmCheck={true}
+          {/* Password Field */}
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="password">
+              {t("newPassword", "New Password")}
+            </label>
+            <div className="group relative">
+              <Lock className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={errors.password ? true : undefined}
+                {...register("password")}
+                className={`${inputBase} pr-12 rtl:pl-12 ${inputRing(!!errors.password)}`}
               />
-
-              {/* Submit Action */}
               <button
-                type="submit"
-                disabled={isSubmitting || (isReady && !token)}
-                className="w-full btn-gradient py-3.5 text-white font-semibold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed pt-3"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className={eyeButton}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{t("submitting", "Saving...")}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{config.buttonText}</span>
-                    <ArrowRight className="w-4 h-4 rtl:rotate-180" />
-                  </>
-                )}
+                {showPassword ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
               </button>
-            </form>
-
-            {/* Back Link */}
-            <div className="pt-2 text-center">
-              <Link
-                href={config.loginPath}
-                className="text-xs text-primary font-semibold hover:underline transition-all"
-              >
-                {t("returnToSignIn", "Return to Sign In")}
-              </Link>
             </div>
+            {errors.password && <p className={fieldError}>{errors.password.message}</p>}
           </div>
-        )}
-      </div>
-    </AuthLayoutShell>
+
+          {/* Password Strength Meter */}
+          <PasswordStrengthMeter
+            password={passwordValue}
+            confirmPassword={confirmPasswordValue}
+          />
+
+          {/* Confirm Password Field */}
+          <div className="space-y-1.5">
+            <label className={fieldLabel} htmlFor="confirmPassword">
+              {t("confirmPassword", "Confirm Password")}
+            </label>
+            <div className="group relative">
+              <Lock className={`size-[18px] ${fieldIcon}`} aria-hidden="true" />
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={errors.confirmPassword ? true : undefined}
+                {...register("confirmPassword")}
+                className={`${inputBase} pr-12 rtl:pl-12 ${inputRing(!!errors.confirmPassword)}`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className={eyeButton}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className={fieldError}>{errors.confirmPassword.message}</p>
+            )}
+          </div>
+
+          {/* Submit Action */}
+          <button
+            type="submit"
+            disabled={isSubmitting || (isReady && !token)}
+            className={submitButton}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="size-5 animate-spin" />
+                <span>{t("savingPassword", "Saving Password...")}</span>
+              </>
+            ) : (
+              <>
+                <span>{config.buttonText}</span>
+                <span className={submitArrow}>
+                  <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />
+                </span>
+              </>
+            )}
+          </button>
+        </form>
+      )}
+
+      {/* Footnote / Secondary Link */}
+      <p className={`mt-6 text-center text-sm ${muted}`}>
+        {t("alreadyHaveAccount", "Already have your credentials?")}{" "}
+        <Link
+          href={config.loginPath}
+          className={`font-semibold text-[var(--toota-ink)] ${limeUnderline} transition-[text-decoration-thickness] hover:decoration-[3px]`}
+        >
+          {config.loginLabel}
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
-
