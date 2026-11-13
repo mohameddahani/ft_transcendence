@@ -1,7 +1,7 @@
 *This project has been created as part of the 42 curriculum by oboussel, mdahani, mait-all, ael-jama, obarais.*
 
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="Sportium logo" width="250">
+  <img src="docs/assets/sportium-logo.svg" alt="Sportium logo" width="250">
 </p>
 
 # Sportium
