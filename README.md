@@ -1,5 +1,9 @@
 *This project has been created as part of the 42 curriculum by oboussel, mdahani, mait-all, ael-jama, obarais.*
 
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="Sportium logo" width="250">
+</p>
+
 # Sportium
 
 ## Table of Contents
@@ -14,6 +18,9 @@
 - [Team Information](#team-information)
 - [Project Management](#project-management)
 - [Technical Stack](#technical-stack)
+  - [Infrastructure and DevOps](#infrastructure-and-devops)
+  - [Blockchain marketplace](#blockchain-marketplace)
+  - [Design principles and security practices](#design-principles-and-security-practices)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
@@ -41,7 +48,7 @@
 - Activity analytics and a data visualization dashboard
 - Member feedback with sentiment analysis
 - AI assistant: chatbot, recommendations, and member information lookups
-- Marketplace powered by blockchain: members earn rewards and spend them on products, confirmed through MetaMask
+- Blockchain marketplace on the Ethereum Sepolia testnet: members earn the **G** reward token when they pay for a subscription and spend it on products, with gasless transactions
 - Multiple languages, including right-to-left support
 - Full monitoring, status page, and automated database backups
 
@@ -106,11 +113,14 @@ The database is backed up automatically on a schedule, and backups are saved to 
 |---|---|---|
 | Frontend (`frontend`, `owner-platform`) | **Next.js** | Server-side rendering, file-based routing, and one framework for both the facility app and the platform owner dashboard |
 | Backend | **NestJS** | A structured, modular architecture that suits a large API with many roles and features |
-| Blockchain API | **NestJS** + **MetaMask** | Same framework as the backend; MetaMask lets members confirm sensitive requests with their own wallet |
-| AI service | **Python** | Python has the strongest ecosystem for AI work |
+| Smart contracts | **Solidity** on **Ethereum Sepolia** | The token, marketplace, purchases, subscriptions, and transfers run on-chain. Sepolia is a free testnet suited to development |
+| Blockchain API (relayer) | **NestJS** | Same framework as the backend. Submits signed transactions to the blockchain and pays the network fees |
+| Wallet and blockchain access | **MetaMask**, **Ethers.js** | MetaMask connects wallets and signs requests. Ethers.js talks to the blockchain through an Ethereum RPC provider |
+| Gasless transactions | **EIP-712**, **ERC-2771** | Signed structured requests and a trusted forwarder let users act without paying gas fees |
+| AI service | **Python**, run as an independent microservice | Python has the strongest ecosystem for AI work, and a separate service can be built, secured, and scaled on its own |
 | Database | **PostgreSQL** | Relational data with many linked entities (members, memberships, payments, attendance) needs strong integrity and transactions |
 | ORM | **Prisma** | Type-safe queries, versioned migrations, and a schema that serves as documentation |
-| Cache | **Redis** | Fast in-memory storage for data that is read often |
+| Cache | **Redis** | Fast in-memory storage for data that is read often, secured with protected mode and a password |
 | Reverse proxy | **nginx** | Single HTTPS entry point in front of all services |
 
 ### Infrastructure and DevOps
@@ -121,13 +131,49 @@ The database is backed up automatically on a schedule, and backups are saved to 
 - **Automated backups:** scheduled `pg_dump` backups in a dedicated container, with a tested restore script.
 - **GitHub Actions:** continuous integration that lints and builds every service and builds every Docker image on each push and pull request.
 
-### Key technical decisions
+### Blockchain marketplace
 
+The marketplace is a decentralized system built on smart contracts deployed on the **Ethereum Sepolia testnet**. It lets members of any facility (gym, swimming pool, or other) earn and use a reward token called **G**.
+
+When a member pays for a subscription, they receive G tokens as a reward. They can then use them inside the platform:
+
+- **Members** earn G when they pay for subscriptions, buy products from their facility's marketplace, transfer tokens to other wallet addresses, and pay subscriptions with G.
+- **Facility admins** add, edit, and remove marketplace products, receive token payments from members, and update the delivery status of purchased products.
+
+**Gasless transactions.** Every blockchain transaction normally requires the user to pay a gas fee in ETH. To avoid this, the marketplace uses meta-transactions with a trusted forwarder and a backend relayer, so users do not need Sepolia ETH for the supported actions:
+
+1. The user requests a blockchain action.
+2. The user signs the request with MetaMask (EIP-712 structured data).
+3. The signed request is sent to the NestJS relayer.
+4. The relayer validates it and submits the transaction, paying the gas fees (ERC-2771 trusted forwarder).
+5. The smart contract executes the requested action on the blockchain.
+
+### Design principles and security practices
+
+**Architecture**
+
+- **The AI service is an independent microservice.** It has its own container, Dockerfile, and dependencies, and can be built, secured, and scaled without touching the rest of the platform.
+- **The owner portal is separate from the main platform.** The platform owner dashboard is its own application (`owner-platform`), not a section of the facility app. This limits the exposure of platform-level functions and keeps the two concerns apart.
 - **nginx is the only public entry point.** No other service is published to the host. The frontend reaches the backend over the internal Docker network.
 - **Monitoring and the status page are separate on purpose.** Prometheus and Grafana show what is happening *inside* the services over time. Gatus shows whether the services are reachable *right now*, including those that have no metrics exporter, such as the frontend, backend, and AI service.
-- **The AI service uses a read-only database role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
 - **Automatic setup:** database migrations, the read-only AI role, and the platform owner account are all created automatically at startup, so a fresh clone needs no manual database work.
+
+**Security**
+
+- **Role-based access control** for members, staff, and facility admins (and platform owners), enforced by the backend on every request.
+- **Security best practices across the backend, the AI service, and DevOps.** Passwords and refresh tokens are stored hashed, and refresh tokens can be revoked. Secrets live in per-service `.env` files that are never committed. Internal services are not published to the host, and configuration files are mounted read-only.
+- **The AI service uses a read-only database role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
+
+**Containers**
+
+- **Multi-stage Dockerfiles.** Each image is built in a build stage, and the final image contains only what is needed to run, so images are smaller and hold no build tools.
+- **Non-root containers.** Each image creates a dedicated non-root user, and the `/app` directory is owned by that user at build time.
 - **Self-signed certificates are generated at image build time**, so there is no separate script to run before `make up`.
+
+**Network and caching**
+
+- **HTTP is redirected to HTTPS.** nginx redirects all traffic arriving on port 80 to port 443.
+- **Redis is used as a cache** and is secured with `protected-mode yes` and a password.
 
 ## Architecture
 
@@ -138,7 +184,8 @@ flowchart LR
 	frontend --> backend[Backend<br/>NestJS]
 	backend --> postgres[(PostgreSQL)]
 	backend --> redis[(Redis)]
-	backend --> blockchain[Blockchain API<br/>NestJS]
+	backend --> blockchain[Blockchain API and relayer<br/>NestJS]
+	blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
 	backend --> ai[AI service<br/>Python]
 	ai --> postgres
 	nginx --> grafana[Grafana]
@@ -248,7 +295,7 @@ erDiagram
 | Table | Purpose | Key fields |
 |---|---|---|
 | `MembershipPlan` | A plan a facility sells to members | `adminId`, `planName`, `weeklyVisitLimit`, `isActive` |
-| `MembershipPlanDuration` | Durations and prices of a membership plan | `membershipPlanId`, `durationDays`, `price` (Decimal), `priceByG` |
+| `MembershipPlanDuration` | Durations and prices of a membership plan (`priceByG` is the price in G tokens) | `membershipPlanId`, `durationDays`, `price` (Decimal), `priceByG` |
 | `Membership` | A member's active plan | `memberId`, `membershipPlanId`, `membershipStatus`, `startDate`, `expiresAt` |
 | `Visit` | A booked visit with a QR token | `memberId`, `membershipId`, `visitDateAndTime`, `visitStatus`, `qrTokenHash` |
 | `Attendance` | A recorded check-in | `memberId`, `membershipId`, `visitId`, `attendanceMethod`, `checkedInAt` |
@@ -283,7 +330,7 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 | **Languages and RTL** | Multiple languages, including right-to-left layout. | ael-jama |
 | **Server-side rendering and browser support** | Pages rendered on the server, and the interface works on additional browsers. | ael-jama |
 | **AI assistant** | Chatbot that gives recommendations and looks up member information. | oboussel |
-| **Blockchain marketplace** | Members earn rewards and spend them on products. Sensitive requests are confirmed with MetaMask. | obarais |
+| **Blockchain marketplace** | Members earn G tokens when paying subscriptions and use them to buy products, transfer to other wallets, or pay subscriptions. Facility admins manage products, receive payments, and update delivery status. Actions are signed with MetaMask and are gasless through a relayer. | obarais |
 | **Infrastructure, monitoring, status page, backups** | nginx configuration, Prometheus, Grafana, Alertmanager, Gatus, and automated `pg_dump` backups. | mait-all |
 
 ## Modules
@@ -310,8 +357,9 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 | 16 | Monitoring system with Prometheus and Grafana | **Major** | 2 | mait-all |
 | 17 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
 | 18 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+| 19 | Decentralized Web3 marketplace with gasless transactions (module of choice) | **Major** | 2 | obarais |
 
-**Point calculation:** 13 Minor modules × 1 point + 5 Major modules × 2 points = 13 + 10 = **23 points**.
+**Point calculation:** 13 Minor modules × 1 point + 6 Major modules × 2 points = 13 + 12 = **25 points**.
 
 ### Justification and implementation
 
@@ -344,6 +392,14 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 
 - **LLM system interface (module 14):** a chatbot that works as an assistant for facility staff. It answers questions, gives recommendations, and looks up member information. It reads data through a read-only database role limited to the columns it needs.
 - **Sentiment analysis (module 15):** feedback written by members is analyzed, and a sentiment and a score are stored with each feedback entry so admins can spot problems quickly.
+
+**Blockchain**
+
+- **Decentralized Web3 marketplace with gasless transactions (module 19, custom Major):**
+  - *Why we chose it:* we wanted to bring blockchain into the platform through a token-based reward and marketplace system. Members are rewarded for their subscriptions and can spend the tokens inside the platform's ecosystem.
+  - *How it was implemented:* Solidity smart contracts deployed on the Ethereum Sepolia testnet manage G token balances, product listings, purchases, subscriptions, and transfers. The Next.js frontend communicates with the blockchain through Ethers.js and an Ethereum RPC provider. Users sign requests with MetaMask using EIP-712, and a NestJS relayer submits them through an ERC-2771 trusted forwarder and pays the gas fees, so users need no ETH for supported actions.
+  - *Technical challenges:* developing and deploying the smart contracts, managing token transfers, purchases, and subscriptions on-chain, integrating blockchain interactions with Next.js, implementing secure meta-transactions, and handling transaction validation, gas fees, and blockchain errors.
+  - *Why it deserves Major status:* it combines smart contract development, a decentralized marketplace, blockchain integration, and a gasless transaction architecture. It is a complete functional feature of the platform and requires substantial technical complexity.
 
 **DevOps**
 
@@ -380,7 +436,9 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 - Built the interfaces for authentication, permissions, search, and both analytics dashboards.
 
 ### obarais (Developer)
-- Built the blockchain API and the marketplace: rewards, products, and MetaMask confirmation of requests.
+- Built the blockchain marketplace: the Solidity smart contracts deployed on the Ethereum Sepolia testnet (G token, products, purchases, subscriptions, transfers).
+- Built the NestJS relayer and the gasless transaction system (EIP-712 signed requests and an ERC-2771 trusted forwarder).
+- Integrated the blockchain interactions with the Next.js frontend using Ethers.js and MetaMask.
 
 ## Resources
 
@@ -399,6 +457,12 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 - [Gatus](https://github.com/TwiN/gatus)
 - [GitHub Actions](https://docs.github.com/en/actions)
 - [MetaMask](https://docs.metamask.io/)
+- [Solidity](https://docs.soliditylang.org/)
+- [Ethers.js](https://docs.ethers.org/v6/)
+- [Ethereum developer documentation](https://ethereum.org/developers/)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/)
+- [EIP-712: typed structured data signing](https://eips.ethereum.org/EIPS/eip-712)
+- [ERC-2771: secure protocol for native meta-transactions](https://eips.ethereum.org/EIPS/eip-2771)
 
 ### How AI was used
 
@@ -407,6 +471,7 @@ AI assistants were used as a helper, not as a replacement for the team's own wor
 - **Frontend:** help with some designs and improvements to the interface.
 - **Code review:** checking our code and suggesting improvements.
 - **Debugging:** debugging tips and help organizing issues. For example, when the login succeeded but the redirect to the dashboard failed, the assistant suggested adding request loggers in the frontend and backend to trace how requests reached each service, which is how we found the problem.
+- **Technical research:** researching technologies for specific parts of the project, such as the blockchain marketplace. Implementation and validation remained the responsibility of the developers.
 - **Learning:** explaining concepts and technologies we were less familiar with.
-- **DevOps:** help with troubleshooting for the monitoring stack. All suggestions was tested and verified by the Tech Lead.
+- **DevOps:**  help with troubleshooting for the monitoring stack. All suggestions was tested and verified by the Tech Lead.
 - **Documentation:** generating drafts of documentation, including this README, which the team reviewed and corrected.
