@@ -769,3 +769,12 @@ model MemberActionToken {
   @@index([memberId])
   @@map("member_action_tokens")
 }
+
+// ! BLOCK_CHAINE
+// * Table of Membership Reward
+model MembershipReward {
+  membershipId String  @id @map("membership_id") @db.Uuid
+  rewarded     Boolean @default(false)
+
+  @@map("membership_rewards")
+}
