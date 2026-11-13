@@ -1,0 +1,13 @@
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { Request } from 'express';
+import { RefreshTokenPayload } from '../types/jwt-payload.type';
+
+// * Create a Custom Parameter decorator
+// * data is optional metadata passed when using the decorator (e.g. @CurrentUser('id'))
+// * context is the ExecutionContext that gives access to the current request, response, and handler execution details
+export const GetRefreshTokenPayload = createParamDecorator(
+  (data: unknown, context: ExecutionContext): RefreshTokenPayload => {
+    const request: Request = context.switchToHttp().getRequest();
+    return request.user as RefreshTokenPayload;
+  },
+);

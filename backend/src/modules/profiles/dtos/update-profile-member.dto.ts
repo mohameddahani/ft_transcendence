@@ -1,0 +1,37 @@
+import { IsValidPassword } from '@/core/utils/password.validator';
+import { AddMemberDto } from '@/modules/members/dtos/add-member.dto';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsOptional, IsString, Validate } from 'class-validator';
+
+export class UpdateProfileMemberDto extends PartialType(
+  PickType(AddMemberDto, [
+    'phoneNumber',
+    'address',
+    'emergencyContact',
+
+    // ! BLOCK_CHAINE
+    'walletAddress',
+  ] as const),
+) {
+  // * Password
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @Validate(IsValidPassword)
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @ApiProperty({ example: 'Passw0rd123@', description: 'Member Password' }) // * Swagger Document
+  password?: string;
+
+  // * Current Password
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @Transform(({ value }): string =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @ApiProperty({ example: 'Passw0rd123@', description: 'Current Password' }) // * Swagger Document
+  currentPassword?: string;
+}

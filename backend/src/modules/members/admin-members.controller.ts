@@ -1,0 +1,141 @@
+import { AddMemberDto } from './dtos/add-member.dto';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseEnumPipe,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { MembersService } from './members.service';
+import {
+  AccountStatus,
+  MembershipStatus,
+  Role,
+} from '@/generated/prisma/enums';
+import { Roles } from '@/core/decorators/user-role.decorator';
+import { AuthRolesGuard } from '@/core/guards/roles.guard';
+import { UpdateMemberDto } from './dtos/update-member.dto';
+import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
+import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
+
+@Controller('admins/members')
+// * Make Authorazation Golbal on this route
+@UseGuards(AdminAccessTokenAuthGuard, AuthRolesGuard)
+@Roles([Role.ADMIN])
+export class AdminMembersController {
+  constructor(private readonly membersService: MembersService) {}
+
+  // * Add Member by Admin
+  @Post()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  addMember(
+    @Body() body: AddMemberDto,
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+  ) {
+    return this.membersService.addMember(accessTokenPayload, body);
+  }
+
+  // * Update data of Member
+  @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  update(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateMemberDto,
+  ) {
+    return this.membersService.update(accessTokenPayload, id, body);
+  }
+
+  // * Active a Member
+  @Patch('active/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  activeMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.activeMember(accessTokenPayload, id);
+  }
+
+  // * pending a Member
+  @Patch('pending/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  pendingMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.pendingMember(accessTokenPayload, id);
+  }
+
+  // * Ban a Member
+  @Patch('ban/:id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // * Set Rate Limiting (20 req / 1 min)
+  banMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.banMember(accessTokenPayload, id);
+  }
+
+  // * Get all Members
+  @Get()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  findAll(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'accountStatus',
+      new ParseEnumPipe(AccountStatus, { optional: true }),
+    )
+    accountStatus?: AccountStatus,
+    @Query(
+      'membershipStatus',
+      new ParseEnumPipe(MembershipStatus, { optional: true }),
+    )
+    membershipStatus?: MembershipStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.membersService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      accountStatus,
+      membershipStatus,
+      search,
+    );
+  }
+
+  // * Get All Stats of Memebers (Admin)
+  @Get('stats')
+  memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
+    return this.membersService.memberStats(accessTokenPayload);
+  }
+
+  // * Get one member
+  @Get(':id')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  findOne(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.findOne(accessTokenPayload, id);
+  }
+
+  // * Resend Set Password for member
+  @Post('resend-set-password/:id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  resendSetPasswordMember(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membersService.resendSetPasswordMember(accessTokenPayload, id);
+  }
+}

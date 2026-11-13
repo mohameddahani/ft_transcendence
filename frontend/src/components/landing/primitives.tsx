@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import Link from "next/link";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/components/landing/cn";
 
 /** One width for all regular page content. */
 export function Container({
@@ -38,13 +38,13 @@ export function Pill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-border bg-card py-1 pr-3.5 pl-1 text-xs font-medium text-foreground/80 shadow-xs",
+        "inline-flex items-center gap-2 rounded-full bg-popover py-1 pr-3.5 pl-1 text-xs font-medium text-foreground/80 shadow-sm shadow-black/5 ring-1 ring-border",
         !Icon && "pl-3.5",
         className,
       )}
     >
       {Icon && (
-        <span className="flex size-6 items-center justify-center rounded-full bg-selected text-primary">
+        <span className="flex size-6 items-center justify-center rounded-full bg-selected text-selected-foreground">
           <Icon size={13} strokeWidth={2} aria-hidden="true" />
         </span>
       )}
@@ -111,11 +111,11 @@ const buttonVariants = {
   primary:
     "bg-primary text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary-hover hover:shadow-md hover:shadow-primary/25",
   secondary:
-    "border border-border bg-card text-foreground shadow-xs hover:border-foreground/20 hover:bg-muted",
+    "bg-popover text-foreground shadow-sm shadow-black/5 ring-1 ring-border hover:ring-2 hover:ring-selected",
   ghost: "text-foreground/80 hover:bg-muted hover:text-foreground",
-  light: "bg-white text-slate-900 shadow-sm hover:bg-slate-100 focus-visible:ring-white focus-visible:ring-offset-slate-900",
+  light: "bg-white text-[#0f1115] shadow-sm hover:bg-[#ececec] focus-visible:ring-white focus-visible:ring-offset-[#1b1f23]",
   outlineLight:
-    "border border-white/30 bg-white/5 text-white hover:border-white/60 hover:bg-white/15 focus-visible:ring-white focus-visible:ring-offset-slate-900",
+    "border border-white/20 bg-white/5 text-white hover:border-white/40 hover:bg-white/10 focus-visible:ring-white focus-visible:ring-offset-[#1b1f23]",
 } as const;
 
 const buttonSizes = {

@@ -1,0 +1,28 @@
+import { NextRequest } from "next/server";
+import axios from "axios";
+import { createProxyResponse } from "@/lib/server-auth";
+
+const API_URL = process.env.API_URL || "http://localhost:3000";
+
+export async function POST(req: NextRequest) {
+  try {
+    const token = req.nextUrl.searchParams.get("token") || "";
+
+    const backendRes = await axios.post(
+      `${API_URL}/api/auth/members/email-change?token=${encodeURIComponent(token)}`,
+      {},
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        validateStatus: () => true,
+      }
+    );
+
+    return createProxyResponse(backendRes.data, backendRes.status);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Error connecting to backend";
+    return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
+  }
+}
+

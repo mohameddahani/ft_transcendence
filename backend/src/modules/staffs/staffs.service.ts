@@ -1,0 +1,461 @@
+import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { EmailService } from '@/infrastructure/email/email.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { AddStaffDto } from './dtos/add-staff.dto';
+import { ActionTokenType, Role, AccountStatus } from '@/generated/prisma/enums';
+import { generateUsername } from '@/core/utils/generate-username';
+import ms, { StringValue } from 'ms';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { UpdateStaffDto } from './dtos/update-staff.dto';
+import {
+  privateStaffSelect,
+  publicUserSelect,
+} from '@/core/types/safe-selects.type';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
+import { isAfter, subYears } from 'date-fns';
+
+@Injectable()
+export class StaffsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly config: ConfigService,
+    private readonly accessesService: AccessesService,
+  ) {}
+
+  // * Add Staff by Admin
+  async addStaff(adminId: string, data: AddStaffDto) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    const subscription =
+      await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if staff already exist
+    const existingStaff = await this.prisma.staff.findFirst({
+      where: {
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+    if (existingStaff) {
+      if (existingStaff.email === data.email) {
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingStaff.phoneNumber === data.phoneNumber) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if staff >= 18 years old
+    const minimumBirthDate = subYears(new Date(), 18);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'The Staff must be at least 18 years old to add.',
+      );
+    }
+
+    // * Genarate a userName
+    let userName: string;
+    let firstNameCharCount = 1;
+    while (true) {
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
+
+      // * Check if username already exist before register
+      const existingUserName = await this.prisma.staff.findUnique({
+        where: {
+          userName: userName,
+        },
+      });
+      if (!existingUserName) {
+        break;
+      }
+    }
+
+    // * Add staff to database
+    const result = await this.prisma.staff.create({
+      data: {
+        admin: { connect: { id: adminId } },
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        userName: userName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        profileImageUrl: DEFAULT_AVATARS.STAFF,
+        profileImagePublicId: DEFAULT_AVATARS_ID.STAFF,
+        companyName: subscription.user.companyName,
+      },
+    });
+
+    // * Send Email of Set password to Staff
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.staffActionToken.create({
+      data: {
+        staff: { connect: { id: result.id } },
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
+    try {
+      // * Send email of Password Set to staff
+      await this.emailService.sendSetPasswordStaffEmail(
+        result.userName,
+        result.email,
+        rawToken,
+      );
+    } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.staffActionToken.deleteMany({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'The staff account was created, but we could not send the password setup email. Please tell to staff logging in again later or contact the administrator if the problem continues.',
+      );
+    }
+  }
+
+  // * Update Data of Staff
+  async update(adminId: string, staffId: string, data: UpdateStaffDto) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if we have staff already in DB
+    await this.findOne(adminId, staffId);
+
+    // * Check if staff data duplicate
+    const existingData = await this.prisma.staff.findFirst({
+      where: {
+        id: { not: staffId },
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if staff >= 18 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 18);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException(
+          'The Staff must be at least 18 years old to add.',
+        );
+      }
+    }
+
+    // * Save new Data to Staff
+    return await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+      },
+      data: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        gender: data.gender,
+        birthDate: data.birthDate,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+      },
+      select: privateStaffSelect,
+    });
+  }
+
+  // * Get All Staffs
+  async findAll(
+    adminId: string,
+    page: number,
+    limit: number,
+    _search?: string,
+  ) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * remove spaces
+    const search = _search?.trim();
+
+    const staffs = await this.prisma.staff.findMany({
+      where: {
+        adminId,
+
+        // * Search Filter
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        ...privateStaffSelect,
+        admin: {
+          select: publicUserSelect,
+        },
+      },
+    });
+
+    return staffs;
+  }
+
+  // * Get One Staff
+  async findOne(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    const staff = await this.prisma.staff.findFirst({
+      where: {
+        adminId,
+        id: staffId,
+      },
+      select: {
+        ...privateStaffSelect,
+        admin: {
+          select: publicUserSelect,
+        },
+      },
+    });
+    if (!staff) {
+      throw new NotFoundException('Staff Not Found!');
+    }
+
+    return staff;
+  }
+
+  // ! Change Status Staff
+  // * Active a Staff
+  async ActiveStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus === AccountStatus.ACTIVE) {
+      throw new BadRequestException('This account is already active.');
+    }
+
+    return await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: AccountStatus.ACTIVE,
+      },
+      select: privateStaffSelect,
+    });
+  }
+
+  // * Pending a Staff
+  async pendingStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus !== AccountStatus.ACTIVE) {
+      if (staff.accountStatus === AccountStatus.PENDING) {
+        throw new BadRequestException('This account is already pending.');
+      } else if (staff.accountStatus === AccountStatus.BANNED) {
+        throw new BadRequestException(
+          'A banned account cannot be moved to pending. Please reactivate the account first if appropriate.',
+        );
+      }
+    }
+
+    return await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: AccountStatus.PENDING,
+      },
+      select: privateStaffSelect,
+    });
+  }
+
+  // * Ban a Staff
+  async banStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if Staff already exist
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check if staff not Active
+    if (staff.accountStatus === AccountStatus.BANNED) {
+      throw new BadRequestException('This account is already banned.');
+    }
+
+    return await this.prisma.staff.update({
+      where: {
+        id: staffId,
+        adminId: adminId,
+        role: { notIn: [Role.OWNER, Role.MEMBER, Role.ADMIN] },
+      },
+      data: {
+        accountStatus: AccountStatus.BANNED,
+      },
+      select: privateStaffSelect,
+    });
+  }
+
+  // * Resend Set Password for staff
+  async resendSetPasswordStaff(adminId: string, staffId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check staff exists
+    const staff = await this.findOne(adminId, staffId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.staffActionToken.findFirst({
+      where: {
+        StaffId: staff.id,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of staff.',
+      );
+    }
+
+    // * Send Email of Set password to staff
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.staffActionToken.create({
+      data: {
+        staff: { connect: { id: staff.id } },
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
+    try {
+      // * Send email of Password Set to staff
+      await this.emailService.sendSetPasswordStaffEmail(
+        staff.userName,
+        staff.email,
+        rawToken,
+      );
+    } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.staffActionToken.deleteMany({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
+      );
+    }
+  }
+
+  // * Get All Stats of Staffs (Admin)
+  async staffStats(adminId: string) {
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    const statusStats = await this.prisma.staff.groupBy({
+      by: ['accountStatus'],
+      where: {
+        adminId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+    let total = 0;
+
+    for (const stat of statusStats) {
+      const count = stat._count._all;
+
+      total += count;
+
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = count;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = count;
+      }
+    }
+
+    return {
+      total,
+      activeCount,
+      pendingCount,
+      bannedCount,
+    };
+  }
+}

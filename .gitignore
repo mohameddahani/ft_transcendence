@@ -11,3 +11,13 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# certificates
+devops/nginx/certs
+
+# backups
+devops/backups/*.dump
+
+node_modules/
+
+.next/

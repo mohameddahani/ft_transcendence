@@ -1,0 +1,9 @@
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+psycopg[binary]==3.3.6
+psycopg_pool==3.3.3
+pyjwt==2.15.0
+google-genai==2.25.0
+chromadb==1.5.9
+pypdf==6.19.0
+python-multipart==0.0.32

@@ -1,0 +1,33 @@
+groups:
+  - name: application
+    rules:
+
+      # nginx 5xx error spike
+      - alert: HighErrorRate
+        expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "More than 1 error/s for 2 minutes."
+
+      # Postgres too many connections
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections high"
+          description: "{{ $value }} active connections."
+
+      # Redis cache hit rate drops
+      - alert: RedisCacheHitRateLow
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache hit rate below 50%"
+          description: "Cache effectiveness has dropped significantly."

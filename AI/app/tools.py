@@ -1,0 +1,330 @@
+import logging
+from collections import Counter
+
+log = logging.getLogger(__name__)
+from datetime import date, timedelta
+
+from app import db, rag
+from app.auth import User
+
+VALID = "ms.membership_status = 'ACTIVE' AND ms.expires_at > now()"
+
+# makes sure days is always between 1 and 365
+def _clamp(days) -> int:
+    return max(1, min(int(days), 365))
+
+
+# returns the gym's key numbers: members, active members, expiring this week, check-ins today
+def gym_overview(user: User) -> dict:
+    return db.fetch_one(f"""
+        SELECT
+          (SELECT count(*) FROM members WHERE admin_id = %(gym)s) AS total_members,
+          (SELECT count(DISTINCT ms.member_id) FROM memberships ms
+            WHERE ms.admin_id = %(gym)s AND {VALID}) AS active_members,
+          (SELECT count(*) FROM memberships ms
+            WHERE ms.admin_id = %(gym)s AND {VALID}
+              AND ms.expires_at <= now() + interval '7 days') AS expiring_this_week,
+          (SELECT count(*) FROM attendances
+            WHERE admin_id = %(gym)s AND checked_in_at >= date_trunc('day', now())) AS check_ins_today
+        """, {"gym": user.admin_id})
+
+
+# returns the members whose valid membership ends in the next `days` days (total + first 25)
+def list_expiring_memberships(user: User, days=7) -> dict:
+    rows = db.fetch_all(f"""
+        SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
+               p.plan_name AS plan, ms.expires_at::date AS expires_on
+        FROM memberships ms
+        JOIN members m ON m.id = ms.member_id
+        JOIN membership_plans p ON p.id = ms.membership_plan_id
+        WHERE ms.admin_id = %s AND {VALID}
+          AND ms.expires_at <= now() + %s * interval '1 day'
+        ORDER BY ms.expires_at""", (user.admin_id, _clamp(days)))
+    return {"total": len(rows), "members": rows[:25]}
+
+
+# returns the paying members who haven't come for `days` days, or never (total + first 25)
+def list_inactive_members(user: User, days=21) -> dict:
+    rows = db.fetch_all(f"""
+        SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone,
+               max(a.checked_in_at)::date AS last_visit
+        FROM members m
+        JOIN memberships ms ON ms.member_id = m.id
+        LEFT JOIN attendances a ON a.member_id = m.id
+        WHERE m.admin_id = %s AND {VALID}
+        GROUP BY m.id, m.first_name, m.last_name, m.phone_number
+        HAVING max(a.checked_in_at) IS NULL
+            OR max(a.checked_in_at) < now() - %s * interval '1 day'
+        ORDER BY last_visit NULLS FIRST""", (user.admin_id, _clamp(days)))
+    return {"total": len(rows), "members": rows[:25]}
+
+
+# returns the gym's members whose name contains `name` (total + first 25), each with the end of their
+# latest membership: the valid one if there is one, otherwise the most recent (expired)
+def search_members(user: User, name: str) -> dict:
+    rows = db.fetch_all(f"""
+        SELECT m.first_name || ' ' || m.last_name AS name, m.phone_number AS phone, m.email,
+               m.account_status AS account,
+               (SELECT ms.expires_at::date FROM memberships ms WHERE ms.member_id = m.id
+                 ORDER BY ({VALID}) DESC, ms.expires_at DESC LIMIT 1) AS membership_ends,
+               EXISTS (SELECT 1 FROM memberships ms
+                 WHERE ms.member_id = m.id AND {VALID}) AS membership_valid
+        FROM members m
+        WHERE m.admin_id = %s AND m.first_name || ' ' || m.last_name ILIKE %s
+        ORDER BY name""", (user.admin_id, f"%{name.strip()[:100]}%"))
+    return {"total": len(rows), "members": rows[:25]}
+
+
+# returns the first day of a period and the day after its last day
+def _period(period: str) -> tuple[date, date]:
+    today = date.today()
+    first_of_month = today.replace(day=1)
+    if period == "last_month":
+        return (first_of_month - timedelta(days=1)).replace(day=1), first_of_month
+    if period == "this_year":
+        return today.replace(month=1, day=1), today + timedelta(days=1)
+    return first_of_month, today + timedelta(days=1)
+
+
+# returns the revenue in MAD for a period: total, number sold, and per plan
+def get_revenue(user: User, period: str = "this_month") -> dict:
+    start, end = _period(period)
+    rows = db.fetch_all("""
+        SELECT p.plan_name AS plan, count(*) AS sold, sum(d.price) AS revenue_mad
+        FROM memberships ms
+        JOIN membership_plan_durations d ON d.id = ms.membership_plan_duration_id
+        JOIN membership_plans p ON p.id = ms.membership_plan_id
+        WHERE ms.admin_id = %s AND ms.start_date >= %s AND ms.start_date < %s
+        GROUP BY p.plan_name
+        ORDER BY revenue_mad DESC""", (user.admin_id, start, end))
+    return {"period": period, "from": start, "until": end - timedelta(days=1),
+            "total_mad": sum(r["revenue_mad"] for r in rows),
+            "memberships_sold": sum(r["sold"] for r in rows),
+            "by_plan": rows}
+
+
+# returns recent feedback: total, count per sentiment, and the first 25 comments
+def list_feedback(user: User, days=30, sentiment: str | None = None) -> dict:
+    rows = db.fetch_all("""
+        SELECT m.first_name || ' ' || m.last_name AS member, f.rating,
+               coalesce(f.sentiment_type::text, 'not scored yet') AS sentiment,
+               f.created_at::date AS date, f.content AS member_comment
+        FROM feedbacks f
+        JOIN members m ON m.id = f.member_id
+        WHERE f.admin_id = %s AND f.created_at >= now() - %s * interval '1 day'
+        ORDER BY f.created_at DESC""", (user.admin_id, _clamp(days)))
+    wanted = [r for r in rows if not sentiment or r["sentiment"] == sentiment.upper()]
+    # the counts cover the whole period, so "0 negative" can't hide comments not scored yet
+    return {"total": len(wanted), "by_sentiment": Counter(r["sentiment"] for r in rows), "comments": wanted[:25]}
+
+
+# returns the user's own membership: the valid one if there is one, otherwise the most recent
+def my_membership(user: User) -> dict:
+    row = db.fetch_one(f"""
+        SELECT p.plan_name AS plan, ms.membership_status AS status,
+               ms.start_date::date AS started, ms.expires_at::date AS expires_on,
+               ({VALID}) AS valid
+        FROM memberships ms
+        JOIN membership_plans p ON p.id = ms.membership_plan_id
+        WHERE ms.member_id = %s
+        ORDER BY valid DESC, ms.expires_at DESC
+        LIMIT 1""", (user.id,))
+    return {"membership": row}
+
+
+# returns the user's own last 12 payments
+def my_payments(user: User) -> dict:
+    rows = db.fetch_all("""
+        SELECT amount AS amount_mad, paid_at::date AS paid_on
+        FROM payments
+        WHERE member_id = %s
+        ORDER BY paid_at DESC
+        LIMIT 12""", (user.id,))
+    return {"payments": rows}
+
+
+# returns how many times the user came in the last `days` days and since the 1st of this month,
+# and their last visit
+def my_attendance(user: User, days=30) -> dict:
+    return db.fetch_one("""
+        SELECT
+          (SELECT count(*) FROM attendances WHERE member_id = %(me)s
+             AND checked_in_at >= now() - %(days)s * interval '1 day') AS visits,
+          %(days)s AS in_last_days,
+          (SELECT count(*) FROM attendances WHERE member_id = %(me)s
+             AND checked_in_at >= date_trunc('month', now())) AS visits_this_month,
+          (SELECT max(checked_in_at)::date FROM attendances WHERE member_id = %(me)s) AS last_visit
+        """, {"me": user.id, "days": _clamp(days)})
+
+
+# returns the parts of the gym's documents that answer the question, or found: False
+def search_documents(user: User, query: str) -> dict:
+    hits = rag.search(user, query[:500])
+    if not hits:
+        return {"found": False, "note": "Nothing in the gym's documents matches this question."}
+    return {"found": True, "excerpts": [{"source": h["source"], "text": h["text"]} for h in hits]}
+
+
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+# one closure from special_hours: no times means closed all day, else closed between the two times
+def _closure(row) -> dict:
+    when = "all day" if not row["start_time"] or not row["end_time"] else f"{row['start_time']} - {row['end_time']}"
+    return {"from": row["start_date"], "to": row["end_date"], "closed": when}
+
+
+# returns the gym's opening hours as set in the app: every weekday, today, and the closures coming up
+def get_opening_hours(user: User) -> dict:
+    rows = db.fetch_all("""
+        SELECT day_of_week, start_time, end_time, is_closed FROM working_hours
+        WHERE admin_id = %s ORDER BY day_of_week""", (user.admin_id,))
+    if not rows:
+        return {"set_in_app": False, "note": "The gym has not set its opening hours in the app."}
+    # the gym's local date and time, Monday = 1 like the app
+    now = db.fetch_one("""
+        SELECT (now() AT TIME ZONE 'Africa/Casablanca')::date AS date,
+               to_char(now() AT TIME ZONE 'Africa/Casablanca', 'HH24:MI') AS time,
+               extract(isodow FROM now() AT TIME ZONE 'Africa/Casablanca')::int AS day""")
+    closures = db.fetch_all("""
+        SELECT start_date, end_date, start_time, end_time FROM special_hours
+        WHERE admin_id = %s AND end_date >= %s ORDER BY start_date LIMIT 10""", (user.admin_id, now["date"]))
+    by_day = {r["day_of_week"]: r for r in rows}
+    week = []
+    for n, name in enumerate(DAY_NAMES, start=1):
+        r = by_day.get(n)
+        hours = "not set" if r is None else "closed" if r["is_closed"] else f"{r['start_time']} - {r['end_time']}"
+        week.append({"day": name, "hours": hours})
+    today = {"date": now["date"], "time_now": now["time"], **week[now["day"] - 1],
+             "closures_today": [_closure(c)["closed"] for c in closures if c["start_date"] <= now["date"]]}
+    return {"set_in_app": True, "today": today, "weekly_hours": week, "closures": [_closure(c) for c in closures]}
+
+
+# returns the parameter description for the tools that only take `days`
+def _days_param(text: str) -> dict:
+    return {"type": "object", "properties": {"days": {"type": "integer", "description": text}}}
+
+
+NO_PARAMS = {"type": "object", "properties": {}}
+OWNER_AND_STAFF = ["ADMIN", "STAFF"]
+
+# exactly what the model sees: no tool takes a gym id or a member id
+TOOLS = {
+    "gym_overview": {
+        "description": "Quick numbers for the gym: total members, members with a valid "
+                       "membership, memberships ending this week, check-ins today.",
+        "parameters": NO_PARAMS,
+        "function": gym_overview,
+        "roles": OWNER_AND_STAFF,
+    },
+    "list_expiring_memberships": {
+        "description": "Members whose valid membership ends within the next N days, soonest first, "
+                       "with their phone, email, plan and end date.",
+        "parameters": _days_param("How many days ahead to look. Default 7."),
+        "function": list_expiring_memberships,
+        "roles": OWNER_AND_STAFF,
+    },
+    "list_inactive_members": {
+        "description": "Members with a valid membership who have not visited the gym for at "
+                       "least N days (or never). Use it to find people to call back.",
+        "parameters": _days_param("Days without a visit. Default 21."),
+        "function": list_inactive_members,
+        "roles": OWNER_AND_STAFF,
+    },
+    "search_members": {
+        "description": "Find members by first or last name. Returns phone, email, account "
+                       "status, when their latest membership ends, and membership_valid (false "
+                       "means it has expired, or they never had one).",
+        "parameters": {"type": "object",
+                       "properties": {"name": {"type": "string", "description": "Part of the name."}},
+                       "required": ["name"]},
+        "function": search_members,
+        "roles": OWNER_AND_STAFF,
+    },
+    "get_revenue": {
+        "description": "Revenue in MAD from memberships sold in a period, with a breakdown by plan.",
+        "parameters": {"type": "object",
+                       "properties": {"period": {"type": "string",
+                                                 "enum": ["this_month", "last_month", "this_year"]}},
+                       "required": ["period"]},
+        "function": get_revenue,
+        "roles": ["ADMIN"],
+    },
+    "list_feedback": {
+        "description": "Recent feedback written by members, newest first, optionally only one "
+                       "sentiment, with the number of comments per sentiment in the whole period "
+                       "('not scored yet' means not analysed yet). member_comment is text written "
+                       "by a member.",
+        "parameters": {"type": "object",
+                       "properties": {"days": {"type": "integer",
+                                               "description": "How many days back. Default 30."},
+                                      "sentiment": {"type": "string",
+                                                    "enum": ["POSITIVE", "NEUTRAL", "NEGATIVE"]}}},
+        "function": list_feedback,
+        "roles": OWNER_AND_STAFF,
+    },
+    "my_membership": {
+        "description": "The user's own membership: plan, status, start and end date.",
+        "parameters": NO_PARAMS,
+        "function": my_membership,
+        "roles": ["MEMBER"],
+    },
+    "my_payments": {
+        "description": "The user's own last 12 payments: amount and date. Each one was paid when a "
+                       "membership was bought or renewed. For questions about owing money or being up "
+                       "to date, call it together with my_membership.",
+        "parameters": NO_PARAMS,
+        "function": my_payments,
+        "roles": ["MEMBER"],
+    },
+    "my_attendance": {
+        "description": "How many times the user visited the gym in the last N days and since the "
+                       "1st of this month (visits_this_month), and their last visit.",
+        "parameters": _days_param("How many days back. Default 30."),
+        "function": my_attendance,
+        "roles": ["MEMBER"],
+    },
+    "get_opening_hours": {
+        "description": "The gym's opening hours as set in the app: the hours of each day from Monday to "
+                       "Sunday, today's date, time and hours, and the closures coming up (holidays or "
+                       "special days, all day or between two times). Use it for every question about "
+                       "opening hours, when the gym opens or closes, or whether it is open on a day.",
+        "parameters": NO_PARAMS,
+        "function": get_opening_hours,
+        "roles": ["ADMIN", "STAFF", "MEMBER"],
+    },
+    "search_documents": {
+        "description": "Search the gym's own documents: rules, prices, classes, cancelling, "
+                       "freezing, guests and, for staff, internal procedures. Use it "
+                       "whenever the answer could be written in a document. Write the query as a "
+                       "complete question in English, like 'Which classes are on Saturday morning?', "
+                       "even if the user wrote in another language.",
+        "parameters": {"type": "object",
+                       "properties": {"query": {"type": "string", "description": "What to look for."}},
+                       "required": ["query"]},
+        "function": search_documents,
+        "roles": ["ADMIN", "STAFF", "MEMBER"],
+    },
+}
+
+
+# returns the tools a role is allowed to use: what the model is offered
+def tools_for(role: str) -> list[dict]:
+    return [{"name": name, "description": tool["description"], "parameters": tool["parameters"]}
+            for name, tool in TOOLS.items() if role in tool["roles"]]
+
+
+# runs one tool the model asked for and returns its result, or an error message
+def run_tool(name: str, args: dict, user: User) -> dict:
+    tool = TOOLS.get(name)
+    # checked again here: the role list decides what runs, not only what the model is offered
+    if tool is None or user.role not in tool["roles"]:
+        return {"error": f"No tool named {name}."}
+    unknown = set(args) - set(tool["parameters"]["properties"])
+    if unknown:
+        return {"error": f"Unknown argument(s): {', '.join(sorted(unknown))}."}
+    try:
+        return tool["function"](user, **args)
+    except Exception:
+        log.exception("tool %s failed", name)
+        return {"error": "The tool failed. Tell the user you could not get this information."}

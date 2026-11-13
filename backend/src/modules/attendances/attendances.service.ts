@@ -1,0 +1,432 @@
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { MembershipWithPlan } from '@/core/types/membership-with-plan.type';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { AttendanceMethod, Role, VisitStatus } from '@/generated/prisma/enums';
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  subMinutes,
+} from 'date-fns';
+import { AttendanceManualCheckInDto } from './dtos/attendance-manual-check-in.dto';
+import { AttendanceQrCheckInDto } from './dtos/attendance-qr-check-in.dto';
+import { createHash } from 'node:crypto';
+import {
+  publicStaffSelect,
+  publicUserSelect,
+} from '@/core/types/safe-selects.type';
+import { AccessesService } from '@/core/access/access.service';
+import { EARLIEST_VISIT_CHECK_IN_MINUTES } from '@/core/constants/visit.constants';
+
+@Injectable()
+export class AttendancesService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessesService: AccessesService,
+  ) {}
+
+  // * Confirm Attendance Manually
+  async checkInManually(
+    accessTokenPayload: AccessTokenPayload,
+    data: AttendanceManualCheckInDto,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check that the member has an active account and membership.
+    const membership =
+      await this.accessesService.validateMemberAccountAndMembership(
+        data.memberId,
+        adminId,
+      );
+
+    return this.confirmCheckIn(
+      accessTokenPayload,
+      adminId,
+      data.memberId,
+      membership,
+      AttendanceMethod.MANUAL,
+    );
+  }
+
+  // * Confirm Attendance Qr
+  async checkInWithQr(
+    accessTokenPayload: AccessTokenPayload,
+    data: AttendanceQrCheckInDto,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Hash the Token from Qr
+    const qrTokenHash = createHash('sha256')
+      .update(data.rowToken)
+      .digest('hex');
+
+    // * Check the visit by token
+    const visit = await this.prisma.visit.findUnique({
+      where: {
+        qrTokenHash: qrTokenHash,
+      },
+    });
+
+    if (!visit || visit.adminId !== adminId) {
+      throw new NotFoundException('Invalid QR code.');
+    }
+
+    // * Check that the member has an active account and membership.
+    const membership =
+      await this.accessesService.validateMemberAccountAndMembership(
+        visit.memberId,
+        adminId,
+      );
+
+    return this.confirmCheckIn(
+      accessTokenPayload,
+      adminId,
+      visit.memberId,
+      membership,
+      AttendanceMethod.QR_CODE,
+      visit.id,
+    );
+  }
+
+  // * Get All Attendances (Member)
+  async findAllAttendanceByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+    attendanceMethod?: AttendanceMethod,
+  ) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+
+        // * Filter attendance by attendance status
+        ...(attendanceMethod !== undefined ? { attendanceMethod } : {}),
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        admin: {
+          select: publicUserSelect,
+        },
+        membership: true,
+        staff: {
+          select: publicStaffSelect,
+        },
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return attendances;
+  }
+
+  // * Get One Attendance (Member)
+  async findOneAttendanceByMember(memberId: string, attendanceId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const attendance = await this.prisma.attendance.findFirst({
+      where: {
+        id: attendanceId,
+        adminId: adminId,
+        memberId: memberId,
+      },
+      select: {
+        id: true,
+        admin: {
+          select: publicUserSelect,
+        },
+        membership: true,
+        staff: {
+          select: publicStaffSelect,
+        },
+        visit: true,
+        attendanceMethod: true,
+        checkedInAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('Attendance record not found.');
+    }
+
+    return attendance;
+  }
+
+  // * Get All Stats of Attendances (Member)
+  async attendanceStatsOfMember(memberId: string) {
+    // * Get Admin id
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and associated plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    // * Get Total of attendance method
+    // [
+    //   {
+    //     attendanceMethod: AttendanceMethod.QR_CODE,
+    //     _count: {
+    //       _all: 3,
+    //     },
+    //   },
+    //   {
+    //     attendanceMethod: AttendanceMethod.MANUAL,
+    //     _count: {
+    //       _all: 2,
+    //     },
+    //   },
+    // ];
+
+    const attendanceStats = await this.prisma.attendance.groupBy({
+      by: ['attendanceMethod'],
+      where: {
+        adminId: adminId,
+        memberId: memberId,
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    let qrCodeCount = 0;
+    let manualCount = 0;
+
+    for (const stat of attendanceStats) {
+      if (stat.attendanceMethod === AttendanceMethod.QR_CODE) {
+        qrCodeCount = stat._count._all;
+      }
+
+      if (stat.attendanceMethod === AttendanceMethod.MANUAL) {
+        manualCount = stat._count._all;
+      }
+    }
+
+    return {
+      qrCodeCount,
+      manualCount,
+      total: qrCodeCount + manualCount,
+    };
+  }
+
+  // ! Private
+  // * Confirm Check In
+  private async confirmCheckIn(
+    accessTokenPayload: AccessTokenPayload,
+    adminId: string,
+    memberId: string,
+    membership: MembershipWithPlan,
+    attendanceMethod: AttendanceMethod,
+    visitId?: string,
+  ) {
+    // * tx is the prisma client inside a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // * Get current date and today's boundaries
+      const now = new Date();
+      const startOfToday = startOfDay(now);
+      const endOfToday = endOfDay(now);
+
+      // * Check if member already checked in today
+      const alreadyCheckedIn = await tx.attendance.findFirst({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          checkedInAt: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+        },
+      });
+
+      if (alreadyCheckedIn) {
+        throw new ForbiddenException(
+          'The member has already checked in today.',
+        );
+      }
+
+      // * Find today's visit
+      const visit = visitId
+        ? await tx.visit.findFirst({
+            where: {
+              id: visitId,
+              adminId: adminId,
+              memberId: memberId,
+              visitDateAndTime: {
+                gte: startOfToday,
+                lte: endOfToday,
+              },
+            },
+          })
+        : await tx.visit.findFirst({
+            where: {
+              adminId: adminId,
+              memberId: memberId,
+              visitDateAndTime: {
+                gte: startOfToday,
+                lte: endOfToday,
+              },
+            },
+          });
+
+      if (!visit) {
+        throw new NotFoundException('No visit found for today.');
+      }
+
+      // * Check visit status
+      if (visit.visitStatus === VisitStatus.CHECKED_IN) {
+        throw new ForbiddenException(
+          'The member has already checked in today.',
+        );
+      } else if (visit.visitStatus === VisitStatus.CANCELLED) {
+        throw new ForbiddenException(
+          'The member already has a cancelled visit for today.',
+        );
+      } else if (visit.visitStatus === VisitStatus.EXPIRED) {
+        throw new ForbiddenException(
+          'The member already has an expired visit for today.',
+        );
+      }
+
+      // * Calculate current week
+      // Monday = first day of the week
+      const monday = startOfWeek(now, {
+        weekStartsOn: 1,
+      });
+
+      // Sunday = last day of the week
+      const sunday = endOfWeek(now, {
+        weekStartsOn: 1,
+      });
+
+      const attendanceCount = await tx.attendance.count({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
+          checkedInAt: {
+            gte: monday,
+            lte: sunday,
+          },
+        },
+      });
+
+      if (attendanceCount >= membership.membershipPlan.weeklyVisitLimit) {
+        throw new ForbiddenException(
+          'Weekly attendance limit has been reached for this membership.',
+        );
+      }
+
+      // * Check if attendance time has arrived
+      // * Allow check-in 10 minutes before the scheduled visit.
+      const earliestCheckIn = subMinutes(
+        visit.visitDateAndTime,
+        EARLIEST_VISIT_CHECK_IN_MINUTES,
+      );
+
+      // * Use the existing visit expiration time.
+      const latestCheckIn = visit.visitDateAndTimeExpiresAt;
+
+      // * Prevent early check-in.
+      if (now < earliestCheckIn) {
+        throw new ForbiddenException(
+          'Check-in is only allowed 10 minutes before the scheduled visit.',
+        );
+      }
+
+      // * Prevent late check-in.
+      if (now > latestCheckIn) {
+        throw new ForbiddenException(
+          'The check-in window for this visit has expired.',
+        );
+      }
+
+      // * Update visit status
+      const { count } = await tx.visit.updateMany({
+        where: {
+          id: visit.id,
+          adminId: adminId,
+          memberId: memberId,
+          visitStatus: VisitStatus.READY,
+        },
+        data: {
+          visitStatus: VisitStatus.CHECKED_IN,
+        },
+      });
+
+      if (count !== 1) {
+        throw new ConflictException(
+          'Visit is no longer available for check-in.',
+        );
+      }
+
+      // * Create attendance
+      await tx.attendance.create({
+        data: {
+          admin: { connect: { id: adminId } },
+          member: { connect: { id: memberId } },
+          membership: { connect: { id: membership.id } },
+
+          staff:
+            accessTokenPayload.role === Role.STAFF
+              ? { connect: { id: accessTokenPayload.id } }
+              : undefined, // Ignore this field. Don't do anything with staff.
+
+          visit: { connect: { id: visit.id } },
+
+          attendanceMethod: attendanceMethod,
+          checkedInAt: now,
+        },
+      });
+    });
+  }
+}

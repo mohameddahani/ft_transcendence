@@ -1,0 +1,825 @@
+import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { AddMemberDto } from './dtos/add-member.dto';
+import { generateUsername } from '@/core/utils/generate-username';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ActionTokenType,
+  MembershipStatus,
+  AccountStatus,
+  Role,
+} from '@/generated/prisma/enums';
+import { UpdateMemberDto } from './dtos/update-member.dto';
+import { EmailService } from '@/infrastructure/email/email.service';
+import { ConfigService } from '@nestjs/config';
+import ms, { StringValue } from 'ms';
+import { generateActionToken } from '@/core/utils/generate-action-token';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { addDays, isAfter, subYears } from 'date-fns';
+import {
+  DEFAULT_AVATARS,
+  DEFAULT_AVATARS_ID,
+} from '@/core/constants/default-avatars.constants';
+import { AccessesService } from '@/core/access/access.service';
+import { privateMemberSelect } from '@/core/types/safe-selects.type';
+import axios from 'axios';
+
+@Injectable()
+export class MembersService {
+  private readonly logger = new Logger(MembersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly config: ConfigService,
+    private readonly accessesService: AccessesService,
+  ) {}
+
+  // * Add Member by Admin or Staff
+  async addMember(accessTokenPayload: AccessTokenPayload, data: AddMemberDto) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId, subscription } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check if Admin Has Membership Plan With Duration
+    const { duration, membershipPlan } =
+      await this.checkIfAdminHasMembershipPlanWithDuration(
+        adminId,
+        data.membershipPlanId,
+        data.membershipPlanDurationId,
+      );
+
+    // * Check if memberhsip Plan is active
+    if (!membershipPlan.isActive) {
+      throw new ConflictException(
+        'The selected membership plan is no longer available. Please choose another active membership plan.',
+      );
+    }
+
+    // * Check if member already exist
+    const existingMember = await this.prisma.member.findFirst({
+      where: {
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+    if (existingMember) {
+      if (existingMember.email === data.email) {
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingMember.phoneNumber === data.phoneNumber) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if member >= 13 years old
+    const minimumBirthDate = subYears(new Date(), 13);
+
+    if (isAfter(data.birthDate, minimumBirthDate)) {
+      throw new BadRequestException(
+        'The Member must be at least 13 years old to add.',
+      );
+    }
+
+    // * Genarate a userName
+    let userName: string;
+    let firstNameCharCount = 1;
+    while (true) {
+      userName = generateUsername(
+        data.firstName,
+        data.lastName,
+        firstNameCharCount++,
+      );
+
+      // * Check if username already exist before register
+      const existingUserName = await this.prisma.member.findUnique({
+        where: {
+          userName: userName,
+        },
+      });
+      if (!existingUserName) {
+        break;
+      }
+    }
+
+    // * Interactive transaction (function)
+    // * tx is the prisma client inside a transaction
+    const { member, membership } = await this.prisma.$transaction(
+      async (tx) => {
+        // * Check if admin has place for new member
+        // * Count Members
+        const membersCount = await tx.member.count({
+          where: {
+            adminId,
+          },
+        });
+        if (membersCount >= subscription.plan.maxMembers) {
+          throw new ForbiddenException(
+            `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
+          );
+        }
+
+        // * Add members to database
+        const member = await tx.member.create({
+          data: {
+            admin: { connect: { id: adminId } },
+            staff:
+              accessTokenPayload.role === Role.STAFF
+                ? { connect: { id: accessTokenPayload.id } }
+                : undefined, // Ignore this field. Don't do anything with staff.
+            firstName: data.firstName,
+            lastName: data.lastName,
+            gender: data.gender,
+            birthDate: data.birthDate,
+            userName: userName,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            companyName: subscription.user.companyName,
+            profileImageUrl: DEFAULT_AVATARS.MEMBER,
+            profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
+            address: data.address,
+            emergencyContact: data.emergencyContact,
+
+            // ! BLOCK_CHAINE
+            walletAddress: data.walletAddress,
+          },
+        });
+        // * Add Membership of member
+        const expiresAt = addDays(new Date(), duration.durationDays);
+        const membership = await tx.membership.create({
+          data: {
+            admin: { connect: { id: adminId } },
+            member: { connect: { id: member.id } },
+            membershipPlan: { connect: { id: data.membershipPlanId } },
+            membershipPlanDuration: {
+              connect: { id: data.membershipPlanDurationId },
+            },
+            expiresAt: expiresAt,
+          },
+          include: {
+            membershipPlanDuration: true,
+          },
+        });
+
+        // * Add Payment of Member
+        await tx.payment.create({
+          data: {
+            member: { connect: { id: member.id } },
+            admin: { connect: { id: adminId } },
+            staff:
+              accessTokenPayload.role === Role.STAFF
+                ? { connect: { id: accessTokenPayload.id } }
+                : undefined, // Ignore this field. Don't do anything with staff.
+            amount: membership.membershipPlanDuration.price,
+            paidAt: membership.startDate,
+          },
+        });
+
+        return { member, membership };
+      },
+    );
+
+    // ! BLOCK_CHAINE
+    axios
+      .post(
+        this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+        {
+          membershipId: membership.id,
+          clientWallet: member.walletAddress,
+        },
+        {
+          headers: {
+            'X-Reward-Secret': this.config.getOrThrow<string>(
+              'REWARD_INTERNAL_SECRET',
+            ),
+          },
+        },
+      )
+      .catch((error: unknown) => {
+        this.logger.error('Block Chain is Down', error);
+      });
+
+    // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: member.id } },
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
+    try {
+      // * Send email of Password Set to member
+      await this.emailService.sendSetPasswordMemberEmail(
+        member.userName,
+        member.email,
+        rawToken,
+      );
+    } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.memberActionToken.deleteMany({
+        where: { id: actionToken.id },
+      });
+      throw new InternalServerErrorException(
+        'The member account was created, but we could not send the password setup email. Please tell to member logging in again later or contact the administrator if the problem continues.',
+      );
+    }
+  }
+
+  // * Update data of member
+  async update(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+    data: UpdateMemberDto,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check if we have member already in DB
+    await this.findOne(accessTokenPayload, memberId);
+
+    // * Check if member data duplicate
+    const existingData = await this.prisma.member.findFirst({
+      where: {
+        id: {
+          not: memberId,
+        },
+        adminId: adminId,
+        OR: [{ email: data.email }, { phoneNumber: data.phoneNumber }],
+      },
+    });
+
+    if (existingData) {
+      if (existingData.email === data.email) {
+        // * 409 = duplicate data
+        throw new ConflictException('Email already exists');
+      }
+
+      if (existingData.phoneNumber === data.phoneNumber) {
+        // * 409 = duplicate data
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
+    // * Check if member >= 13 years old
+    if (data.birthDate !== undefined) {
+      const minimumBirthDate = subYears(new Date(), 13);
+
+      if (isAfter(data.birthDate, minimumBirthDate)) {
+        throw new BadRequestException(
+          'The Member must be at least 13 years old to add.',
+        );
+      }
+    }
+
+    // * Check if data has no new membership
+    if (!data.membershipPlanId && !data.membershipPlanDurationId) {
+      // * Save new data to member
+      return await this.prisma.member.update({
+        where: {
+          id: memberId,
+          adminId: adminId,
+        },
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          gender: data.gender,
+          birthDate: data.birthDate,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          emergencyContact: data.emergencyContact,
+
+          // ! BLOCK_CHAINE
+          walletAddress: data.walletAddress,
+        },
+        select: privateMemberSelect,
+      });
+    }
+
+    // * check if the admin update the membership plan
+    if (data.membershipPlanId && data.membershipPlanDurationId) {
+      // * Check if Admin Has Membership Plan With Duration
+      const { duration, membershipPlan } =
+        await this.checkIfAdminHasMembershipPlanWithDuration(
+          adminId,
+          data.membershipPlanId,
+          data.membershipPlanDurationId,
+        );
+
+      // * Check if memberhsip Plan is active
+      if (!membershipPlan.isActive) {
+        throw new ConflictException(
+          'The selected membership plan is no longer available. Please choose another active membership plan.',
+        );
+      }
+
+      // * Check if member currently has an active membership
+      const activeMembership = await this.prisma.membership.findFirst({
+        where: {
+          adminId,
+          memberId,
+          membershipStatus: MembershipStatus.ACTIVE,
+        },
+      });
+
+      // * Check if the new membership is duplicate or already active
+      if (
+        activeMembership &&
+        data.membershipPlanId === activeMembership.membershipPlanId &&
+        data.membershipPlanDurationId ===
+          activeMembership.membershipPlanDurationId
+      ) {
+        throw new ConflictException(
+          'This member already has an active membership with the same plan and duration.',
+        );
+      }
+
+      // * Interactive transaction (function)
+      // * tx is the prisma client inside a transaction
+      const { member, newMembership } = await this.prisma.$transaction(
+        async (tx) => {
+          // * Save new data to member
+          const member = await tx.member.update({
+            where: {
+              id: memberId,
+              adminId: adminId,
+            },
+            data: {
+              firstName: data.firstName,
+              lastName: data.lastName,
+              gender: data.gender,
+              birthDate: data.birthDate,
+              email: data.email,
+              phoneNumber: data.phoneNumber,
+              address: data.address,
+              emergencyContact: data.emergencyContact,
+
+              // ! BLOCK_CHAINE
+              walletAddress: data.walletAddress,
+            },
+            select: privateMemberSelect,
+          });
+
+          // * Expire old membership only if it is still ACTIVE
+          if (activeMembership) {
+            const { count } = await tx.membership.updateMany({
+              where: {
+                id: activeMembership.id,
+                adminId,
+                memberId,
+                membershipStatus: MembershipStatus.ACTIVE,
+              },
+              data: {
+                membershipStatus: MembershipStatus.EXPIRED,
+              },
+            });
+
+            if (count !== 1) {
+              throw new ConflictException(
+                'Membership was already updated by another request.',
+              );
+            }
+          }
+
+          // * Add new Membership to member
+          const expiresAt = addDays(new Date(), duration.durationDays);
+          const newMembership = await tx.membership.create({
+            data: {
+              admin: { connect: { id: adminId } },
+              member: { connect: { id: memberId } },
+              membershipPlan: { connect: { id: data.membershipPlanId } },
+              membershipPlanDuration: {
+                connect: { id: data.membershipPlanDurationId },
+              },
+              expiresAt: expiresAt,
+            },
+            include: { membershipPlan: true, membershipPlanDuration: true },
+          });
+
+          // * Add New Payment for Updated Member
+          await tx.payment.create({
+            data: {
+              member: { connect: { id: newMembership.memberId } },
+              admin: { connect: { id: adminId } },
+              staff:
+                accessTokenPayload.role === Role.STAFF
+                  ? { connect: { id: accessTokenPayload.id } }
+                  : undefined, // Ignore this field. Don't do anything with staff.
+              amount: newMembership.membershipPlanDuration.price,
+              paidAt: newMembership.startDate,
+            },
+          });
+
+          return { member, newMembership };
+        },
+      );
+
+      // ! BLOCK_CHAINE
+      axios
+        .post(
+          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+          {
+            membershipId: newMembership.id,
+            clientWallet: member.walletAddress,
+          },
+          {
+            headers: {
+              'X-Reward-Secret': this.config.getOrThrow<string>(
+                'REWARD_INTERNAL_SECRET',
+              ),
+            },
+          },
+        )
+        .catch((error: unknown) => {
+          this.logger.error('Block Chain is Down', error);
+        });
+
+      return member;
+    } else if (
+      (data.membershipPlanId && !data.membershipPlanDurationId) ||
+      (!data.membershipPlanId && data.membershipPlanDurationId)
+    ) {
+      throw new BadRequestException(
+        'membership plan and duration must be provided together.',
+      );
+    }
+  }
+
+  // * Active a Member
+  async activeMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check member is exist
+    const member = await this.findOne(accessTokenPayload, memberId);
+    if (member.accountStatus === AccountStatus.ACTIVE) {
+      throw new ConflictException('The Member is already Active!');
+    }
+
+    return await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        accountStatus: AccountStatus.ACTIVE,
+      },
+      select: privateMemberSelect,
+    });
+  }
+
+  // * pending a Member
+  async pendingMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check member exists
+    const member = await this.findOne(accessTokenPayload, memberId);
+
+    if (member.accountStatus === AccountStatus.PENDING) {
+      throw new ConflictException('The member is already pending.');
+    }
+
+    if (member.accountStatus === AccountStatus.BANNED) {
+      throw new ConflictException(
+        'A banned member cannot be frozen. Active the member first.',
+      );
+    }
+
+    return await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        accountStatus: AccountStatus.PENDING,
+      },
+      select: privateMemberSelect,
+    });
+  }
+
+  // * Ban a Member
+  async banMember(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * Check member exists
+    const member = await this.findOne(accessTokenPayload, memberId);
+
+    if (member.accountStatus === AccountStatus.BANNED) {
+      throw new ConflictException('The member is already banned.');
+    }
+
+    return await this.prisma.member.update({
+      where: {
+        id: memberId,
+        adminId: adminId,
+      },
+      data: {
+        accountStatus: AccountStatus.BANNED,
+      },
+      select: privateMemberSelect,
+    });
+  }
+
+  // * Resend Set Password for member
+  async resendSetPasswordMember(
+    accessTokenPayload: AccessTokenPayload,
+    memberId: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    await this.accessesService.authorizeAdminOrStaffAccess(accessTokenPayload);
+
+    // * Check member exists
+    const member = await this.findOne(accessTokenPayload, memberId);
+
+    // * Check whether a valid verification token already exists.
+    const existingToken = await this.prisma.memberActionToken.findFirst({
+      where: {
+        memberId: member.id,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (existingToken) {
+      throw new UnauthorizedException(
+        'A set password email has already been requested. Please check inbox of member.',
+      );
+    }
+
+    // * Send Email of Set password to member
+    // * Generate Action Token
+    const { rawToken, tokenHash } = generateActionToken();
+
+    // * Calc the expir
+    const setPasswordTokenExpiresIn = this.config.getOrThrow<StringValue>(
+      'SET_PASSWORD_TOKEN_EXPIRES_IN',
+    );
+    const expiresAt = new Date(Date.now() + ms(setPasswordTokenExpiresIn));
+
+    // * Store the hash Token in DB
+    const actionToken = await this.prisma.memberActionToken.create({
+      data: {
+        member: { connect: { id: member.id } },
+        tokenHash: tokenHash,
+        actionTokenType: ActionTokenType.SET_PASSWORD,
+        expiresAt: expiresAt,
+      },
+    });
+
+    try {
+      // * Send email of Password Set to member
+      await this.emailService.sendSetPasswordMemberEmail(
+        member.userName,
+        member.email,
+        rawToken,
+      );
+    } catch {
+      // * Remove action token if email faild to send
+      await this.prisma.memberActionToken.deleteMany({
+        where: { id: actionToken.id },
+      });
+
+      throw new InternalServerErrorException(
+        'We could not send the password reset email. Please try again later or contact your administrator if the problem continues.',
+      );
+    }
+  }
+
+  // * Get all Members
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+    accountStatus?: AccountStatus,
+    membershipStatus?: MembershipStatus,
+    _search?: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * remove spaces
+    const search = _search?.trim();
+
+    const members = await this.prisma.member.findMany({
+      where: {
+        adminId,
+
+        // * Filter by member account status
+        ...(accountStatus !== undefined ? { accountStatus } : {}),
+
+        // * Filter members having a membership with this status
+        ...(membershipStatus !== undefined
+          ? {
+              memberships: {
+                some: {
+                  membershipStatus,
+                },
+              },
+            }
+          : {}),
+
+        // * Search Filter
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    return members;
+  }
+
+  // * Get one Member
+  async findOne(accessTokenPayload: AccessTokenPayload, memberId: string) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const member = await this.prisma.member.findFirst({
+      where: {
+        adminId,
+        id: memberId,
+      },
+      select: {
+        ...privateMemberSelect,
+        memberships: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('Member Not Found!');
+    }
+
+    return member;
+  }
+
+  // * Get All Stats of Memebers (Admin / Staff)
+  async memberStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    // * await Promise.all: runs multiple independent async operations concurrently
+    // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
+    const [statusStats, expiredCount, total] = await Promise.all([
+      // * Count members grouped by account status
+      this.prisma.member.groupBy({
+        by: ['accountStatus'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count members that have at least one expired membership
+      // * and do not have any active membership
+      this.prisma.member.count({
+        where: {
+          adminId,
+          memberships: {
+            some: {
+              membershipStatus: MembershipStatus.EXPIRED,
+            },
+            none: {
+              membershipStatus: MembershipStatus.ACTIVE,
+            },
+          },
+        },
+      }),
+
+      this.prisma.member.count({
+        where: {
+          adminId,
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let pendingCount = 0;
+    let bannedCount = 0;
+
+    for (const stat of statusStats) {
+      if (stat.accountStatus === AccountStatus.ACTIVE) {
+        activeCount = stat._count._all;
+      }
+
+      if (stat.accountStatus === AccountStatus.PENDING) {
+        pendingCount = stat._count._all;
+      }
+
+      if (stat.accountStatus === AccountStatus.BANNED) {
+        bannedCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      pendingCount,
+      bannedCount,
+      expiredCount,
+      total,
+    };
+  }
+
+  // ! Private Attributes
+  // * Check if Admin Has Membership Plan With Duration
+  private async checkIfAdminHasMembershipPlanWithDuration(
+    adminId: string,
+    membershipPlanId: string,
+    durationId: string,
+  ) {
+    // * Check if the admin has this membership plan
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId: adminId,
+        id: membershipPlanId,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException(
+        'There is No Membership Plan, Please Add a Membership Plan',
+      );
+    }
+
+    // * Check if duration is already exist for this membership plan
+    const duration = await this.prisma.membershipPlanDuration.findFirst({
+      where: {
+        id: durationId,
+        membershipPlan: { adminId: adminId },
+        membershipPlanId: membershipPlan.id,
+      },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration does not exist for this plan');
+    }
+
+    return { duration, membershipPlan };
+  }
+}

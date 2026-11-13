@@ -1,0 +1,513 @@
+import { PrismaService } from '@/infrastructure/database/prisma.service';
+import { AddMembershipPlanDto } from './dtos/add-membership-plan.dto';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { AddMembershipPlanDurationDto } from './dtos/add-membership-plan-duration.dto';
+import { MembershipStatus } from '@/generated/prisma/enums';
+import { UpdateMembershipPlanDto } from './dtos/update-membership-plan.dto';
+import { UpdateMembershipPlanDurationDto } from './dtos/update-membership-plan-duration.dto';
+import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { AccessesService } from '@/core/access/access.service';
+
+@Injectable()
+export class MembershipPlansService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessesService: AccessesService,
+  ) {}
+
+  // * Add Membership plan
+  async addMembershipPlan(adminId: string, data: AddMembershipPlanDto) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if membership plan already exist
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+      where: {
+        adminId_planName: {
+          adminId: adminId,
+          planName: data.planName,
+        },
+      },
+    });
+
+    if (membershipPlan) {
+      throw new ConflictException('Membership Plan already exists');
+    }
+
+    // * Add membership plan to database
+    return await this.prisma.membershipPlan.create({
+      data: {
+        admin: { connect: { id: adminId } },
+        planName: data.planName,
+        description: data.description,
+        weeklyVisitLimit: data.weeklyVisitLimit,
+      },
+    });
+  }
+
+  // * Add Membership Duration
+  async addMembershipPlanDuration(
+    adminId: string,
+    data: AddMembershipPlanDurationDto,
+  ) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if membership plan exist
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
+      where: {
+        id: data.membershipPlanId,
+        adminId: adminId,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Not Found');
+    }
+
+    // * Check if plan duration already exist
+    const existingMembershipPlanDuration =
+      await this.prisma.membershipPlanDuration.findUnique({
+        where: {
+          membershipPlanId_durationDays_price: {
+            membershipPlanId: data.membershipPlanId,
+            durationDays: data.durationDays,
+            price: data.price,
+          },
+        },
+      });
+    if (existingMembershipPlanDuration) {
+      throw new ConflictException('Membership Plan Duration already exists');
+    }
+
+    // * Add plan duration to database
+    return await this.prisma.membershipPlanDuration.create({
+      data: {
+        durationDays: data.durationDays,
+        price: data.price,
+        membershipPlan: { connect: { id: data.membershipPlanId } },
+        priceByG: data.priceByG,
+      },
+    });
+  }
+
+  // * Update Membership Plan
+  async update(adminId: string, id: string, data: UpdateMembershipPlanDto) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if this membership plan already exist
+    const membershipPlan = await this.findOneById(adminId, id);
+
+    // * Check data if already exist in DB
+    if (data.planName !== undefined) {
+      const existingData = await this.prisma.membershipPlan.findFirst({
+        where: {
+          id: {
+            not: id,
+          },
+          adminId: adminId,
+          planName: data.planName,
+        },
+      });
+      if (existingData) {
+        // * 409 = duplicate data
+        throw new ConflictException('Membership Plan Name already exists');
+      }
+    }
+
+    // * Check if status of membership plan will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any member use this membership plan before desactive it
+        const NumMembers = await this.prisma.membership.count({
+          where: {
+            adminId: adminId,
+            membershipPlanId: membershipPlan.id,
+            membershipStatus: MembershipStatus.ACTIVE,
+          },
+        });
+        if (NumMembers > 0) {
+          throw new BadRequestException(
+            `The Are ${NumMembers} Member Use This Membership Plan`,
+          );
+        }
+      }
+    }
+
+    // * Update data
+    return await this.prisma.membershipPlan.update({
+      where: {
+        id: id,
+        adminId: adminId,
+      },
+      data,
+    });
+  }
+
+  // * Update a Membership Plan Duration
+  async updateMembershipPlanDuration(
+    adminId: string,
+    id: string,
+    data: UpdateMembershipPlanDurationDto,
+  ) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check the membership plan if already exist
+    const membershipPlan = await this.findOneById(
+      adminId,
+      data.membershipPlanId,
+    );
+
+    // * Check duration if already exist in this membership plan
+    const duration = await this.prisma.membershipPlanDuration.findFirst({
+      where: { id: id, membershipPlanId: membershipPlan.id },
+    });
+    if (!duration) {
+      throw new NotFoundException('Duration Membership Plan Not Found!');
+    }
+
+    // * Check if status of membership plan duration will be updated
+    if (data.isActive !== undefined) {
+      if (!data.isActive) {
+        // * Check if any member use this membership plan before desactive it
+        const NumMembers = await this.prisma.membership.count({
+          where: {
+            adminId: adminId,
+            membershipPlanId: membershipPlan.id,
+            membershipPlanDurationId: duration.id,
+            membershipStatus: MembershipStatus.ACTIVE,
+          },
+        });
+        if (NumMembers > 0) {
+          throw new BadRequestException(
+            `The Are ${NumMembers} Member Use This Membership Plan`,
+          );
+        }
+      }
+    }
+
+    // * check if Duration is Duplicate in Plan
+    if (data.durationDays !== undefined && data.price !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findUnique({
+          where: {
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: data.durationDays,
+              price: data.price,
+            },
+          },
+        });
+
+      if (
+        existingMembershipPlanDuration &&
+        existingMembershipPlanDuration.id !== id
+      ) {
+        throw new ConflictException('Membership Plan Duration is Duplicate');
+      }
+    } else if (data.price !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findUnique({
+          where: {
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: duration.durationDays,
+              price: data.price,
+            },
+          },
+        });
+
+      if (existingMembershipPlanDuration) {
+        throw new ConflictException('Membership Plan Duration is Duplicate');
+      }
+    } else if (data.durationDays !== undefined) {
+      const existingMembershipPlanDuration =
+        await this.prisma.membershipPlanDuration.findUnique({
+          where: {
+            membershipPlanId_durationDays_price: {
+              membershipPlanId: data.membershipPlanId,
+              durationDays: data.durationDays,
+              price: duration.price,
+            },
+          },
+        });
+
+      if (existingMembershipPlanDuration) {
+        throw new ConflictException('Membership Plan Duration is Duplicate');
+      }
+    }
+
+    // * Update data
+    return await this.prisma.membershipPlanDuration.update({
+      where: {
+        id: id,
+      },
+      data,
+    });
+  }
+
+  // * Delete a Membership Plan Duration
+  async removeMembershipPlanDuration(adminId: string, id: string) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if membership duration is belong to this admin
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
+      where: {
+        id,
+        membershipPlan: { adminId },
+      },
+    });
+
+    if (!duration) {
+      throw new NotFoundException('Duration Membership Plan Not Found!');
+    }
+
+    // * Check if any member use this membership plan before delete it
+    const NumMembers = await this.prisma.membership.count({
+      where: {
+        adminId: adminId,
+        membershipPlanDurationId: id,
+      },
+    });
+
+    if (NumMembers > 0) {
+      throw new BadRequestException(
+        `The Are ${NumMembers} Member Use This Membership Plan`,
+      );
+    }
+
+    // * Delete duration
+    await this.prisma.membershipPlanDuration.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  // * Delete a Membership Plan
+  async removeMembershipPlan(adminId: string, id: string) {
+    // * Check if admin has subscription
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check if this membership plan already exist
+    await this.findOneById(adminId, id);
+
+    // * Check if any member use this membership plan before delete it
+    const NumMembers = await this.prisma.membership.count({
+      where: {
+        adminId: adminId,
+        membershipPlanId: id,
+      },
+    });
+
+    if (NumMembers > 0) {
+      throw new BadRequestException(
+        `The Are ${NumMembers} Member Use This Membership Plan`,
+      );
+    }
+
+    // Delete the memership plan's durations, then the memership plan.
+    // If either operation fails, both are rolled back.
+    await this.prisma.$transaction([
+      this.prisma.membershipPlanDuration.deleteMany({
+        where: {
+          membershipPlanId: id,
+        },
+      }),
+
+      this.prisma.membershipPlan.delete({
+        where: {
+          id,
+        },
+      }),
+    ]);
+  }
+
+  // * Get all membership Plans
+  async findAll(
+    accessTokenPayload: AccessTokenPayload,
+    page: number,
+    limit: number,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const membershipPlan = await this.prisma.membershipPlan.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+
+    return membershipPlan;
+  }
+
+  // * Get one membership Plan
+  async findOne(
+    accessTokenPayload: AccessTokenPayload,
+    membershipPlanId: string,
+  ) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Plan Not Found!');
+    }
+
+    return membershipPlan;
+  }
+
+  // * Get All Stats of Membership Plans (Admin)
+  async membershipPlanStats(accessTokenPayload: AccessTokenPayload) {
+    // * Check Authorize Admin or Staff Access
+    const { adminId } =
+      await this.accessesService.authorizeAdminOrStaffAccess(
+        accessTokenPayload,
+      );
+
+    const [membershipPlanStats, durationCount] = await Promise.all([
+      // * Count membership plans grouped by active status
+      this.prisma.membershipPlan.groupBy({
+        by: ['isActive'],
+        where: {
+          adminId,
+        },
+        _count: {
+          _all: true,
+        },
+      }),
+
+      // * Count all durations belonging to the admin's membership plans
+      this.prisma.membershipPlanDuration.count({
+        where: {
+          membershipPlan: {
+            adminId,
+          },
+        },
+      }),
+    ]);
+
+    let activeCount = 0;
+    let inactiveCount = 0;
+
+    for (const stat of membershipPlanStats) {
+      if (stat.isActive) {
+        activeCount = stat._count._all;
+      } else {
+        inactiveCount = stat._count._all;
+      }
+    }
+
+    return {
+      activeCount,
+      inactiveCount,
+      total: activeCount + inactiveCount,
+      durationCount,
+    };
+  }
+
+  // * Get all membership Plans (Member)
+  async findAllByMember(memberId: string, page: number, limit: number) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipPlan = await this.prisma.membershipPlan.findMany({
+      where: {
+        adminId,
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+
+    return membershipPlan;
+  }
+
+  // * Get one membership Plan (Member)
+  async findOneByMember(memberId: string, membershipPlanId: string) {
+    // * Get Admin Id from member
+    const adminId =
+      await this.accessesService.resolveAdminIdFromMemberId(memberId);
+
+    // * Check that the admin account, subscription, and plan are active.
+    await this.accessesService.validateAdminAccountAndSubscription(adminId);
+
+    // * Check that the member account and membership are active.
+    await this.accessesService.validateMemberAccountAndMembership(
+      memberId,
+      adminId,
+    );
+
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Plan Not Found!');
+    }
+
+    return membershipPlan;
+  }
+
+  // ! Private
+  // * Get one membership Plan
+  private async findOneById(adminId: string, membershipPlanId: string) {
+    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+      where: {
+        adminId,
+        id: membershipPlanId,
+      },
+      include: {
+        membershipPlanDurations: true,
+      },
+    });
+    if (!membershipPlan) {
+      throw new NotFoundException('Membership Plan Not Found!');
+    }
+
+    return membershipPlan;
+  }
+}

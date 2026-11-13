@@ -1,0 +1,42 @@
+name: ft_transcendence
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_container
+    restart: always
+    environment:
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: "ft_transcendence"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_container
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
+      PGADMIN_DEFAULT_PASSWORD: "1234"
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+
+  redis:
+    image: redis:latest
+    container_name: redis_container
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mohamed-dahani/Desktop/projects/volumes/postgres_db

@@ -1,19 +1,31 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-import { ThemeProvider } from "@/components/theme/theme-provider";
-import { saasName } from "@/utils/constants";
+import ToastProvider from "@/components/providers/ToastProvider";
+import I18nProvider from "@/components/providers/I18nProvider";
 
-const outfit = Outfit({
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
-  variable: "--font-sans",
+  weight: ["400", "600", "700"],
+  display: "swap",
+});
+
+const sora = Sora({
+  variable: "--font-sora",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: `${saasName} — Sports Club & Gym Management Platform`,
-  description:
-    "Multi-tenant management platform for fitness clubs, martial arts dojos, swimming clubs, yoga studios, and running organizations.",
+  title: "Sportium",
+  description: "The complete platform to run your sports club.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -25,16 +37,49 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("h-full", "antialiased", outfit.variable, "font-sans")}
+      data-scroll-behavior="smooth"
+      className={`${plusJakartaSans.variable} ${sora.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={true}
-        >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var noop = function() {};
+                  window.console.error = noop;
+                  window.console.warn = noop;
+                  window.addEventListener('unhandledrejection', function(e) {
+                    e.preventDefault();
+                  });
+                  window.addEventListener('error', function(e) {
+                    e.preventDefault();
+                  });
+                  var saved = localStorage.getItem('theme');
+                  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+                  var isDark = saved === 'dark' || (!saved && prefersDark);
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.setAttribute('data-theme', 'light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+        <I18nProvider>
           {children}
-        </ThemeProvider>
+        </I18nProvider>
+        <ToastProvider />
       </body>
     </html>
   );

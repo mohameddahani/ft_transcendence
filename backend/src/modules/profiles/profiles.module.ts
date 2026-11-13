@@ -1,0 +1,26 @@
+import { Module } from '@nestjs/common';
+import { AdminProfilesController } from './admin-profiles.controller';
+import { ProfilesService } from './profiles.service';
+import { OwnerProfilesController } from './owner-profiles.controller';
+import { MemberProfilesController } from './member-profiles.controller';
+import { CloudinaryModule } from '@/infrastructure/cloudinary/cloudinary.module';
+import { StaffProfilesController } from './staff-profiles.controller';
+import { EmailModule } from '@/infrastructure/email/email.module';
+import { AccessesModule } from '@/core/access/access.module';
+
+@Module({
+  controllers: [
+    AdminProfilesController,
+    OwnerProfilesController,
+    MemberProfilesController,
+    StaffProfilesController,
+  ],
+  providers: [ProfilesService],
+  imports: [
+    CloudinaryModule, // * Import to upload files to Cloudinary
+    EmailModule,
+    AccessesModule,
+  ],
+  exports: [],
+})
+export class ProfilesModule {}

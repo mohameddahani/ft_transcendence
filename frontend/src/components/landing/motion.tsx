@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { motion, MotionConfig, type Variants } from "motion/react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/components/landing/cn";
 
 /** Shared easing: quick start, soft landing, no bounce. */
 export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
