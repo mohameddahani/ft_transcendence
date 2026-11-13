@@ -8,7 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { SubscriptionsService } from './subscriptions.service';
 import { AdminAccessTokenAuthGuard } from '@/modules/auth/guards/admin-access-token-auth.guard';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -23,7 +23,7 @@ export class AdminSubscriptionsController {
 
   // * Get Subscription of Admin
   @Get('me')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findMySubscription(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -32,7 +32,7 @@ export class AdminSubscriptionsController {
 
   // * Get All Subscriptions of Admin
   @Get('all')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllSubscriptions(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,

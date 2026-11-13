@@ -26,7 +26,7 @@ export class AdminAttendancesController {
 
   // * Check in a member manually
   @Post('check-in/manual')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   checkInManually(
     @Body() body: AttendanceManualCheckInDto,
@@ -37,7 +37,7 @@ export class AdminAttendancesController {
 
   // * Check in a member using QR code
   @Post('check-in/qr')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   checkInWithQr(
     @Body() body: AttendanceQrCheckInDto,

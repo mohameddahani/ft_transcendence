@@ -28,7 +28,7 @@ export class StaffFeedbacksController {
 
   // * Get all Feedbacks (Staff)
   @Get()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   findAllFeedbacks(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -51,7 +51,7 @@ export class StaffFeedbacksController {
 
   // * Get One Feedback (Staff)
   @Get(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findOneFeedback(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -61,7 +61,7 @@ export class StaffFeedbacksController {
 
   // * Change Feedback Status (Staff)
   @Patch(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   changeFeedbackStatus(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

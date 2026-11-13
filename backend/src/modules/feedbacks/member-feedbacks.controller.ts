@@ -44,7 +44,7 @@ export class MemberFeedbacksController {
 
   // * Get all Feedbacks (Member)
   @Get()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAllFeedbacksByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -67,7 +67,7 @@ export class MemberFeedbacksController {
 
   // * Get One Feedback (Member)
   @Get(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findOneFeedbackByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -80,7 +80,7 @@ export class MemberFeedbacksController {
 
   // * Like a Feedback (Member)
   @Post('like')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   createLikeByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: CreateFeedbackLikeDto,
@@ -93,7 +93,7 @@ export class MemberFeedbacksController {
 
   // * Remove Like a Feedback (Member)
   @Post('remove-like')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   removeLikeByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: RemoveFeedbackLikeDto,

@@ -6,6 +6,7 @@ import { DashboardsService } from './dashboards.service';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('staffs/dashboard')
 // * Make Authorazation Golbal on this route
@@ -16,6 +17,7 @@ export class StaffDashboardController {
 
   // * Get All Stats of Dashboard (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   dashboardStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

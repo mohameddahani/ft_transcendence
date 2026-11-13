@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { NotificationsService } from './notifications.service';
@@ -34,7 +34,7 @@ export class AdminNotificationsController {
 
   // * Get One Notification
   @Get(':id')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findOneNotificationAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -47,7 +47,7 @@ export class AdminNotificationsController {
 
   // * Get All Notifications
   @Get()
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllNotificationsAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -62,6 +62,7 @@ export class AdminNotificationsController {
 
   // * Make All Notifications as Read (Admin)
   @Patch()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   makeAllNotificationsReadAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -72,6 +73,7 @@ export class AdminNotificationsController {
 
   // * Make Notification as Read (Admin)
   @Patch(':id')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   makeNotificationReadAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

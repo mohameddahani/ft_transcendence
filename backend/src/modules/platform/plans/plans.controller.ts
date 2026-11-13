@@ -28,7 +28,7 @@ export class PlansController {
 
   // * Add Plan
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.OWNER])
   addPlan(@Body() body: AddPlanDto) {
@@ -37,7 +37,7 @@ export class PlansController {
 
   // * Add Plan Duration
   @Post('durations')
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.OWNER])
   addPlanDuration(@Body() body: AddPlanDurationDto) {
@@ -95,6 +95,7 @@ export class PlansController {
 
   // * Get All Stats of plans (public)
   @Get('stats')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   planStats() {
     return this.plansService.planStats();
   }

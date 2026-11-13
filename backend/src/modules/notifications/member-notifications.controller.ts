@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { NotificationsService } from './notifications.service';
@@ -36,7 +36,7 @@ export class MemberNotificationsController {
 
   // * Get One Notification
   @Get(':id')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findOneNotificationMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -49,7 +49,7 @@ export class MemberNotificationsController {
 
   // * Get All Notifications
   @Get()
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllNotificationsMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -64,6 +64,7 @@ export class MemberNotificationsController {
 
   // * Make All Notification as Read (Member)
   @Patch()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   makeAllNotificationsReadMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -74,6 +75,7 @@ export class MemberNotificationsController {
 
   // * Make Notification as Read (Member)
   @Patch(':id')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   makeNotificationReadMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

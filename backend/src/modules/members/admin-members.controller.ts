@@ -86,7 +86,7 @@ export class AdminMembersController {
 
   // * Get all Members
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,

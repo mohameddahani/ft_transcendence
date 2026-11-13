@@ -35,7 +35,7 @@ export class AdminMembershipPlansController {
 
   // * Add Membership plan
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   addMembershipPlan(
     @Body() body: AddMembershipPlanDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -48,7 +48,7 @@ export class AdminMembershipPlansController {
 
   // * Add Membership Duration
   @Post('durations')
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   addMembershipPlanDuration(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: AddMembershipPlanDurationDto,

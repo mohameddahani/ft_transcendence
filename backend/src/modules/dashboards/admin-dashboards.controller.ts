@@ -6,6 +6,7 @@ import { Role } from '@/generated/prisma/enums';
 import { DashboardsService } from './dashboards.service';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('admins/dashboard')
 // * Make Authorazation Golbal on this route
@@ -16,6 +17,7 @@ export class AdminDashboardController {
 
   // * Get All Stats of Dashboard (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   dashboardStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

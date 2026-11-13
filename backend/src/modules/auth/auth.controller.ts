@@ -61,7 +61,7 @@ export class AuthController {
   // * Login
   @Post('login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async login(
     @Body() body: LoginUserDto,
     @Req() request: Request,
@@ -86,7 +86,7 @@ export class AuthController {
   // * Logout (Admin)
   @Post('admins/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(
     AdminAccessTokenAuthGuard,
     AdminRefreshTokenAuthGuard,
@@ -111,7 +111,7 @@ export class AuthController {
   // * Logout (Owner)
   @Post('owners/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(
     OwnerAccessTokenAuthGuard,
     OwnerRefreshTokenAuthGuard,
@@ -135,7 +135,7 @@ export class AuthController {
 
   // * Activate user account
   @Post('email-verification')
-  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 900_000 } })
   @HttpCode(HttpStatus.OK)
   activateAccount(@Query() rawToken: QueryTokenDto) {
     return this.authService.activateAccount(rawToken.token);
@@ -144,14 +144,14 @@ export class AuthController {
   // * Forgot password
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  @Throttle({ default: { limit: 3, ttl: 3_600_000 } }) // * Set Rate Limiting (3 req / 1h)
   forgotPassword(@Body() Body: ForgotPasswordUserDto) {
     return this.authService.forgotPassword(Body.email);
   }
 
   // * Password reset
   @Post('reset-password')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @HttpCode(HttpStatus.OK)
   resetPassword(
     @Query() rawToken: QueryTokenDto,
@@ -162,7 +162,7 @@ export class AuthController {
 
   // * Email Change
   @Post('email-change')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   emailChange(@Query() rawToken: QueryTokenDto) {
     return this.authService.emailChange(rawToken.token);
   }
@@ -176,7 +176,7 @@ export class AuthController {
   // * Refresh Admin
   @Post('admins/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @UseGuards(AdminRefreshTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.ADMIN])
   async refreshAdmin(
@@ -208,7 +208,7 @@ export class AuthController {
   // * Refresh Owner
   @Post('owners/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @UseGuards(OwnerRefreshTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.OWNER])
   async refreshOwner(
@@ -240,7 +240,7 @@ export class AuthController {
   // * Refresh Staff
   @Post('staffs/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @UseGuards(StaffRefreshTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.STAFF])
   async refreshStaff(
@@ -309,7 +309,7 @@ export class AuthController {
   // * Login Staff
   @Post('staffs/login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async loginStaff(
     @Body() body: LoginStaffDto,
     @Req() request: Request,
@@ -334,7 +334,7 @@ export class AuthController {
   // * Logout (Staff)
   @Post('staffs/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(
     StaffAccessTokenAuthGuard,
     StaffRefreshTokenAuthGuard,
@@ -358,7 +358,7 @@ export class AuthController {
 
   // * Set Password (Staff)
   @Post('staffs/set-password')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   setPasswordStaff(
     @Query() rawToken: QueryTokenDto,
@@ -377,7 +377,7 @@ export class AuthController {
 
   // * Password reset (Staff)
   @Post('staffs/reset-password')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   resetPasswordStaff(
     @Query() rawToken: QueryTokenDto,
     @Body() body: ResetPasswordStaffDto,
@@ -387,7 +387,7 @@ export class AuthController {
 
   // * Email Change (Staff)
   @Post('staffs/email-change')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   emailChangeStaff(@Query() rawToken: QueryTokenDto) {
     return this.authService.emailChangeStaff(rawToken.token);
   }
@@ -400,7 +400,7 @@ export class AuthController {
   // * Login Member
   @Post('members/login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async loginMember(
     @Body() body: LoginMemberDto,
     @Req() request: Request,
@@ -425,7 +425,7 @@ export class AuthController {
   // * Logout (Member)
   @Post('members/logout')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(
     MemberAccessTokenAuthGuard,
     MemberRefreshTokenAuthGuard,
@@ -449,7 +449,7 @@ export class AuthController {
 
   // * Set Password (Member)
   @Post('members/set-password')
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   setPasswordMember(
     @Query() rawToken: QueryTokenDto,
@@ -468,7 +468,7 @@ export class AuthController {
 
   // * Password reset (Member)
   @Post('members/reset-password')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   resetPasswordMember(
     @Query() rawToken: QueryTokenDto,
     @Body() body: ResetPasswordMemberDto,
@@ -478,7 +478,7 @@ export class AuthController {
 
   // * Email Change (Member)
   @Post('members/email-change')
-  @Throttle({ default: { limit: 5, ttl: 3600_000 } })
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
   emailChangeMember(@Query() rawToken: QueryTokenDto) {
     return this.authService.emailChangeMember(rawToken.token);
   }

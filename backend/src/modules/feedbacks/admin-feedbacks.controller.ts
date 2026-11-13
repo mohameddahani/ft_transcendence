@@ -28,7 +28,7 @@ export class AdminFeedbacksController {
 
   // * Get all Feedbacks (Admin)
   @Get()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAllFeedbacks(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -51,7 +51,7 @@ export class AdminFeedbacksController {
 
   // * Get One Feedback (Admin)
   @Get(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findOneFeedback(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -61,7 +61,7 @@ export class AdminFeedbacksController {
 
   // * Change Feedback Status (Admin)
   @Patch(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   changeFeedbackStatus(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

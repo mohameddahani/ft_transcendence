@@ -48,21 +48,21 @@ export class OwnersController {
   // ! Change Status Account
   // * Active a User
   @Patch('users/active/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   ActiveUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.ActiveUser(id);
   }
 
   // * Pending a User
   @Patch('users/pending/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   pendingUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.pendingUser(id);
   }
 
   // * Ban a User
   @Patch('users/ban/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   banUser(@Param('id', ParseUUIDPipe) id: string) {
     return this.ownersService.banUser(id);
   }

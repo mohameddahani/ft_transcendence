@@ -6,7 +6,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
@@ -23,7 +23,7 @@ export class MemberMembershipsController {
 
   // * Get Membership of Member
   @Get('me')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findMyMembership(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -32,7 +32,7 @@ export class MemberMembershipsController {
 
   // * Get All Membership of Member
   @Get('all')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllMemberships(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,

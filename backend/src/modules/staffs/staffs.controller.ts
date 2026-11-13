@@ -51,7 +51,7 @@ export class StaffsController {
 
   // * Get All Staffs
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -85,7 +85,7 @@ export class StaffsController {
   // ! Change Status Staff
   // * Active a Staff
   @Patch('active/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   ActiveStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -95,7 +95,7 @@ export class StaffsController {
 
   // * Pending a Staff
   @Patch('pending/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   pendingStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -105,7 +105,7 @@ export class StaffsController {
 
   // * Ban a Staff
   @Patch('ban/:id')
-  @Throttle({ default: { limit: 100, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   banStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

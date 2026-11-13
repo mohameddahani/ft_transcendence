@@ -25,7 +25,7 @@ export class AdminVisitsController {
 
   // * Get all visits of Today (Admin)
   @Get('today')
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,

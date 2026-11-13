@@ -27,7 +27,7 @@ export class MemberAttendancesController {
 
   // * Get All Attendances (Member)
   @Get()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAllAttendanceByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -48,6 +48,7 @@ export class MemberAttendancesController {
 
   // * Get All Stats of Attendances (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   attendanceStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -58,7 +59,7 @@ export class MemberAttendancesController {
 
   // * Get One Attendances (Member)
   @Get(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findOneAttendanceByMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
