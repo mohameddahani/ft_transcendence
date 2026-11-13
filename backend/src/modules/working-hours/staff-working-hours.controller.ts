@@ -41,6 +41,7 @@ export class StaffWorkingHoursController {
 
   // * Get All Stats of Working Hours (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   workingHourStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

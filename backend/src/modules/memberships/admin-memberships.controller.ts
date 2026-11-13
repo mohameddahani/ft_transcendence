@@ -36,6 +36,7 @@ export class AdminMembershipsController {
 
   // * Get All Stats of Memebership (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

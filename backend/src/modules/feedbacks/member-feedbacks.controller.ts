@@ -59,6 +59,7 @@ export class MemberFeedbacksController {
 
   // * Get All Stats of Feedbacks (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   feedbackStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

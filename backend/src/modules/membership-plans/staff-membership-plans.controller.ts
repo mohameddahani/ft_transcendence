@@ -38,6 +38,7 @@ export class StaffMembershipPlansController {
 
   // * Get All Stats of Memebership plan (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipPlanStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

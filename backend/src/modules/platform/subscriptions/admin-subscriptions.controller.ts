@@ -47,6 +47,7 @@ export class AdminSubscriptionsController {
 
   // * Get All Stats of subscriptions (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   subscriptionStatsOfAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

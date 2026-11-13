@@ -74,6 +74,7 @@ export class AdminWorkingHoursController {
 
   // * Get All Stats of Working Hours (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   workingHourStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

@@ -26,6 +26,7 @@ export class AdminNotificationsController {
 
   // * Get All Stats of Notification (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   notificationStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

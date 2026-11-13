@@ -17,7 +17,7 @@ export class AdminDashboardController {
 
   // * Get All Stats of Dashboard (Admin)
   @Get('stats')
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   dashboardStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

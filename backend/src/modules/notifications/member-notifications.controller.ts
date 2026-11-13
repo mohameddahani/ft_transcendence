@@ -26,6 +26,7 @@ export class MemberNotificationsController {
 
   // * Get All Stats of Notification (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   notificationStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -75,7 +76,7 @@ export class MemberNotificationsController {
 
   // * Make Notification as Read (Member)
   @Patch(':id')
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   makeNotificationReadMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

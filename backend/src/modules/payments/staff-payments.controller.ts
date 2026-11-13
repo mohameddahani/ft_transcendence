@@ -42,6 +42,7 @@ export class StaffPaymentsController {
 
   // * Get All Stats of payments (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   paymentStatsOfStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

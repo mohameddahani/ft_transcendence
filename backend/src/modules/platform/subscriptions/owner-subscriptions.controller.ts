@@ -53,6 +53,7 @@ export class OwnerSubscriptionsController {
 
   // * Get All Stats of subscriptions (Owner)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   subscriptionStatsOfOwner() {
     return this.subscriptionsService.subscriptionStatsOfOwner();
   }

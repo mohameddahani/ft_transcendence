@@ -43,6 +43,7 @@ export class StaffFeedbacksController {
 
   // * Get All Stats of Feedbacks (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   feedbackStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

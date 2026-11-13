@@ -115,6 +115,7 @@ export class StaffMembersController {
 
   // * Get All Stats of Memebers (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.membersService.memberStats(accessTokenPayload);
   }

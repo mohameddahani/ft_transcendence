@@ -124,6 +124,7 @@ export class AdminMembershipPlansController {
 
   // * Get All Stats of Memebership plan (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipPlanStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

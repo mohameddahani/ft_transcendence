@@ -61,7 +61,7 @@ export class AuthController {
   // * Login
   @Post('login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   async login(
     @Body() body: LoginUserDto,
     @Req() request: Request,
@@ -144,7 +144,7 @@ export class AuthController {
   // * Forgot password
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3_600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } }) // * Set Rate Limiting (3 req / 1h)
   forgotPassword(@Body() Body: ForgotPasswordUserDto) {
     return this.authService.forgotPassword(Body.email);
   }
@@ -272,7 +272,7 @@ export class AuthController {
   // * Refresh Member
   @Post('members/refresh')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @UseGuards(MemberRefreshTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.MEMBER])
   async refreshMember(
@@ -309,7 +309,7 @@ export class AuthController {
   // * Login Staff
   @Post('staffs/login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   async loginStaff(
     @Body() body: LoginStaffDto,
     @Req() request: Request,
@@ -370,7 +370,7 @@ export class AuthController {
   // * Forgot password (Staff)
   @Post('staffs/forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } }) // * Set Rate Limiting (3 req / 1h)
   forgotPasswordStaff(@Body() body: ForgotPasswordStaffDto) {
     return this.authService.forgotPasswordStaff(body.userName);
   }
@@ -400,7 +400,7 @@ export class AuthController {
   // * Login Member
   @Post('members/login')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   async loginMember(
     @Body() body: LoginMemberDto,
     @Req() request: Request,
@@ -461,7 +461,7 @@ export class AuthController {
   // * Forgot password (Member)
   @Post('members/forgot-password')
   @HttpCode(HttpStatus.OK) // * set default status code
-  @Throttle({ default: { limit: 3, ttl: 3600_000 } }) // * Set Rate Limiting (3 req / 1h)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } }) // * Set Rate Limiting (3 req / 1h)
   forgotPasswordMember(@Body() body: ForgotPasswordMemberDto) {
     return this.authService.forgotPasswordMember(body.userName);
   }

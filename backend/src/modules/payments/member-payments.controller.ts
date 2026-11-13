@@ -40,6 +40,7 @@ export class MemberPaymentsController {
 
   // * Get All Stats of payments (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   paymentStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
