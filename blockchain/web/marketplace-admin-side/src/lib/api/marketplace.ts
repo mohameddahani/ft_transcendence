@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "react-toastify";
 import type { SignedForwardRequest } from "@/types/marketplace";
 
 type RelayerResponse = {
@@ -40,12 +41,10 @@ export const update_addressAdmin_forMember = async (address: string) => {
       { walletAddress: address }
     );
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.log("Status:", error.response?.status);
-      console.log("Server error:", error.response?.data);
-      console.log("Message:", error.message);
-    } else {
-      console.log("Unexpected error:", error);
-    }
+    const errorMsg =
+      axios.isAxiosError(error) && error.response?.data?.message
+        ? error.response.data.message
+        : "Failed to update admin wallet address";
+    toast.error(errorMsg);
   }
 };

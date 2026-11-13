@@ -63,15 +63,24 @@ export default function MemberDashboardView() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [m, uv, tv, att, wh] = await Promise.all([
-        fetchMyActiveMembership().catch(() => null),
+      const m = await fetchMyActiveMembership().catch(() => null);
+      setMembership(m);
+
+      if (!m) {
+        setUpcomingVisits([]);
+        setTodayVisits([]);
+        setAttendances([]);
+        setWorkingHours([]);
+        return;
+      }
+
+      const [uv, tv, att, wh] = await Promise.all([
         fetchUpcomingVisits(1, 10).catch(() => []),
         fetchTodayVisits(1, 10).catch(() => []),
         fetchMemberAttendances(1, 10).catch(() => []),
         fetchMemberWorkingHours(1, 10).catch(() => []),
       ]);
 
-      setMembership(m);
       setUpcomingVisits(uv);
       setTodayVisits(tv);
       setAttendances(att);

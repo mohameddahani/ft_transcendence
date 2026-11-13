@@ -345,3 +345,48 @@ export function createProxyResponse(
   const res = NextResponse.json(backendData, { status: backendStatus });
   return attachSessionCookies(res, sessionOrToken, explicitRefreshToken);
 }
+
+/**
+ * Checks if a backend response represents an expected empty or inactive subscription/membership state.
+ * Status 404 is considered empty.
+ * Status 403 due to missing/inactive admin subscription or member membership is also considered empty for read/list operations.
+ */
+export function isGracefulEmpty(status: number, data?: unknown): boolean {
+  if (status === 404) return true;
+  if (status === 403 && typeof data === "object" && data !== null) {
+    const d = data as { message?: unknown; detail?: unknown; error?: unknown };
+    const raw = d.message || d.detail || d.error;
+    const msg = Array.isArray(raw)
+      ? raw.join(" ").toLowerCase()
+      : typeof raw === "string"
+      ? raw.toLowerCase()
+      : "";
+    if (
+      msg.includes("active admin subscription") ||
+      msg.includes("active membership") ||
+      msg.includes("subscription plan is inactive")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Creates a graceful 200 OK response with fallback data (e.g. [] or null)
+ * when the backend returns 404 (Not Found) or 403 (No active subscription/membership).
+ * For any other status, falls back to createProxyResponse.
+ */
+export function createGracefulProxyResponse(
+  backendData: unknown,
+  backendStatus: number,
+  fallbackData: unknown = [],
+  sessionOrToken?: string | AuthenticatedSession,
+  explicitRefreshToken?: string
+): NextResponse {
+  if (isGracefulEmpty(backendStatus, backendData)) {
+    const res = NextResponse.json(fallbackData, { status: 200 });
+    return attachSessionCookies(res, sessionOrToken, explicitRefreshToken);
+  }
+  return createProxyResponse(backendData, backendStatus, sessionOrToken, explicitRefreshToken);
+}

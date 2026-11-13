@@ -287,12 +287,11 @@ export class FeedbacksService {
 
     // * await Promise.all: runs multiple independent async operations concurrently
     // * and waits until all of them are fulfilled. If one fails, Promise.all rejects.
-    const [statusStats, sentimentStats, summary] = await Promise.all([
+    const [statusStats, sentimentStats, summary, myCount] = await Promise.all([
       this.prisma.feedback.groupBy({
         by: ['feedbackStatus'],
         where: {
           adminId: adminId,
-          memberId: memberId,
         },
         _count: {
           _all: true,
@@ -303,7 +302,6 @@ export class FeedbacksService {
         by: ['sentimentType'],
         where: {
           adminId: adminId,
-          memberId: memberId,
         },
         _count: {
           _all: true,
@@ -314,13 +312,20 @@ export class FeedbacksService {
       this.prisma.feedback.aggregate({
         where: {
           adminId: adminId,
-          memberId: memberId,
         },
         _avg: {
           rating: true,
         },
         _count: {
           _all: true,
+        },
+      }),
+
+      // * Count this member's own feedbacks
+      this.prisma.feedback.count({
+        where: {
+          adminId: adminId,
+          memberId: memberId,
         },
       }),
     ]);
@@ -375,6 +380,7 @@ export class FeedbacksService {
       positiveCount,
       total: summary._count._all,
       averageRating: summary._avg.rating,
+      myCount,
     };
   }
 

@@ -127,8 +127,8 @@ export function useMemberMarketplace() {
             totalPrice: p.totalPrice,
           })),
         );
-      } catch (err) {
-        console.error("Failed to load purchases", err);
+      } catch {
+        toast.error("Failed to load purchase history");
       }
       update_walletAddress_member(account);
     } catch (error) {
@@ -158,8 +158,8 @@ export function useMemberMarketplace() {
           method: "eth_chainId",
         })) as string;
         setChainId(Number.parseInt(currentChain, 16));
-      } catch (err) {
-        console.error("Init web3 error:", err);
+      } catch {
+        // Web3 provider not connected or locked
       }
     };
     void initialize();
@@ -223,13 +223,11 @@ export function useMemberMarketplace() {
         }));
         setPlans(mappedPlans);
       } catch (error) {
-        if (axios.isAxiosError(error)) {
-          console.error("Status:", error.response?.status);
-          console.error("Server error:", error.response?.data);
-          console.error("Message:", error.message);
-        } else {
-          console.error("Unexpected error:", error);
-        }
+        const errorMsg =
+          axios.isAxiosError(error) && error.response?.data?.message
+            ? error.response.data.message
+            : "Failed to load marketplace plans";
+        toast.error(errorMsg);
       }
     }
     fetch_plans();

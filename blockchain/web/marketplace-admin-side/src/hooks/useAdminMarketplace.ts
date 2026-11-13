@@ -227,9 +227,7 @@ export function useAdminMarketplace() {
     setBusy(true);
 
     try {
-      const hash = await fn();
-
-      console.log("Relayed transaction:", hash);
+      await fn();
 
       toast.success(successText);
 

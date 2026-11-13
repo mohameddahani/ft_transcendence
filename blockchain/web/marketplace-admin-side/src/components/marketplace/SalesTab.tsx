@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { TabsContent } from "@/components/ui/tabs";
 import { formatUnits } from "ethers";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 export function SalesTab({
   sales,
@@ -55,6 +57,17 @@ function SalesTable({
   onDeliver: (id: bigint) => Promise<void>;
   busy: boolean;
 }) {
+  const [deliveringId, setDeliveringId] = useState<string | null>(null);
+
+  const handleDeliver = async (id: bigint) => {
+    try {
+      setDeliveringId(id.toString());
+      await onDeliver(id);
+    } finally {
+      setDeliveringId(null);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -119,8 +132,11 @@ function SalesTable({
                         size="sm"
                         variant="default"
                         disabled={busy}
-                        onClick={() => void onDeliver(item.id)}
+                        onClick={() => void handleDeliver(item.id)}
                       >
+                        {deliveringId === item.id.toString() && (
+                          <Loader2 className="mr-1.5 size-3 animate-spin" />
+                        )}
                         Mark delivered
                       </Button>
                     )}
