@@ -12,6 +12,7 @@ import {
   XCircle,
   Clock,
   Edit,
+  Trash2,
   Zap,
 } from "lucide-react";
 import axios from "axios";
@@ -20,6 +21,9 @@ import { useTranslation } from "react-i18next";
 import {
   fetchMembershipPlans,
   updateMembershipPlan,
+  deleteMembershipPlan,
+  deleteMembershipPlanDuration,
+  toggleMembershipPlanDurationActive,
 } from "@/lib/api/membership-plans";
 import {
   MembershipPlan,
@@ -28,11 +32,9 @@ import {
 import CreatePlanModal from "@/components/membership-plans/CreatePlanModal";
 import EditPlanModal from "@/components/membership-plans/EditPlanModal";
 import DurationModal from "@/components/membership-plans/DurationModal";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-} from "@/components/ui/card";
+import DeletePlanModal from "@/components/membership-plans/DeletePlanModal";
+import DeleteDurationModal from "@/components/membership-plans/DeleteDurationModal";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -49,8 +51,18 @@ export default function MembershipPlansPage() {
   const [durationPlan, setDurationPlan] = useState<MembershipPlan | null>(null);
   const [editingDuration, setEditingDuration] = useState<MembershipPlanDuration | null>(null);
 
-  // Status toggle tracker by plan ID
+  // Delete state
+  const [planToDelete, setPlanToDelete] = useState<MembershipPlan | null>(null);
+  const [durationToDelete, setDurationToDelete] = useState<{
+    plan: MembershipPlan;
+    duration: MembershipPlanDuration;
+  } | null>(null);
+  const [isDeletingPlan, setIsDeletingPlan] = useState(false);
+  const [isDeletingDuration, setIsDeletingDuration] = useState(false);
+
+  // Status toggle tracker by plan ID & duration ID
   const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
+  const [togglingDurationId, setTogglingDurationId] = useState<string | null>(null);
 
   const loadPlans = useCallback(async () => {
     setIsLoading(true);
@@ -114,6 +126,109 @@ export default function MembershipPlansPage() {
     }
   };
 
+  // Quick toggle active / inactive directly on duration
+  const handleToggleDurationActive = async (
+    plan: MembershipPlan,
+    dur: MembershipPlanDuration
+  ) => {
+    const newActive = dur.isActive === false; // If currently false -> activate (true), else deactivate (false)
+    setTogglingDurationId(dur.id);
+
+    try {
+      await toggleMembershipPlanDurationActive(dur.id, plan.id, newActive);
+
+      // Optimistically update local state
+      setPlans((prev) =>
+        prev.map((p) => {
+          if (p.id !== plan.id) return p;
+          return {
+            ...p,
+            membershipPlanDurations: (p.membershipPlanDurations || []).map((d) =>
+              d.id === dur.id ? { ...d, isActive: newActive } : d
+            ),
+          };
+        })
+      );
+
+      toast.success(
+        t("durationStatusUpdated", {
+          defaultValue: `${dur.durationDays}-day duration is now ${newActive ? "Active" : "Inactive"}`,
+        })
+      );
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(
+          t("durationStatusUpdateFailed", {
+            defaultValue: "Failed to update duration status",
+          })
+        );
+      }
+      await loadPlans();
+    } finally {
+      setTogglingDurationId(null);
+    }
+  };
+
+  // Delete Plan
+  const handleDeletePlan = async () => {
+    if (!planToDelete) return;
+    setIsDeletingPlan(true);
+
+    try {
+      await deleteMembershipPlan(planToDelete.id);
+      toast.success(
+        t("planDeletedSuccess", {
+          defaultValue: `Plan "${planToDelete.planName}" deleted successfully!`,
+        })
+      );
+      setPlanToDelete(null);
+      await loadPlans();
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(
+          t("planDeleteFailed", {
+            defaultValue: "Failed to delete membership plan",
+          })
+        );
+      }
+    } finally {
+      setIsDeletingPlan(false);
+    }
+  };
+
+  // Delete Duration
+  const handleDeleteDuration = async () => {
+    if (!durationToDelete) return;
+    setIsDeletingDuration(true);
+
+    try {
+      await deleteMembershipPlanDuration(durationToDelete.duration.id);
+      toast.success(
+        t("durationDeletedSuccess", {
+          defaultValue: `${durationToDelete.duration.durationDays}-day duration deleted successfully!`,
+        })
+      );
+      setDurationToDelete(null);
+      await loadPlans();
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(
+          t("durationDeleteFailed", {
+            defaultValue: "Failed to delete plan duration",
+          })
+        );
+      }
+    } finally {
+      setIsDeletingDuration(false);
+    }
+  };
+
   // Filtered plans
   const filteredPlans = useMemo(() => {
     return plans.filter((plan) => {
@@ -148,205 +263,134 @@ export default function MembershipPlansPage() {
     <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Overview & Action Header Card */}
       <Card className="toota-card border-none">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {t("membershipPlans") || "Membership Plans"}
-              </h1>
-              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {totalPlans} {t("total") || "total"}
-              </span>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-center gap-3.5">
+            <div className="size-11 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-ink shrink-0">
+              <Layers className="size-5" />
             </div>
-            <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
-              {t("plansSubtitle") ||
-                "Create and configure subscription tiers, pricing, and access duration limits."}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-toota-ink">
+                  {t("navMembershipPlans") || "Membership Plans"}
+                </h1>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-toota-inner text-toota-muted">
+                  {totalPlans} {totalPlans === 1 ? t("planTier") || "Tier" : t("planTiers") || "Tiers"}
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-0.5">
+                {t("plansSubtitle") ||
+                  "Configure membership tiers, duration options, weekly visit quotas, and pricing."}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={loadPlans}
               disabled={isLoading}
-              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+              className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 text-toota-ink hover:bg-toota-inner cursor-pointer"
             >
-              <RefreshCw
-                className={`size-3.5 me-2 ${isLoading ? "animate-spin text-toota-ink" : ""}`}
-              />
+              <RefreshCw className={`size-3.5 me-2 ${isLoading ? "animate-spin" : ""}`} />
               <span>{t("refresh") || "Refresh"}</span>
             </Button>
 
             <Button
               type="button"
               onClick={() => setIsCreateOpen(true)}
-              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-semibold cursor-pointer bg-toota-side text-white hover:bg-black transition-all shadow-sm"
             >
-              <Plus className="size-4 me-1.5" />
+              <Plus className="size-3.5 me-2" />
               <span>{t("createNewPlan") || "Create New Plan"}</span>
             </Button>
           </div>
         </div>
-      </Card>
 
-      {/* Real Live Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Metric 1: Total Plans */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+        {/* Metric Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 mt-6 border-t border-border/40">
+          <div className="p-3.5 rounded-xl bg-toota-inner">
+            <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider block">
               {t("totalPlans") || "Total Plans"}
             </span>
-            <div className="size-10 rounded-xl bg-toota-inner flex items-center justify-center text-toota-ink">
-              <Layers className="size-5" />
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-bold text-toota-ink">{totalPlans}</span>
+              <span className="text-[11px] text-toota-muted">{t("tiersAvailable") || "tiers"}</span>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-ink" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {totalPlans}
-                </span>
-              )}
-              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {t("liveFromApi") || "Live"}
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-toota-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
+                {t("activePlans") || "Active Plans"}
+              </span>
+              <CheckCircle2 className="size-3.5 text-emerald-500" />
+            </div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-bold text-toota-ink">{activePlansCount}</span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                {activePercent}%
               </span>
             </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {t("allGymPlans") || "Configured membership tiers"}
-            </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Metric 2: Active Plans */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("activePlans") || "Active Plans"}
-            </span>
-            <div className="size-10 rounded-xl bg-toota-inner flex items-center justify-center text-toota-green">
-              <CheckCircle2 className="size-5" />
+          <div className="p-3.5 rounded-xl bg-toota-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
+                {t("inactivePlans") || "Inactive Plans"}
+              </span>
+              <XCircle className="size-3.5 text-rose-500" />
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-green" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {activePlansCount}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{totalPlans > 0 ? `${activePercent}%` : "—"}</span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-bold text-toota-ink">{inactivePlansCount}</span>
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                {inactivePercent}%
               </span>
             </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {t("availableForSignup") || "Open for member enrollment"}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-toota-green transition-all"
-                style={{ width: `${Math.min(100, Math.max(0, activePercent))}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Metric 3: Inactive Plans */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("inactivePlans") || "Inactive Plans"}
-            </span>
-            <div className="size-10 rounded-xl bg-toota-inner flex items-center justify-center text-toota-red">
-              <XCircle className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-red" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {inactivePlansCount}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
-                <span>{totalPlans > 0 ? `${inactivePercent}%` : "—"}</span>
+          <div className="p-3.5 rounded-xl bg-toota-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
+                {t("durationOptions") || "Durations"}
               </span>
+              <Clock className="size-3.5 text-toota-muted" />
             </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {t("hiddenOrArchived") || "Hidden from new members"}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-toota-red transition-all"
-                style={{ width: `${Math.min(100, Math.max(0, inactivePercent))}%` }}
-              />
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-bold text-toota-ink">{totalDurationsCount}</span>
+              <span className="text-[11px] text-toota-muted">{t("pricingOptions") || "pricing tiers"}</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </Card>
 
-        {/* Metric 4: Total Durations */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("durationsCount") || "Duration Tiers"}
-            </span>
-            <div className="size-10 rounded-xl bg-toota-inner flex items-center justify-center text-toota-ink">
-              <Clock className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-ink" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {totalDurationsCount}
-                </span>
-              )}
-              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {t("options") || "Options"}
-              </span>
-            </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {t("pricingOptionsAcrossPlans") || "Pricing options across all plans"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filter & Search Bar Card */}
-      <Card className="toota-card border-none p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Status Filter Tabs (Matching Members Page) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none w-full md:w-auto">
-          {[
-            { id: "ALL", label: t("allStatuses") || "All Plans", count: totalPlans },
-            { id: "ACTIVE", label: t("active") || "Active", count: activePlansCount },
-            { id: "INACTIVE", label: t("inactive") || "Inactive", count: inactivePlansCount },
-          ].map((tab) => {
-            const isSelected = statusFilter === tab.id;
+      {/* Filter and Search Bar */}
+      <Card className="toota-card border-none flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Status Filter Segment */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-toota-inner w-full md:w-auto">
+          {(
+            [
+              { key: "ALL", label: t("all") || "All", count: totalPlans },
+              { key: "ACTIVE", label: t("active") || "Active", count: activePlansCount },
+              { key: "INACTIVE", label: t("inactive") || "Inactive", count: inactivePlansCount },
+            ] as const
+          ).map((tab) => {
+            const isSelected = statusFilter === tab.key;
             return (
               <button
-                key={tab.id}
+                key={tab.key}
                 type="button"
-                onClick={() => setStatusFilter(tab.id as "ALL" | "ACTIVE" | "INACTIVE")}
-                className={`toota-pill h-9 px-3.5 text-xs font-semibold cursor-pointer shrink-0 transition-all ${
+                onClick={() => setStatusFilter(tab.key)}
+                className={`flex-1 md:flex-none h-8 px-3.5 rounded-lg text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-2 ${
                   isSelected
-                    ? "active font-bold shadow-xs"
-                    : "hover:bg-toota-inner text-toota-muted hover:text-toota-ink"
+                    ? "bg-toota-side text-white shadow-2xs"
+                    : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
                 }`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`ms-1.5 text-[10px] px-1.5 py-0.2 rounded-full ${
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     isSelected
                       ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
                       : "bg-toota-inner text-toota-muted"
@@ -548,67 +592,130 @@ export default function MembershipPlansPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {durations.map((dur) => (
-                          <div
-                            key={dur.id}
-                            className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors"
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className="size-6 rounded-md bg-toota-card flex items-center justify-center text-toota-muted">
-                                <Calendar className="size-3.5" />
-                              </div>
-                              <span className="text-xs font-medium text-toota-ink">
-                                {dur.durationDays} {t("days") || "Days"}
-                              </span>
-                            </div>
+                        {durations.map((dur) => {
+                          const isDurActive = dur.isActive !== false;
+                          const isTogglingDur = togglingDurationId === dur.id;
 
-                            <div className="flex items-center gap-3">
-                              <div className="text-end">
-                                <span className="text-sm font-semibold text-toota-ink block leading-tight">
-                                  {Number(dur.price).toFixed(2)} MAD
-                                </span>
-                                {dur.priceByG ? (
-                                  <span className="text-[10px] font-medium text-toota-muted block leading-tight">
-                                    {dur.priceByG} G
+                          return (
+                            <div
+                              key={dur.id}
+                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-6 rounded-md bg-toota-card flex items-center justify-center text-toota-muted shrink-0">
+                                  <Calendar className="size-3.5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="text-xs font-medium text-toota-ink block">
+                                    {dur.durationDays} {t("days") || "Days"}
                                   </span>
-                                ) : null}
+                                </div>
+
+                                {/* Active / Inactive Duration Toggle */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleDurationActive(plan, dur)}
+                                  disabled={isTogglingDur}
+                                  title={
+                                    isDurActive
+                                      ? t("deactivateDuration") || "Click to deactivate duration"
+                                      : t("activateDuration") || "Click to activate duration"
+                                  }
+                                  className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium cursor-pointer transition-all border shrink-0 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                    isDurActive
+                                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
+                                  }`}
+                                >
+                                  {isTogglingDur ? (
+                                    <Loader2 className="size-2.5 animate-spin shrink-0" />
+                                  ) : (
+                                    <span
+                                      className={`size-1.5 rounded-full shrink-0 ${
+                                        isDurActive ? "bg-emerald-500" : "bg-rose-500"
+                                      }`}
+                                    />
+                                  )}
+                                  <span>
+                                    {isDurActive ? (t("active") || "Active") : (t("inactive") || "Inactive")}
+                                  </span>
+                                </button>
                               </div>
 
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setDurationPlan(plan);
-                                  setEditingDuration(dur);
-                                }}
-                                className="size-7 rounded-md text-toota-muted hover:text-toota-ink hover:bg-toota-card cursor-pointer"
-                              >
-                                <Edit className="size-3.5" />
-                              </Button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="text-end">
+                                  <span className="text-sm font-semibold text-toota-ink block leading-tight">
+                                    {Number(dur.price).toFixed(2)} MAD
+                                  </span>
+                                  {dur.priceByG ? (
+                                    <span className="text-[10px] font-medium text-toota-muted block leading-tight">
+                                      {dur.priceByG} G
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setDurationPlan(plan);
+                                    setEditingDuration(dur);
+                                  }}
+                                  className="size-7 rounded-md text-toota-muted hover:text-toota-ink hover:bg-toota-card cursor-pointer"
+                                  title={t("editDuration") || "Edit duration"}
+                                >
+                                  <Edit className="size-3.5" />
+                                </Button>
+
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    setDurationToDelete({ plan, duration: dur })
+                                  }
+                                  className="size-7 rounded-md text-toota-muted hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                                  title={t("deleteDuration") || "Delete duration"}
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Card Footer: ID & Edit Plan Button */}
-                <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between">
-                  <span className="text-[11px] text-toota-muted font-mono">
+                {/* Card Footer: ID & Edit / Delete Plan Buttons */}
+                <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-toota-muted font-mono truncate">
                     ID: {plan.id.slice(0, 8)}...
                   </span>
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditingPlan(plan)}
-                    className="h-8 px-3 rounded-lg text-xs font-medium cursor-pointer border-border/60 hover:bg-toota-inner"
-                  >
-                    <Edit className="size-3.5 me-1.5" />
-                    <span>{t("editPlan") || "Edit Plan"}</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingPlan(plan)}
+                      className="h-8 px-3 rounded-lg text-xs font-medium cursor-pointer border-border/60 hover:bg-toota-inner"
+                    >
+                      <Edit className="size-3.5 me-1.5" />
+                      <span>{t("editPlan") || "Edit"}</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPlanToDelete(plan)}
+                      className="h-8 px-2.5 rounded-lg text-xs font-medium cursor-pointer border-rose-500/30 text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/50"
+                      title={t("deletePlan") || "Delete Plan"}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );
@@ -639,6 +746,23 @@ export default function MembershipPlansPage() {
           setEditingDuration(null);
         }}
         onSuccess={loadPlans}
+      />
+
+      <DeletePlanModal
+        isOpen={Boolean(planToDelete)}
+        onClose={() => setPlanToDelete(null)}
+        onConfirm={handleDeletePlan}
+        isDeleting={isDeletingPlan}
+        plan={planToDelete}
+      />
+
+      <DeleteDurationModal
+        isOpen={Boolean(durationToDelete)}
+        onClose={() => setDurationToDelete(null)}
+        onConfirm={handleDeleteDuration}
+        isDeleting={isDeletingDuration}
+        plan={durationToDelete?.plan || null}
+        duration={durationToDelete?.duration || null}
       />
     </div>
   );

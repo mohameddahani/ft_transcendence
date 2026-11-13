@@ -50,10 +50,8 @@ export default function MemberFeedbackView() {
 
   // Data state
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
-  const [pagedFeedbacks, setPagedFeedbacks] = useState<FeedbackItem[]>([]);
   const [memberFeedbackStats, setMemberFeedbackStats] = useState<FeedbackStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   // Pagination (10 elements per page)
@@ -92,19 +90,17 @@ export default function MemberFeedbackView() {
   const loadFeedbacks = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      const [statsData, pageData] = await Promise.all([
+      const [statsData, allData] = await Promise.all([
         fetchMemberFeedbackStats().catch(() => null),
-        fetchMemberFeedbacks(1, pageSize).catch(() => []),
+        fetchMemberFeedbacks(1, 1000).catch(() => []),
       ]);
 
       setMemberFeedbackStats(statsData);
-      setFeedbacks(pageData);
-      setPagedFeedbacks(pageData);
-      setCurrentPage(1);
+      setFeedbacks(allData);
 
       // Track liked IDs
       const liked = new Set<string>();
-      pageData.forEach((item) => {
+      allData.forEach((item) => {
         if (item.isLiked && item.id) {
           liked.add(item.id);
         }
@@ -117,7 +113,7 @@ export default function MemberFeedbackView() {
     } finally {
       if (showLoading) setIsLoading(false);
     }
-  }, [t, pageSize]);
+  }, [t]);
 
   useEffect(() => {
     loadFeedbacks();
@@ -160,7 +156,6 @@ export default function MemberFeedbackView() {
     };
 
     setFeedbacks((prev) => prev.map(updateItemLikes));
-    setPagedFeedbacks((prev) => prev.map(updateItemLikes));
 
     setSelectedFeedback((prev) => {
       if (prev && prev.id === feedbackId) {
@@ -207,7 +202,6 @@ export default function MemberFeedbackView() {
         t("feedbackDeletedSuccess") || "Your feedback has been deleted."
       );
       setFeedbacks((prev) => prev.filter((item) => item.id !== deletingFeedback.id));
-      setPagedFeedbacks((prev) => prev.filter((item) => item.id !== deletingFeedback.id));
       setDeletingFeedback(null);
       if (selectedFeedback?.id === deletingFeedback.id) {
         setIsDetailModalOpen(false);
@@ -223,7 +217,12 @@ export default function MemberFeedbackView() {
 
   // Compute Statistics from dedicated stats endpoint or dataset
   const stats = useMemo(() => {
-    const total = memberFeedbackStats?.total ?? feedbacks.length;
+    const rawTotal = feedbacks.length;
+    const total =
+      memberFeedbackStats?.total && memberFeedbackStats.total >= rawTotal
+        ? memberFeedbackStats.total
+        : rawTotal;
+
     if (total === 0) {
       return {
         total: 0,
@@ -236,18 +235,19 @@ export default function MemberFeedbackView() {
 
     const sumRating = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0);
     const averageRating =
-      memberFeedbackStats?.averageRating !== null && memberFeedbackStats?.averageRating !== undefined
-        ? Number(memberFeedbackStats.averageRating).toFixed(1)
-        : feedbacks.length > 0
+      feedbacks.length > 0
         ? (sumRating / feedbacks.length).toFixed(1)
+        : memberFeedbackStats?.averageRating !== null && memberFeedbackStats?.averageRating !== undefined
+        ? Number(memberFeedbackStats.averageRating).toFixed(1)
         : "5.0";
 
-    const myCount = feedbacks.filter((f) => user?.id && f.member?.id === user.id).length;
-    const positiveCount =
-      memberFeedbackStats?.positiveCount ?? feedbacks.filter((f) => (f.rating || 0) >= 4).length;
+    const myFeedbacksCount = feedbacks.filter((f) => user?.id && f.member?.id === user.id).length;
+    const myCount = memberFeedbackStats?.myCount ?? myFeedbacksCount;
+
+    const positiveCount = feedbacks.filter((f) => (f.rating || 0) >= 4).length;
     const positivePercent = total > 0 ? Math.round((positiveCount / total) * 100) : 100;
 
-    const totalLikes = feedbacks.reduce((acc, f) => acc + (f._count?.likes || 0), 0);
+    const totalLikes = feedbacks.reduce((acc, f) => acc + (f.likeCount ?? f._count?.likes ?? 0), 0);
 
     return {
       total,
@@ -273,10 +273,12 @@ export default function MemberFeedbackView() {
       if (searchTerm) {
         const query = searchTerm.toLowerCase();
         const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
+        const username = (f.member?.userName || "").toLowerCase();
         const content = (f.content || "").toLowerCase();
         const resolutionNote = (f.resolutionNote || "").toLowerCase();
         if (
           !memberName.includes(query) &&
+          !username.includes(query) &&
           !content.includes(query) &&
           !resolutionNote.includes(query)
         ) {
@@ -306,32 +308,25 @@ export default function MemberFeedbackView() {
     statusFilter !== "ALL"
   );
 
-  const totalItems = isFiltering ? filteredFeedbacks.length : (memberFeedbackStats?.total ?? feedbacks.length);
+  const totalItems = filteredFeedbacks.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  // Safely clamp currentPage if out of bounds
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(Math.max(1, totalPages));
+    }
+  }, [currentPage, totalPages]);
 
   // Display only 10 elements on the page
   const displayFeedbacks = useMemo(() => {
-    if (isFiltering) {
-      const start = (currentPage - 1) * pageSize;
-      return filteredFeedbacks.slice(start, start + pageSize);
-    }
-    return pagedFeedbacks;
-  }, [isFiltering, filteredFeedbacks, pagedFeedbacks, currentPage, pageSize]);
+    const start = (currentPage - 1) * pageSize;
+    return filteredFeedbacks.slice(start, start + pageSize);
+  }, [filteredFeedbacks, currentPage, pageSize]);
 
-  // Handle page change by explicitly calling the endpoint
-  const handlePageChange = async (newPage: number) => {
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    if (!isFiltering) {
-      setIsPageLoading(true);
-      try {
-        const pageData = await fetchMemberFeedbacks(newPage, pageSize);
-        setPagedFeedbacks(pageData);
-      } catch {
-        // fail gracefully
-      } finally {
-        setIsPageLoading(false);
-      }
-    }
   };
 
   // Crisp Outlined Micro-Badge Renderer
@@ -848,7 +843,7 @@ export default function MemberFeedbackView() {
           totalItems={totalItems}
           pageSize={pageSize}
           onPageChange={handlePageChange}
-          isLoading={isPageLoading}
+          isLoading={false}
           itemLabel={t("feedbacks") || "reviews"}
         />
       )}

@@ -3,6 +3,7 @@
 import { PurchaseDialog } from "./dialogs/PurchaseDialog";
 import { useMemberMarketplace } from "@/components/marketplace/hooks/useMemberMarketplace";
 import { shorten } from "@/lib/blockchain/marketplace-format";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   ExternalLink,
@@ -44,6 +45,7 @@ export default function MarketplaceMemberView() {
     isSepolia,
     balanceLabel,
   } = useMemberMarketplace();
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
@@ -57,10 +59,10 @@ export default function MarketplaceMemberView() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Member Web3 Store
+                  {t("memberWeb3Store") || "Member Web3 Store"}
                 </h1>
                 <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
-                  Decentralized
+                  {t("decentralized") || "Decentralized"}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -68,7 +70,7 @@ export default function MarketplaceMemberView() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
-                Purchase merchandise, supplements and apparel with zero ETH gas fees using GymTokens
+                {t("memberWeb3StoreSubtitle") || "Purchase merchandise, supplements and apparel with zero ETH gas fees using GymTokens"}
               </p>
             </div>
           </div>
@@ -82,8 +84,8 @@ export default function MarketplaceMemberView() {
                 className="toota-pill h-10 px-4 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
                 onClick={switchToSepolia}
               >
-                <AlertTriangle className="size-3.5 mr-1.5" />
-                Switch to Sepolia
+                <AlertTriangle className="size-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+                {t("switchToSepolia") || "Switch to Sepolia"}
               </Button>
             )}
 
@@ -106,8 +108,8 @@ export default function MarketplaceMemberView() {
                 onClick={connect}
                 className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
               >
-                <Wallet className="size-4 mr-2" />
-                Connect Wallet
+                <Wallet className="size-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                {t("connectWallet") || "Connect Wallet"}
               </Button>
             )}
 
@@ -119,7 +121,7 @@ export default function MarketplaceMemberView() {
                 void refresh();
               }}
               className="toota-pill size-10 p-0 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
-              title="Refresh DApp data"
+              title={t("refreshDappData") || "Refresh DApp data"}
             >
               <RefreshCw className={`size-3.5 ${isRefreshing ? "animate-spin text-toota-green" : ""}`} />
             </Button>
@@ -133,7 +135,7 @@ export default function MarketplaceMemberView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              My Token Balance
+              {t("myTokenBalance") || "My Token Balance"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Wallet className="size-5 text-toota-green" />
@@ -148,11 +150,11 @@ export default function MarketplaceMemberView() {
                 </span>
               </span>
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                Live
+                {t("liveStatus") || "Live"}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Ready for instant checkout
+              {t("readyForCheckout") || "Ready for instant checkout"}
             </p>
           </CardContent>
         </Card>
@@ -161,7 +163,7 @@ export default function MarketplaceMemberView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Store Catalogue
+              {t("storeCatalogue") || "Store Catalogue"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Store className="size-5" />
@@ -173,11 +175,11 @@ export default function MarketplaceMemberView() {
                 {products.length}
               </span>
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                Products
+                {t("productsLabel") || "Products"}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Available from current gym merchant
+              {t("availableFromMerchant") || "Available from current gym merchant"}
             </p>
           </CardContent>
         </Card>
@@ -186,7 +188,7 @@ export default function MarketplaceMemberView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              My Purchases
+              {t("myPurchases") || "My Purchases"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <ShoppingBag className="size-5 text-toota-green" />
@@ -199,11 +201,11 @@ export default function MarketplaceMemberView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>On-Chain</span>
+                <span>{t("onChain") || "On-Chain"}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Verified orders on Ethereum Sepolia
+              {t("verifiedOrdersOnChain") || "Verified orders on Ethereum Sepolia"}
             </p>
           </CardContent>
         </Card>
@@ -212,7 +214,7 @@ export default function MarketplaceMemberView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              GymToken Contract
+              {t("gymTokenContract") || "GymToken Contract"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Layers className="size-5" />
@@ -229,12 +231,12 @@ export default function MarketplaceMemberView() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-toota-muted hover:text-toota-green transition-colors"
               >
-                <span>Explorer</span>
+                <span>{t("explorer") || "Explorer"}</span>
                 <ExternalLink className="size-3" />
               </a>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Gasless forwarder: {GASLESS_ENABLED ? "Active" : "Disabled"}
+              {t("gaslessForwarder") || "Gasless forwarder"}: {GASLESS_ENABLED ? (t("active") || "Active") : (t("disabled") || "Disabled")}
             </p>
           </CardContent>
         </Card>
@@ -253,15 +255,15 @@ export default function MarketplaceMemberView() {
             <TabsList className="h-auto max-w-full flex-wrap">
               <TabsTrigger value="shop">
                 <Store className="size-3.5" />
-                <span>Marketplace Catalog</span>
+                <span>{t("marketplaceCatalog") || "Marketplace Catalog"}</span>
               </TabsTrigger>
               <TabsTrigger value="purchases">
                 <ShoppingBag className="size-3.5" />
-                <span>My Purchases ({purchases.length})</span>
+                <span>{t("myPurchases") || "My Purchases"} ({purchases.length})</span>
               </TabsTrigger>
               <TabsTrigger value="transfer">
                 <Send className="size-3.5" />
-                <span>Send G Tokens</span>
+                <span>{t("sendGTokens") || "Send G Tokens"}</span>
               </TabsTrigger>
             </TabsList>
           </div>

@@ -20,6 +20,7 @@ import {
   CalendarCheck,
   ChevronRight,
   AlertCircle,
+  ShieldAlert,
   PanelLeftClose,
   PanelLeft,
   Plus,
@@ -326,6 +327,7 @@ export default function AssistantPage() {
   const [gymName, setGymName] = useState<string>("Gym");
   const [loadingMe, setLoadingMe] = useState(true);
   const [isAiConnected, setIsAiConnected] = useState<boolean | null>(null);
+  const [accessMessage, setAccessMessage] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -405,6 +407,7 @@ export default function AssistantPage() {
   // Initialize role and check AI connectivity
   const init = useCallback(async () => {
     setLoadingMe(true);
+    setAccessMessage(null);
     try {
       const me = await getMe();
       if (me && me.role) {
@@ -415,6 +418,7 @@ export default function AssistantPage() {
           setGymName(companyName);
         }
         setIsAiConnected(true);
+        setAccessMessage(null);
 
         // Fetch remote threads for caller
         await fetchThreads();
@@ -446,7 +450,10 @@ export default function AssistantPage() {
         setIsAiConnected(false);
         setRole(userRole ? (userRole.toUpperCase() as Role) : null);
       }
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 403 && err.detail) {
+        setAccessMessage(err.detail);
+      }
       // NOTE: Never call toLogin() here! Calling toLogin() triggers a redirect to /login,
       // which the Next.js middleware immediately redirects to /dashboard if the admin is already authenticated.
       // Instead, mark AI connectivity as false so a clean reconnection card appears in-situ.
@@ -604,7 +611,7 @@ export default function AssistantPage() {
   // Send message
   const handleSend = async (questionToSend?: string) => {
     const q = (questionToSend || input).trim();
-    if (!q || isStreaming) return;
+    if (!q || isStreaming || accessMessage) return;
 
     setInput("");
     if (textareaRef.current) {
@@ -749,6 +756,11 @@ export default function AssistantPage() {
             }) ||
             `Too many questions. Try again in ${err.retryAfter || 60} seconds.`;
           toast.warning(waitMsg);
+          return;
+        }
+        if (err.status === 403 && err.detail) {
+          setAccessMessage(err.detail);
+          toast.error(err.detail);
           return;
         }
         if (err.detail) {
@@ -960,6 +972,14 @@ export default function AssistantPage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                   <span suppressHydrationWarning>{t("aiConnected", "Connected")}</span>
                 </span>
+              ) : accessMessage ? (
+                <span
+                  suppressHydrationWarning
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-rose-200 dark:ring-rose-900/40 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 ms-1"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
+                  <span suppressHydrationWarning>{t("aiRestricted", "Restricted")}</span>
+                </span>
               ) : (
                 <span
                   suppressHydrationWarning
@@ -1146,6 +1166,25 @@ export default function AssistantPage() {
                   <RefreshCw className="size-6 animate-spin text-toota-ink" />
                   <span suppressHydrationWarning>{t("loadingConversation", "Loading conversation...")}</span>
                 </div>
+              </div>
+            ) : accessMessage ? (
+              /* Access Restricted (Subscription Expired / Cancelled) */
+              <div className="h-full flex flex-col justify-center items-center text-center max-w-md mx-auto py-8">
+                <div className="size-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-3">
+                  <ShieldAlert className="size-6" />
+                </div>
+                <h3
+                  suppressHydrationWarning
+                  className="font-semibold text-base text-toota-ink mb-1"
+                >
+                  {t("accessRestricted", "Access Restricted")}
+                </h3>
+                <p
+                  suppressHydrationWarning
+                  className="text-xs text-toota-muted leading-relaxed"
+                >
+                  {accessMessage}
+                </p>
               </div>
             ) : !isAiConnected && messages.length === 0 ? (
               /* Offline / Reconnect Fallback Card */
@@ -1358,11 +1397,11 @@ export default function AssistantPage() {
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                disabled={isStreaming}
+                disabled={isStreaming || !!accessMessage}
                 maxLength={2000}
-                placeholder={placeholderText}
+                placeholder={accessMessage || placeholderText}
                 dir={isRtl ? "rtl" : "auto"}
-                className="w-full bg-transparent text-xs sm:text-sm text-toota-ink placeholder:text-toota-muted focus:outline-hidden resize-none min-h-[38px] max-h-[140px] px-2 py-1 leading-relaxed"
+                className="w-full bg-transparent text-xs sm:text-sm text-toota-ink placeholder:text-toota-muted focus:outline-hidden resize-none min-h-[38px] max-h-[140px] px-2 py-1 leading-relaxed disabled:opacity-50 disabled:cursor-not-allowed"
               />
 
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 mt-1 px-1 text-xs">
@@ -1380,7 +1419,7 @@ export default function AssistantPage() {
                     type="button"
                     size="sm"
                     onClick={() => handleSend()}
-                    disabled={!input.trim() || isStreaming}
+                    disabled={!input.trim() || isStreaming || !!accessMessage}
                     className="toota-pill h-7 px-3 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
                     aria-label={t("send", "Send message")}
                   >

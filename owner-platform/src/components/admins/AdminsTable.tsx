@@ -32,7 +32,7 @@ export default function AdminsTable() {
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const ITEMS_PER_PAGE = 10;
   const [totalAdmins, setTotalAdmins] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -50,7 +50,7 @@ export default function AdminsTable() {
       }>("/api/admins", {
         params: {
           page: currentPage,
-          limit: itemsPerPage,
+          limit: ITEMS_PER_PAGE,
           search: activeSearch || undefined,
         },
       });
@@ -60,12 +60,12 @@ export default function AdminsTable() {
         setTotalAdmins(response.data.total ?? response.data.users.length);
         setTotalPages(
           response.data.totalPages ||
-            Math.max(1, Math.ceil((response.data.total ?? response.data.users.length) / itemsPerPage))
+            Math.max(1, Math.ceil((response.data.total ?? response.data.users.length) / ITEMS_PER_PAGE))
         );
       } else if (Array.isArray(response.data)) {
         setAdmins(response.data);
         setTotalAdmins(response.data.length);
-        setTotalPages(Math.max(1, Math.ceil(response.data.length / itemsPerPage)));
+        setTotalPages(Math.max(1, Math.ceil(response.data.length / ITEMS_PER_PAGE)));
       } else {
         setAdmins([]);
         setTotalAdmins(0);
@@ -77,7 +77,7 @@ export default function AdminsTable() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, activeSearch]);
+  }, [currentPage, activeSearch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -627,28 +627,9 @@ export default function AdminsTable() {
         <div className="mt-layout-margin flex flex-col sm:flex-row items-center justify-between gap-3 text-body-sm text-on-surface-variant p-2">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4">
             <span className="text-body-sm text-on-surface-variant font-mono-data text-center sm:text-left">
-              Showing {totalAdmins === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-
-              {Math.min(totalAdmins, currentPage * itemsPerPage)} of {totalAdmins} gym owners
+              Showing {totalAdmins === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}-
+              {Math.min(totalAdmins, currentPage * ITEMS_PER_PAGE)} of {totalAdmins} gym owners
             </span>
-
-            {/* Per-Page Limit Selector */}
-            <div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-              <span>Per page:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-surface-container-high border border-outline-variant text-on-surface text-xs rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
-              >
-                <option value={2}>2</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
           </div>
 
           <div className="flex items-center gap-element-gap">

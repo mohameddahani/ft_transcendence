@@ -16,6 +16,7 @@ import { Globe, Loader2, PackagePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 
 export function ProductModal({
   title,
@@ -32,6 +33,7 @@ export function ProductModal({
   busy: boolean;
   tokenSymbol: string;
 }) {
+  const { t } = useTranslation();
   const [validatingImage, setValidatingImage] = useState(false);
 
   const {
@@ -95,8 +97,8 @@ export function ProductModal({
               <DialogTitle>{title}</DialogTitle>
               <DialogDescription className="mt-0.5">
                 {title.toLowerCase().includes("add")
-                  ? "Register a new inventory product on the smart contract."
-                  : "Update product pricing and inventory on Ethereum Sepolia."}
+                  ? (t("registerProductSubtitle") || "Register a new inventory product on the smart contract.")
+                  : (t("updateProductSubtitle") || "Update product pricing and inventory on Ethereum Sepolia.")}
               </DialogDescription>
             </div>
           </div>
@@ -122,7 +124,7 @@ export function ProductModal({
 
           <div className="space-y-1.5">
             <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Product Name
+              {t("productName") || "Product Name"}
             </Label>
             <Input
               id="name"
@@ -139,7 +141,7 @@ export function ProductModal({
 
           <div className="space-y-1.5">
             <Label htmlFor="description" className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Description
+              {t("productDescription") || "Description"}
             </Label>
             <Textarea
               id="description"
@@ -153,7 +155,7 @@ export function ProductModal({
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="stock" className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-                Stock Quantity
+                {t("stockQuantity") || "Stock Quantity"}
               </Label>
               <Input
                 id="stock"
@@ -173,7 +175,7 @@ export function ProductModal({
 
             <div className="space-y-1.5">
               <Label htmlFor="price" className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-                Price ({tokenSymbol})
+                {t("price") || "Price"} ({tokenSymbol})
               </Label>
               <Input
                 id="price"
@@ -192,7 +194,7 @@ export function ProductModal({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="images" className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-                Image URLs
+                {t("imageUrls") || "Image URLs"}
               </Label>
               <button
                 type="button"
@@ -205,7 +207,7 @@ export function ProductModal({
                 ) : (
                   <Globe className="size-3" />
                 )}
-                Check Image URL
+                {t("verifyLink") || "Verify Link"}
               </button>
             </div>
             <Input
@@ -227,7 +229,7 @@ export function ProductModal({
               disabled={busy}
               className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
             >
-              Cancel
+              {t("cancel") || "Cancel"}
             </Button>
             <Button
               type="submit"
@@ -235,8 +237,8 @@ export function ProductModal({
               disabled={busy}
               className="toota-pill h-10 px-6 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
             >
-              {busy && <Loader2 className="size-3.5 animate-spin mr-2" />}
-              {title === "Edit product" ? "Save Changes" : "Create Product"}
+              {busy && <Loader2 className="size-3.5 animate-spin mr-2 rtl:mr-0 rtl:ml-2" />}
+              {busy ? (t("saving") || "Saving…") : (title.toLowerCase().includes("edit") ? (t("saveChanges") || "Save Changes") : (t("saveProduct") || "Save Product"))}
             </Button>
           </DialogFooter>
         </form>

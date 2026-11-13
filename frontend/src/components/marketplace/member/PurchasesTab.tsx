@@ -13,6 +13,7 @@ import {
 import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { CheckCircle2, ShoppingBag } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function PurchasesTab({
   purchases,
@@ -23,19 +24,21 @@ export function PurchasesTab({
   tokenDecimals: number;
   tokenSymbol: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <TabsContent value="purchases" className="p-4 sm:p-7">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Order & Purchase History
+            {t("orderPurchaseHistory") || "Order & Purchase History"}
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
-            Immutable purchase receipts recorded permanently on the Ethereum Sepolia smart contract.
+            {t("orderPurchaseHistorySubtitle") || "Immutable purchase receipts recorded permanently on the Ethereum Sepolia smart contract."}
           </p>
         </div>
         <Badge variant="outline" className="font-mono text-xs px-3 py-1 rounded-full w-fit">
-          {purchases.length} {purchases.length === 1 ? "Recorded Order" : "Recorded Orders"}
+          {purchases.length} {purchases.length === 1 ? (t("recordedOrder") || "Recorded Order") : (t("recordedOrdersCount") || "Recorded Orders")}
         </Badge>
       </div>
 
@@ -44,13 +47,13 @@ export function PurchasesTab({
           <Table>
             <TableHeader className="bg-zinc-50/50 dark:bg-zinc-800/40">
               <TableRow className="border-b border-zinc-200/60 dark:border-zinc-800">
-                <TableHead className="w-[80px] text-xs font-semibold text-toota-muted">Order</TableHead>
-                <TableHead className="text-xs font-semibold text-toota-muted">Product</TableHead>
-                <TableHead className="text-xs font-semibold text-toota-muted">Merchant Wallet</TableHead>
-                <TableHead className="text-center text-xs font-semibold text-toota-muted">Qty</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-toota-muted">Total Price</TableHead>
-                <TableHead className="text-right text-xs font-semibold text-toota-muted">Timestamp</TableHead>
-                <TableHead className="text-center text-xs font-semibold text-toota-muted">Verification</TableHead>
+                <TableHead className="w-[80px] text-xs font-semibold text-toota-muted">{t("orderCol") || "Order"}</TableHead>
+                <TableHead className="text-xs font-semibold text-toota-muted">{t("productCol") || "Product"}</TableHead>
+                <TableHead className="text-xs font-semibold text-toota-muted">{t("merchantWalletCol") || "Merchant Wallet"}</TableHead>
+                <TableHead className="text-center text-xs font-semibold text-toota-muted">{t("qtyCol") || "Qty"}</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-toota-muted">{t("totalPriceCol") || "Total Price"}</TableHead>
+                <TableHead className="text-right text-xs font-semibold text-toota-muted">{t("timestampCol") || "Timestamp"}</TableHead>
+                <TableHead className="text-center text-xs font-semibold text-toota-muted">{t("verificationCol") || "Verification"}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -85,7 +88,7 @@ export function PurchasesTab({
                   <TableCell className="text-center">
                     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
                       <CheckCircle2 className="size-3 text-toota-green" />
-                      Verified
+                      {t("verifiedBadge") || "Verified"}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -96,8 +99,8 @@ export function PurchasesTab({
       ) : (
         <EmptyState
           icon={<ShoppingBag className="size-6 text-zinc-500 dark:text-zinc-400" />}
-          title="No purchases yet"
-          body="Your completed purchases with G tokens will be permanently and immutably recorded here on the blockchain."
+          title={t("noPurchasesYet") || "No purchases yet"}
+          body={t("noPurchasesYetBody") || "Your completed purchases with G tokens will be permanently and immutably recorded here on the blockchain."}
         />
       )}
     </TabsContent>

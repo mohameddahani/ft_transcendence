@@ -485,9 +485,6 @@ export default function StaffsPage() {
                   {totalCount}
                 </span>
               )}
-              <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                {t("liveFromApi", "Live")}
-              </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
               {t("registeredStaff", "Registered facility staff")}

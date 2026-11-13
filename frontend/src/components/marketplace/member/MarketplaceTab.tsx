@@ -15,6 +15,7 @@ import { TabsContent } from "@/components/marketplace/ui/tabs";
 import { formatUnits } from "ethers";
 import { Loader2, Minus, Plus, Search, ShoppingBag, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function MarketplaceTab({
   products,
@@ -41,27 +42,30 @@ export function MarketplaceTab({
   setConfirmBuyProduct: (value: { product: Product; quantity: bigint }) => void;
   account: string;
 }) {
+  const { t } = useTranslation();
+
   return (
     <TabsContent value="shop" className="p-4 sm:p-7">
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Available Products Catalog
+            {t("availableProductsCatalog") || "Available Products Catalog"}
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
-            Browse verified items from gym merchants and purchase gasless with {tokenSymbol} tokens.
+            {t("browseVerifiedItems", { symbol: tokenSymbol }) ||
+              `Browse verified items from gym merchants and purchase gasless with ${tokenSymbol} tokens.`}
           </p>
         </div>
 
         {/* Merchant Search & Selector */}
         <div className="flex items-center gap-2 max-w-md w-full md:w-auto">
           <div className="relative flex-1 md:w-80">
-            <Search className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400" />
+            <Search className="absolute left-3.5 top-1/2 size-3.5 -translate-y-1/2 text-zinc-400 rtl:left-auto rtl:right-3.5" />
             <Input
-              placeholder="Merchant address (0x...)"
+              placeholder={t("merchantAddressPlaceholder") || "Merchant address (0x...)"}
               value={marketAddress}
               onChange={(e) => setMarketAddress(e.target.value)}
-              className="pl-9 text-xs font-mono h-10 rounded-2xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900"
+              className="pl-9 rtl:pl-3 rtl:pr-9 text-xs font-mono h-10 rounded-2xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900"
             />
           </div>
           <Button
@@ -74,7 +78,7 @@ export function MarketplaceTab({
             {isRefreshing ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              "Load Store"
+              t("loadStore") || "Load Store"
             )}
           </Button>
         </div>
@@ -99,13 +103,14 @@ export function MarketplaceTab({
       ) : (
         <EmptyState
           icon={<ShoppingBag className="size-6 text-zinc-500 dark:text-zinc-400" />}
-          title="No products found in store"
+          title={t("noProductsFoundInStore") || "No products found in store"}
           body={
             marketAddress.trim()
-              ? `No inventory items are registered on-chain for merchant ${shorten(marketAddress.trim())}. Try searching another merchant wallet address.`
+              ? t("noProductsFoundMerchant", { address: shorten(marketAddress.trim()) }) ||
+                `No inventory items are registered on-chain for merchant ${shorten(marketAddress.trim())}. Try searching another merchant wallet address.`
               : account
-                ? "Enter a gym merchant wallet address above to explore their products."
-                : "Connect your Web3 wallet or enter a merchant address to explore available products."
+                ? t("enterMerchantAddress") || "Enter a gym merchant wallet address above to explore their products."
+                : t("connectWalletToExplore") || "Connect your Web3 wallet or enter a merchant address to explore available products."
           }
         />
       )}
@@ -128,6 +133,7 @@ function ProductCard({
   gaslessEnabled: boolean;
   onBuy: (product: Product, quantity: bigint) => void;
 }) {
+  const { t } = useTranslation();
   const [quantity, setQuantity] = useState("1");
   const price = formatUnits(product.price, decimals);
 
@@ -192,21 +198,21 @@ function ProductCard({
           </div>
         )}
 
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 rtl:left-auto rtl:right-3">
           <span className="inline-flex items-center rounded-lg bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-mono font-medium text-zinc-700 dark:text-zinc-300 ring-1 ring-inset ring-zinc-200/60 dark:ring-zinc-800/60">
             #{product.id.toString()}
           </span>
         </div>
 
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 rtl:right-auto rtl:left-3">
           {isOutOfStock ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-semibold text-white">
-              Out of stock
+              {t("outOfStock") || "Out of stock"}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/90 backdrop-blur-xs px-2.5 py-1 text-[11px] font-semibold text-white shadow-2xs">
               <span className="h-1.5 w-1.5 rounded-full bg-white shrink-0" />
-              <span>{product.stock.toString()} in stock</span>
+              <span>{t("inStock", { count: product.stock.toString() }) || `${product.stock.toString()} in stock`}</span>
             </span>
           )}
         </div>
@@ -217,7 +223,7 @@ function ProductCard({
           {product.name}
         </CardTitle>
         <CardDescription className="line-clamp-2 min-h-[34px] text-xs text-toota-muted leading-relaxed mt-1">
-          {product.description || "No description provided."}
+          {product.description || (t("noDescriptionProvided") || "No description provided.")}
         </CardDescription>
       </CardHeader>
 
@@ -226,7 +232,7 @@ function ProductCard({
         <div className="flex items-baseline justify-between border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
           <div>
             <span className="text-[10px] uppercase font-semibold text-toota-muted block tracking-wider">
-              Unit Price
+              {t("unitPrice") || "Unit Price"}
             </span>
             <div className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
               {price}{" "}
@@ -235,9 +241,9 @@ function ProductCard({
               </span>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right rtl:text-left">
             <span className="text-[10px] uppercase font-semibold text-toota-muted block tracking-wider">
-              Total Due
+              {t("totalDue") || "Total Due"}
             </span>
             <div className="text-base font-bold text-zinc-900 dark:text-zinc-100">
               {total}{" "}
@@ -289,17 +295,17 @@ function ProductCard({
           >
             {busy ? (
               <>
-                <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                Purchasing…
+                <Loader2 className="size-3.5 animate-spin mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+                {t("purchasing") || "Purchasing…"}
               </>
             ) : !gaslessEnabled ? (
-              "Gasless unavailable"
+              t("gaslessUnavailable") || "Gasless unavailable"
             ) : isOutOfStock ? (
-              "Sold Out"
+              t("soldOut") || "Sold Out"
             ) : (
               <>
-                <Sparkles className="size-3.5 mr-1.5 text-toota-green" />
-                Buy with {symbol}
+                <Sparkles className="size-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5 text-toota-green" />
+                {t("buyWith", { symbol }) || `Buy with ${symbol}`}
               </>
             )}
           </Button>
@@ -307,7 +313,7 @@ function ProductCard({
       </CardContent>
 
       <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/80 p-3.5 px-5 bg-zinc-50/50 dark:bg-zinc-800/20 flex items-center justify-between text-xs text-toota-muted font-mono">
-        <span>Merchant:</span>
+        <span>{t("merchant") || "Merchant"}:</span>
         <span
           className="text-zinc-700 dark:text-zinc-300 font-medium"
           title={product.merchant}

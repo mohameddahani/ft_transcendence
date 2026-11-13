@@ -24,8 +24,10 @@ import { ManageProductsTab } from "./ManageProductsTab";
 import { MyProductsTab } from "./MyProductsTab";
 import { SalesTab } from "./SalesTab";
 import { TransferTab } from "../TransferTab";
+import { useTranslation } from "react-i18next";
 
 export default function MarketplaceAdminView() {
+  const { t } = useTranslation();
   const {
     account,
     tokenDecimals,
@@ -69,7 +71,7 @@ export default function MarketplaceAdminView() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Marketplace Management
+                  {t("marketplaceManagement") || "Marketplace Management"}
                 </h1>
                 <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
                   Web3
@@ -80,7 +82,7 @@ export default function MarketplaceAdminView() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
-                Decentralized Token-Powered Gym Commerce & Inventory on Ethereum Sepolia
+                {t("marketplaceManagementSubtitle") || "Decentralized Token-Powered Gym Commerce & Inventory on Ethereum Sepolia"}
               </p>
             </div>
           </div>
@@ -94,8 +96,8 @@ export default function MarketplaceAdminView() {
                 className="toota-pill h-10 px-4 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
                 onClick={switchToSepolia}
               >
-                <AlertTriangle className="size-3.5 mr-1.5" />
-                Switch to Sepolia
+                <AlertTriangle className="size-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+                {t("switchToSepolia") || "Switch to Sepolia"}
               </Button>
             )}
 
@@ -118,8 +120,8 @@ export default function MarketplaceAdminView() {
                 onClick={connect}
                 className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
               >
-                <Wallet className="size-4 mr-2" />
-                Connect Wallet
+                <Wallet className="size-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                {t("connectWallet") || "Connect Wallet"}
               </Button>
             )}
 
@@ -130,7 +132,7 @@ export default function MarketplaceAdminView() {
                 void refresh();
               }}
               className="toota-pill size-10 p-0 text-xs font-semibold cursor-pointer border-border/50 hover:bg-toota-inner"
-              title="Refresh DApp data"
+              title={t("refreshDappData") || "Refresh DApp data"}
             >
               <RefreshCw className="size-3.5" />
             </Button>
@@ -141,8 +143,8 @@ export default function MarketplaceAdminView() {
               onClick={() => setShowAdd(true)}
               className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:opacity-90 shadow-sm"
             >
-              <Plus className="size-3.5 mr-1.5" />
-              Add Product
+              <Plus className="size-3.5 mr-1.5 rtl:mr-0 rtl:ml-1.5" />
+              {t("addProduct") || "Add Product"}
             </Button>
           </div>
         </div>
@@ -154,7 +156,7 @@ export default function MarketplaceAdminView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Available Balance
+              {t("availableBalance") || "Available Balance"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Wallet className="size-5 text-toota-green" />
@@ -169,11 +171,11 @@ export default function MarketplaceAdminView() {
                 </span>
               </span>
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                Live
+                {t("liveStatus") || "Live"}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Connected admin wallet token balance
+              {t("connectedAdminWalletBalance") || "Connected admin wallet token balance"}
             </p>
           </CardContent>
         </Card>
@@ -182,7 +184,7 @@ export default function MarketplaceAdminView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Active Inventory
+              {t("activeInventory") || "Active Inventory"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Store className="size-5" />
@@ -194,11 +196,11 @@ export default function MarketplaceAdminView() {
                 {products.length}
               </span>
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-500 dark:text-zinc-400">
-                Products
+                {t("productsLabel") || "Products"}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Items published on Sepolia smart contract
+              {t("itemsPublishedOnContract") || "Items published on Sepolia smart contract"}
             </p>
           </CardContent>
         </Card>
@@ -207,7 +209,7 @@ export default function MarketplaceAdminView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Recorded Orders
+              {t("recordedOrders") || "Recorded Orders"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Package className="size-5 text-toota-green" />
@@ -220,11 +222,11 @@ export default function MarketplaceAdminView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{deliveredCount} Fulfilled</span>
+                <span>{deliveredCount} {t("fulfilled") || "Fulfilled"}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {pendingCount} pending fulfillment
+              {pendingCount} {t("pendingFulfillment") || "pending fulfillment"}
             </p>
           </CardContent>
         </Card>
@@ -233,7 +235,7 @@ export default function MarketplaceAdminView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              GymToken Contract
+              {t("gymTokenContract") || "GymToken Contract"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-zinc-900 dark:text-zinc-100">
               <Layers className="size-5" />
@@ -250,7 +252,7 @@ export default function MarketplaceAdminView() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-toota-muted hover:text-toota-green transition-colors"
               >
-                <span>Explorer</span>
+                <span>{t("explorer") || "Explorer"}</span>
                 <ExternalLink className="size-3" />
               </a>
             </div>
@@ -274,19 +276,19 @@ export default function MarketplaceAdminView() {
             <TabsList className="h-auto max-w-full flex-wrap">
               <TabsTrigger value="MyProducts">
                 <Store className="size-3.5" />
-                <span>Store Catalog</span>
+                <span>{t("storeCatalog") || "Store Catalog"}</span>
               </TabsTrigger>
               <TabsTrigger value="sales">
                 <Package className="size-3.5" />
-                <span>Sales & Orders ({sales.length})</span>
+                <span>{t("salesAndOrders") || "Sales & Orders"} ({sales.length})</span>
               </TabsTrigger>
               <TabsTrigger value="manage">
                 <Plus className="size-3.5" />
-                <span>Manage Inventory</span>
+                <span>{t("manageInventory") || "Manage Inventory"}</span>
               </TabsTrigger>
               <TabsTrigger value="transfer">
                 <Send className="size-3.5" />
-                <span>Send G Tokens</span>
+                <span>{t("sendGTokens") || "Send G Tokens"}</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -325,7 +327,7 @@ export default function MarketplaceAdminView() {
       {/* Product Add / Edit Dialog */}
       {(showAdd || editProduct) && (
         <ProductModal
-          title={editProduct ? "Edit product" : "Add product"}
+          title={editProduct ? (t("editProduct") || "Edit product") : (t("addProduct") || "Add product")}
           initialData={{
             id: editProduct ? editProduct.id.toString() : "",
             name: editProduct ? editProduct.name : "",
@@ -346,8 +348,8 @@ export default function MarketplaceAdminView() {
       {/* Confirm Delete Dialog */}
       {deleteProduct && (
         <ConfirmModal
-          title="Remove product from smart contract?"
-          body={`This will permanently remove “${deleteProduct.name}” from the on-chain marketplace inventory.`}
+          title={t("removeProductTitle") || "Remove product from smart contract?"}
+          body={t("removeProductBody", { name: deleteProduct.name, defaultValue: `This will permanently remove “${deleteProduct.name}” from the on-chain marketplace inventory.` })}
           onClose={() => setDeleteProduct(null)}
           onConfirm={remove}
           busy={busy}

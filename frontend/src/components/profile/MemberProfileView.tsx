@@ -210,6 +210,19 @@ export default function MemberProfileView() {
     return diffDays > 0 ? diffDays : 0;
   };
 
+  const getLocalizedDuration = (dur?: unknown) => {
+    if (!dur) return t("standardPlan") || "Standard Duration";
+    if (typeof dur === "object" && dur !== null && "durationDays" in dur && typeof (dur as { durationDays?: unknown }).durationDays === "number") {
+      const days = (dur as { durationDays: number }).durationDays;
+      if (days === 30) return `1 ${t("month") || "Month"} (30 ${t("days") || "Days"})`;
+      if (days === 90) return `3 ${t("months") || "Months"} (90 ${t("days") || "Days"})`;
+      if (days === 180) return `6 ${t("months") || "Months"} (180 ${t("days") || "Days"})`;
+      if (days === 365) return `1 ${t("year") || "Year"} (365 ${t("days") || "Days"})`;
+      return `${days} ${t("days") || "Days"}`;
+    }
+    return formatMembershipDuration(dur as Parameters<typeof formatMembershipDuration>[0]);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -307,7 +320,13 @@ export default function MemberProfileView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>{profile?.accountStatus || "Active"}</span>
+                <span>
+                  {profile?.accountStatus === "ACTIVE"
+                    ? (t("active") || "Active")
+                    : profile?.accountStatus === "INACTIVE"
+                      ? (t("inactive") || "Inactive")
+                      : (profile?.accountStatus || (t("active") || "Active"))}
+                </span>
               </span>
             </div>
 
@@ -442,7 +461,15 @@ export default function MemberProfileView() {
                   {activeMembership && (
                     <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span>{activeMembership.membershipStatus}</span>
+                      <span>
+                        {activeMembership.membershipStatus === "ACTIVE"
+                          ? (t("active") || "Active")
+                          : activeMembership.membershipStatus === "EXPIRED"
+                            ? (t("expired") || "Expired")
+                            : activeMembership.membershipStatus === "CANCELLED"
+                              ? (t("cancelled") || "Cancelled")
+                              : activeMembership.membershipStatus}
+                      </span>
                     </span>
                   )}
                 </div>
@@ -478,7 +505,7 @@ export default function MemberProfileView() {
                           {t("planDuration") || "Duration"}
                         </p>
                         <p className="text-base font-semibold text-toota-ink mt-0.5">
-                          {formatMembershipDuration(activeMembership.membershipPlanDuration)}
+                          {getLocalizedDuration(activeMembership.membershipPlanDuration)}
                         </p>
                       </div>
 
@@ -548,7 +575,13 @@ export default function MemberProfileView() {
                       {t("gender") || "Gender"}
                     </span>
                     <p className="font-medium text-toota-ink mt-0.5 capitalize">
-                      {profile?.gender?.toLowerCase() || "Not specified"}
+                      {profile?.gender?.toUpperCase() === "MALE"
+                        ? (t("male") || "Male")
+                        : profile?.gender?.toUpperCase() === "FEMALE"
+                          ? (t("female") || "Female")
+                          : profile?.gender?.toUpperCase() === "OTHER"
+                            ? (t("other") || "Other")
+                            : (t("notSpecified") || "Not specified")}
                     </p>
                   </div>
 
@@ -558,7 +591,7 @@ export default function MemberProfileView() {
                     </span>
                     <p className="font-medium text-toota-ink mt-0.5 flex items-center gap-1.5">
                       <MapPin className="size-3.5 text-toota-muted shrink-0" />
-                      <span className="truncate">{profile?.address || "No address on file"}</span>
+                      <span className="truncate">{profile?.address || (t("noAddressOnFile") || "No address on file")}</span>
                     </p>
                   </div>
 
@@ -568,7 +601,7 @@ export default function MemberProfileView() {
                     </span>
                     <p className="font-medium text-toota-ink mt-0.5 flex items-center gap-1.5">
                       <HeartHandshake className="size-3.5 text-toota-muted shrink-0" />
-                      <span>{profile?.emergencyContact || "No emergency contact"}</span>
+                      <span>{profile?.emergencyContact || (t("noEmergencyContact") || "No emergency contact")}</span>
                     </p>
                   </div>
                 </div>
@@ -617,11 +650,19 @@ export default function MemberProfileView() {
                                 : "bg-zinc-400"
                             }`}
                           />
-                          <span>{item.membershipStatus}</span>
+                          <span>
+                            {item.membershipStatus === "ACTIVE"
+                              ? (t("active") || "Active")
+                              : item.membershipStatus === "EXPIRED"
+                                ? (t("expired") || "Expired")
+                                : item.membershipStatus === "CANCELLED"
+                                  ? (t("cancelled") || "Cancelled")
+                                  : item.membershipStatus}
+                          </span>
                         </span>
                       </div>
                       <p className="text-xs text-toota-muted">
-                        {t("duration") || "Duration"}: {formatMembershipDuration(item.membershipPlanDuration)} • {t("limit") || "Limit"}: {item.membershipPlan.weeklyVisitLimit} {t("visitsPerWeek") || "visits/week"}
+                        {t("duration") || "Duration"}: {getLocalizedDuration(item.membershipPlanDuration)} • {t("limit") || "Limit"}: {item.membershipPlan.weeklyVisitLimit} {t("visitsPerWeek") || "visits/week"}
                       </p>
                     </div>
 

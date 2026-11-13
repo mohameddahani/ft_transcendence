@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LegalView from "@/components/legal/LegalView";
+import PrivacyPolicyView from "@/components/legal/PrivacyPolicyView";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | Sportium",
@@ -8,6 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  return <LegalView initialTab="privacy" />;
+  return <PrivacyPolicyView />;
 }
-

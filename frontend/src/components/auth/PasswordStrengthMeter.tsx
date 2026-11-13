@@ -3,6 +3,7 @@
 import React from "react";
 import { Check, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { muted } from "@/components/auth/authStyles";
 
 interface PasswordStrengthMeterProps {
   password: string;
@@ -41,7 +42,7 @@ export default function PasswordStrengthMeter({
     {
       id: "special",
       label: t("ruleSpecial", "At least one special character (!@#$%^&*)"),
-      valid: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+      valid: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password),
     },
     {
       id: "noSpaces",
@@ -74,12 +75,12 @@ export default function PasswordStrengthMeter({
   ];
 
   const getBarColor = (index: number) => {
-    if (score === 0) return "bg-outline-variant/30";
-    if (index >= score) return "bg-outline-variant/30";
+    if (score === 0) return "bg-black/10 dark:bg-white/10";
+    if (index >= score) return "bg-black/10 dark:bg-white/10";
     if (score === 1) return "bg-rose-500";
     if (score === 2) return "bg-amber-500";
-    if (score === 3) return "bg-emerald-500";
-    return "bg-primary";
+    if (score === 3) return "bg-[#84cc16]";
+    return "bg-[#a3e635]";
   };
 
   return (
@@ -88,7 +89,7 @@ export default function PasswordStrengthMeter({
       {password.length > 0 && (
         <div className="space-y-1.5 animate-in fade-in duration-200">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-on-surface-variant font-medium">
+            <span className={`font-medium ${muted}`}>
               {t("passwordStrength", "Password strength")}:
             </span>
             <span
@@ -98,8 +99,8 @@ export default function PasswordStrengthMeter({
                   : score === 2
                   ? "text-amber-500"
                   : score === 3
-                  ? "text-emerald-500"
-                  : "text-primary"
+                  ? "text-[#65a30d] dark:text-[#84cc16]"
+                  : "text-[#4d7c0f] dark:text-[#a3e635]"
               }`}
             >
               {score > 0 ? strengthLabels[score - 1] : t("tooShort", "Too Short")}
@@ -119,11 +120,11 @@ export default function PasswordStrengthMeter({
       )}
 
       {/* Rules Checklist */}
-      <div className="p-3 bg-surface-container-low/60 rounded-xl border border-outline-variant/50 space-y-1.5">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">
+      <div className="p-3.5 bg-[var(--toota-pill)] rounded-2xl ring-1 ring-black/5 dark:ring-white/10 space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#565c63] dark:text-[#a3a9b1]">
           {t("passwordRequirements", "Password Requirements")}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
           {rules.map((rule) => {
             const isMet = rule.valid;
             const hasStarted = password.length > 0;
@@ -132,16 +133,16 @@ export default function PasswordStrengthMeter({
                 key={rule.id}
                 className={`flex items-center gap-1.5 transition-colors ${
                   isMet
-                    ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                    ? "text-[#3f6212] dark:text-[#a3e635] font-semibold"
                     : hasStarted
-                    ? "text-on-surface-variant/70"
-                    : "text-on-surface-variant/60"
+                    ? "text-[#8a9098]"
+                    : "text-[#8a9098]/80"
                 }`}
               >
                 {isMet ? (
-                  <Check className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+                  <Check className="size-3.5 shrink-0 text-[#65a30d] dark:text-[#a3e635]" />
                 ) : (
-                  <X className="w-3.5 h-3.5 shrink-0 text-outline-variant" />
+                  <X className="size-3.5 shrink-0 text-[#8a9098]/60" />
                 )}
                 <span>{rule.label}</span>
               </div>
@@ -152,4 +153,3 @@ export default function PasswordStrengthMeter({
     </div>
   );
 }
-
