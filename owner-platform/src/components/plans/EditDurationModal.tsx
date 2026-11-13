@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Loader2, Clock } from "lucide-react";
+import { X, Loader2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/axios";
 import { PlatformPlan, PlanDuration } from "@/types/plan";
@@ -11,6 +11,7 @@ import {
   updatePlanDurationSchema,
   UpdatePlanDurationFormValues,
 } from "@/schemas/plan.schema";
+import { cn } from "@/lib/utils";
 
 interface EditDurationModalProps {
   plan: PlatformPlan | null;
@@ -31,6 +32,8 @@ export default function EditDurationModal({
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<UpdatePlanDurationFormValues>({
     resolver: zodResolver(updatePlanDurationSchema),
@@ -38,8 +41,11 @@ export default function EditDurationModal({
       planId: plan?.id || "",
       durationDays: duration?.durationDays || 30,
       price: duration ? Number(duration.price) : 29.99,
+      isActive: duration ? duration.isActive !== false : true,
     },
   });
+
+  const isActive = useWatch({ control, name: "isActive" });
 
   useEffect(() => {
     if (plan && duration && isOpen) {
@@ -47,6 +53,7 @@ export default function EditDurationModal({
         planId: plan.id,
         durationDays: duration.durationDays,
         price: Number(duration.price),
+        isActive: duration.isActive !== false,
       });
     }
   }, [plan, duration, isOpen, reset]);
@@ -59,6 +66,7 @@ export default function EditDurationModal({
         planId: plan.id,
         durationDays: Number(data.durationDays),
         price: Number(data.price),
+        isActive: data.isActive,
       });
 
       toast.success(
@@ -81,7 +89,7 @@ export default function EditDurationModal({
       aria-labelledby="modal-edit-duration-title"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-3 sm:p-layout-margin"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !isSubmitting) onClose();
       }}
     >
       <div className="bg-surface-container-high border border-outline-variant w-full max-w-md max-h-[92vh] flex flex-col overflow-hidden shadow-2xl rounded-xl animate-in fade-in zoom-in-95 duration-200">
@@ -99,7 +107,8 @@ export default function EditDurationModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-on-surface-variant hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container-high cursor-pointer"
+            disabled={isSubmitting}
+            className="text-on-surface-variant hover:text-on-surface transition-colors p-1.5 rounded-lg hover:bg-surface-container-high cursor-pointer disabled:opacity-50"
             aria-label="Close dialog"
           >
             <X className="size-5" />
@@ -119,7 +128,7 @@ export default function EditDurationModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding mb-4">
                 <div>
                   <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
                     Duration (Days)
@@ -160,6 +169,62 @@ export default function EditDurationModal({
                       {errors.price.message}
                     </p>
                   )}
+                </div>
+              </div>
+
+              {/* Status Selection */}
+              <div>
+                <label className="block font-label-caps text-label-caps text-on-surface-variant mb-unit uppercase font-bold tracking-wider">
+                  Duration Status
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-container-padding">
+                  <button
+                    type="button"
+                    onClick={() => setValue("isActive", true, { shouldValidate: true })}
+                    className={cn(
+                      "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer text-left",
+                      isActive !== false
+                        ? "bg-primary/10 border-primary text-on-surface"
+                        : "bg-surface-container border-outline-variant text-on-surface-variant hover:border-outline-variant/80"
+                    )}
+                  >
+                    <CheckCircle2
+                      className={cn(
+                        "size-5 shrink-0",
+                        isActive !== false ? "text-primary" : "text-on-surface-variant/40"
+                      )}
+                    />
+                    <div>
+                      <div className="font-bold text-body-sm text-on-surface">Active</div>
+                      <div className="text-[11px] text-on-surface-variant">
+                        Available for signups
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setValue("isActive", false, { shouldValidate: true })}
+                    className={cn(
+                      "flex items-center gap-2 p-3 rounded-lg border transition-all cursor-pointer text-left",
+                      isActive === false
+                        ? "bg-rose-500/10 border-rose-500 text-on-surface"
+                        : "bg-surface-container border-outline-variant text-on-surface-variant hover:border-outline-variant/80"
+                    )}
+                  >
+                    <XCircle
+                      className={cn(
+                        "size-5 shrink-0",
+                        isActive === false ? "text-rose-400" : "text-on-surface-variant/40"
+                      )}
+                    />
+                    <div>
+                      <div className="font-bold text-body-sm text-on-surface">Inactive</div>
+                      <div className="text-[11px] text-on-surface-variant">
+                        Hidden from new signups
+                      </div>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>

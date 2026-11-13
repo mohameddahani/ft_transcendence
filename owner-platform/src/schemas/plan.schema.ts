@@ -75,6 +75,7 @@ export const updatePlanDurationSchema = z.object({
   price: z
     .number()
     .positive("Price must be greater than 0"),
+  isActive: z.boolean().optional(),
 });
 
 export type UpdatePlanDurationFormValues = z.infer<typeof updatePlanDurationSchema>;

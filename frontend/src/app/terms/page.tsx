@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
-import LegalView from "@/components/legal/LegalView";
+import TermsOfServiceView from "@/components/legal/TermsOfServiceView";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions | Sportium",
+  title: "Terms of Service | Sportium",
   description:
-    "Sportium Terms and Conditions of service for administrators, staff, and members.",
+    "Sportium Terms of Service, contractual conditions, and user responsibilities.",
 };
 
 export default function TermsPage() {
-  return <LegalView initialTab="terms" />;
+  return <TermsOfServiceView />;
 }
-

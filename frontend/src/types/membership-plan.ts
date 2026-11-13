@@ -4,6 +4,7 @@ export interface MembershipPlanDuration {
   durationDays: number;
   price: number | string;
   priceByG?: number;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,4 +46,5 @@ export interface UpdateMembershipPlanDurationInput {
   durationDays?: number;
   price?: number;
   priceByG?: number;
+  isActive?: boolean;
 }

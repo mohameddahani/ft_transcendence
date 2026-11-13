@@ -56,6 +56,7 @@ export const durationSchema = z.object({
     .int("Price in G must be an integer")
     .positive("Price in G must be greater than 0")
     .optional(),
+  isActive: z.boolean().optional(),
 });
 
 export type DurationFormValues = z.infer<typeof durationSchema>;
