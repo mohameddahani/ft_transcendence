@@ -260,7 +260,7 @@ export default function MembershipPlansPage() {
     totalPlans > 0 ? Math.round((inactivePlansCount / totalPlans) * 100) : 0;
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="@container/plans flex w-full min-w-0 flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Overview & Action Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -390,10 +390,10 @@ export default function MembershipPlansPage() {
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  className={`inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] tabular-nums ${
                     isSelected
-                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
-                      : "bg-toota-inner text-toota-muted"
+                      ? "bg-white/20 text-white font-bold"
+                      : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
                   }`}
                 >
                   {tab.count}
@@ -418,7 +418,7 @@ export default function MembershipPlansPage() {
 
       {/* Loading Skeleton */}
       {isLoading && plans.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
           {[1, 2, 3].map((n) => (
             <Card key={n} className="toota-card border-none h-72 animate-pulse" />
           ))}
@@ -474,7 +474,7 @@ export default function MembershipPlansPage() {
 
       {/* Plan Cards Grid */}
       {!isLoading && filteredPlans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
           {filteredPlans.map((plan) => {
             const isToggling = togglingPlanId === plan.id;
             const durations = plan.membershipPlanDurations || [];
@@ -482,21 +482,21 @@ export default function MembershipPlansPage() {
             return (
               <Card
                 key={plan.id}
-                className="toota-card border-none flex flex-col justify-between"
+                className="toota-card min-w-0 border-none flex flex-col justify-between"
               >
                 <div>
                   {/* Card Header: Plan Title & Professional Status Button */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0 basis-40">
                       <div className="flex items-center gap-2 mb-1.5">
                         <div className="size-8 rounded-lg bg-toota-inner flex items-center justify-center text-toota-ink shrink-0">
                           <Layers className="size-4" />
                         </div>
-                        <h3 className="text-base font-semibold text-toota-ink truncate">
+                        <h3 className="min-w-0 text-base font-semibold text-toota-ink [overflow-wrap:anywhere]">
                           {plan.planName}
                         </h3>
                       </div>
-                      <p className="text-xs text-toota-muted line-clamp-2 min-h-[32px]">
+                      <p className="text-xs text-toota-muted line-clamp-2 min-h-[32px] [overflow-wrap:anywhere]">
                         {plan.description || "—"}
                       </p>
                     </div>
@@ -556,7 +556,7 @@ export default function MembershipPlansPage() {
 
                   {/* Durations & Pricing Container */}
                   <div className="mt-4 pt-4 border-t border-border/40">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                       <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
                         {t("durationsAndPricing") || "Durations & Pricing"}
                       </span>
@@ -566,7 +566,7 @@ export default function MembershipPlansPage() {
                           setDurationPlan(plan);
                           setEditingDuration(null);
                         }}
-                        className="text-xs font-semibold text-toota-ink hover:text-toota-green transition-colors cursor-pointer inline-flex items-center gap-1"
+                        className="text-xs font-semibold text-toota-ink hover:text-toota-green transition-colors cursor-pointer inline-flex shrink-0 items-center gap-1"
                       >
                         <Plus className="size-3.5" />
                         <span>{t("addDuration") || "Add Duration"}</span>
@@ -599,14 +599,14 @@ export default function MembershipPlansPage() {
                           return (
                             <div
                               key={dur.id}
-                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors"
+                              className="flex min-w-0 flex-wrap items-center justify-between gap-3 p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors"
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2.5">
                                 <div className="size-6 rounded-md bg-toota-card flex items-center justify-center text-toota-muted shrink-0">
                                   <Calendar className="size-3.5" />
                                 </div>
                                 <div className="min-w-0">
-                                  <span className="text-xs font-medium text-toota-ink block">
+                                  <span className="text-xs font-medium text-toota-ink block [overflow-wrap:anywhere]">
                                     {dur.durationDays} {t("days") || "Days"}
                                   </span>
                                 </div>
@@ -642,13 +642,13 @@ export default function MembershipPlansPage() {
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                <div className="text-end">
-                                  <span className="text-sm font-semibold text-toota-ink block leading-tight">
+                              <div className="ms-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
+                                <div className="min-w-0 max-w-full text-end">
+                                  <span className="text-sm font-semibold text-toota-ink block leading-tight [overflow-wrap:anywhere]">
                                     {Number(dur.price).toFixed(2)} MAD
                                   </span>
                                   {dur.priceByG ? (
-                                    <span className="text-[10px] font-medium text-toota-muted block leading-tight">
+                                    <span className="text-[10px] font-medium text-toota-muted block leading-tight [overflow-wrap:anywhere]">
                                       {dur.priceByG} G
                                     </span>
                                   ) : null}
@@ -690,12 +690,12 @@ export default function MembershipPlansPage() {
                 </div>
 
                 {/* Card Footer: ID & Edit / Delete Plan Buttons */}
-                <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between gap-2">
+                <div className="mt-5 pt-4 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-[11px] text-toota-muted font-mono truncate">
                     ID: {plan.id.slice(0, 8)}...
                   </span>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="ms-auto flex items-center gap-1.5 shrink-0">
                     <Button
                       type="button"
                       variant="outline"

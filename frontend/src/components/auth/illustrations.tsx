@@ -382,7 +382,7 @@ export function MemberIllustration() {
 
 // ---------------------------------------------------------------- new owner: setting up the club
 const setupSteps = [
-  { label: "Create your owner account", state: "done" },
+  { label: "Create your admin account", state: "done" },
   { label: "Set your opening hours", state: "done" },
   { label: "Add membership plans", state: "now" },
   { label: "Invite your front desk", state: "next" },

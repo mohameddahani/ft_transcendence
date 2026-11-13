@@ -148,6 +148,7 @@ export default function NotificationDetailModal({
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby="notification-details-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in-0 duration-150"
     >
       {/* Backdrop */}
@@ -157,12 +158,12 @@ export default function NotificationDetailModal({
       />
 
       {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-lg toota-card border border-border/40 p-6 sm:p-7 shadow-2xl rounded-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 space-y-5 bg-card text-toota-ink">
+      <div className="relative w-full min-w-0 max-w-lg max-h-[90vh] flex flex-col gap-5 border border-border p-6 sm:p-7 shadow-2xl rounded-3xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 bg-card text-card-foreground">
         {/* Header - Baseline Metric style */}
-        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40">
+        <div className="shrink-0 flex items-start justify-between gap-4 pb-3 border-b border-border">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+              <h2 id="notification-details-title" className="text-base font-semibold tracking-tight text-card-foreground">
                 {t("notificationDetails", "Notification Details")}
               </h2>
               {notification?.id && (
@@ -179,15 +180,15 @@ export default function NotificationDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
-            aria-label="Close modal"
+            className="shrink-0 p-2 rounded-full text-muted-foreground hover:text-card-foreground hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={t("close", "Close")}
           >
             <X className="size-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="space-y-4">
+        <div className="min-h-0 overflow-y-auto space-y-4 custom-scrollbar">
           {isLoading && (
             <div className="py-12 flex flex-col items-center justify-center text-toota-muted gap-2.5">
               <Loader2 className="size-6 animate-spin text-primary" />
@@ -204,17 +205,17 @@ export default function NotificationDetailModal({
           {!isLoading && notification && (
             <div className="space-y-4">
               {/* Message Inner Box */}
-              <div className="toota-inner border border-border/40 rounded-2xl p-5 space-y-2.5">
-                <h3 className="text-sm sm:text-base font-semibold text-toota-ink tracking-tight">
+              <div className="bg-muted border border-border rounded-2xl p-4 space-y-2.5">
+                <h3 className="text-sm sm:text-base font-semibold text-card-foreground tracking-tight [overflow-wrap:anywhere]">
                   {notification.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-toota-muted leading-relaxed whitespace-pre-line">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
                   {notification.message}
                 </p>
               </div>
 
               {/* Metadata row */}
-              <div className="flex items-center justify-between text-xs px-1">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs px-1">
                 <div className="flex items-center gap-1.5 text-toota-muted">
                   <Calendar className="size-3.5 shrink-0" />
                   <span>
@@ -238,12 +239,12 @@ export default function NotificationDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="pt-2">
+        <div className="shrink-0 pt-2">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
-            className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer border-border/60 hover:bg-toota-inner text-toota-ink"
+            className="w-full h-10 rounded-full bg-card text-card-foreground text-xs font-semibold cursor-pointer border-border hover:bg-muted"
           >
             {t("close", "Close")}
           </Button>

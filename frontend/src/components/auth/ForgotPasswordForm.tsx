@@ -84,7 +84,7 @@ export default function ForgotPasswordForm({ role }: ForgotPasswordFormProps) {
             "Enter the email address associated with your administrator account."
           ),
           fieldLabel: t("emailAddress", "Email Address"),
-          fieldPlaceholder: "owner@yourclub.com",
+          fieldPlaceholder: "admin@yourclub.com",
           FieldIcon: Mail,
           loginPath: "/login",
           loginLabel: t("returnToAdminSignIn", "Return to Admin Sign In"),

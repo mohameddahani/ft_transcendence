@@ -11,27 +11,32 @@ import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
 
 function PortalLayoutInner({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { role, isLoading } = useCurrentUser();
+  const isDesktopSidebarCollapsed = role === "Admin" && isSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-toota-side flex text-toota-ink antialiased selection:bg-[#a3e635] selection:text-black">
       {/* Global Fixed SideBar Navigation */}
       <SideBar
+        isDesktopCollapsed={isDesktopSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onQuickAction={triggerOpenAddMemberModal}
       />
 
       {/* Dynamic Content Column (Offset on desktop for fixed sidebar) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ms-64 min-h-screen bg-toota-side">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen bg-toota-side ${isDesktopSidebarCollapsed ? "" : "lg:ms-64"}`}>
         {/* Dynamic Main Workspace Area with rounded left corners on desktop */}
-        <div className="flex-1 flex flex-col min-w-0 bg-toota-main text-toota-ink lg:rounded-s-[32px] overflow-hidden min-h-screen transition-colors">
+        <div className={`flex-1 flex flex-col min-w-0 bg-toota-main text-toota-ink overflow-hidden min-h-screen transition-colors ${isDesktopSidebarCollapsed ? "" : "lg:rounded-s-[32px]"}`}>
           {/* Global Sticky Top Navigation Bar */}
           <TopBar
             onToggleMobileSidebar={() =>
               setIsMobileSidebarOpen(!isMobileSidebarOpen)
             }
             isMobileSidebarOpen={isMobileSidebarOpen}
+            onToggleDesktopSidebar={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
+            isDesktopSidebarCollapsed={isDesktopSidebarCollapsed}
           />
 
           {/* Dynamic Main Workspace Area */}

@@ -8,6 +8,8 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Plus,
+  Check,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -20,39 +22,21 @@ interface CreateFeedbackModalProps {
   onSuccess: () => void;
 }
 
-const RATING_DESCRIPTIONS: Record<
-  number,
-  { label: string; tone: string }
-> = {
-  1: {
-    label: "Poor",
-    tone: "Experienced significant issues that need immediate attention.",
-  },
-  2: {
-    label: "Fair",
-    tone: "Below expectations, noticeable room for facility improvements.",
-  },
-  3: {
-    label: "Good",
-    tone: "Standard satisfactory workout session, decent facilities.",
-  },
-  4: {
-    label: "Very Good",
-    tone: "High quality gear, clean workout floor, friendly staff.",
-  },
-  5: {
-    label: "Exceptional",
-    tone: "Peak fitness environment, immaculate facility & top equipment!",
-  },
+const RATING_LABELS: Record<number, string> = {
+  1: "feedbackRatingPoor",
+  2: "feedbackRatingFair",
+  3: "feedbackRatingGood",
+  4: "feedbackRatingVeryGood",
+  5: "feedbackRatingExceptional",
 };
 
 const SUGGESTED_TOPICS = [
-  "Gym Cleanliness",
-  "Equipment Availability",
-  "Locker Rooms",
-  "Trainer Support",
-  "Air Conditioning",
-  "Atmosphere & Music",
+  "feedbackTopicCleanliness",
+  "feedbackTopicEquipment",
+  "feedbackTopicLockers",
+  "feedbackTopicTrainers",
+  "feedbackTopicCooling",
+  "feedbackTopicAtmosphere",
 ];
 
 export default function CreateFeedbackModal({
@@ -71,23 +55,23 @@ export default function CreateFeedbackModal({
   if (!isOpen) return null;
 
   const currentActiveRating = hoveredRating || rating;
-  const ratingInfo = RATING_DESCRIPTIONS[currentActiveRating] || RATING_DESCRIPTIONS[5];
   const charCount = content.trim().length;
   const isContentValid = charCount >= 3 && charCount <= 1000;
 
   const handleTopicClick = (topic: string) => {
     setContent((prev) => {
       const trimmed = prev.trim();
-      if (!trimmed) return `Regarding ${topic}: `;
+      const prompt = t("feedbackTopicPrompt", { topic });
+      if (!trimmed) return `${prompt} `;
       if (trimmed.includes(topic)) return prev;
-      return `${trimmed}\nRegarding ${topic}: `;
+      return `${trimmed}\n${prompt} `;
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isContentValid) {
-      setErrorMsg("Feedback must contain between 3 and 1000 characters.");
+      setErrorMsg(t("feedbackLengthError"));
       return;
     }
 
@@ -110,7 +94,7 @@ export default function CreateFeedbackModal({
         ?.response?.data;
       const message = Array.isArray(errorData?.message)
         ? errorData?.message.join(", ")
-        : errorData?.message || "Failed to submit feedback. Please try again.";
+        : errorData?.message || t("feedbackSubmitError");
       setErrorMsg(message);
       toast.error(message);
     } finally {
@@ -133,17 +117,12 @@ export default function CreateFeedbackModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
           <div>
-            <div className="flex items-baseline gap-2">
-              <h2
-                id="create-feedback-title"
-                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
-              >
-                {t("shareYourFeedback") || "Share Your Feedback"}
-              </h2>
-              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {currentActiveRating}.0 ★
-              </span>
-            </div>
+            <h2
+              id="create-feedback-title"
+              className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+            >
+              {t("shareYourFeedback") || "Share Your Feedback"}
+            </h2>
             <p className="text-xs text-toota-muted mt-0.5">
               {t("feedbackHelpCommunity") ||
                 "Tell us about your workout experience and facility quality."}
@@ -153,7 +132,7 @@ export default function CreateFeedbackModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("close")}
             className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
           >
             <X className="size-4" />
@@ -170,72 +149,95 @@ export default function CreateFeedbackModal({
           )}
 
           {/* Star Rating Section */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-toota-muted uppercase tracking-wider">
-              {t("overallRating") || "Your Experience Rating"}
-            </label>
-
-            <div className="p-4 rounded-xl bg-toota-inner border border-border/40 flex flex-col items-center gap-2 text-center">
-              {/* Stars */}
-              <div
-                className="flex items-center gap-2"
-                onMouseLeave={() => setHoveredRating(null)}
-              >
-                {[1, 2, 3, 4, 5].map((starValue) => {
-                  const isFilled = starValue <= currentActiveRating;
-                  return (
-                    <button
-                      key={starValue}
-                      type="button"
-                      onClick={() => setRating(starValue)}
-                      onMouseEnter={() => setHoveredRating(starValue)}
-                      className="p-1.5 rounded-lg hover:scale-110 active:scale-95 transition-all cursor-pointer focus:outline-hidden"
-                      title={`${starValue} Star`}
-                      aria-label={`${starValue} Star`}
-                    >
-                      <Star
-                        className={`size-6 transition-colors ${
-                          isFilled
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-zinc-300 dark:text-zinc-700"
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Dynamic Rating Label */}
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-xs font-semibold text-toota-ink">
-                  {currentActiveRating} / 5 • {ratingInfo.label}
-                </span>
-                <span className="text-[11px] text-toota-muted max-w-xs">
-                  {ratingInfo.tone}
-                </span>
-              </div>
+          <fieldset className="min-w-0 space-y-3 rounded-2xl border border-border bg-background p-4">
+            <legend className="px-1 text-sm font-semibold text-toota-ink">
+              {t("overallRating")}
+            </legend>
+            <p id="feedback-rating-hint" className="text-xs leading-relaxed text-toota-muted">
+              {t("feedbackRatingHint")}
+            </p>
+            <div
+              className="grid grid-cols-5 gap-2"
+              role="group"
+              aria-label={t("overallRating")}
+              aria-describedby="feedback-rating-hint"
+              onMouseLeave={() => setHoveredRating(null)}
+            >
+              {[1, 2, 3, 4, 5].map((starValue) => {
+                const isFilled = starValue <= currentActiveRating;
+                const isSelected = starValue === rating;
+                const ratingLabel = t(RATING_LABELS[starValue]);
+                return (
+                  <button
+                    key={starValue}
+                    type="button"
+                    onClick={() => setRating(starValue)}
+                    onMouseEnter={() => setHoveredRating(starValue)}
+                    className={`flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      isSelected
+                        ? "border-toota-lime bg-toota-lime text-zinc-950 shadow-xs"
+                        : "border-border bg-card text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
+                    }`}
+                    title={ratingLabel}
+                    aria-pressed={isSelected}
+                    aria-label={t("feedbackRatingOption", { value: starValue, label: ratingLabel })}
+                  >
+                    <Star
+                      aria-hidden="true"
+                      className={`size-5 transition-colors ${
+                        isSelected
+                          ? `text-zinc-950 ${isFilled ? "fill-current" : ""}`
+                          : isFilled
+                          ? "fill-amber-600 text-amber-600 dark:fill-amber-400 dark:text-amber-400"
+                          : "text-toota-muted"
+                      }`}
+                    />
+                    <span className="tabular-nums">{starValue}</span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold text-toota-ink">
+              <span>{t(RATING_LABELS[currentActiveRating])}</span>
+              <span className="rounded-lg border border-border bg-card px-2 py-1 text-xs tabular-nums">
+                {currentActiveRating} / 5
+              </span>
+            </div>
+          </fieldset>
 
           {/* Quick Suggestions / Topics */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-semibold text-toota-muted flex items-center gap-1.5">
-              <Sparkles className="size-3 text-amber-500" />
-              {t("suggestedTopics") || "Tap to mention specific topics:"}
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {SUGGESTED_TOPICS.map((topic) => (
-                <button
-                  key={topic}
-                  type="button"
-                  onClick={() => handleTopicClick(topic)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-toota-inner hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40 text-toota-muted hover:text-toota-ink transition-all cursor-pointer active:scale-95"
-                >
-                  + {topic}
-                </button>
-              ))}
+          <section aria-labelledby="feedback-topics-title" className="space-y-3">
+            <div>
+              <h3 id="feedback-topics-title" className="text-sm font-semibold text-toota-ink flex items-center gap-2">
+                <Sparkles aria-hidden="true" className="size-4 text-toota-ink" />
+                {t("suggestedTopics")}
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-toota-muted">{t("feedbackTopicsHint")}</p>
             </div>
-          </div>
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+              {SUGGESTED_TOPICS.map((topicKey) => {
+                const topic = t(topicKey);
+                const isAdded = content.includes(topic);
+                return (
+                  <button
+                    key={topicKey}
+                    type="button"
+                    onClick={() => handleTopicClick(topic)}
+                    aria-label={isAdded ? t("feedbackTopicAdded", { topic }) : topic}
+                    className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2.5 text-start text-xs font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
+                      isAdded
+                        ? "border-toota-lime bg-toota-lime/10 text-toota-ink"
+                        : "border-border bg-background text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
+                    }`}
+                  >
+                    {isAdded ? <Check aria-hidden="true" className="size-4 shrink-0" /> : <Plus aria-hidden="true" className="size-4 shrink-0" />}
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{topic}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
           {/* Feedback Content Textarea */}
           <div className="space-y-1.5">

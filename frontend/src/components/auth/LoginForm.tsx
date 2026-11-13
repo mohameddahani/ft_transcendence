@@ -121,7 +121,7 @@ export default function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="owner@yourclub.com"
+              placeholder="admin@yourclub.com"
               aria-invalid={errors.email ? true : undefined}
               {...register("email")}
               className={`${inputBase} ${inputRing(!!errors.email)}`}
@@ -183,7 +183,7 @@ export default function LoginForm() {
 
       {/* Footnote / Secondary Link */}
       <p className={`mt-6 text-center text-sm ${muted}`}>
-        {t("gymOwner", "Gym owner?")}{" "}
+        {t("gymOwner", "Gym administrator?")}{" "}
         <Link href="/register" className={`font-semibold text-[var(--toota-ink)] ${limeUnderline} transition-[text-decoration-thickness] hover:decoration-[3px]`}>
           {t("createAccount", "Create an account")}
         </Link>

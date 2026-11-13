@@ -485,7 +485,7 @@ export default function MemberOperatingHoursView() {
           onClick={() => setActiveTab("regular")}
           className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "regular"
-              ? "bg-toota-ink text-white shadow-xs"
+              ? "bg-toota-ink text-toota-main shadow-xs"
               : "bg-toota-inner text-toota-muted hover:text-toota-ink"
           }`}
         >
@@ -494,7 +494,7 @@ export default function MemberOperatingHoursView() {
           <span
             className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
               activeTab === "regular"
-                ? "bg-white/20 text-white"
+                ? "bg-toota-main/15 text-toota-main"
                 : "bg-background text-toota-muted"
             }`}
           >

@@ -155,7 +155,7 @@
                 AI Assistant
               </h4>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Predictive analytics and automated insights for owners.
+                Predictive analytics and automated insights for club admins.
               </p>
             </div>
             <div className="p-lg rounded-2xl bg-surface-container-lowest border border-outline-variant hover:shadow-lg transition-all group">
@@ -184,7 +184,7 @@
       <section className="py-3xl bg-surface-container-lowest">
         <div className="max-w-container-max mx-auto px-lg">
           <h2 className="font-headline-lg text-headline-lg text-center mb-2xl">
-            Loved by sports club owners everywhere
+            Loved by sports club admins everywhere
           </h2>
           <div className="grid md:grid-cols-2 gap-xl">
             <div className="p-2xl rounded-3xl bg-surface-container-low border border-outline-variant flex flex-col items-center text-center">

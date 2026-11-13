@@ -60,7 +60,7 @@ export default function ResolveFeedbackModal({
   const fullName =
     `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
     member?.userName ||
-    "Gym Member";
+    t("member");
   const initials =
     ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() ||
     member?.userName?.slice(0, 2).toUpperCase() ||
@@ -110,119 +110,83 @@ export default function ResolveFeedbackModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="resolve-feedback-title"
-        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
+        aria-describedby="resolve-feedback-description"
+        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border shadow-xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <h3
-                id="resolve-feedback-title"
-                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
-              >
-                {t("reviewAndResolve") || "Review & Update Status"}
-              </h3>
-              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {feedback.rating}.0 ★
-              </span>
-            </div>
-            <p className="text-xs text-toota-muted mt-0.5">
-              {t("feedbackResolutionSubtitle", "Review member review and document administrative action taken.")}
+        <div className="flex items-start justify-between gap-3 p-4 border-b border-border shrink-0">
+          <div className="min-w-0">
+            <h2 id="resolve-feedback-title" className="text-base font-semibold tracking-tight text-toota-ink">
+              {t("reviewAndResolve")}
+            </h2>
+            <p id="resolve-feedback-description" className="text-xs leading-5 text-muted-foreground mt-1">
+              {t("feedbackResolutionSubtitle")}
             </p>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
-            className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer"
+            aria-label={t("close")}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-toota-ink hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <X className="size-4" />
+            <X aria-hidden="true" className="size-4" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 space-y-4 overflow-y-auto">
-          {/* Member & Review Snapshot */}
-          <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="size-9 ring-1 ring-border/40 shrink-0">
-                  {photo && <AvatarImage src={photo} alt={fullName} />}
-                  <AvatarFallback className="bg-background text-toota-ink font-semibold text-xs">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div>
-                  <h4 className="font-semibold text-xs text-toota-ink">{fullName}</h4>
-                  <p className="text-[11px] text-toota-muted font-mono">{formattedDate}</p>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 p-4 space-y-4 overflow-y-auto overscroll-contain">
+            <section aria-labelledby="resolve-review-title" className="min-w-0 rounded-xl border border-border bg-background p-3 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 max-w-full items-center gap-2">
+                  <Avatar className="size-8 ring-1 ring-border shrink-0">
+                    {photo && <AvatarImage src={photo} alt={fullName} />}
+                    <AvatarFallback className="bg-card text-toota-ink font-semibold text-xs">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[13px] text-toota-ink [overflow-wrap:anywhere]">{fullName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formattedDate}</p>
+                  </div>
+                </div>
+                <div className="flex max-w-full flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2 bg-card px-2 py-1 rounded-lg border border-border">
+                    <Star aria-hidden="true" className="size-4 fill-amber-600 text-amber-600 dark:fill-amber-400 dark:text-amber-400" />
+                    <span className="text-xs font-semibold text-toota-ink tabular-nums">{feedback.rating} / 5</span>
+                  </div>
+                  {starsDisagree(feedback) && (
+                    <span
+                      title={t("starsDisagreeHint")}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-amber-600/20 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900 dark:border-amber-400/25 dark:bg-amber-950 dark:text-amber-200"
+                    >
+                      <AlertTriangle aria-hidden="true" className="size-4 shrink-0" />
+                      <span>{t("mismatch")}</span>
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Rating & Mismatch Indicator */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-lg border border-border/40">
-                  <Star className="size-3 fill-amber-400 text-amber-400" />
-                  <span className="font-mono text-xs font-semibold text-toota-ink">
-                    {feedback.rating}.0
-                  </span>
+              <div className="space-y-2">
+                <h3 id="resolve-review-title" className="text-xs font-semibold text-toota-ink">{t("memberReviewText")}</h3>
+                <div role="region" aria-labelledby="resolve-review-title" tabIndex={0} className="max-h-28 overflow-y-auto overscroll-contain rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <p dir="auto" className="text-[13px] text-toota-ink leading-5 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                    {feedback.content}
+                  </p>
                 </div>
-
-                {starsDisagree(feedback) && (
-                  <span
-                    title={t("starsDisagreeHint", "Stars and words disagree")}
-                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-amber-200 dark:ring-amber-900/40 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
-                  >
-                    <AlertTriangle className="size-3 text-amber-500 shrink-0" />
-                    <span>{t("mismatch", "Mismatch")}</span>
-                  </span>
-                )}
               </div>
-            </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-2">
+                <Lock aria-hidden="true" className="size-3.5 shrink-0" />
+                <span>{t("memberSubmissionImmutable")}</span>
+              </div>
+            </section>
 
-            {/* Quoted Content */}
-            <div className="p-3 rounded-lg bg-background border border-border/40 text-xs text-toota-ink leading-relaxed">
-              <p className="italic">&ldquo;{feedback.content}&rdquo;</p>
-            </div>
-
-            <div className="flex items-center gap-1 text-[11px] text-toota-muted">
-              <Lock className="size-3 opacity-60" />
-              <span>{t("memberSubmissionImmutable", "Member submission is immutable")}</span>
-            </div>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Status Selection (Crisp Outlined Micro-Badge styled buttons) */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-toota-muted uppercase tracking-wider">
-                {t("setFeedbackStatus") || "Set Resolution Status"}
-              </label>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <fieldset className="min-w-0 space-y-2">
+              <legend className="text-xs font-semibold text-toota-ink">{t("setFeedbackStatus")}</legend>
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  {
-                    value: "RESOLVED" as FeedbackStatus,
-                    label: t("statusResolved") || "Resolved",
-                    dotClass: "bg-emerald-500",
-                  },
-                  {
-                    value: "IN_REVIEW" as FeedbackStatus,
-                    label: t("statusInReview") || "In Review",
-                    dotClass: "bg-blue-500",
-                  },
-                  {
-                    value: "OPEN" as FeedbackStatus,
-                    label: t("statusOpen") || "Open",
-                    dotClass: "bg-amber-500",
-                  },
-                  {
-                    value: "DISMISSED" as FeedbackStatus,
-                    label: t("statusDismissed") || "Dismissed",
-                    dotClass: "bg-zinc-400",
-                  },
+                  { value: "RESOLVED" as FeedbackStatus, label: t("statusResolved"), dotClass: "bg-emerald-500" },
+                  { value: "IN_REVIEW" as FeedbackStatus, label: t("statusInReview"), dotClass: "bg-blue-500" },
+                  { value: "OPEN" as FeedbackStatus, label: t("statusOpen"), dotClass: "bg-amber-500" },
+                  { value: "DISMISSED" as FeedbackStatus, label: t("statusDismissed"), dotClass: "bg-zinc-400" },
                 ].map((option) => {
                   const isSelected = selectedStatus === option.value;
                   return (
@@ -230,82 +194,71 @@ export default function ResolveFeedbackModal({
                       key={option.value}
                       type="button"
                       onClick={() => setSelectedStatus(option.value)}
-                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer transition-all ${
+                      aria-pressed={isSelected}
+                      className={`flex min-h-9 items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold text-start cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
                         isSelected
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs ring-1 ring-zinc-900 dark:ring-zinc-100"
-                          : "bg-toota-inner text-toota-ink hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40"
+                          ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
+                          : "bg-background border-border text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
                       }`}
                     >
-                      <span className={`size-1.5 rounded-full ${option.dotClass} shrink-0`} />
-                      <span>{option.label}</span>
+                      <span aria-hidden="true" className={`size-2 rounded-full ${option.dotClass} shrink-0`} />
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{option.label}</span>
+                      {isSelected && <CheckCircle2 aria-hidden="true" className="size-4 shrink-0" />}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </fieldset>
 
-            {/* Resolution Note */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-toota-muted uppercase tracking-wider">
-                  {t("resolutionNote") || "Resolution Note"}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="resolve-feedback-note" className="text-xs font-semibold text-toota-ink">
+                  {t("resolutionNote")}
                 </label>
-                <span className="font-mono text-[11px] text-toota-muted tabular-nums">
+                <span id="resolve-note-count" className="text-xs text-muted-foreground tabular-nums">
                   {resolutionNote.length} / 1000
                 </span>
               </div>
-
               <textarea
+                id="resolve-feedback-note"
+                dir="auto"
                 rows={3}
-                placeholder={
-                  t("resolutionNotePlaceholder") ||
-                  "Describe action taken (e.g. Spoke with member, scheduled equipment repair, cleaned locker rooms)..."
-                }
+                placeholder={t("resolutionNotePlaceholder")}
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-toota-inner border border-border/40 text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-zinc-400 text-xs leading-relaxed transition-all resize-none"
+                aria-invalid={Boolean(validationError)}
+                aria-describedby={validationError ? "resolve-note-count resolve-note-error" : "resolve-note-count"}
+                className="w-full px-3 py-2.5 rounded-xl bg-background border border-border text-[13px] text-toota-ink placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring leading-5 transition-colors resize-y"
               />
-
               {validationError && (
-                <p className="text-[11px] text-destructive font-medium flex items-center gap-1 mt-1">
-                  <AlertCircle className="size-3.5 shrink-0" />
+                <p id="resolve-note-error" role="alert" className="text-xs text-destructive font-medium flex items-start gap-2">
+                  <AlertCircle aria-hidden="true" className="size-4 shrink-0 mt-0.5" />
                   <span>{validationError}</span>
                 </p>
               )}
             </div>
+          </div>
 
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/40">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="toota-pill h-9 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
-              >
-                {t("cancel") || "Cancel"}
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin me-1.5" />
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="size-3.5 me-1.5" />
-                    <span>{t("saveResolution") || "Save Resolution"}</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
+          <div className="grid grid-cols-2 sm:flex sm:justify-end gap-2 p-3 sm:px-4 border-t border-border bg-card shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="min-h-9 h-auto rounded-lg px-3 py-2 text-xs font-semibold border-border bg-background text-toota-ink cursor-pointer whitespace-normal"
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="min-h-9 h-auto rounded-lg px-3 py-2 text-xs font-semibold bg-toota-lime text-zinc-950 hover:bg-toota-lime/85 cursor-pointer whitespace-normal"
+            >
+              {isSubmitting ? <Loader2 aria-hidden="true" className="size-4 animate-spin me-1.5" /> : <CheckCircle2 aria-hidden="true" className="size-4 me-1.5" />}
+              <span>{isSubmitting ? t("saving") : t("saveResolution")}</span>
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

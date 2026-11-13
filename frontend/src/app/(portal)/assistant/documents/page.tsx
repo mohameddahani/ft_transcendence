@@ -75,7 +75,7 @@ export default function AssistantDocumentsPage() {
         if (err.status === 403) {
           setForbidden(true);
           setForbiddenMessage(
-            err.detail || t("forbiddenStaffNotice") || "Only the gym owner can manage documents."
+            err.detail || t("forbiddenStaffNotice") || "Only the gym administrator can manage documents."
           );
           return;
         }
@@ -234,7 +234,7 @@ export default function AssistantDocumentsPage() {
                   {t("documentsTitle", "Gym Knowledge Base")}
                 </h1>
                 <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / Owner Admin
+                  / {t("admin", "Admin")}
                 </span>
                 <span
                   suppressHydrationWarning

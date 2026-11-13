@@ -325,12 +325,12 @@ export default function AdminStaffOperatingHoursView() {
   );
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-16">
+    <div className="@container/hours flex w-full min-w-0 flex-col gap-7 max-w-[1440px] mx-auto pb-16">
       {/* Top Header Card */}
       <Card className="toota-card border-none">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col @min-[64rem]/hours:flex-row @min-[64rem]/hours:items-center justify-between gap-4">
           <div>
-            <div className="flex items-baseline gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("operatingHoursTitle")}
               </h1>
@@ -404,7 +404,7 @@ export default function AdminStaffOperatingHoursView() {
       </Card>
 
       {/* Bento KPI Command Center */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 @min-[36rem]/hours:grid-cols-2 @min-[72rem]/hours:grid-cols-4 gap-5">
         {/* Card 1: Facility Live Status */}
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
@@ -570,22 +570,23 @@ export default function AdminStaffOperatingHoursView() {
       </div>
 
       {/* Segmented Control Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-border/50 pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-3">
         <button
           type="button"
           onClick={() => setActiveTab("regular")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+          aria-pressed={activeTab === "regular"}
+          className={`flex max-w-full items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             activeTab === "regular"
-              ? "bg-toota-ink text-white shadow-xs"
+              ? "bg-toota-ink text-toota-main shadow-xs"
               : "bg-toota-inner text-toota-muted hover:text-toota-ink"
           }`}
         >
-          <Clock className="size-3.5" />
+          <Clock className="size-3.5 shrink-0" />
           <span>{t("weeklyOperatingHours")}</span>
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+            className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-mono tabular-nums ${
               activeTab === "regular"
-                ? "bg-white/20 text-white"
+                ? "bg-toota-main/15 text-toota-main"
                 : "bg-background text-toota-muted"
             }`}
           >
@@ -596,16 +597,17 @@ export default function AdminStaffOperatingHoursView() {
         <button
           type="button"
           onClick={() => setActiveTab("special")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+          aria-pressed={activeTab === "special"}
+          className={`flex max-w-full items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             activeTab === "special"
               ? "bg-amber-600 text-white shadow-xs"
               : "bg-toota-inner text-toota-muted hover:text-toota-ink"
           }`}
         >
-          <CalendarDays className="size-3.5" />
+          <CalendarDays className="size-3.5 shrink-0" />
           <span>{t("specialHours")}</span>
           <span
-            className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+            className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-mono tabular-nums ${
               activeTab === "special"
                 ? "bg-white/20 text-white"
                 : "bg-background text-toota-muted"
@@ -619,8 +621,8 @@ export default function AdminStaffOperatingHoursView() {
       {/* TAB 1: Regular Weekly Schedule */}
       {activeTab === "regular" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-baseline gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("sevenDayStandardSchedule")}
               </h2>
@@ -635,7 +637,7 @@ export default function AdminStaffOperatingHoursView() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 @min-[40rem]/hours:grid-cols-2 @min-[64rem]/hours:grid-cols-3 @min-[84rem]/hours:grid-cols-4 gap-4 sm:gap-5">
             {daysMap.map((dayItem) => {
               const wh = workingHoursByDay.get(dayItem.day);
               const isConfigured = !!wh;
@@ -645,12 +647,12 @@ export default function AdminStaffOperatingHoursView() {
                 return (
                   <div
                     key={dayItem.day}
-                    className={`p-5 rounded-2xl border border-dashed border-border/80 bg-toota-inner/20 flex flex-col justify-between transition-all min-h-[220px] hover:border-border hover:bg-toota-inner/30 ${
+                    className={`min-w-0 p-5 rounded-2xl border border-dashed border-border/80 bg-toota-inner/20 flex flex-col justify-between transition-all min-h-[220px] hover:border-border hover:bg-toota-inner/30 ${
                       isToday ? "ring-2 ring-zinc-400 dark:ring-zinc-600" : ""
                     }`}
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-sm font-bold text-toota-ink">
                           {dayItem.name}
                         </span>
@@ -677,7 +679,7 @@ export default function AdminStaffOperatingHoursView() {
                     <button
                       type="button"
                       onClick={() => handleOpenAddWorkingHour(dayItem.day)}
-                      className="w-full mt-5 py-2.5 px-3 bg-toota-inner hover:bg-toota-ink hover:text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                      className="w-full mt-5 py-2.5 px-3 bg-toota-inner text-toota-ink border border-border/50 hover:border-toota-lime hover:bg-toota-lime hover:text-toota-side rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <Plus className="size-3.5" />
                       <span>{t("configureDay")}</span>
@@ -692,7 +694,7 @@ export default function AdminStaffOperatingHoursView() {
               return (
                 <div
                   key={dayItem.day}
-                  className={`p-5 rounded-2xl border shadow-xs flex flex-col justify-between transition-all min-h-[220px] ${
+                  className={`min-w-0 p-5 rounded-2xl border shadow-xs flex flex-col justify-between transition-all min-h-[220px] ${
                     isClosed
                       ? "bg-toota-inner/35 border-border/70"
                       : "bg-card border-border/80 hover:border-emerald-500/40 hover:shadow-sm"
@@ -700,11 +702,11 @@ export default function AdminStaffOperatingHoursView() {
                 >
                   <div>
                     {/* Card Header */}
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm font-bold text-toota-ink">
                         {dayItem.name}
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {isToday && (
                           <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ring-emerald-200 dark:ring-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-2xs">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -734,13 +736,13 @@ export default function AdminStaffOperatingHoursView() {
                             {t("facilityClosed")}
                           </span>
                         </div>
-                        <p className="text-[11px] text-toota-muted pl-6">
+                        <p className="text-[11px] text-toota-muted ps-6">
                           {t("allDayLong")}
                         </p>
                       </div>
                     ) : (
                       <div className="mt-4 p-3 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-500/15 space-y-2">
-                        <div className="flex items-center justify-between gap-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
                             <Clock className="size-4 shrink-0" />
                             <span className="text-sm font-extrabold font-mono tracking-tight">
@@ -762,11 +764,11 @@ export default function AdminStaffOperatingHoursView() {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between">
+                  <div className="mt-5 pt-3 border-t border-border/50 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[11px] text-toota-muted font-medium">
                       {isClosed ? t("noCheckinAllowed", "Rest day") : t("staffedHours", "Standard check-in")}
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="ms-auto flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         onClick={() => handleOpenEditWorkingHour(wh)}
@@ -821,13 +823,13 @@ export default function AdminStaffOperatingHoursView() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               {/* Search by date */}
               <div className="md:col-span-8 relative">
-                <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                <Search className="size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                 <input
                   type="text"
                   placeholder={t("searchClosuresPlaceholder")}
                   value={searchDate}
                   onChange={(e) => setSearchDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-toota-inner border border-border/50 rounded-xl text-xs font-medium text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 transition-all"
+                  className="min-w-0 w-full ps-10 pe-4 py-2 bg-toota-inner border border-border/50 rounded-xl text-xs font-medium text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 transition-all"
                 />
               </div>
 
@@ -839,7 +841,7 @@ export default function AdminStaffOperatingHoursView() {
                   onChange={(e) =>
                     setClosureFilter(e.target.value as "ALL" | "UPCOMING" | "PAST")
                   }
-                  className="w-full px-3 py-2 bg-toota-inner border border-border/50 rounded-xl text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-2 focus:ring-amber-500/20"
+                  className="min-w-0 w-full px-3 py-2 bg-toota-inner border border-border/50 rounded-xl text-xs font-medium text-toota-ink focus:outline-hidden focus:ring-2 focus:ring-amber-500/20"
                 >
                   <option value="ALL">{t("allClosures")}</option>
                   <option value="UPCOMING">{t("upcomingClosures")}</option>
@@ -871,7 +873,7 @@ export default function AdminStaffOperatingHoursView() {
               </Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 @min-[48rem]/hours:grid-cols-2 @min-[78rem]/hours:grid-cols-3 gap-5">
               {filteredSpecialHours.map((sh) => {
                 const isAllDay = !sh.startTime && !sh.endTime;
                 const startDate = sh.startDate
@@ -892,7 +894,7 @@ export default function AdminStaffOperatingHoursView() {
                 return (
                   <Card
                     key={sh.id}
-                    className={`toota-card border-none p-5 flex flex-col justify-between transition-all ${
+                    className={`toota-card min-w-0 border-none p-5 flex flex-col justify-between transition-all ${
                       isCurrent
                         ? "ring-2 ring-amber-500/50 shadow-md"
                         : ""
@@ -900,7 +902,7 @@ export default function AdminStaffOperatingHoursView() {
                   >
                     <div>
                       {/* Top Badges */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         {isAllDay ? (
                           <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
                             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
@@ -932,12 +934,12 @@ export default function AdminStaffOperatingHoursView() {
                       </div>
 
                       {/* Date Range Display */}
-                      <div className="mt-4 flex items-center gap-2 text-toota-ink font-semibold text-sm">
+                      <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 text-toota-ink font-semibold text-sm">
                         <Calendar className="size-4 text-amber-600 shrink-0" />
                         <span>{startDate}</span>
                         {isMultiDay && (
                           <>
-                            <ArrowRight className="size-3.5 text-toota-muted" />
+                            <ArrowRight className="size-3.5 shrink-0 text-toota-muted rtl:rotate-180" />
                             <span>{endDate}</span>
                           </>
                         )}

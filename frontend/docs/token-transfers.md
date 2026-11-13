@@ -1,6 +1,6 @@
 # Sending GymToken
 
-Member and gym-owner marketplace screens have a **Send G** tab. Enter the recipient's Sepolia wallet and a positive token amount, review both, and confirm the wallet signature. The shared `useTokenTransfer` hook checks the address, decimal precision, current balance, wallet account and network before submitting.
+Member and club-admin marketplace screens have a **Send G** tab. Enter the recipient's Sepolia wallet and a positive token amount, review both, and confirm the wallet signature. The shared `useTokenTransfer` hook checks the address, decimal precision, current balance, wallet account and network before submitting.
 
 Transfers call the existing ERC-20 `transfer(recipient, amount)` through the trusted forwarder. The connected holder signs; the relayer pays gas. The contract debits the signing holder's balance using ERC2771 context. No contract redeployment or new environment variables are required.
 

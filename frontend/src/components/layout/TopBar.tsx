@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   User,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
@@ -19,11 +21,15 @@ import { useTranslation } from "react-i18next";
 interface TopBarProps {
   onToggleMobileSidebar: () => void;
   isMobileSidebarOpen: boolean;
+  onToggleDesktopSidebar: () => void;
+  isDesktopSidebarCollapsed: boolean;
 }
 
 export default function TopBar({
   onToggleMobileSidebar,
   isMobileSidebarOpen,
+  onToggleDesktopSidebar,
+  isDesktopSidebarCollapsed,
 }: TopBarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -168,6 +174,24 @@ export default function TopBar({
     <header className="sticky top-0 z-30 w-full px-6 py-4 bg-toota-main/80 backdrop-blur-md transition-colors flex items-center justify-between gap-4 border-b border-black/5 dark:border-white/5">
       {/* Left: Mobile hamburger toggle & contextual heading */}
       <div className="flex items-center gap-3 min-w-0">
+        {role === "Admin" && (
+          <button
+            type="button"
+            onClick={onToggleDesktopSidebar}
+            aria-controls="desktop-sidebar"
+            aria-expanded={!isDesktopSidebarCollapsed}
+            aria-label={t(isDesktopSidebarCollapsed ? "showSidebar" : "hideSidebar")}
+            title={t(isDesktopSidebarCollapsed ? "showSidebar" : "hideSidebar")}
+            className="hidden lg:inline-flex shrink-0 items-center justify-center p-2 rounded-full text-toota-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isDesktopSidebarCollapsed ? (
+              <PanelLeftOpen className="w-5 h-5 rtl:rotate-180" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5 rtl:rotate-180" aria-hidden="true" />
+            )}
+          </button>
+        )}
+
         {/* Mobile Sidebar Hamburger Toggle */}
         <button
           type="button"

@@ -202,6 +202,7 @@ export default function CustomSelect({
             role="listbox"
             aria-label={ariaLabel}
             style={{
+              background: "var(--popover)",
               position: "fixed",
               top: coords.openUpwards ? undefined : `${coords.top}px`,
               bottom: coords.openUpwards

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, useId } from "react";
 import {
   Bell,
   CheckCheck,
@@ -37,6 +37,7 @@ export default function NotificationDropdown() {
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownId = useId();
 
   // Fetch notifications
   const loadNotifications = useCallback(
@@ -163,14 +164,16 @@ export default function NotificationDropdown() {
 
   return (
     <>
-      <div ref={containerRef} className="relative">
+      <div ref={containerRef} className="static sm:relative">
         {/* Notification Bell Button */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           aria-label={t("notifications", "Notifications")}
+          aria-expanded={isOpen}
+          aria-controls={isOpen ? dropdownId : undefined}
           title={t("notifications", "Notifications")}
-          className="p-2.5 hover:bg-toota-inner rounded-full text-toota-muted hover:text-toota-ink transition-all relative cursor-pointer"
+          className="p-2.5 hover:bg-muted rounded-full text-toota-muted hover:text-toota-ink transition-colors relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Bell className="size-5" />
 
@@ -187,31 +190,37 @@ export default function NotificationDropdown() {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <Card className="toota-card border border-border/40 shadow-2xl p-0 overflow-hidden w-80 sm:w-96 flex flex-col z-50 absolute right-0 rtl:right-auto rtl:left-0 mt-2 animate-in fade-in-0 zoom-in-95 duration-150">
+          <Card
+            id={dropdownId}
+            role="region"
+            aria-label={t("notifications", "Notifications")}
+            className="rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl p-0 overflow-hidden w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-2rem)] flex flex-col z-50 absolute top-full end-4 sm:end-0 mt-3 animate-in fade-in-0 zoom-in-95 duration-150"
+          >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between bg-toota-inner/40">
-              <div className="flex items-center gap-2">
+            <div className="px-4 py-4 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-popover">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="font-bold text-sm text-toota-ink">
                   {t("notifications", "Notifications")}
                 </span>
                 {unreadCount > 0 ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-toota-lime text-toota-side tabular-nums">
                     {unreadCount} {t("unreadNotifications", "unread")}
                   </span>
                 ) : notifications.length > 0 ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-toota-inner text-toota-muted">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground tabular-nums">
                     {notifications.length}
                   </span>
                 ) : null}
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="ms-auto flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={() => loadNotifications(true)}
                   disabled={isLoading}
                   title={t("refresh", "Refresh")}
-                  className="p-1.5 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-toota-inner transition-colors cursor-pointer disabled:opacity-50"
+                  aria-label={t("refresh", "Refresh")}
+                  className="p-2 rounded-full text-muted-foreground hover:text-popover-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <RefreshCw
                     className={`size-3.5 ${isLoading ? "animate-spin" : ""}`}
@@ -223,7 +232,8 @@ export default function NotificationDropdown() {
                     type="button"
                     onClick={handleMarkAllAsRead}
                     title={t("markAllAsRead", "Mark all as read")}
-                    className="p-1.5 rounded-lg text-toota-muted hover:text-primary hover:bg-toota-inner transition-colors cursor-pointer"
+                    aria-label={t("markAllAsRead", "Mark all as read")}
+                    className="p-2 rounded-full text-muted-foreground hover:text-popover-foreground hover:bg-muted transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <CheckCheck className="size-3.5" />
                   </button>
@@ -232,10 +242,10 @@ export default function NotificationDropdown() {
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-border/20">
+            <div className="max-h-[min(380px,60vh)] overflow-y-auto custom-scrollbar divide-y divide-border">
               {notifications.length === 0 ? (
                 <div className="py-12 px-6 text-center flex flex-col items-center justify-center space-y-2.5">
-                  <div className="size-12 rounded-2xl bg-toota-inner flex items-center justify-center text-toota-muted shadow-inner">
+                  <div className="size-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
                     <Bell className="size-6 opacity-60" />
                   </div>
                   <p className="text-xs font-bold text-toota-ink">
@@ -250,48 +260,47 @@ export default function NotificationDropdown() {
                   const isItemUnread = !item.isRead;
 
                   return (
-                    <div
+                    <button
                       key={item.id}
+                      type="button"
                       onClick={() => handleItemClick(item)}
                       className={cn(
-                        "p-3.5 transition-colors cursor-pointer flex items-start gap-3 hover:bg-toota-inner/60",
+                        "w-full p-4 text-start transition-colors cursor-pointer flex items-start gap-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                         isItemUnread
-                          ? "bg-primary/[0.04] dark:bg-primary/[0.08]"
-                          : "bg-transparent"
+                          ? "bg-toota-lime/10"
+                          : "bg-popover"
                       )}
                     >
                       {/* Icon */}
-                      <div className="size-8 rounded-xl bg-toota-inner flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                      <span className="size-9 rounded-xl bg-muted flex items-center justify-center shrink-0 mt-0.5 ring-1 ring-border">
                         {getTypeIcon(item.notificationType)}
-                      </div>
+                      </span>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <h4
-                            className={cn(
-                              "text-xs truncate",
-                              isItemUnread
-                                ? "font-bold text-toota-ink"
-                                : "font-medium text-toota-ink/80"
-                            )}
-                          >
-                            {item.title}
-                          </h4>
-                          <span className="text-[10px] text-toota-muted shrink-0 font-medium">
-                            {formatTimeAgo(item.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-toota-muted mt-1 line-clamp-2 leading-relaxed">
+                      <span className="flex-1 min-w-0">
+                        <span
+                          className={cn(
+                            "block text-[13px] leading-5 line-clamp-2 [overflow-wrap:anywhere]",
+                            isItemUnread
+                              ? "font-bold text-toota-ink"
+                              : "font-medium text-toota-ink/80"
+                          )}
+                        >
+                          {item.title}
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed [overflow-wrap:anywhere]">
                           {item.message}
-                        </p>
-                      </div>
+                        </span>
+                        <span className="block mt-2 text-[10px] text-muted-foreground font-medium">
+                          {formatTimeAgo(item.createdAt)}
+                        </span>
+                      </span>
 
                       {/* Unread indicator dot */}
                       {isItemUnread && (
-                        <span className="size-2 rounded-full bg-primary shrink-0 mt-2 shadow-xs" />
+                        <span className="size-2 rounded-full bg-toota-green shrink-0 mt-2" />
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}
@@ -299,7 +308,7 @@ export default function NotificationDropdown() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-2 border-t border-border/40 bg-toota-inner/20 text-center">
+              <div className="px-4 py-3 border-t border-border bg-popover text-center">
                 <span className="text-[10px] text-toota-muted font-medium">
                   Showing latest {notifications.length} alerts
                 </span>

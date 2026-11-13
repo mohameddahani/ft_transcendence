@@ -327,7 +327,7 @@ export default function StaffDetailPage() {
                 type="button"
                 disabled={isActionLoading}
                 onClick={handleMakeActive}
-                className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer"
+                className="h-[46px] gap-2 rounded-full border-emerald-700 bg-emerald-700 px-5 text-[13px] font-semibold text-white shadow-xs hover:border-emerald-800 hover:bg-emerald-800 hover:text-white focus-visible:border-emerald-600 focus-visible:ring-emerald-600/30 cursor-pointer"
               >
                 <ShieldCheck className="size-3.5 me-2" />
                 <span>{t("activateStaff") || "Activate"}</span>
@@ -340,7 +340,7 @@ export default function StaffDetailPage() {
                 variant="outline"
                 disabled={isActionLoading}
                 onClick={handleMakePending}
-                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-amber-600 dark:text-amber-400 cursor-pointer"
+                className="h-[46px] gap-2 rounded-full border-amber-300 bg-amber-50 px-5 text-[13px] font-semibold text-amber-900 shadow-xs hover:border-amber-400 hover:bg-amber-100 hover:text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:border-amber-600 dark:hover:bg-amber-900 dark:hover:text-amber-100 focus-visible:border-amber-500 focus-visible:ring-amber-500/40 cursor-pointer"
               >
                 <Clock className="size-3.5 me-2" />
                 <span>{t("setToPending") || "Pending"}</span>
@@ -353,7 +353,7 @@ export default function StaffDetailPage() {
                 variant="outline"
                 disabled={isActionLoading}
                 onClick={handleBan}
-                className="toota-pill h-10 px-4 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                className="h-[46px] gap-2 rounded-full border-red-700 bg-red-700 px-5 text-[13px] font-semibold text-white shadow-xs hover:border-red-800 hover:bg-red-800 hover:text-white focus-visible:border-red-600 focus-visible:ring-red-600/30 cursor-pointer"
               >
                 <Ban className="size-3.5 me-2" />
                 <span>{t("banStaff") || "Ban Staff"}</span>

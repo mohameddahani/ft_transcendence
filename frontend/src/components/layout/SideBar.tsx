@@ -30,12 +30,14 @@ import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
 import { SportiumIcon } from "@/components/brand/SportiumLogo";
 
 interface SideBarProps {
+  isDesktopCollapsed: boolean;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
   onQuickAction?: () => void;
 }
 
 export default function SideBar({
+  isDesktopCollapsed,
   isMobileOpen,
   onCloseMobile,
   onQuickAction,
@@ -467,7 +469,10 @@ export default function SideBar({
   return (
     <>
       {/* Desktop Fixed SideBar: Width 256px (w-64) */}
-      <aside className="fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 bg-toota-side hidden lg:flex flex-col z-40 shadow-xl">
+      <aside
+        id="desktop-sidebar"
+        className={`fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 bg-toota-side hidden ${isDesktopCollapsed ? "" : "lg:flex"} flex-col z-40 shadow-xl`}
+      >
         {renderContent()}
       </aside>
 

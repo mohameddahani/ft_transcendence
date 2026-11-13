@@ -215,20 +215,25 @@ export default function DurationModal({
             <label className="block text-xs font-semibold uppercase tracking-wider text-toota-muted">
               {t("quickPresets", { defaultValue: "Quick Presets" })}
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div
+              role="group"
+              aria-label={t("quickPresets", { defaultValue: "Quick Presets" })}
+              className="grid grid-cols-4 gap-2"
+            >
               {presets.map((preset) => {
                 const isSelected = durationDays === preset.days;
                 return (
                   <button
                     key={preset.days}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => {
                       setValue("durationDays", preset.days, { shouldValidate: true });
                     }}
-                    className={`h-8 rounded-lg text-xs font-medium cursor-pointer transition-all border ${
+                    className={`h-8 rounded-lg text-xs font-medium cursor-pointer transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-toota-main ${
                       isSelected
-                        ? "bg-toota-side text-white border-toota-side font-semibold"
-                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink"
+                        ? "bg-toota-lime text-toota-side border-toota-lime font-semibold shadow-xs"
+                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink hover:bg-toota-lime/15 hover:border-toota-lime"
                     }`}
                   >
                     {preset.label}

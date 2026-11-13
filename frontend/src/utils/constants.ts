@@ -13,7 +13,7 @@ export const authRoutes = {
 export const loginOptions = [
   {
     href: authRoutes.adminLogin,
-    label: "Club admin or owner",
+    label: "Club admin",
     description: "Sign in with your email",
   },
   {

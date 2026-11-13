@@ -353,7 +353,7 @@ function AdminStaffFeedbackView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="@container/feedback flex w-full flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Top Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -545,16 +545,16 @@ function AdminStaffFeedbackView() {
       </div>
 
       {/* Feedback Feed Cards List */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 @min-[48rem]/feedback:grid-cols-2 @min-[78rem]/feedback:grid-cols-3 items-start gap-4">
         {isLoading ? (
-          <Card className="toota-card border-none p-16 text-center">
+          <Card className="toota-card col-span-full border-none p-16 text-center">
             <Loader2 className="size-8 animate-spin text-toota-ink mx-auto mb-3" />
             <p className="font-medium text-toota-ink text-sm">
               {t("loadingFeedback") || "Loading member feedback roster..."}
             </p>
           </Card>
         ) : feedbacks.length === 0 ? (
-          <Card className="toota-card border-none p-16 text-center space-y-3">
+          <Card className="toota-card col-span-full border-none p-16 text-center space-y-3">
             <div className="size-14 rounded-2xl bg-toota-inner flex items-center justify-center mx-auto text-toota-muted">
               <Inbox className="size-7 opacity-50" />
             </div>
@@ -573,7 +573,7 @@ function AdminStaffFeedbackView() {
             const fullName =
               `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
               member?.userName ||
-              "Member";
+              t("member");
             const initials =
               ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() ||
               member?.userName?.slice(0, 2).toUpperCase() ||
@@ -599,30 +599,30 @@ function AdminStaffFeedbackView() {
             return (
               <Card
                 key={item.id}
-                className="toota-card border-none p-5 space-y-4 hover:border-border/80 transition-all group"
+                className="min-w-0 rounded-2xl border border-border bg-card p-4 space-y-3 shadow-xs"
               >
                 {/* Card Top Row: Member info, Rating, Mismatch, Sentiment & Status */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="size-10 ring-1 ring-border/40 shrink-0">
+                <div className="flex flex-wrap items-start justify-between gap-2.5">
+                  <div className="flex min-w-0 max-w-full items-center gap-2">
+                    <Avatar className="size-8 ring-1 ring-border shrink-0">
                       {photo && (
                         <AvatarImage src={photo} alt={fullName} />
                       )}
-                      <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
+                      <AvatarFallback className="bg-background text-toota-ink font-semibold text-xs">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-toota-ink">
+                        <span className="font-semibold text-[13px] text-toota-ink [overflow-wrap:anywhere]">
                           {fullName}
                         </span>
-                        <span className="text-[11px] text-toota-muted font-normal">
+                        <span className="text-xs text-muted-foreground font-normal">
                           • {submittedDate}
                         </span>
                       </div>
                       {member?.userName && (
-                        <p className="text-[11px] font-mono text-toota-muted truncate">
+                        <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
                           @{member.userName}
                         </p>
                       )}
@@ -630,23 +630,24 @@ function AdminStaffFeedbackView() {
                   </div>
 
                   {/* Rating Stars, Mismatch Warning, Sentiment Badge & Status Pill */}
-                  <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                  <div className="flex max-w-full items-center gap-2 flex-wrap">
                     {/* Stars */}
-                    <div className="flex items-center gap-1 bg-toota-inner px-2 py-1 rounded-lg border border-border/40">
+                    <div className="flex max-w-full flex-wrap items-center gap-1.5">
                       <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`size-3 ${
+                            aria-hidden="true"
+                            className={`size-3.5 ${
                               star <= item.rating
-                                ? "text-amber-400 fill-amber-400"
-                                : "text-zinc-300 dark:text-zinc-700"
+                                ? "text-amber-600 fill-amber-600 dark:text-amber-400 dark:fill-amber-400"
+                                : "text-muted-foreground"
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-xs font-semibold text-toota-ink ml-1 font-mono">
-                        {item.rating}.0
+                      <span className="text-xs font-semibold text-toota-ink ms-1 tabular-nums">
+                        {item.rating} / 5
                       </span>
                     </div>
 
@@ -657,8 +658,8 @@ function AdminStaffFeedbackView() {
                         className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-amber-200 dark:ring-amber-900/40 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
                       >
                         <AlertTriangle className="size-3 text-amber-500 shrink-0" />
-                        <span className="hidden sm:inline">
-                          {t("starsDisagreeHint") || "Rating discrepancy"}
+                        <span>
+                          {t("mismatch")}
                         </span>
                       </span>
                     )}
@@ -672,37 +673,37 @@ function AdminStaffFeedbackView() {
                 </div>
 
                 {/* Member Review Body (Immutable) */}
-                <div className="p-3.5 rounded-xl bg-toota-inner text-xs text-toota-ink leading-relaxed border border-border/40">
-                  <p className="font-normal">
-                    &quot;{item.content}&quot;
+                <div className="min-w-0">
+                  <p dir="auto" className="text-[13px] text-toota-ink leading-5 whitespace-pre-wrap [overflow-wrap:anywhere] line-clamp-3">
+                    {item.content}
                   </p>
                 </div>
 
                 {/* Resolution Note Callout (If resolved or note exists) */}
                 {item.resolutionNote && (
-                  <div className="p-3.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1 text-xs">
-                    <div className="flex items-center justify-between font-semibold text-emerald-700 dark:text-emerald-300">
-                      <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                  <div className="p-2.5 rounded-lg bg-background border border-border border-s-2 border-s-emerald-500 space-y-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 font-semibold text-emerald-800 dark:text-emerald-300">
+                      <span className="flex items-center gap-2 text-xs">
+                        <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0" />
                         {t("resolutionNoteShort", "Resolution Note")}
                       </span>
                       {item.resolvedAt && (
-                        <span className="text-[10px] text-toota-muted font-normal font-mono">
+                        <span className="text-xs text-muted-foreground font-normal">
                           {t("resolvedOn", "Resolved on")} {new Date(item.resolvedAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>
-                    <p className="text-toota-ink/90 leading-relaxed text-[11px]">
+                    <p dir="auto" className="text-xs text-toota-ink leading-5 whitespace-pre-wrap [overflow-wrap:anywhere] line-clamp-2">
                       {item.resolutionNote}
                     </p>
                   </div>
                 )}
 
                 {/* Card Action Row */}
-                <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs">
-                  <div className="flex items-center gap-1.5 text-toota-muted text-[11px]">
-                    <Lock className="size-3 opacity-60 shrink-0" />
-                    <span>{t("memberSubmissionImmutable", "Member submission immutable")}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border">
+                  <div title={t("memberSubmissionImmutable")} className="flex items-center gap-2 text-muted-foreground text-xs">
+                    <Lock aria-hidden="true" className="size-3.5 shrink-0" />
+                    <span className="sr-only">{t("memberSubmissionImmutable", "Member submission immutable")}</span>
                   </div>
 
                   <Button
@@ -712,10 +713,10 @@ function AdminStaffFeedbackView() {
                       setSelectedFeedback(item);
                       setIsResolveModalOpen(true);
                     }}
-                    className={`toota-pill h-8 px-3.5 text-xs font-semibold cursor-pointer ${
+                    className={`min-h-8 h-auto max-w-full rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-normal text-start cursor-pointer ${
                       isResolved
-                        ? "border-border/50 hover:bg-toota-inner text-toota-ink"
-                        : ""
+                        ? "border-border bg-background hover:bg-muted text-toota-ink"
+                        : "bg-toota-lime text-zinc-950 hover:bg-toota-lime/85"
                     }`}
                   >
                     <span>
@@ -723,7 +724,7 @@ function AdminStaffFeedbackView() {
                         ? t("editResolutionNote") || "Edit Resolution Note"
                         : t("reviewAndResolve") || "Review & Resolve"}
                     </span>
-                    <ChevronRight className="size-3.5 ms-1 rtl:rotate-180" />
+                    <ChevronRight aria-hidden="true" className="size-3.5 ms-1 rtl:rotate-180" />
                   </Button>
                 </div>
               </Card>

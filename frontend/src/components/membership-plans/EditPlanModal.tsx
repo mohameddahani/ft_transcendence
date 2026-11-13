@@ -211,18 +211,23 @@ export default function EditPlanModal({
             </div>
 
             {/* Quick Preset Buttons 1 to 7 */}
-            <div className="grid grid-cols-7 gap-1.5">
+            <div
+              role="group"
+              aria-label={t("weeklyVisitLimit")}
+              className="grid grid-cols-7 gap-1.5"
+            >
               {visitPresets.map((limit) => {
                 const isSelected = weeklyVisitLimit === limit;
                 return (
                   <button
                     key={limit}
                     type="button"
+                    aria-pressed={isSelected}
                     onClick={() => setValue("weeklyVisitLimit", limit, { shouldValidate: true })}
-                    className={`h-8 sm:h-9 rounded-lg text-xs font-medium cursor-pointer transition-all border ${
+                    className={`h-8 sm:h-9 rounded-lg text-xs font-medium cursor-pointer transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-toota-main ${
                       isSelected
-                        ? "bg-toota-side text-white border-toota-side font-semibold shadow-xs"
-                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink hover:bg-toota-card"
+                        ? "bg-toota-lime text-toota-side border-toota-lime font-semibold shadow-xs"
+                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink hover:bg-toota-lime/15 hover:border-toota-lime"
                     }`}
                   >
                     {limit}

@@ -334,14 +334,14 @@ export default function MemberFeedbackView() {
     const s = (statusStr || "").toUpperCase();
     if (s === "RESOLVED") {
       return (
-        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+        <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-emerald-600/20 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:border-emerald-400/25 dark:bg-emerald-950 dark:text-emerald-200">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
           <span>{t("statusResolved") || "Resolved"}</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+      <span className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-amber-600/20 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:border-amber-400/25 dark:bg-amber-950 dark:text-amber-200">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
         <span>{t("statusUnderReview") || "Under Review"}</span>
       </span>
@@ -349,7 +349,7 @@ export default function MemberFeedbackView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="@container/feedback flex w-full flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* 1. Header Card (shadcn Card with Baseline Metric) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -515,34 +515,36 @@ export default function MemberFeedbackView() {
           {/* Top Row: Scope Tabs & Search Box */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Scope Switch */}
-            <div className="flex items-center gap-2 p-1 rounded-2xl bg-toota-inner w-full sm:w-auto">
+            <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl border border-border bg-background w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
-                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                aria-pressed={activeTab === "all"}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeTab === "all"
-                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
-                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                    ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
+                    : "bg-card border-border text-toota-ink hover:bg-toota-lime/10 hover:border-toota-lime"
                 }`}
               >
                 <span>{t("allFeedbacks") || "All Reviews"}</span>
-                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
-                  ({stats.total})
+                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "all" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+                  {stats.total}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("mine")}
-                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                aria-pressed={activeTab === "mine"}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeTab === "mine"
-                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
-                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                    ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
+                    : "bg-card border-border text-toota-ink hover:bg-toota-lime/10 hover:border-toota-lime"
                 }`}
               >
                 <span>{t("myFeedbacks") || "My Reviews"}</span>
-                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
-                  ({stats.myCount})
+                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "mine" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+                  {stats.myCount}
                 </span>
               </button>
             </div>
@@ -682,13 +684,13 @@ export default function MemberFeedbackView() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 @min-[48rem]/feedback:grid-cols-2 @min-[78rem]/feedback:grid-cols-3 items-start gap-4">
           {displayFeedbacks.map((item, idx) => {
             const isOwn = Boolean(user?.id && item.member?.id === user.id);
             const memberName =
               `${item.member?.firstName || ""} ${item.member?.lastName || ""}`.trim() ||
               item.member?.userName ||
-              "Gym Member";
+              t("member");
             const initials =
               ((item.member?.firstName?.[0] || "") + (item.member?.lastName?.[0] || "")).toUpperCase() ||
               item.member?.userName?.slice(0, 2).toUpperCase() ||
@@ -714,29 +716,29 @@ export default function MemberFeedbackView() {
             return (
               <Card
                 key={item.id || `feedback-${idx}`}
-                className="toota-card border-none flex flex-col justify-between"
+                className="min-w-0 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-xs flex flex-col gap-3"
               >
-                <CardHeader className="p-0 pb-3 flex flex-row items-start justify-between gap-3 space-y-0">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Avatar className="size-10 ring-1 ring-border/40 shrink-0">
+                <CardHeader className="p-0 flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar className="size-8 ring-1 ring-border shrink-0">
                       {photo && <AvatarImage src={photo} alt={memberName} />}
-                      <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
+                      <AvatarFallback className="bg-background text-toota-ink font-semibold text-xs">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
 
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-toota-ink truncate">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[13px] font-semibold text-toota-ink [overflow-wrap:anywhere]">
                           {memberName}
                         </p>
                         {isOwn && (
-                          <span className="inline-flex items-center rounded-md px-1.5 py-0.2 text-[10px] font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 text-zinc-600 dark:text-zinc-400">
-                            {t("you") || "You"}
+                          <span className="inline-flex items-center rounded-md border border-border bg-background px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                            {t("yourReview")}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-toota-muted mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {formattedDate}
                       </p>
                     </div>
@@ -745,63 +747,67 @@ export default function MemberFeedbackView() {
                   {renderStatusBadge(item.feedbackStatus)}
                 </CardHeader>
 
-                <CardContent className="p-0 py-2 space-y-2.5 flex-1">
+                <CardContent className="min-w-0 p-0 space-y-2.5">
                   {/* Star Rating */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex w-fit max-w-full flex-wrap items-center gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
+                        aria-hidden="true"
                         className={`size-3.5 ${
                           star <= item.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-muted-foreground/30"
+                            ? "fill-amber-600 text-amber-600 dark:fill-amber-400 dark:text-amber-400"
+                            : "text-muted-foreground"
                         }`}
                       />
                     ))}
-                    <span className="text-xs font-mono font-semibold text-toota-ink ms-1">
-                      {item.rating}.0
+                    <span className="text-xs tabular-nums font-semibold text-toota-ink ms-1">
+                      {item.rating} / 5
                     </span>
                   </div>
 
-                  {/* Quoted Feedback Text */}
-                  <p className="text-xs text-toota-ink italic leading-relaxed line-clamp-3">
-                    &ldquo;{item.content}&rdquo;
+                  {/* Review preview; Details shows the full message. */}
+                  <p dir="auto" className="text-[13px] leading-5 text-toota-ink whitespace-pre-wrap [overflow-wrap:anywhere] line-clamp-3">
+                    {item.content}
                   </p>
 
                   {/* Management Response Snippet if resolved */}
                   {item.resolutionNote && (
-                    <div className="p-3 rounded-xl bg-toota-inner border border-emerald-500/20 space-y-1">
-                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        <ShieldCheck className="size-3.5 shrink-0" />
+                    <div className="p-2.5 rounded-lg bg-background border border-border border-s-2 border-s-emerald-500 space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                        <ShieldCheck aria-hidden="true" className="size-3.5 shrink-0" />
                         <span>{t("managementResponse") || "Management Response"}</span>
                       </div>
-                      <p className="text-xs text-toota-muted line-clamp-2">
+                      <p dir="auto" className="text-xs leading-5 text-toota-ink whitespace-pre-wrap [overflow-wrap:anywhere] line-clamp-2">
                         {item.resolutionNote}
                       </p>
                     </div>
                   )}
                 </CardContent>
 
-                <CardFooter className="p-0 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                <CardFooter className="p-0 pt-2.5 border-t border-border flex flex-wrap items-center justify-between gap-3">
                   {/* Like Button */}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => handleToggleLike(item.id)}
-                    className={`toota-pill h-8 px-3 text-xs font-semibold cursor-pointer ${
+                    aria-label={t("feedbackLikeAction")}
+                    aria-pressed={isLiked}
+                    className={`h-8 rounded-lg px-3 text-xs font-semibold cursor-pointer ${
                       isLiked
                         ? "border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20"
-                        : "border-border/40 text-toota-muted hover:text-toota-ink hover:bg-toota-inner"
+                        : "border-border bg-background text-toota-ink hover:bg-muted"
                     }`}
                   >
                     <Heart
+                      aria-hidden="true"
                       className={`size-3.5 me-1.5 ${isLiked ? "fill-rose-500 text-rose-500" : ""}`}
                     />
                     <span>{likeCount}</span>
                   </Button>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       variant="ghost"
@@ -810,9 +816,9 @@ export default function MemberFeedbackView() {
                         setSelectedFeedback(item);
                         setIsDetailModalOpen(true);
                       }}
-                      className="h-8 px-2.5 text-xs font-semibold text-toota-ink hover:bg-toota-inner rounded-full cursor-pointer"
+                      className="h-8 border border-border bg-background px-3 text-xs font-semibold text-toota-ink hover:bg-muted rounded-lg cursor-pointer"
                     >
-                      <Eye className="size-3.5 me-1" />
+                      <Eye aria-hidden="true" className="size-3.5 me-1" />
                       <span>{t("viewDetails") || "Details"}</span>
                     </Button>
 
@@ -822,9 +828,10 @@ export default function MemberFeedbackView() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeletingFeedback(item)}
-                        className="h-8 w-8 p-0 text-toota-muted hover:text-toota-red hover:bg-destructive/10 rounded-full cursor-pointer"
+                        aria-label={t("deleteFeedback")}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg cursor-pointer"
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 aria-hidden="true" className="size-3.5" />
                       </Button>
                     )}
                   </div>

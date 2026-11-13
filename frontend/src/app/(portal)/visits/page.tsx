@@ -296,36 +296,38 @@ export default function MemberVisitsPage() {
       </div>
 
       {/* 3. Segmented Navigation Tabs */}
-      <div className="p-1 rounded-2xl bg-toota-inner border border-border/40 inline-flex items-center gap-1 max-w-full overflow-x-auto">
+      <div className="grid w-full min-[480px]:grid-cols-2 sm:w-fit gap-1.5 self-start rounded-2xl border border-border bg-background p-1.5">
         <button
           type="button"
           onClick={() => setActiveTab("upcoming")}
-          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+          aria-pressed={activeTab === "upcoming"}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             activeTab === "upcoming"
-              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
-              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
+              ? "border-toota-lime bg-toota-lime text-zinc-950 shadow-xs"
+              : "border-border bg-card text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
           }`}
         >
-          <Calendar className="size-3.5" />
+          <Calendar aria-hidden="true" className="size-4 shrink-0" />
           <span suppressHydrationWarning>{t("upcomingVisits", "Upcoming Visits")}</span>
-          <span className="font-mono text-[11px] tabular-nums opacity-75">
-            ({upcomingVisits.length})
+          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "upcoming" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+            {upcomingVisits.length}
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("today")}
-          className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
+          aria-pressed={activeTab === "today"}
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             activeTab === "today"
-              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
-              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
+              ? "border-toota-lime bg-toota-lime text-zinc-950 shadow-xs"
+              : "border-border bg-card text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
           }`}
         >
-          <Clock className="size-3.5" />
+          <Clock aria-hidden="true" className="size-4 shrink-0" />
           <span suppressHydrationWarning>{t("todaysVisits", "Today's Schedule")}</span>
-          <span className="font-mono text-[11px] tabular-nums opacity-75">
-            ({todayVisits.length})
+          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "today" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+            {todayVisits.length}
           </span>
         </button>
       </div>
@@ -405,7 +407,7 @@ export default function MemberVisitsPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -424,7 +426,7 @@ export default function MemberVisitsPage() {
                           size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
+                          className="h-11 rounded-xl border-red-600 bg-red-600 px-4 text-sm font-semibold text-white hover:border-red-700 hover:bg-red-700 hover:text-white focus-visible:border-red-500 focus-visible:ring-red-500/50 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
                             <Loader2 className="size-3.5 animate-spin me-1" />
@@ -518,7 +520,7 @@ export default function MemberVisitsPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2">
                       <Button
                         type="button"
                         variant="outline"
@@ -537,14 +539,14 @@ export default function MemberVisitsPage() {
                           size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
+                          className="h-11 rounded-xl border-red-600 bg-red-600 px-4 text-sm font-semibold text-white hover:border-red-700 hover:bg-red-700 hover:text-white focus-visible:border-red-500 focus-visible:ring-red-500/50 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
                             <Loader2 className="size-3.5 animate-spin me-1" />
                           ) : (
                             <Ban className="size-3.5 me-1" />
                           )}
-                          <span suppressHydrationWarning>{t("cancel", "Cancel")}</span>
+                          <span suppressHydrationWarning>{t("cancelVisit", "Cancel Visit")}</span>
                         </Button>
                       )}
                     </div>

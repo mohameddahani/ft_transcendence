@@ -136,7 +136,7 @@ export default function RegisterForm() {
       wide
     >
       {/* Form Header */}
-      <PortalBadge icon={<Building2 className="size-3.5" aria-hidden="true" />} label={t("registerBadge", "For club owners")} />
+      <PortalBadge icon={<Building2 className="size-3.5" aria-hidden="true" />} label={t("registerBadge", "For club admins")} />
       <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">{t("adminSignUp", "Admin Sign Up")}</h1>
       <p className={`mt-2 text-sm leading-6 ${muted}`}>
         {t("adminSignUpDesc", "Configure your enterprise dashboard and scale your fitness brand.")}
