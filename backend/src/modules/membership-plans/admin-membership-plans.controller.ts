@@ -2,6 +2,7 @@ import { AddMembershipPlanDto } from './dtos/add-membership-plan.dto';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -81,6 +82,32 @@ export class AdminMembershipPlansController {
       accessTokenPayload.id,
       id,
       body,
+    );
+  }
+
+  // * Delete a Membership Plan Duration
+  @Delete('durations/:id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  removeMembershipPlanDuration(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membershipPlansService.removeMembershipPlanDuration(
+      accessTokenPayload.id,
+      id,
+    );
+  }
+
+  // * Delete a Membership Plan
+  @Delete(':id')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  removeMembershipPlan(
+    @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.membershipPlansService.removeMembershipPlan(
+      accessTokenPayload.id,
+      id,
     );
   }
 

@@ -1,0 +1,694 @@
+DRAFT FOR REVIEW - NOT READY FOR PUBLICATION
+
+This draft describes behavior found in the reviewed backend. It is not a claim
+of legal compliance. Complete all [TO CONFIRM: ...] items and review the final
+wording before publication. Section 3 contains internal review notes and should
+not be published as part of the public policies.
+
+==========================================================================
+1. PRIVACY POLICY
+==========================================================================
+
+Effective date: [TO CONFIRM: effective date]
+Service name: [TO CONFIRM: public service name and website]
+Operator: [TO CONFIRM: legal operator name and registered address]
+Privacy contact: [TO CONFIRM: monitored privacy email or request channel]
+
+1.1 About this policy
+
+This policy explains how we process information through our club management
+service. The service supports club administration, staff and member accounts,
+membership records, visit bookings, attendance, payment records, and feedback.
+Clubs use a separate platform subscription to access management features.
+
+In this policy, "we" means the operator identified above. A platform owner
+account is an administrative role in the service; that role does not by itself
+identify the legal operator. [TO CONFIRM: the privacy responsibilities of the
+operator and each club, including who handles requests about club records.]
+
+This draft is based on a backend review only. Website analytics, browser
+storage, tracking, additional cookies, third-party scripts, and other frontend
+data collection are unverified. [TO CONFIRM: complete those disclosures after
+a separate website and deployment review.]
+
+1.2 Information we process
+
+Depending on your role and the features used, the service processes:
+
+- Account information: first and last name, date of birth, gender, generated
+  username, email address, telephone number, company or club name, account
+  identifier, role, account status, profile image URL and image identifier,
+  and account creation and update dates. Administrator records also include
+  email verification status and a terms acceptance value.
+- Member information: address, emergency contact telephone number, club
+  administrator association, and the staff association recorded when relevant.
+  Club administrators and staff can enter and update member information.
+  Club administrators can enter and update staff information.
+- Authentication information: password hashes; session identifiers and refresh
+  token hashes; token expiry and revocation dates; verification, password
+  setup, password reset, and email change token hashes; token use dates; and
+  proposed new email addresses while an email change is pending.
+- Session and request information: IP address, browser user-agent information,
+  an inferred device description, and session creation and update dates.
+  Request logs include the request method, requested URL, IP address,
+  user-agent, and response status. URLs may include query information.
+- Membership and subscription information: selected plans and durations,
+  prices, start and expiry dates, status, club and member associations, and
+  expiry notification dates. Platform subscriptions also store an amount.
+- Payment records: member, club administrator and, where recorded, staff
+  associations, amount, payment date, and record creation and update dates.
+  The reviewed backend has no payment card or bank account fields and no
+  integrated payment checkout. [TO CONFIRM: any separate payment collection
+  methods and providers.]
+- Visits and attendance: booked date and time, booking expiry, booking status,
+  a hashed QR check-in token, related membership, attendance method, actual
+  check-in time, and relevant member, club and staff identifiers.
+- Feedback: text, rating, author and club associations, staff association,
+  likes linked to members, status, resolution notes, resolver identifier,
+  resolution date, and creation and update dates. Automated analysis can add
+  a positive, neutral, or negative sentiment label and a numerical score.
+- Notifications: recipient identifier, type, title, message, read status,
+  and creation date.
+- Wallet information: an optional Ethereum-compatible wallet address for
+  administrator and member accounts, where supplied.
+
+Some information comes directly from you. Some is entered by your club's
+administrator or staff, generated during service use, or returned by the
+sentiment analysis service. Emergency contacts may be people who do not hold
+an account. [TO CONFIRM: how those people receive privacy information.]
+
+1.3 Why we process information
+
+We use this information to create and manage accounts; verify email addresses;
+set, reset, and change passwords; confirm requested email changes; authenticate
+sessions; and apply role, account, and club access restrictions.
+
+We also use it to maintain club and emergency-contact records, administer
+memberships and platform subscriptions, record payments, apply member and
+weekly visit limits, manage opening hours and closures, book visits, and
+confirm attendance manually or using QR codes.
+
+Feedback information supports club discussions, likes, review and resolution
+of feedback, sentiment analysis, and summary statistics. Membership and
+subscription dates support in-service expiry reminders. Request and session
+information supports service operation, troubleshooting, and authentication.
+Club dashboards summarize account, membership, payment, attendance, visit,
+and feedback information where those statistics are available.
+
+Wallet information supports the reward integration described below.
+[TO CONFIRM: the applicable legal grounds for each processing purpose after
+the operator, operating locations, and relevant laws are established.]
+
+1.4 Who can access information
+
+- Platform owner accounts can view administrator account details and platform
+  subscription records, manage platform plans and subscriptions, and change
+  administrator account status.
+- Club administrators can manage their club's staff and members and access
+  club membership, payment, visit, and feedback records and statistics.
+  They can confirm attendance and manage club plans and operating hours.
+- Club staff can view and update members across their own club, including
+  member contact details, addresses, emergency contacts, and wallet addresses.
+  Their access is not limited to members they personally added. Staff can
+  manage member account status and memberships, view club payment records,
+  review feedback, view visits, and confirm attendance. Staff do not have
+  the administrator's staff-management or club-plan editing functions.
+- Members can view their own profile and supported membership, payment,
+  attendance, visit, and notification records, subject to access checks.
+  Available profile changes depend on the account role.
+
+Club management operations are scoped to the associated club administrator.
+Platform owner functions provide separate platform-level access. This does
+not establish the access available to database or hosting personnel.
+[TO CONFIRM: authorized operational personnel and their access procedures.]
+
+Feedback is shared within the club. Eligible members can read feedback from
+other members of the same club, including the author's identifier, name,
+username, profile image, and role. Related administrator and staff profile
+details, ratings, status, resolution notes, resolver identifiers, and dates
+are also returned. Members see like counts and whether they liked a post.
+Administrators and staff can also see sentiment labels and scores. Do not
+include confidential information in feedback or resolution notes.
+
+The club administrator's wallet address is also returned to a member when
+that member logs in. [TO CONFIRM: the intended disclosure and its explanation
+to administrators.]
+
+1.5 Service providers and other services
+
+The backend is configured to use the following services:
+
+- Email delivery: Resend in production and Gmail through Nodemailer in other
+  environments. The selected provider receives the recipient email address,
+  subject, sender details, and message content, including account action links
+  and the username in password setup messages.
+- Profile images: Cloudinary receives uploaded image files. The service stores
+  the returned image URL and identifier and uses Cloudinary-hosted default
+  avatars. Image URLs are included in profile information shared through the
+  service. [TO CONFIRM: image access settings and provider retention.]
+- Sentiment analysis: the configured sentiment service receives the full text
+  of submitted feedback. The request body contains the text, without separate
+  account identifiers or the rating. Personal information included in the text
+  is therefore included in the request. The backend saves returned sentiment
+  results and can retry analysis later when results are missing.
+- Reward integration: when a member's membership is created or replaced,
+  the backend sends a membership identifier and the member's wallet address,
+  if present, to the configured blockchain reward service.
+- Storage and hosting: account and operational records are stored in a
+  PostgreSQL database. Redis caches selected plan and club-hours information,
+  including related identifiers. [TO CONFIRM: production hosting, database,
+  cache, backup, and logging providers; their access; and storage locations.]
+
+[TO CONFIRM: actual provider deployments, identities of the sentiment and
+reward service operators, service agreements, provider retention, any further
+recipients, and any processing or transfers between countries.]
+
+The reward request alone does not show what is written to a blockchain. This
+backend review does not establish the network, public transaction details,
+which identifiers or addresses are published, or how the reward service
+stores, shares, or deletes information. [TO CONFIRM: these facts by reviewing
+the reward service before publishing a blockchain privacy disclosure.]
+
+1.6 Authentication cookies and tokens
+
+The backend sets a cookie named "refresh_token" at login and replaces it when
+a session is refreshed. It supports authentication. The cookie is configured
+as HttpOnly, SameSite=Strict, and restricted to the /api/auth path. Its Secure
+flag is enabled when the backend runs in production mode. Its lifetime follows
+the configured refresh token lifetime for the account role.
+[TO CONFIRM: deployed cookie lifetimes for each role and production settings.]
+
+The backend returns an access token to the client for authenticated requests.
+Where the website stores or handles that token was not reviewed. Blocking or
+removing the refresh cookie can prevent session refresh. The logout endpoint
+clears this cookie and revokes the submitted refresh token record. Password
+changes and password resets revoke existing refresh token sessions; these
+actions do not prove immediate invalidation of every existing access token.
+
+These statements describe the backend authentication cookie only. They do not
+establish whether other parts of the website use analytics, advertising,
+tracking, additional cookies, or browser storage.
+
+1.7 Retention and deletion
+
+[TO CONFIRM: retention periods and reasons for account, member, financial,
+attendance, visit, feedback, notification, authentication, log, backup, cache,
+and provider-held data, including records after service use ends.]
+
+Expiry or cancellation changes a membership, subscription, or visit status;
+it does not erase the record. Marking a notification as read also keeps the
+record. Token expiry or revocation does not by itself delete token records.
+
+A daily process attempts to remove unverified administrator accounts created
+at least seven days earlier. Related records can prevent deletion, so this
+is not a guaranteed deletion deadline or a general inactivity policy.
+
+The supported controls include removing or replacing a profile image and,
+for an eligible member, deleting that member's own feedback or removing a
+like. Deleting feedback also deletes its related likes from the service
+database. Image removal requests deletion from Cloudinary and restores a
+default avatar. These operations do not establish removal from backups,
+logs, caches, or other providers' systems.
+
+The reviewed backend has no general account deletion or complete personal
+data export function. [TO CONFIRM: the manual closure, export, and deletion
+process, including exceptions and provider follow-up.]
+
+1.8 Your information and privacy requests
+
+Accounts have supported profile viewing and editing functions. Password
+changes require the current password. Self-service email changes require the
+current password and verification of the new email address. Members can edit
+their telephone number, address, emergency contact, and optional wallet
+address through their profile; other corrections may require club assistance.
+
+Many member records and actions require an active member account and
+membership, as well as an active club administrator account and platform
+subscription. Access to those features may be unavailable after expiry or
+restriction. A missing self-service feature does not determine any rights
+you may have under applicable law.
+
+For questions or requests about your information, contact
+[TO CONFIRM: privacy contact and how to submit a request]. Identify the
+account and club concerned and describe the request. Do not send passwords,
+session tokens, wallet private keys, or recovery phrases.
+[TO CONFIRM: identity verification, request routing, response process and
+timelines, and rights or complaint routes under the laws that apply.]
+
+1.9 Age information and policy updates
+
+Administrator registration and staff creation enforce a minimum age of 18.
+Member creation enforces a minimum age of 13. These checks do not establish
+a complete policy for minors or any required parent or guardian involvement.
+[TO CONFIRM: permitted ages and the handling of minors' information.]
+
+[TO CONFIRM: how policy changes will be dated and communicated.]
+
+==========================================================================
+2. TERMS OF SERVICE
+==========================================================================
+
+Effective date: [TO CONFIRM: effective date]
+Service: [TO CONFIRM: public service name and website]
+Contracting operator: [TO CONFIRM: legal name and registered address]
+Contact: [TO CONFIRM: service support and contractual notices contact]
+
+2.1 Service and agreement
+
+The service provides club administration and member features, including
+accounts, club plans, memberships, platform subscriptions, payment records,
+opening hours, visit bookings, attendance, feedback, and notifications.
+Available functions depend on the account role and access requirements.
+
+Administrator registration requires a terms acceptance value and email
+verification before normal login. Members and staff receive accounts created
+by authorized club users and use emailed links to set their passwords.
+[TO CONFIRM: how these Terms are presented and accepted by every account
+type, which version applies, and the relationship to separate club contracts.]
+
+2.2 Accounts and responsibilities
+
+Provide accurate information and keep account contact details current. Keep
+passwords, account action links, access tokens, refresh tokens, and visit QR
+tokens private. Use only accounts and records you are authorized to access.
+Report suspected unauthorized account use to
+[TO CONFIRM: support or security reporting contact].
+
+The current age checks require administrators and staff to be at least 18
+and members to be at least 13. [TO CONFIRM: final age eligibility rules,
+contracting capacity, and any parent or guardian approval process.]
+
+Administrator and platform owner accounts log in with email and password.
+Staff and members log in with username and password. The service supports
+email-based password recovery and verification of self-service email changes.
+Pending or banned accounts are refused normal login and token refresh.
+
+2.3 Permitted use
+
+Use the service for authorized club administration and member activities.
+Do not impersonate another person, access another club's records without
+authorization, bypass access restrictions, falsify attendance or payment
+information, misuse another person's QR token, disrupt the service, or submit
+unlawful or abusive content. Upload and submit only information and images
+you are entitled to use and share.
+
+[TO CONFIRM: approval of these conduct rules, content reporting and moderation
+procedures, and the contractual consequences of violations.]
+
+2.4 Club administration and roles
+
+Platform owner accounts manage platform plans, administrator subscriptions,
+and administrator account status. Club administrators manage their club's
+staff, members, membership plans, operating hours, and special closures.
+Staff can manage members and operational records within their associated
+club. This includes members added by other staff in that club.
+
+Administrators should assign staff access only to appropriate people and
+check the accuracy of club records. Administrators and staff should have
+authority to enter member information, including emergency contacts and
+wallet addresses. [TO CONFIRM: the allocation of responsibilities between
+the operator and clubs, including club services and data handling.]
+
+2.5 Platform subscriptions
+
+A club administrator's platform subscription has a plan, duration, amount,
+start date, expiry date, and status. Plans include a maximum member count.
+An active account, subscription, and platform plan are required for many
+club operations. Subscription changes that exceed the selected plan's
+member capacity are refused.
+
+The implemented platform owner functions activate, replace, or cancel
+administrator subscriptions. Cancellation changes the subscription status
+immediately. Administrator subscription endpoints provide viewing functions,
+without a self-service cancellation action. A replacement subscription
+starts from the change time and marks the previous active subscription as
+expired. Scheduled processing marks expired subscriptions accordingly.
+
+The reviewed backend does not implement automatic renewal or recurring
+payment collection. [TO CONFIRM: ordering, renewal, payment, cancellation
+request procedures, price and currency disclosures, and treatment of unused
+time when changing or cancelling a subscription.]
+
+2.6 Club memberships and visits
+
+Club memberships are separate from the club's platform subscription.
+Administrators and staff create memberships when adding members and can
+assign replacement memberships. Each membership uses a plan and duration
+with an expiry date. A replacement starts from the change time and marks
+the previous active membership as expired. The backend has no member
+self-service membership purchase or membership cancellation function.
+[TO CONFIRM: club membership ordering, renewal, cancellation, and change
+policies, including any treatment of unused time.]
+
+Visit booking requires active member and club access covering the requested
+visit date. Bookings must be in the future and fit the club's recorded hours
+and closures. The system applies one non-cancelled visit per day and the
+membership plan's weekly visit limit. Missed or expired visits can still
+count toward those booking limits.
+
+Administrators and staff confirm attendance manually or by QR code against
+a visit for that day. The current check-in window begins 10 minutes before
+the booked time and ends 30 minutes after it. Daily and weekly attendance
+checks also apply. An eligible member can cancel their own visit while its
+status is READY. This changes the booking status and keeps the record.
+Cancelling a visit does not cancel a membership or platform subscription.
+
+2.7 Prices and payment records
+
+The service stores plan prices and payment records. Creating or replacing
+a member's membership automatically creates a payment record using the
+selected duration's price and the membership start time. This record alone
+does not establish that a payment was independently collected or verified.
+
+The reviewed backend does not provide a payment gateway, payment card
+processing, refund processing, or automatic recurring billing.
+[TO CONFIRM: who receives payment, supported payment methods, currency,
+taxes, invoicing, payment confirmation, corrections, refunds, credits,
+proration, and any cancellation charges or rights.]
+
+This draft does not set a non-refundable payment rule or promise a refund.
+Any applicable payment and cancellation terms must be confirmed and disclosed
+before publication and before a user agrees to a purchase.
+
+2.8 Wallets and rewards
+
+Administrator and member accounts can store an optional Ethereum-compatible
+wallet address. Membership creation and replacement trigger a request to
+the configured reward service containing the membership identifier and the
+member wallet address, if present. The request can fail independently of
+the membership operation. A submitted request is not proof of a completed
+blockchain transaction or a reward being received.
+
+No reward amount, value, availability, redemption, or transfer is promised
+by this draft. [TO CONFIRM: reward eligibility, calculation, delivery,
+network, fees, failures, disputes, wallet responsibilities, and the meaning
+and use of any reward-related price shown in the service.]
+
+2.9 Feedback and notifications
+
+Members with the required access can submit feedback, like feedback,
+remove their own likes, and delete their own feedback. Feedback and
+resolution notes are visible to eligible members of the same club with
+associated profile information. Administrators and staff can review and
+change feedback status. Feedback text is sent for sentiment analysis as
+described in the Privacy Policy.
+
+The service creates in-service membership and subscription expiry reminders
+for the corresponding recipients. Account verification, password setup,
+recovery, and email change messages are sent by email. This draft does not
+promise delivery or a particular reminder time.
+[TO CONFIRM: communication policies and any content licence needed to
+operate the feedback and profile features.]
+
+2.10 Restrictions, cancellation, and ending use
+
+Platform owner accounts can set administrator accounts to active, pending,
+or banned. Club administrators can do the same for staff. Administrators
+and staff can change member account status within their club. These are
+technical controls; the reasons, notice, review, and appeal procedures
+require confirmation.
+
+Expiry, cancellation, inactive plans, or account restrictions can prevent
+many club and member operations, including access to some historical
+records. Losing club platform access can affect staff and members even
+where a member's own membership has time remaining. Account restrictions
+do not establish immediate invalidation of every existing access token.
+
+Logging out ends use of the submitted refresh session; it does not close
+the account. There is no general self-service account deletion function.
+To request closure or discuss cancellation, contact
+[TO CONFIRM: contact and process]. Such a request is subject to the
+confirmed policy and applicable law, and is not an automatic deletion or
+refund operation. Retention is addressed in the Privacy Policy.
+
+[TO CONFIRM: grounds and procedures for suspension and termination,
+notice, appeals, data access after termination, account closure, and any
+financial consequences.]
+
+2.11 Availability, disputes, and changes
+
+Email, image, sentiment, and reward functions depend on configured external
+services. [TO CONFIRM: any availability commitments, maintenance notices,
+warranties, liability terms, and remedies after legal and business review.]
+
+[TO CONFIRM: governing law and jurisdiction, dispute handling, contractual
+notice methods, and any mandatory protections under applicable law.]
+
+[TO CONFIRM: how changes to these Terms are notified, accepted, and dated.]
+
+==========================================================================
+3. ITEMS REQUIRING CONFIRMATION BEFORE PUBLICATION
+==========================================================================
+
+INTERNAL REVIEW NOTES - Backend paths below are relative to backend/.
+These notes distinguish code behavior from decisions still needed. No
+frontend, external service implementation, production environment file,
+live database, or running service was inspected.
+
+3.1 Operator, service identity, and legal review
+
+[TO CONFIRM: public name, website, legal entity, registered address, effective
+dates, countries served, governing law, jurisdiction, applicable privacy laws,
+and separate club contract arrangements.]
+Do not identify an individual developer, a sample DTO name, or an OWNER
+account holder as the legal operator. The owner account is initialized from
+configuration, with termsAccepted set to true; that is not proof of legal
+identity or informed acceptance of a published document.
+Evidence: package.json; src/main.ts;
+src/core/seeders/owner-seeder.service.ts; prisma/schema.prisma.
+
+3.2 Privacy responsibilities and contacts
+
+[TO CONFIRM: operator and club responsibilities; legal grounds per purpose;
+privacy, support, security, and contractual contact details; identity checks;
+request routing and response timelines; access, correction, export and
+deletion handling; and relevant complaint routes.]
+Support email configuration is used in email templates, but does not verify
+a privacy office or a working rights-request process. No dedicated privacy
+request, complete export, or general account deletion endpoint was found.
+Evidence: .env.example (configuration names only; no live values reviewed);
+src/infrastructure/email/email.service.ts;
+src/modules/profiles/dtos/; src/modules/profiles/profiles.service.ts;
+src/modules/profiles/*-profiles.controller.ts.
+
+3.3 Roles, club boundaries, and restriction effects
+
+[TO CONFIRM: approve the actual breadth of staff access and the operational
+access held by support, database, hosting, or other personnel.]
+Club operations resolve adminId and apply it to queries. Staff member
+queries use adminId without limiting records to staffId. Platform owner
+routes expose administrator details and subscriptions; they are not a
+general owner interface to every member record. Many member features
+require both active membership and active administrator subscription;
+profile and notification routes do not uniformly use those checks.
+Bearer-token strategies validate tokens without a universal live account
+status check. Do not promise that a ban immediately blocks every endpoint.
+Evidence: src/core/access/access.service.ts;
+src/core/guards/roles.guard.ts; src/core/types/safe-selects.type.ts;
+src/modules/auth/strategies/*-access-token.strategy.ts;
+src/modules/members/members.service.ts;
+src/modules/staffs/staffs.service.ts;
+src/modules/platform/owners/owners.controller.ts;
+src/modules/platform/owners/owners.service.ts;
+src/modules/memberships/memberships.service.ts;
+src/modules/payments/payments.service.ts;
+src/modules/profiles/profiles.service.ts;
+src/modules/notifications/notifications.service.ts.
+
+3.4 Ages, emergency contacts, and acceptance
+
+[TO CONFIRM: eligibility, parent or guardian procedures, emergency-contact
+notice, how clubs may supply others' information, and terms acceptance
+for staff and members.]
+The backend enforces 18 for administrator registration and staff creation,
+and 13 for member creation, with corresponding birth-date update checks.
+No parental approval flow was found. The termsAccepted field is on User,
+not Member or Staff, and no policy-version record was found in the schema.
+These technical age checks do not establish legal eligibility everywhere.
+Evidence: prisma/schema.prisma; src/modules/auth/auth.provider.ts;
+src/modules/auth/dtos/register-user.dto.ts;
+src/modules/members/members.service.ts;
+src/modules/members/dtos/add-member.dto.ts;
+src/modules/staffs/staffs.service.ts;
+src/modules/profiles/profiles.service.ts.
+
+3.5 Retention and the seven-day cleanup limitation
+
+[TO CONFIRM: a retention schedule for each data category, deletion or
+anonymization procedures, post-termination access, backup retention, legal
+recordkeeping needs, and actual cleanup reliability.]
+The midnight job targets User records with isAccountVerified=false and
+createdAt at least seven days earlier; it does not target general account
+inactivity, staff, or members. It calls user.deleteMany without first
+removing related action tokens or other dependent records. The migration
+defines user_action_tokens_user_id_fkey with ON DELETE RESTRICT. Normal
+registration creates an action token, which can block this cleanup. Verify
+the deployed schema and operation before promising seven-day deletion.
+No scheduled general purge of expired/revoked tokens, notifications,
+financial history, visits, attendance, or feedback was found. Expiry jobs
+change status. Feedback deletion cascades to likes; image deletion calls
+Cloudinary, without establishing backup or CDN removal.
+Evidence: src/jobs/remove-inactive-users.cron.ts;
+prisma/migrations/20260803203512_alpha_2_8/migration.sql;
+prisma/schema.prisma; src/modules/auth/auth.provider.ts;
+src/jobs/membership.cron.ts; src/jobs/subscription.cron.ts;
+src/jobs/visit.cron.ts; src/modules/feedbacks/feedbacks.service.ts;
+src/modules/profiles/profiles.service.ts;
+src/infrastructure/cloudinary/cloudinary.service.ts.
+
+3.6 Cookies, sessions, logs, and frontend review
+
+[TO CONFIRM: deployed access and refresh token lifetimes by role, action
+token lifetimes, production HTTPS/cookie settings, logging recipients,
+redaction and retention, and the separate frontend tracking inventory.]
+The refresh_token cookie uses HttpOnly, SameSite=strict, path=/api/auth,
+and Secure only when NODE_ENV is production. maxAge comes from role-specific
+configuration; comments mentioning 30 days are not proof of deployed values.
+Access tokens are returned in response bodies and read from Bearer headers.
+Refresh rotation revokes old records; logout revokes the submitted record;
+password resets and changes revoke refresh sessions. Existing access-token
+validity is a separate matter.
+The logger records originalUrl, which may include action tokens supplied as
+query parameters. Reward failures log the Axios error object, which may
+contain request details. Review log access and redaction before publication.
+Email links put action tokens in URL fragments, but backend action endpoints
+accept them as query parameters. No actual token values were used in review.
+Frontend analytics, scripts, cookies, token storage, image requests, and
+consent controls remain unverified and must not be described as absent.
+Evidence: src/modules/auth/auth.controller.ts;
+src/modules/auth/auth.provider.ts; src/modules/auth/jwt/jwt.provider.ts;
+src/modules/auth/strategies/; src/modules/profiles/profiles.service.ts;
+src/core/middlewares/logger.middleware.ts;
+src/modules/members/members.service.ts;
+src/infrastructure/email/email.service.ts; src/main.ts; .env.example.
+
+3.7 Providers, hosting, and image delivery
+
+[TO CONFIRM: actual production providers, locations, contracts, subproviders,
+international transfers, operational access, retention, and deletion terms.]
+Email provider selection is Resend for production, otherwise Gmail through
+Nodemailer. Email providers receive message contents and action links, not
+just an address. Uploaded images go to Cloudinary; the upload options do not
+set a private/authenticated delivery mode. Confirm actual image URL access,
+caching, and deletion behavior without assuming profile images are private.
+The database is PostgreSQL, and Redis caches plan and hours records, with
+explicit five-minute lifetimes for selected lookups. This is not a general
+personal-data retention period. The development Docker configuration and
+container files do not identify production hosting or backup providers.
+Evidence: src/infrastructure/email/email.module.ts;
+src/infrastructure/email/email.service.ts;
+src/infrastructure/email/resend-email.ts;
+src/infrastructure/email/nodemailer-email.ts;
+src/infrastructure/cloudinary/cloudinary.service.ts;
+src/infrastructure/cloudinary/cloudinary.provider.ts;
+src/core/constants/default-avatars.constants.ts;
+src/infrastructure/database/prisma.service.ts;
+src/infrastructure/redis/redis.module.ts;
+src/modules/platform/plans/plans.service.ts;
+src/modules/working-hours/working-hours.service.ts;
+Dockerfile; docker-compose.dev.yml; prisma.config.ts; .env.example.
+
+3.8 Feedback visibility and automated analysis
+
+[TO CONFIRM: approve club-wide feedback visibility, shared profile fields,
+resolution-note visibility, content rules, reporting procedures, and the
+identity, retention, training use, and further sharing of the AI provider.]
+Member feedback reads filter by adminId, not by the current member as author.
+They return author/admin/staff profile fields, content, rating, status,
+resolution details and resolver ID, like counts, and the caller's like state.
+Administrative reads also return sentiment type and score. The analysis API
+receives exactly {text: content} in its body. Feedback can contain personal
+information even without separate identifying fields. An hourly job retries
+up to 50 oldest feedback records with missing sentiment results. No user
+opt-out or proof of provider deletion/training restrictions was found.
+Evidence: src/modules/feedbacks/feedbacks.service.ts;
+src/modules/feedbacks/member-feedbacks.controller.ts;
+src/modules/feedbacks/dto/create-feedback.dto.ts;
+src/core/types/safe-selects.type.ts;
+src/infrastructure/external-api/external-api.service.ts;
+src/core/types/ai-api.type.ts; src/jobs/sentiment.cron.ts.
+
+3.9 Wallets, reward requests, and blockchain publication
+
+[TO CONFIRM: reward service operator and processing locations; network and
+contracts; data stored off-chain and published on-chain; identifier linkage;
+public visibility; retention and deletion limits; reward rules, delivery,
+value, redemption, fees, errors, disputes, and wallet verification.]
+Optional wallet fields are validated as Ethereum addresses, which does not
+prove control of the wallet. After membership creation or replacement, an
+Axios POST sends {membershipId, clientWallet} to the configured reward URL,
+authenticated with an internal secret header. The call is not awaited and
+logs failures; no transaction receipt or reward result is persisted here.
+No additional administrator wallet field is sent in those request bodies.
+Member login separately returns adminWalletAddress to the member.
+MembershipPlanDuration stores priceByG, but this backend does not show a
+token payment, balance, or redemption flow. Do not infer reward guarantees
+or on-chain publication from names or request payloads. The external reward
+implementation must be reviewed separately; it was outside this review.
+Evidence: prisma/schema.prisma;
+src/modules/auth/dtos/register-user.dto.ts;
+src/modules/members/dtos/add-member.dto.ts;
+src/modules/profiles/dtos/update-profile-member.dto.ts;
+src/modules/members/members.service.ts;
+src/modules/auth/auth.provider.ts;
+src/modules/membership-plans/dtos/add-membership-plan-duration.dto.ts;
+src/modules/membership-plans/membership-plans.service.ts; .env.example.
+
+3.10 Memberships, subscriptions, payments, and cancellation
+
+[TO CONFIRM: prices and currency, collection and settlement, payee, taxes,
+invoices, receipts, renewals, customer cancellation channels, unused time,
+refunds, credits, proration, and any applicable cancellation rights.]
+Platform subscriptions are activated/replaced/cancelled through owner routes.
+Cancellation sets CANCELLED immediately; administrator routes are read-only.
+Member creation and membership replacement create payment rows automatically
+at the plan-duration price with paidAt set to membership startDate. There is
+no settlement verification, card gateway, or refund flow in this backend.
+Replacement memberships and subscriptions start from the current time and
+expire the previous active record; no carry-forward or proration is shown.
+The schema has a membership CANCELLED status, but no membership cancellation
+endpoint was found. A status enum is not a customer cancellation policy.
+Visit cancellation is supported separately for the member's READY visits.
+The absence of automatic renewal code does not establish off-platform
+billing practices. Plan/duration deletion is blocked by historical usage;
+it does not terminate accounts or delete membership or subscription history.
+Evidence: src/modules/platform/subscriptions/subscriptions.service.ts;
+src/modules/platform/subscriptions/owner-subscriptions.controller.ts;
+src/modules/platform/subscriptions/admin-subscriptions.controller.ts;
+src/modules/members/members.service.ts;
+src/modules/memberships/memberships.service.ts;
+src/modules/memberships/*-memberships.controller.ts;
+src/modules/payments/payments.service.ts;
+src/modules/visits/visits.service.ts;
+src/modules/membership-plans/membership-plans.service.ts;
+src/modules/platform/plans/plans.service.ts; prisma/schema.prisma.
+
+3.11 Operational rules, notices, and final contractual decisions
+
+[TO CONFIRM: suspension and termination grounds, notice and appeals;
+club hours and time zone handling; visit-limit and missed-visit treatment;
+support commitments; content permissions; warranties; liability; remedies;
+disputes; and policy or Terms change procedures.]
+Visit scheduling checks club hours, special closures, daily uniqueness,
+weekly limits, and access through the visit date. Attendance is confirmed
+by administrators or staff, with the configured 10-minute early / 30-minute
+late window. Do not convert these controls into refund or attendance-fee
+policies. Server-local date calculations are used in several checks;
+production time zone and user presentation were not verified.
+Hourly jobs create database expiry notifications within the next 24 hours;
+they do not send those reminders by email or guarantee delivery. Other
+notification types in the enum do not prove a live messaging workflow.
+No service-level guarantee, reward guarantee, refund rule, or automatic
+account erasure is established by this review. Obtain business and legal
+review of all remaining placeholders before publishing either document.
+Evidence: src/modules/visits/visits.service.ts;
+src/modules/attendances/attendances.service.ts;
+src/core/constants/visit.constants.ts;
+src/modules/working-hours/working-hours.service.ts;
+src/jobs/membership-notification.cron.ts;
+src/jobs/subscription-notification.cron.ts;
+src/modules/notifications/notifications.service.ts;
+src/infrastructure/email/email.service.ts;
+src/modules/platform/owners/owners.service.ts;
+src/modules/staffs/staffs.service.ts;
+src/modules/members/members.service.ts; prisma/schema.prisma.

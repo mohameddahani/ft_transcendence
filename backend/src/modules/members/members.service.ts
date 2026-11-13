@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -33,6 +34,8 @@ import axios from 'axios';
 
 @Injectable()
 export class MembersService {
+  private readonly logger = new Logger(MembersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
@@ -112,98 +115,100 @@ export class MembersService {
 
     // * Interactive transaction (function)
     // * tx is the prisma client inside a transaction
-    const result = await this.prisma.$transaction(async (tx) => {
-      // * Check if admin has place for new member
-      // * Count Members
-      const membersCount = await tx.member.count({
-        where: {
-          adminId,
-        },
-      });
-      if (membersCount >= subscription.plan.maxMembers) {
-        throw new ForbiddenException(
-          `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
-        );
-      }
-
-      // * Add members to database
-      const member = await tx.member.create({
-        data: {
-          admin: { connect: { id: adminId } },
-          staff:
-            accessTokenPayload.role === Role.STAFF
-              ? { connect: { id: accessTokenPayload.id } }
-              : undefined, // Ignore this field. Don't do anything with staff.
-          firstName: data.firstName,
-          lastName: data.lastName,
-          gender: data.gender,
-          birthDate: data.birthDate,
-          userName: userName,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          companyName: subscription.user.companyName,
-          profileImageUrl: DEFAULT_AVATARS.MEMBER,
-          profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
-          address: data.address,
-          emergencyContact: data.emergencyContact,
-
-          // ! BLOCK_CHAINE
-          walletAddress: data.walletAddress,
-        },
-      });
-      // * Add Membership of member
-      const expiresAt = addDays(new Date(), duration.durationDays);
-      const membership = await tx.membership.create({
-        data: {
-          admin: { connect: { id: adminId } },
-          member: { connect: { id: member.id } },
-          membershipPlan: { connect: { id: data.membershipPlanId } },
-          membershipPlanDuration: {
-            connect: { id: data.membershipPlanDurationId },
+    const { member, membership } = await this.prisma.$transaction(
+      async (tx) => {
+        // * Check if admin has place for new member
+        // * Count Members
+        const membersCount = await tx.member.count({
+          where: {
+            adminId,
           },
-          expiresAt: expiresAt,
-        },
-        include: {
-          membershipPlanDuration: true,
-        },
-      });
+        });
+        if (membersCount >= subscription.plan.maxMembers) {
+          throw new ForbiddenException(
+            `You have reached the maximum number of members allowed by your current plan (${subscription.plan.maxMembers}). Please upgrade your subscription to add more members.`,
+          );
+        }
 
-      // * Add Payment of Member
-      await tx.payment.create({
-        data: {
-          member: { connect: { id: member.id } },
-          admin: { connect: { id: adminId } },
-          staff:
-            accessTokenPayload.role === Role.STAFF
-              ? { connect: { id: accessTokenPayload.id } }
-              : undefined, // Ignore this field. Don't do anything with staff.
-          amount: membership.membershipPlanDuration.price,
-          paidAt: membership.startDate,
-        },
-      });
+        // * Add members to database
+        const member = await tx.member.create({
+          data: {
+            admin: { connect: { id: adminId } },
+            staff:
+              accessTokenPayload.role === Role.STAFF
+                ? { connect: { id: accessTokenPayload.id } }
+                : undefined, // Ignore this field. Don't do anything with staff.
+            firstName: data.firstName,
+            lastName: data.lastName,
+            gender: data.gender,
+            birthDate: data.birthDate,
+            userName: userName,
+            email: data.email,
+            phoneNumber: data.phoneNumber,
+            companyName: subscription.user.companyName,
+            profileImageUrl: DEFAULT_AVATARS.MEMBER,
+            profileImagePublicId: DEFAULT_AVATARS_ID.MEMBER,
+            address: data.address,
+            emergencyContact: data.emergencyContact,
 
-      try {
-        // ! BLOCK_CHAINE
-        await axios.post(
-          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
-          {
-            membershipId: membership.id,
-            clientWallet: member.walletAddress,
+            // ! BLOCK_CHAINE
+            walletAddress: data.walletAddress,
           },
-          {
-            headers: {
-              'X-Reward-Secret': this.config.getOrThrow<string>(
-                'REWARD_INTERNAL_SECRET',
-              ),
+        });
+        // * Add Membership of member
+        const expiresAt = addDays(new Date(), duration.durationDays);
+        const membership = await tx.membership.create({
+          data: {
+            admin: { connect: { id: adminId } },
+            member: { connect: { id: member.id } },
+            membershipPlan: { connect: { id: data.membershipPlanId } },
+            membershipPlanDuration: {
+              connect: { id: data.membershipPlanDurationId },
             },
+            expiresAt: expiresAt,
           },
-        );
-      } catch {
-        throw new InternalServerErrorException('Block Chain is Down');
-      }
+          include: {
+            membershipPlanDuration: true,
+          },
+        });
 
-      return member;
-    });
+        // * Add Payment of Member
+        await tx.payment.create({
+          data: {
+            member: { connect: { id: member.id } },
+            admin: { connect: { id: adminId } },
+            staff:
+              accessTokenPayload.role === Role.STAFF
+                ? { connect: { id: accessTokenPayload.id } }
+                : undefined, // Ignore this field. Don't do anything with staff.
+            amount: membership.membershipPlanDuration.price,
+            paidAt: membership.startDate,
+          },
+        });
+
+        return { member, membership };
+      },
+    );
+
+    // ! BLOCK_CHAINE
+    axios
+      .post(
+        this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+        {
+          membershipId: membership.id,
+          clientWallet: member.walletAddress,
+        },
+        {
+          headers: {
+            'X-Reward-Secret': this.config.getOrThrow<string>(
+              'REWARD_INTERNAL_SECRET',
+            ),
+          },
+        },
+      )
+      .catch((error: unknown) => {
+        this.logger.error('Block Chain is Down', error);
+      });
 
     // * Send Email of Set password to member
     // * Generate Action Token
@@ -218,7 +223,7 @@ export class MembersService {
     // * Store the hash Token in DB
     const actionToken = await this.prisma.memberActionToken.create({
       data: {
-        member: { connect: { id: result.id } },
+        member: { connect: { id: member.id } },
         tokenHash: tokenHash,
         actionTokenType: ActionTokenType.SET_PASSWORD,
         expiresAt: expiresAt,
@@ -228,8 +233,8 @@ export class MembersService {
     try {
       // * Send email of Password Set to member
       await this.emailService.sendSetPasswordMemberEmail(
-        result.userName,
-        result.email,
+        member.userName,
+        member.email,
         rawToken,
       );
     } catch {
@@ -357,101 +362,105 @@ export class MembersService {
 
       // * Interactive transaction (function)
       // * tx is the prisma client inside a transaction
-      return await this.prisma.$transaction(async (tx) => {
-        // * Save new data to member
-        const member = await tx.member.update({
-          where: {
-            id: memberId,
-            adminId: adminId,
-          },
-          data: {
-            firstName: data.firstName,
-            lastName: data.lastName,
-            gender: data.gender,
-            birthDate: data.birthDate,
-            email: data.email,
-            phoneNumber: data.phoneNumber,
-            address: data.address,
-            emergencyContact: data.emergencyContact,
-
-            // ! BLOCK_CHAINE
-            walletAddress: data.walletAddress,
-          },
-          select: privateMemberSelect,
-        });
-
-        // * Expire old membership only if it is still ACTIVE
-        if (activeMembership) {
-          const { count } = await tx.membership.updateMany({
+      const { member, newMembership } = await this.prisma.$transaction(
+        async (tx) => {
+          // * Save new data to member
+          const member = await tx.member.update({
             where: {
-              id: activeMembership.id,
-              adminId,
-              memberId,
-              membershipStatus: MembershipStatus.ACTIVE,
+              id: memberId,
+              adminId: adminId,
             },
             data: {
-              membershipStatus: MembershipStatus.EXPIRED,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              gender: data.gender,
+              birthDate: data.birthDate,
+              email: data.email,
+              phoneNumber: data.phoneNumber,
+              address: data.address,
+              emergencyContact: data.emergencyContact,
+
+              // ! BLOCK_CHAINE
+              walletAddress: data.walletAddress,
+            },
+            select: privateMemberSelect,
+          });
+
+          // * Expire old membership only if it is still ACTIVE
+          if (activeMembership) {
+            const { count } = await tx.membership.updateMany({
+              where: {
+                id: activeMembership.id,
+                adminId,
+                memberId,
+                membershipStatus: MembershipStatus.ACTIVE,
+              },
+              data: {
+                membershipStatus: MembershipStatus.EXPIRED,
+              },
+            });
+
+            if (count !== 1) {
+              throw new ConflictException(
+                'Membership was already updated by another request.',
+              );
+            }
+          }
+
+          // * Add new Membership to member
+          const expiresAt = addDays(new Date(), duration.durationDays);
+          const newMembership = await tx.membership.create({
+            data: {
+              admin: { connect: { id: adminId } },
+              member: { connect: { id: memberId } },
+              membershipPlan: { connect: { id: data.membershipPlanId } },
+              membershipPlanDuration: {
+                connect: { id: data.membershipPlanDurationId },
+              },
+              expiresAt: expiresAt,
+            },
+            include: { membershipPlan: true, membershipPlanDuration: true },
+          });
+
+          // * Add New Payment for Updated Member
+          await tx.payment.create({
+            data: {
+              member: { connect: { id: newMembership.memberId } },
+              admin: { connect: { id: adminId } },
+              staff:
+                accessTokenPayload.role === Role.STAFF
+                  ? { connect: { id: accessTokenPayload.id } }
+                  : undefined, // Ignore this field. Don't do anything with staff.
+              amount: newMembership.membershipPlanDuration.price,
+              paidAt: newMembership.startDate,
             },
           });
 
-          if (count !== 1) {
-            throw new ConflictException(
-              'Membership was already updated by another request.',
-            );
-          }
-        }
+          return { member, newMembership };
+        },
+      );
 
-        // * Add new Membership to member
-        const expiresAt = addDays(new Date(), duration.durationDays);
-        const newMembership = await tx.membership.create({
-          data: {
-            admin: { connect: { id: adminId } },
-            member: { connect: { id: memberId } },
-            membershipPlan: { connect: { id: data.membershipPlanId } },
-            membershipPlanDuration: {
-              connect: { id: data.membershipPlanDurationId },
-            },
-            expiresAt: expiresAt,
+      // ! BLOCK_CHAINE
+      axios
+        .post(
+          this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
+          {
+            membershipId: newMembership.id,
+            clientWallet: member.walletAddress,
           },
-          include: { membershipPlan: true, membershipPlanDuration: true },
+          {
+            headers: {
+              'X-Reward-Secret': this.config.getOrThrow<string>(
+                'REWARD_INTERNAL_SECRET',
+              ),
+            },
+          },
+        )
+        .catch((error: unknown) => {
+          this.logger.error('Block Chain is Down', error);
         });
 
-        // * Add New Payment for Updated Member
-        await tx.payment.create({
-          data: {
-            member: { connect: { id: newMembership.memberId } },
-            admin: { connect: { id: adminId } },
-            staff:
-              accessTokenPayload.role === Role.STAFF
-                ? { connect: { id: accessTokenPayload.id } }
-                : undefined, // Ignore this field. Don't do anything with staff.
-            amount: newMembership.membershipPlanDuration.price,
-            paidAt: newMembership.startDate,
-          },
-        });
-
-        try {
-          // ! BLOCK_CHAINE
-          await axios.post(
-            this.config.getOrThrow<string>('BLOCKCHAIN_REWARD_API_URL'),
-            {
-              membershipId: newMembership.id,
-              clientWallet: member.walletAddress,
-            },
-            {
-              headers: {
-                'X-Reward-Secret': this.config.getOrThrow<string>(
-                  'REWARD_INTERNAL_SECRET',
-                ),
-              },
-            },
-          );
-        } catch {
-          throw new InternalServerErrorException('Block Chain is Down');
-        }
-
-        return member;
-      });
+      return member;
     } else if (
       (data.membershipPlanId && !data.membershipPlanDurationId) ||
       (!data.membershipPlanId && data.membershipPlanDurationId)
