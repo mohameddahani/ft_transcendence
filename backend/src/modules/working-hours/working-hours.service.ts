@@ -144,6 +144,8 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    dayOfWeek?: number,
+    isClosed?: boolean,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -151,9 +153,30 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check Day of Week
+    if (
+      dayOfWeek !== undefined &&
+      (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7)
+    ) {
+      throw new BadRequestException(
+        'dayOfWeek must be an integer between 1 and 7.',
+      );
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
+
+        // * Filter by day of the week.
+        ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
+
+        // * Filter by open or closed days.
+        ...(isClosed !== undefined ? { isClosed } : {}),
+      },
+
+      // * Monday first, Sunday last.
+      orderBy: {
+        dayOfWeek: 'asc',
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -205,6 +228,8 @@ export class WorkingHoursService {
     memberId: string,
     page: number,
     limit: number,
+    dayOfWeek?: number,
+    isClosed?: boolean,
   ) {
     // * Get Admin Id from member
     const adminId =
@@ -219,9 +244,30 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check Day of Week
+    if (
+      dayOfWeek !== undefined &&
+      (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7)
+    ) {
+      throw new BadRequestException(
+        'dayOfWeek must be an integer between 1 and 7.',
+      );
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
+
+        // * Filter by day of the week.
+        ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
+
+        // * Filter by open or closed days.
+        ...(isClosed !== undefined ? { isClosed } : {}),
+      },
+
+      // * Monday first, Sunday last.
+      orderBy: {
+        dayOfWeek: 'asc',
       },
       skip: (page - 1) * limit,
       take: limit,

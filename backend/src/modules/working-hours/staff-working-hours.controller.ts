@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -31,11 +32,20 @@ export class StaffWorkingHoursController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('dayOfWeek', new ParseIntPipe({ optional: true }))
+    dayOfWeek?: number,
+    @Query(
+      'isClosed',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isClosed?: string,
   ) {
     return this.workingHoursService.findAllWorkingHours(
       accessTokenPayload,
       page,
       limit,
+      dayOfWeek,
+      isClosed === undefined ? undefined : isClosed === 'true',
     );
   }
 
