@@ -1,0 +1,23 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Backend migrations own this table. This API only generates its client.
+model MembershipReward {
+  membershipId String  @id @map("membership_id") @db.Uuid
+  rewarded     Boolean @default(false)
+
+  @@map("membership_rewards")
+}

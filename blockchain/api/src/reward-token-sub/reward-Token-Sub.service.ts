@@ -17,7 +17,6 @@ import {
 } from 'ethers';
 import type { ContractTransactionResponse } from 'ethers';
 import { CHAIN_ID, GYMTOKEN_ABI } from '../lib/contract.js';
-import { MembershipRewardsStore } from './membership-rewards.store.js';
 
 const FORWARDER_ABI = [
   'function nonces(address) view returns (uint256)',
@@ -35,12 +34,15 @@ const FORWARD_TYPES = {
   ],
 };
 
+import { PrismaService } from '../prisma/prisma.service.js';
+
 @Injectable()
 export class rewardTokenSubService {
   private readonly logger = new Logger(rewardTokenSubService.name);
-  constructor(private readonly rewards: MembershipRewardsStore) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async rewardClient(secret: string | undefined, body: unknown) {
+    //DTO
     const expected = process.env.REWARD_INTERNAL_SECRET;
     if (!expected || expected.length < 32)
       throw new ServiceUnavailableException(
@@ -82,34 +84,98 @@ export class rewardTokenSubService {
         'Reward chain configuration is missing',
       );
     }
-    const claim = await this.rewards.claim(membershipId);
-    if (!claim.inserted) {
-      return {
-        membershipId,
-        rewarded: claim.rewarded,
-        alreadyExists: true,
-        message: claim.rewarded
-          ? 'This membership was already rewarded.'
-          : 'Reward already claimed; it may be processing or need manual review. No new reward was sent.',
-      };
-    }
+
     try {
-      const hash = await this.rewards.withOwnerLock(() =>
+      // Commit the reservation BEFORE contacting the chain. The primary key,
+      // not a preceding SELECT, decides which concurrent request may send.
+      const claim = await this.create(membershipId);
+      if (claim.count === 0) {
+        const existing = await this.prisma.membershipReward.findUniqueOrThrow({
+          where: { membershipId },
+        });
+        return {
+          membershipId,
+          rewarded: existing.rewarded,
+          alreadyExists: true,
+          message: existing.rewarded
+            ? 'This membership was already rewarded.'
+            : 'Reward already claimed; it may be processing or need manual review. No new reward was sent.',
+        };
+      }
+    } catch (error) {
+      this.logger.error(
+        `Membership ${membershipId}: reward database claim failed: ${this.errorSummary(error)}`,
+      );
+      throw new ServiceUnavailableException({
+        membershipId,
+        message:
+          'Could not reserve or check this membership. No blockchain reward was sent by this request. Retry using the same membership ID.',
+      });
+    }
+
+    let hash: string | undefined;
+    try {
+      hash = await this.withOwnerLock(() =>
         this.sendReward(membershipId, getAddress(data.clientWallet as string)),
       );
-      await this.rewards.confirm(membershipId);
+      await this.update(membershipId);
       return { membershipId, rewarded: true, alreadyExists: false, hash };
-    } catch {
+    } catch (error) {
       this.logger.warn(
-        `Reward for membership ${membershipId} was not confirmed. Its existing record blocks further attempts; manual review is required.`,
+        `Membership ${membershipId}: ${hash ? `transaction ${hash} confirmed, database update failed` : 'reward attempt failed or is uncertain'}: ${this.errorSummary(error)}. The ID remains reserved.`,
       );
       throw new ServiceUnavailableException({
         membershipId,
         rewarded: false,
-        message:
-          'Reward not confirmed. The membership ID remains reserved; check the transaction manually before taking further action.',
+        hash,
+        message: hash
+          ? 'Reward confirmed on-chain, but its database flag could not be updated. Do not send another reward; manual review is required.'
+          : 'Reward not confirmed. The membership ID remains reserved; check the transaction manually before taking further action.',
       });
     }
+  }
+
+  async create(membershipId: string) {
+    return this.prisma.membershipReward.createMany({
+      data: [{ membershipId }],
+      skipDuplicates: true,
+    });
+  }
+
+  async update(membershipId: string) {
+    return this.prisma.membershipReward.updateMany({
+      where: { membershipId, rewarded: false },
+      data: { rewarded: true },
+    });
+  }
+
+  private async withOwnerLock<T>(work: () => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        // Allow a normal reward (three confirmations) to finish before the
+        // next membership uses the owner wallet.
+        await tx.$executeRaw`SET LOCAL lock_timeout = 120000`;
+        await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(71482041)`;
+        return await work();
+      },
+      { maxWait: 5000, timeout: 360_000 },
+    );
+  }
+
+  private errorSummary(error: unknown): string {
+    if (!(error instanceof Error)) return 'Unknown error';
+    const details = error as Error & { code?: string; shortMessage?: string };
+    let message = `${details.code ?? details.name}: ${details.shortMessage ?? details.message}`;
+    for (const name of [
+      'REWARDS_DATABASE_URL',
+      'SEPOLIA_RPC_URL',
+      'REWARD_OWNER_PRIVATE_KEY',
+      'REWARD_INTERNAL_SECRET',
+    ]) {
+      const secret = process.env[name];
+      if (secret) message = message.replaceAll(secret, '[redacted]');
+    }
+    return message.slice(0, 1500);
   }
 
   async sendReward(membershipId: string, recipient: string) {
@@ -117,21 +183,27 @@ export class rewardTokenSubService {
     const key = process.env.REWARD_OWNER_PRIVATE_KEY;
     const tokenAddress = process.env.GYMTOKEN_ADDRESS;
     const forwarderAddress = process.env.FORWARDER_ADDRESS;
+
     if (!rpc || !key || !tokenAddress || !forwarderAddress)
       throw new Error('Reward chain configuration is missing');
+
     const request = new FetchRequest(rpc);
     request.timeout = 10000;
     const provider = new JsonRpcProvider(request);
+
     try {
       if (Number((await provider.getNetwork()).chainId) !== CHAIN_ID)
         throw new Error('Wrong network');
+
       const owner = new Wallet(key, provider);
       const token = new Contract(tokenAddress, GYMTOKEN_ABI, owner);
       if (getAddress((await token.owner()) as string) !== owner.address)
         throw new Error('Reward signer must own GymToken');
+
       const forwarder = new Contract(forwarderAddress, FORWARDER_ABI, owner);
       if (!(await token.isTrustedForwarder(await forwarder.getAddress())))
         throw new Error('Untrusted forwarder');
+
       const nonce = await provider.getTransactionCount(
         owner.address,
         'pending',
@@ -140,6 +212,7 @@ export class rewardTokenSubService {
         nonce !== (await provider.getTransactionCount(owner.address, 'latest'))
       )
         throw new Error('Owner already has a pending transaction');
+
       const forwardRequest = {
         from: owner.address,
         to: await token.getAddress(),
