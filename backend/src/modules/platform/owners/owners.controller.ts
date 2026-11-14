@@ -1,10 +1,11 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { AccountStatus, Role } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -23,14 +24,32 @@ import { OwnerAccessTokenAuthGuard } from '@/modules/auth/guards/owner-access-to
 export class OwnersController {
   constructor(private readonly ownersService: OwnersService) {}
 
-  // * Get all users
+  // * Get all users.
   @Get('users')
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query(
+      'accountStatus',
+      new ParseEnumPipe(AccountStatus, { optional: true }),
+    )
+    accountStatus?: AccountStatus,
+    @Query(
+      'isAccountVerified',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isAccountVerified?: string,
   ) {
-    return this.ownersService.findAll(page, limit, search);
+    return this.ownersService.findAll(
+      page,
+      limit,
+      search,
+      accountStatus,
+      isAccountVerified === undefined
+        ? undefined
+        : isAccountVerified === 'true',
+    );
   }
 
   // * Get All Stats of users (owner)
