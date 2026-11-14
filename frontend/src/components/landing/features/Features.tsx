@@ -155,8 +155,8 @@ const audiences = [
       "Invite staff and manage their access",
       "Review payment records and member feedback",
     ],
-    image: "/aquatic.jpg",
-    alt: "Swimmer training in a pool lane",
+    image: "/landing/gym-machines.jpg",
+    alt: "A gym floor with benches, dumbbells and machines",
     snippet: <HoursSnippet />,
   },
   {
@@ -173,8 +173,8 @@ const audiences = [
       "Look up and enroll members",
       "Respond to and resolve member feedback",
     ],
-    image: "/martialArts.jpg",
-    alt: "Two karate practitioners in white uniforms training outdoors",
+    image: "/landing/gym-weights.jpg",
+    alt: "A training hall with racks, plates and benches",
     snippet: <CheckInSnippet />,
   },
   {
@@ -191,8 +191,8 @@ const audiences = [
       "View membership details, payments and attendance history",
       "Share feedback and like other members' posts",
     ],
-    image: "/runClub.jpg",
-    alt: "A runner in a hoodie and joggers on a forest trail",
+    image: "/landing/turtle.jpg",
+    alt: "A sea turtle swimming over a reef",
     snippet: <BookingSnippet />,
   },
 ];
