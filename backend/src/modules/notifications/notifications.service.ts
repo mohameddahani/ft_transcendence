@@ -28,9 +28,34 @@ export class NotificationsService {
     memberId: string,
     page: number,
     limit: number,
+    _search?: string,
+    notificationType?: NotificationType,
+    isRead?: boolean,
   ) {
+    // * remove spaces
+    const search = _search?.trim();
+
     const notifications = await this.prisma.memberNotification.findMany({
-      where: { memberId: memberId },
+      where: {
+        memberId: memberId,
+
+        // * Filter by notification type.
+        ...(notificationType !== undefined ? { notificationType } : {}),
+
+        // * Filter by read or unread status.
+        ...(isRead !== undefined ? { isRead } : {}),
+
+        // * Search notification title or message.
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { message: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -56,9 +81,34 @@ export class NotificationsService {
     adminId: string,
     page: number,
     limit: number,
+    _search?: string,
+    notificationType?: NotificationType,
+    isRead?: boolean,
   ) {
+    // * remove spaces
+    const search = _search?.trim();
+
     const notifications = await this.prisma.adminNotification.findMany({
-      where: { adminId: adminId },
+      where: {
+        adminId: adminId,
+
+        // * Filter by notification type.
+        ...(notificationType !== undefined ? { notificationType } : {}),
+
+        // * Filter by read or unread status.
+        ...(isRead !== undefined ? { isRead } : {}),
+
+        // * Search notification title or message.
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { message: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
     });

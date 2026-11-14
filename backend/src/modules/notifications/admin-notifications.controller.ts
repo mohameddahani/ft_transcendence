@@ -1,9 +1,10 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { NotificationType, Role } from '@/generated/prisma/enums';
 import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -53,11 +54,25 @@ export class AdminNotificationsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'notificationType',
+      new ParseEnumPipe(NotificationType, { optional: true }),
+    )
+    notificationType?: NotificationType,
+    @Query(
+      'isRead',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isRead?: string,
   ) {
     return this.notificationService.findAllNotificationsAdmin(
       accessTokenPayload.id,
       page,
       limit,
+      search,
+      notificationType,
+      isRead === undefined ? undefined : isRead === 'true',
     );
   }
 
