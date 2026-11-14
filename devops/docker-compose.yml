@@ -335,7 +335,7 @@ services:
   # ============================================================================
 
   backup:
-    build: ./backup-service
+    build: ./backup
     image: backup:latest
     container_name: backup
     restart: unless-stopped

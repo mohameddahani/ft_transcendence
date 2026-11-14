@@ -218,7 +218,7 @@ flowchart LR
 │       ├── src/
 │       └── Dockerfile
 ├── devops/
-│   ├── backup-service/     # Scheduled backups and restore scripts
+│   ├── backup/             # Scheduled backups and restore scripts
 │   ├── backups/            # Backup files (not committed)
 │   ├── monitoring/
 │   │   ├── alertmanager/
