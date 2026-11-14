@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseDatePipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -30,11 +31,17 @@ export class MemberSpecialHoursController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('from', new ParseDatePipe({ optional: true }))
+    from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true }))
+    to?: Date,
   ) {
     return this.workingHoursService.findAllSpecialHoursByMember(
       accessTokenPayload.id,
       page,
       limit,
+      from,
+      to,
     );
   }
 

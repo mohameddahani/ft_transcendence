@@ -803,6 +803,8 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    from?: Date,
+    to?: Date,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -810,10 +812,26 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check Date and Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
+
+        // * The record must end on or after the requested start date.
+        ...(from !== undefined ? { endDate: { gte: from } } : {}),
+
+        // * The record must start on or before the requested end date.
+        ...(to !== undefined ? { startDate: { lte: to } } : {}),
       },
+
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -864,6 +882,8 @@ export class WorkingHoursService {
     memberId: string,
     page: number,
     limit: number,
+    from?: Date,
+    to?: Date,
   ) {
     // * Get Admin Id from member
     const adminId =
@@ -878,10 +898,26 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check Date and Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
+
+        // * The record must end on or after the requested start date.
+        ...(from !== undefined ? { endDate: { gte: from } } : {}),
+
+        // * The record must start on or before the requested end date.
+        ...(to !== undefined ? { startDate: { lte: to } } : {}),
       },
+
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+
       skip: (page - 1) * limit,
       take: limit,
     });
