@@ -8,6 +8,7 @@ import {
   UseGuards,
   Patch,
   Body,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import { FeedbacksService } from './feedbacks.service';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
@@ -15,7 +16,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { FeedbackStatus, Role, SentimentType } from '@/generated/prisma/enums';
 import { StaffAccessTokenAuthGuard } from '../auth/guards/staff-access-token-auth.guard';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 
@@ -33,11 +34,28 @@ export class StaffFeedbacksController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'feedbackStatus',
+      new ParseEnumPipe(FeedbackStatus, { optional: true }),
+    )
+    feedbackStatus?: FeedbackStatus,
+    @Query(
+      'sentimentType',
+      new ParseEnumPipe(SentimentType, { optional: true }),
+    )
+    sentimentType?: SentimentType,
+    @Query('rating', new ParseIntPipe({ optional: true }))
+    rating?: number,
   ) {
     return this.feedbacksService.findAllFeedbacks(
       accessTokenPayload,
       page,
       limit,
+      search,
+      feedbackStatus,
+      sentimentType,
+      rating,
     );
   }
 

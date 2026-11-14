@@ -151,6 +151,7 @@ export class AttendancesService {
             }
           : {}),
       },
+      orderBy: [{ checkedInAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
       select: {

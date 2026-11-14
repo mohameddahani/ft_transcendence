@@ -1,16 +1,4 @@
-###owner:
--
-
-
-###admin:
--
-
-
-###staff:
--
-
-
-### Member
+### Member Platform
 
 - Attendances → `GET /api/members/attendances?page=1&limit=20&attendanceMethod=QR_CODE&from=2026-11-01T00:00:00.000Z&to=2026-11-14T23:59:59.999Z`
 
