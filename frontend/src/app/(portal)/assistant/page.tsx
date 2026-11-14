@@ -167,7 +167,7 @@ function SidebarContent({
   }, [filteredThreads, t]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-card text-card-foreground">
+    <div className="flex flex-col h-full overflow-hidden bg-transparent text-card-foreground">
       {/* Sidebar Header */}
       <div className="p-3.5 border-b border-border/40 flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-baseline gap-1.5 min-w-0">
@@ -189,9 +189,9 @@ function SidebarContent({
             onClick={onNewChat}
             disabled={isStreaming}
             title={t("newChat") || "New Chat"}
-            className="toota-pill h-7 px-2.5 text-xs font-semibold cursor-pointer"
+            className="h-8 ps-1 pe-3 gap-1.5 text-xs font-semibold cursor-pointer rounded-full bg-[#1b1f23] text-white hover:bg-[#2b3036] dark:bg-white dark:text-[#0f1115] dark:hover:bg-white/90 disabled:opacity-40 shadow-sm"
           >
-            <Plus className="size-3.5 me-1" />
+            <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05] shrink-0"><Plus className="size-3" /></span>
             <span suppressHydrationWarning>{t("newChat") || "New"}</span>
           </Button>
 
@@ -267,7 +267,7 @@ function SidebarContent({
                       onClick={() => onSelectThread(th.id)}
                       className={`group relative flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all ${
                         isActive
-                          ? "bg-toota-inner text-toota-ink font-semibold border-s-2 border-toota-green shadow-2xs"
+                          ? "bg-toota-inner text-toota-ink font-semibold border-s-[3px] border-[#a3e635] shadow-2xs"
                           : "text-toota-muted hover:text-toota-ink hover:bg-toota-inner/60"
                       }`}
                     >
@@ -945,37 +945,44 @@ export default function AssistantPage() {
       {/* 1. Top Header Card (Single Typographic Baseline Metric) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-baseline gap-2 flex-wrap">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <span className="grid size-11 place-items-center rounded-2xl bg-[#1b1f23] text-[#a3e635] shadow-sm shrink-0 dark:bg-white/10">
+              <Sparkles className="size-5" />
+            </span>
+            <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1
                 suppressHydrationWarning
-                className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+                className="font-headline text-lg font-semibold tracking-tight text-toota-ink"
               >
                 {t("assistantTitle", "Operational AI Assistant")}
               </h1>
               {gymName && (
-                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / {gymName}
+                <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
+                  {gymName}
                 </span>
               )}
               {role && (
-                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
+                <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
+                  {role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()}
                 </span>
               )}
               {/* Crisp Outlined Micro-Badge */}
               {isAiConnected ? (
                 <span
                   suppressHydrationWarning
-                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs ms-1"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="relative flex size-1.5 shrink-0">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#a3e635] opacity-60" />
+                    <span className="relative inline-flex size-1.5 rounded-full bg-[#65a30d] dark:bg-[#a3e635]" />
+                  </span>
                   <span suppressHydrationWarning>{t("aiConnected", "Connected")}</span>
                 </span>
               ) : accessMessage ? (
                 <span
                   suppressHydrationWarning
-                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-rose-200 dark:ring-rose-900/40 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 ms-1"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
                   <span suppressHydrationWarning>{t("aiRestricted", "Restricted")}</span>
@@ -983,7 +990,7 @@ export default function AssistantPage() {
               ) : (
                 <span
                   suppressHydrationWarning
-                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 ms-1"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                   <span suppressHydrationWarning>{t("aiOffline", "Offline")}</span>
@@ -999,6 +1006,7 @@ export default function AssistantPage() {
                 "Instant gym intelligence, operational lookups, and member support powered by Gemini."
               )}
             </p>
+            </div>
           </div>
 
           {/* Header Action Buttons */}
@@ -1006,7 +1014,7 @@ export default function AssistantPage() {
             {role === "ADMIN" && (
               <Link
                 href="/assistant/documents"
-                className="toota-pill inline-flex items-center h-10 px-4 text-xs font-semibold border border-border/50 hover:bg-toota-inner text-toota-ink transition-colors cursor-pointer"
+                className="toota-pill inline-flex items-center h-10 px-4 text-xs font-semibold text-toota-ink transition-shadow cursor-pointer hover:ring-2 hover:ring-[#a3e635] focus-visible:ring-2 focus-visible:ring-[#a3e635]"
               >
                 <BookOpen className="size-3.5 me-2 text-toota-muted" />
                 <span suppressHydrationWarning>{t("manageDocuments", "Knowledge Documents")}</span>
@@ -1018,7 +1026,7 @@ export default function AssistantPage() {
               variant="outline"
               onClick={() => void init()}
               disabled={loadingMe}
-              className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+              className="toota-pill h-10 px-4 text-xs font-semibold border-none text-toota-ink cursor-pointer transition-shadow hover:ring-2 hover:ring-[#a3e635] focus-visible:ring-2 focus-visible:ring-[#a3e635]"
             >
               <RefreshCw className={`size-3.5 me-2 ${loadingMe ? "animate-spin" : ""}`} />
               <span suppressHydrationWarning>{t("refresh", "Refresh")}</span>
@@ -1028,9 +1036,9 @@ export default function AssistantPage() {
               type="button"
               onClick={handleNewChat}
               disabled={isStreaming}
-              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+              className="toota-pill active h-10 ps-2 pe-5 text-xs font-semibold cursor-pointer"
             >
-              <Plus className="size-3.5 me-1.5" />
+              <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05] shrink-0"><Plus className="size-3.5" /></span>
               <span suppressHydrationWarning>{t("newChat", "New Chat")}</span>
             </Button>
           </div>
@@ -1092,9 +1100,9 @@ export default function AssistantPage() {
         )}
 
         {/* Right Chat Workstation */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-transparent">
           {/* Workstation Top Bar */}
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/40 shrink-0 bg-card">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border/40 shrink-0 bg-transparent">
             <div className="flex items-center gap-2.5 min-w-0">
               {!isSidebarOpen && (
                 <Button
@@ -1119,7 +1127,7 @@ export default function AssistantPage() {
               >
                 <History className="size-4" />
                 {threads.length > 0 && (
-                  <span className="absolute -top-1 -end-1 size-2 rounded-full bg-primary" />
+                  <span className="absolute -top-1 -end-1 size-2 rounded-full bg-[#a3e635]" />
                 )}
               </Button>
 
@@ -1159,7 +1167,7 @@ export default function AssistantPage() {
           </div>
 
           {/* Chat Stream Viewport */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 min-h-0 bg-background">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-4 min-h-0 bg-transparent">
             {isLoadingThread ? (
               <div className="h-full flex items-center justify-center">
                 <div className="flex flex-col items-center gap-2 text-toota-muted text-xs">
@@ -1211,7 +1219,7 @@ export default function AssistantPage() {
                   type="button"
                   onClick={() => void init()}
                   disabled={loadingMe}
-                  className="toota-pill h-9 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="toota-pill active h-9 px-5 text-xs font-semibold cursor-pointer"
                 >
                   <RefreshCw className={`size-3.5 me-2 ${loadingMe ? "animate-spin" : ""}`} />
                   <span suppressHydrationWarning>{t("aiReconnect", "Reconnect Now")}</span>
@@ -1222,13 +1230,15 @@ export default function AssistantPage() {
               <div className="h-full flex flex-col justify-center items-center text-center max-w-2xl mx-auto py-6">
                 <div
                   suppressHydrationWarning
-                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs mb-4"
+                  className="inline-flex items-center gap-2 rounded-full bg-toota-pill py-1 ps-1 pe-3.5 text-xs font-semibold text-toota-ink shadow-sm ring-1 ring-black/5 dark:ring-white/10 mb-4"
                 >
-                  <Sparkles className="size-3.5 text-amber-500 shrink-0" />
+                  <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05]">
+                    <Sparkles className="size-3.5 shrink-0" />
+                  </span>
                   <span suppressHydrationWarning>{t("aiOperationalConsole", "Operational Intelligence Console")}</span>
                 </div>
 
-                <h3 className="font-semibold text-xl text-toota-ink mb-1.5 tracking-tight">
+                <h3 className="font-headline font-semibold text-2xl text-toota-ink mb-1.5 tracking-tight">
                   {role === "ADMIN"
                     ? "What operational metric shall we review?"
                     : role === "STAFF"
@@ -1249,10 +1259,12 @@ export default function AssistantPage() {
                   {categorizedSuggestions.map((group, gIdx) => (
                     <div
                       key={gIdx}
-                      className="p-3.5 rounded-2xl bg-card border border-border/40 shadow-2xs space-y-2"
+                      className="p-3.5 rounded-2xl bg-toota-pill ring-1 ring-black/5 dark:ring-white/10 shadow-sm space-y-2"
                     >
                       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-toota-muted pb-1 border-b border-border/40">
-                        <group.icon className="size-3.5 text-toota-ink" />
+                        <span className="grid size-6 place-items-center rounded-full bg-[#1b1f23] text-[#a3e635] dark:bg-white/10">
+                          <group.icon className="size-3.5" />
+                        </span>
                         <span>{group.category}</span>
                       </div>
 
@@ -1263,17 +1275,17 @@ export default function AssistantPage() {
                             type="button"
                             onClick={() => handleSend(item.title)}
                             disabled={isStreaming}
-                            className="w-full group flex items-start justify-between gap-3 p-2 rounded-xl hover:bg-toota-inner border border-transparent hover:border-border/40 transition-all text-left rtl:text-right cursor-pointer"
+                            className="w-full group flex items-start justify-between gap-3 p-2 rounded-xl hover:bg-toota-inner ring-1 ring-transparent hover:ring-[#a3e635]/70 transition-all text-left rtl:text-right cursor-pointer"
                           >
                             <div className="min-w-0">
-                              <p className="text-xs font-semibold text-toota-ink group-hover:text-primary transition-colors leading-snug">
+                              <p className="text-xs font-semibold text-toota-ink transition-colors leading-snug">
                                 {item.title}
                               </p>
                               <p className="text-[11px] text-toota-muted mt-0.5 truncate">
                                 {item.subtitle}
                               </p>
                             </div>
-                            <ChevronRight className="size-3.5 text-toota-muted group-hover:text-primary group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 shrink-0 mt-0.5 transition-transform" />
+                            <ChevronRight className="size-3.5 text-toota-muted group-hover:text-[#65a30d] dark:group-hover:text-[#a3e635] group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 shrink-0 mt-0.5 transition-transform" />
                           </button>
                         ))}
                       </div>
@@ -1293,9 +1305,9 @@ export default function AssistantPage() {
                     }`}
                   >
                     {!isUser && (
-                      <Avatar className="size-8 ring-1 ring-border/40 shrink-0 mt-0.5">
-                        <AvatarFallback className="bg-toota-inner text-toota-ink font-semibold text-xs">
-                          AI
+                      <Avatar className="size-8 shrink-0 mt-0.5">
+                        <AvatarFallback className="bg-[#a3e635] text-[#1a2e05]">
+                          <Sparkles className="size-4" />
                         </AvatarFallback>
                       </Avatar>
                     )}
@@ -1303,13 +1315,15 @@ export default function AssistantPage() {
                     <div
                       className={`relative max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-1.5 transition-all ${
                         isUser
-                          ? "bg-toota-inner text-toota-ink border border-border/40"
-                          : "bg-card text-toota-ink border border-border/40 shadow-2xs"
+                          ? "bg-[#1b1f23] text-white rounded-se-md dark:bg-white dark:text-[#0f1115]"
+                          : "bg-toota-pill text-toota-ink rounded-ss-md ring-1 ring-black/5 dark:ring-white/10 shadow-sm"
                       }`}
                     >
                       {/* Sender Metadata */}
-                      <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/40 text-[11px] text-toota-muted select-none">
-                        <span className="font-semibold text-toota-ink">
+                      <div className={`flex items-center justify-between gap-2 pb-1 border-b text-[11px] select-none ${
+                        isUser ? "border-white/15 text-white/60 dark:border-black/10 dark:text-[#0f1115]/60" : "border-border/40 text-toota-muted"
+                      }`}>
+                        <span className={`font-semibold ${isUser ? "text-white dark:text-[#0f1115]" : "text-toota-ink"}`}>
                           {isUser ? `You (${role || "User"})` : `${gymName} Assistant`}
                         </span>
                         {msg.timestamp && (
@@ -1322,8 +1336,8 @@ export default function AssistantPage() {
                       {/* Tool Execution Micro-Badge */}
                       {msg.tool && (
                         <div className="py-1">
-                          <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]">
+                            <span className="size-1.5 rounded-full bg-[#65a30d] dark:bg-[#a3e635] animate-pulse shrink-0" />
                             <span>{msg.tool}...</span>
                           </span>
                         </div>
@@ -1332,7 +1346,7 @@ export default function AssistantPage() {
                       {/* Message Content (Strict Security: plain text, no innerHTML) */}
                       <p
                         dir="auto"
-                        className="whitespace-pre-wrap font-sans break-words text-xs sm:text-[13px] leading-relaxed text-toota-ink"
+                        className={`whitespace-pre-wrap font-sans break-words text-xs sm:text-[13px] leading-relaxed ${isUser ? "text-inherit" : "text-toota-ink"}`}
                       >
                         {msg.text}
                       </p>
@@ -1340,9 +1354,9 @@ export default function AssistantPage() {
                       {/* Streaming Dots */}
                       {msg.isStreaming && !msg.text && (
                         <div className="inline-flex items-center gap-1 text-toota-muted py-1">
-                          <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-                          <span className="size-1.5 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-                          <span className="size-1.5 rounded-full bg-primary animate-bounce" />
+                          <span className="size-1.5 rounded-full bg-[#a3e635] animate-bounce [animation-delay:-0.3s]" />
+                          <span className="size-1.5 rounded-full bg-[#a3e635] animate-bounce [animation-delay:-0.15s]" />
+                          <span className="size-1.5 rounded-full bg-[#a3e635] animate-bounce" />
                         </div>
                       )}
 
@@ -1360,8 +1374,8 @@ export default function AssistantPage() {
                           >
                             {copiedId === msg.id ? (
                               <>
-                                <Check className="size-3 text-emerald-500" />
-                                <span className="text-emerald-500" suppressHydrationWarning>{t("copied", "Copied")}</span>
+                                <Check className="size-3 text-[#65a30d] dark:text-[#a3e635]" />
+                                <span className="text-[#65a30d] dark:text-[#a3e635]" suppressHydrationWarning>{t("copied", "Copied")}</span>
                               </>
                             ) : (
                               <>
@@ -1389,8 +1403,8 @@ export default function AssistantPage() {
           </div>
 
           {/* Bottom Input Dock */}
-          <div className="p-3 sm:p-4 border-t border-border/40 shrink-0 bg-card">
-            <div className="rounded-2xl bg-toota-inner border border-border/40 focus-within:ring-1 focus-within:ring-zinc-400 p-2 sm:p-2.5 transition-all">
+          <div className="p-3 sm:p-4 border-t border-border/40 shrink-0 bg-transparent">
+            <div className="rounded-3xl bg-toota-pill ring-1 ring-black/5 dark:ring-white/10 focus-within:ring-2 focus-within:ring-[#a3e635] shadow-sm p-2 sm:p-2.5 transition-shadow">
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -1420,17 +1434,17 @@ export default function AssistantPage() {
                     size="sm"
                     onClick={() => handleSend()}
                     disabled={!input.trim() || isStreaming || !!accessMessage}
-                    className="toota-pill h-7 px-3 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="h-9 ps-4 pe-1.5 gap-2 text-xs font-semibold cursor-pointer rounded-full bg-[#1b1f23] text-white hover:bg-[#2b3036] dark:bg-white dark:text-[#0f1115] dark:hover:bg-white/90 disabled:opacity-40 shadow-sm"
                     aria-label={t("send", "Send message")}
                   >
-                    {isStreaming ? (
-                      <RefreshCw className="size-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline me-1" suppressHydrationWarning>{t("send", "Send")}</span>
+                    <span className="hidden sm:inline" suppressHydrationWarning>{t("send", "Send")}</span>
+                    <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05] shrink-0">
+                      {isStreaming ? (
+                        <RefreshCw className="size-3.5 animate-spin" />
+                      ) : (
                         <Send className="size-3 rtl:rotate-180" />
-                      </>
-                    )}
+                      )}
+                    </span>
                   </Button>
                 </div>
               </div>
