@@ -505,6 +505,8 @@ export default function AssistantPage() {
         return t("tool_my_payments") || "Fetching billing records";
       case "my_attendance":
         return t("tool_my_attendance") || "Looking up workout visits";
+      case "get_opening_hours":
+        return t("tool_get_opening_hours") || "Checking opening hours";
       default:
         return toolName.replace(/_/g, " ");
     }
