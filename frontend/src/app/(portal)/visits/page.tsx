@@ -271,7 +271,7 @@ export default function MemberVisitsPage() {
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
-                  <span>None</span>
+                  <span>{t("none", "None")}</span>
                 </span>
               )}
             </div>

@@ -192,7 +192,7 @@ export default function AssistantDocumentsPage() {
             <Shield className="size-6" />
           </div>
           <h2 className="font-semibold text-lg text-toota-ink">
-            Access Restricted
+            {t("accessRestricted", "Access Restricted")}
           </h2>
           <p className="text-xs text-toota-muted leading-relaxed">
             {forbiddenMessage}
@@ -234,7 +234,7 @@ export default function AssistantDocumentsPage() {
                   {t("documentsTitle", "Gym Knowledge Base")}
                 </h1>
                 <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
-                  Owner Admin
+                  {t("docsOwnerAdmin", "Owner Admin")}
                 </span>
                 <span
                   suppressHydrationWarning
@@ -263,7 +263,7 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Total Documents
+              {t("docsTotal", "Total Documents")}
             </span>
             <div className="size-10 rounded-full bg-[#1b1f23] flex items-center justify-center text-[#a3e635] dark:bg-white/10">
               <BookOpen className="size-5" />
@@ -275,11 +275,11 @@ export default function AssistantDocumentsPage() {
                 {documents.length}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / total files
+                / {t("docsTotalFiles", "total files")}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Active knowledge source documents
+              {t("docsTotalHint", "Active knowledge source documents")}
             </p>
           </CardContent>
         </Card>
@@ -288,7 +288,7 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Members & Staff
+              {t("docsMembersAndStaff", "Members & Staff")}
             </span>
             <div className="size-10 rounded-full bg-[#a3e635] flex items-center justify-center text-[#1a2e05]">
               <Users className="size-5" />
@@ -301,11 +301,11 @@ export default function AssistantDocumentsPage() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#65a30d] dark:bg-[#a3e635] shrink-0" />
-                <span>Public</span>
+                <span>{t("docsPublic", "Public")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Accessible to all members and staff
+              {t("docsMembersAndStaffHint", "Accessible to all members and staff")}
             </p>
           </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Staff Only
+              {t("visibilityStaff", "Staff Only")}
             </span>
             <div className="size-10 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <ShieldAlert className="size-5" />
@@ -327,11 +327,11 @@ export default function AssistantDocumentsPage() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span>Restricted</span>
+                <span>{t("docsRestricted", "Restricted")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Concealed strictly from member queries
+              {t("docsStaffOnlyHint", "Concealed strictly from member queries")}
             </p>
           </CardContent>
         </Card>
@@ -340,7 +340,7 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Vector Chunks
+              {t("docsChunks", "Vector Chunks")}
             </span>
             <div className="size-10 rounded-full bg-[#1b1f23] flex items-center justify-center text-[#a3e635] dark:bg-white/10">
               <Layers className="size-5" />
@@ -352,11 +352,11 @@ export default function AssistantDocumentsPage() {
                 {totalChunks}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / embeddings
+                / {t("docsEmbeddings", "embeddings")}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Indexed passages available for semantic lookup
+              {t("docsChunksHint", "Indexed passages available for semantic lookup")}
             </p>
           </CardContent>
         </Card>
@@ -492,14 +492,14 @@ export default function AssistantDocumentsPage() {
           <div>
             <div className="flex items-baseline gap-2">
               <h2 className="font-headline text-sm font-semibold tracking-tight text-toota-ink">
-                Document Knowledge Library
+                {t("docsLibrary", "Document Knowledge Library")}
               </h2>
               <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
-                {filteredDocs.length} of {documents.length}
+                {t("countOfTotal", "{{shown}} of {{total}}", { shown: filteredDocs.length, total: documents.length })}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-0.5">
-              Active documents referenced by Gemini when responding to queries
+              {t("docsLibraryHint", "Active documents referenced by Gemini when responding to queries")}
             </p>
           </div>
 

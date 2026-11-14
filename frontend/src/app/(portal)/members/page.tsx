@@ -826,7 +826,7 @@ export default function MembersPage() {
                   }
 
                   const durationLabel = durationDays
-                    ? `${durationDays} Days`
+                    ? t("daysCount", { count: durationDays })
                     : activeMembership?.membershipPlanDuration?.duration ||
                       "—";
 

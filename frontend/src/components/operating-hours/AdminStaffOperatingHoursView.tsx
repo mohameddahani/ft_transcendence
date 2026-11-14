@@ -625,7 +625,7 @@ export default function AdminStaffOperatingHoursView() {
                 {t("sevenDayStandardSchedule")}
               </h2>
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {configuredDayNumbers.length} of 7 configured
+                / {t("daysConfiguredOfSeven", "{{count}} of 7 configured", { count: configuredDayNumbers.length })}
               </span>
             </div>
             <span className="text-xs text-toota-muted">

@@ -178,7 +178,7 @@ export default function MemberDashboardView() {
       return (
         <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span>Active</span>
+          <span>{t("active", "Active")}</span>
         </span>
       );
     }
@@ -439,7 +439,7 @@ export default function MemberDashboardView() {
               )}
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Sessions</span>
+                <span>{t("sessions", "Sessions")}</span>
               </span>
             </div>
 

@@ -467,7 +467,7 @@ export default function MemberFeedbackView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Published</span>
+                <span>{t("published", "Published")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
@@ -493,11 +493,11 @@ export default function MemberFeedbackView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Positive</span>
+                <span>{t("positiveSentimentPercent", "Positive")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Rated 4 or 5 stars by members
+              {t("ratedFourOrFive", "Rated 4 or 5 stars by members")}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
