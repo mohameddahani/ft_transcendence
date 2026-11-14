@@ -8,6 +8,7 @@ import { Plus } from "lucide-react";
 import { UserProvider } from "@/contexts/UserContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
+import SubscriptionRequired from "@/components/subscription/SubscriptionRequired";
 
 function PortalLayoutInner({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -55,6 +56,9 @@ function PortalLayoutInner({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       )}
+
+      {/* Plans popup and floating button for an owner whose platform subscription has ended */}
+      {!isLoading && role === "Admin" && <SubscriptionRequired />}
 
       {/* Quick Add Member Modal (Admin/Staff only) */}
       {!isLoading && role !== "Member" && (

@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import { SportiumSubscription, GymflowSubscription } from "@/types/subscription";
+import { SportiumSubscription, GymflowSubscription, PlatformPlanWithDurations } from "@/types/subscription";
 
 /**
  * Fetch the admin's current active Sportium platform subscription
@@ -24,4 +24,12 @@ export async function fetchAllSubscriptions(
   return Array.isArray(response.data) ? response.data : [];
 }
 
-export type { SportiumSubscription, GymflowSubscription };
+/**
+ * Fetch Sportium's platform plans with their durations (public backend route GET /api/plans)
+ */
+export async function fetchPlatformPlans(): Promise<PlatformPlanWithDurations[]> {
+  const response = await api.get<PlatformPlanWithDurations[]>("/api/plans?page=1&limit=50", { timeout: 10000 });
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+export type { SportiumSubscription, GymflowSubscription, PlatformPlanWithDurations };
