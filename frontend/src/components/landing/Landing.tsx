@@ -11,6 +11,7 @@ import Faq from "@/components/landing/faq/Faq";
 import Cta from "@/components/landing/cta/Cta";
 import Footer from "@/components/landing/footer/Footer";
 import { LandingMotion } from "@/components/landing/motion";
+import { WhatsappFloatingButton } from "@/components/landing/whatsapp";
 
 export default function Home() {
   return (
@@ -47,6 +48,9 @@ export default function Home() {
 
         {/* Footer */}
         <Footer />
+
+        {/* WhatsApp chat with the platform, bottom right */}
+        <WhatsappFloatingButton />
       </div>
     </LandingMotion>
   );
