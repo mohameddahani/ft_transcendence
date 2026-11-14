@@ -2,13 +2,14 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { Role } from '@/generated/prisma/enums';
+import { Role, VisitStatus } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -31,12 +32,15 @@ export class StaffVisitsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query('visitStatus', new ParseEnumPipe(VisitStatus, { optional: true }))
+    visitStatus?: VisitStatus,
   ) {
     return this.visitsService.findAllVisitsToday(
       accessTokenPayload,
       page,
       limit,
       search,
+      visitStatus,
     );
   }
 
