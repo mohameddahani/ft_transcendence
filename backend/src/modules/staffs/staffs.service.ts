@@ -207,6 +207,7 @@ export class StaffsService {
     page: number,
     limit: number,
     _search?: string,
+    accountStatus?: AccountStatus,
   ) {
     // * Check that the admin account, subscription, and associated plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
@@ -218,16 +219,24 @@ export class StaffsService {
       where: {
         adminId,
 
-        // * Search Filter
+        // * Filter by account status.
+        ...(accountStatus !== undefined ? { accountStatus } : {}),
+
+        // * Search staff identity or contact details.
         ...(search
           ? {
               OR: [
                 { firstName: { contains: search, mode: 'insensitive' } },
                 { lastName: { contains: search, mode: 'insensitive' } },
+                { userName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { phoneNumber: { contains: search } },
               ],
             }
           : {}),
       },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
       select: {
