@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -32,11 +33,19 @@ export class MemberMembershipPlansController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'isActive',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isActive?: string,
   ) {
     return this.membershipPlansService.findAllByMember(
       accessTokenPayload.id,
       page,
       limit,
+      search,
+      isActive === undefined ? undefined : isActive === 'true',
     );
   }
 
