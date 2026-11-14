@@ -197,8 +197,8 @@ export default function ResolveFeedbackModal({
                       aria-pressed={isSelected}
                       className={`flex min-h-9 items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold text-start cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
                         isSelected
-                          ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
-                          : "bg-background border-border text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
+                          ? "bg-toota-ink border-toota-ink text-toota-main shadow-xs hover:bg-toota-ink/90"
+                          : "bg-background border-border text-toota-ink hover:border-toota-ink/25 hover:bg-muted"
                       }`}
                     >
                       <span aria-hidden="true" className={`size-2 rounded-full ${option.dotClass} shrink-0`} />
@@ -252,7 +252,7 @@ export default function ResolveFeedbackModal({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="min-h-9 h-auto rounded-lg px-3 py-2 text-xs font-semibold bg-toota-lime text-zinc-950 hover:bg-toota-lime/85 cursor-pointer whitespace-normal"
+              className="min-h-9 h-auto rounded-lg px-3 py-2 text-xs font-semibold border-toota-ink bg-toota-ink text-toota-main hover:bg-toota-ink/90 cursor-pointer whitespace-normal"
             >
               {isSubmitting ? <Loader2 aria-hidden="true" className="size-4 animate-spin me-1.5" /> : <CheckCircle2 aria-hidden="true" className="size-4 me-1.5" />}
               <span>{isSubmitting ? t("saving") : t("saveResolution")}</span>

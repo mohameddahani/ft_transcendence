@@ -716,7 +716,7 @@ function AdminStaffFeedbackView() {
                     className={`min-h-8 h-auto max-w-full rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-normal text-start cursor-pointer ${
                       isResolved
                         ? "border-border bg-background hover:bg-muted text-toota-ink"
-                        : "bg-toota-lime text-zinc-950 hover:bg-toota-lime/85"
+                        : "border-toota-ink bg-toota-ink text-toota-main hover:bg-toota-ink/90"
                     }`}
                   >
                     <span>

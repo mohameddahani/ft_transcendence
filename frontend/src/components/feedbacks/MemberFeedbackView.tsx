@@ -522,12 +522,12 @@ export default function MemberFeedbackView() {
                 aria-pressed={activeTab === "all"}
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeTab === "all"
-                    ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
-                    : "bg-card border-border text-toota-ink hover:bg-toota-lime/10 hover:border-toota-lime"
+                    ? "bg-toota-ink border-toota-ink text-toota-main shadow-xs hover:bg-toota-ink/90"
+                    : "bg-card border-border text-toota-ink hover:bg-muted hover:border-toota-ink/25"
                 }`}
               >
                 <span>{t("allFeedbacks") || "All Reviews"}</span>
-                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "all" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "all" ? "bg-toota-main/15 text-toota-main" : "bg-muted text-toota-ink"}`}>
                   {stats.total}
                 </span>
               </button>
@@ -538,12 +538,12 @@ export default function MemberFeedbackView() {
                 aria-pressed={activeTab === "mine"}
                 className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeTab === "mine"
-                    ? "bg-toota-lime border-toota-lime text-zinc-950 shadow-xs"
-                    : "bg-card border-border text-toota-ink hover:bg-toota-lime/10 hover:border-toota-lime"
+                    ? "bg-toota-ink border-toota-ink text-toota-main shadow-xs hover:bg-toota-ink/90"
+                    : "bg-card border-border text-toota-ink hover:bg-muted hover:border-toota-ink/25"
                 }`}
               >
                 <span>{t("myFeedbacks") || "My Reviews"}</span>
-                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "mine" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+                <span className={`inline-flex min-w-6 h-6 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] tabular-nums ${activeTab === "mine" ? "bg-toota-main/15 text-toota-main" : "bg-muted text-toota-ink"}`}>
                   {stats.myCount}
                 </span>
               </button>

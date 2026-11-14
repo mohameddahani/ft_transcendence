@@ -303,13 +303,13 @@ export default function MemberVisitsPage() {
           aria-pressed={activeTab === "upcoming"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             activeTab === "upcoming"
-              ? "border-toota-lime bg-toota-lime text-zinc-950 shadow-xs"
-              : "border-border bg-card text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
+              ? "border-toota-ink bg-toota-ink text-toota-main shadow-xs hover:bg-toota-ink/90"
+              : "border-border bg-card text-toota-ink hover:border-toota-ink/25 hover:bg-muted"
           }`}
         >
           <Calendar aria-hidden="true" className="size-4 shrink-0" />
           <span suppressHydrationWarning>{t("upcomingVisits", "Upcoming Visits")}</span>
-          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "upcoming" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "upcoming" ? "bg-toota-main/15 text-toota-main" : "bg-muted text-toota-ink"}`}>
             {upcomingVisits.length}
           </span>
         </button>
@@ -320,13 +320,13 @@ export default function MemberVisitsPage() {
           aria-pressed={activeTab === "today"}
           className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             activeTab === "today"
-              ? "border-toota-lime bg-toota-lime text-zinc-950 shadow-xs"
-              : "border-border bg-card text-toota-ink hover:border-toota-lime hover:bg-toota-lime/10"
+              ? "border-toota-ink bg-toota-ink text-toota-main shadow-xs hover:bg-toota-ink/90"
+              : "border-border bg-card text-toota-ink hover:border-toota-ink/25 hover:bg-muted"
           }`}
         >
           <Clock aria-hidden="true" className="size-4 shrink-0" />
           <span suppressHydrationWarning>{t("todaysVisits", "Today's Schedule")}</span>
-          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "today" ? "bg-black/10 text-zinc-950" : "bg-muted text-toota-ink"}`}>
+          <span className={`inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-1.5 text-xs tabular-nums ${activeTab === "today" ? "bg-toota-main/15 text-toota-main" : "bg-muted text-toota-ink"}`}>
             {todayVisits.length}
           </span>
         </button>
