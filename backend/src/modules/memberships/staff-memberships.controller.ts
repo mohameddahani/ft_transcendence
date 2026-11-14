@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -10,7 +11,7 @@ import {
 import { MembershipsService } from './memberships.service';
 import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { Role } from '@/generated/prisma/enums';
+import { MembershipStatus, Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -30,8 +31,23 @@ export class StaffMembershipsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'membershipStatus',
+      new ParseEnumPipe(MembershipStatus, { optional: true }),
+    )
+    membershipStatus?: MembershipStatus,
+    @Query('membershipPlanId', new ParseUUIDPipe({ optional: true }))
+    membershipPlanId?: string,
   ) {
-    return this.membershipsService.findAll(accessTokenPayload, page, limit);
+    return this.membershipsService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      search,
+      membershipStatus,
+      membershipPlanId,
+    );
   }
 
   // * Get All Stats of Memebership (Staff)
