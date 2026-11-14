@@ -182,19 +182,49 @@ export class SubscriptionsService {
   }
 
   // * Get all Subscriptions
-  async findAll(page: number, limit: number, _search?: string) {
+  async findAll(
+    page: number,
+    limit: number,
+    _search?: string,
+    subscriptionStatus?: SubscriptionStatus,
+    planId?: string,
+  ) {
     // * remove spaces
     const search = _search?.trim();
 
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
-        // * Search Filter
+        // * Filter by subscription status.
+        ...(subscriptionStatus !== undefined ? { subscriptionStatus } : {}),
+
+        // * Filter by platform plan.
+        ...(planId !== undefined ? { planId } : {}),
+
+        // * Search subscription ID or user details.
         ...(search
           ? {
-              id: { contains: search, mode: 'insensitive' },
+              OR: [
+                { id: { contains: search, mode: 'insensitive' } },
+                {
+                  user: {
+                    OR: [
+                      { firstName: { contains: search, mode: 'insensitive' } },
+                      { lastName: { contains: search, mode: 'insensitive' } },
+                      { userName: { contains: search, mode: 'insensitive' } },
+                      { email: { contains: search, mode: 'insensitive' } },
+                      {
+                        companyName: { contains: search, mode: 'insensitive' },
+                      },
+                    ],
+                  },
+                },
+              ],
             }
           : {}),
       },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       include: {
@@ -260,14 +290,29 @@ export class SubscriptionsService {
   }
 
   // * Get All Subscriptions of Admin
-  async findAllSubscriptions(adminId: string, page: number, limit: number) {
+  async findAllSubscriptions(
+    adminId: string,
+    page: number,
+    limit: number,
+    subscriptionStatus?: SubscriptionStatus,
+    planId?: string,
+  ) {
     // * Check that the admin account, subscription, and plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
         userId: adminId,
+
+        // * Filter by subscription status.
+        ...(subscriptionStatus !== undefined ? { subscriptionStatus } : {}),
+
+        // * Filter by platform plan.
+        ...(planId !== undefined ? { planId } : {}),
       },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       select: {

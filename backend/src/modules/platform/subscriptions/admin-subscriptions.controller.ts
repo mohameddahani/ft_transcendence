@@ -1,10 +1,12 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { Role, SubscriptionStatus } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Controller,
   Get,
+  ParseEnumPipe,
   ParseIntPipe,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -37,11 +39,20 @@ export class AdminSubscriptionsController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'subscriptionStatus',
+      new ParseEnumPipe(SubscriptionStatus, { optional: true }),
+    )
+    subscriptionStatus?: SubscriptionStatus,
+    @Query('planId', new ParseUUIDPipe({ optional: true }))
+    planId?: string,
   ) {
     return this.subscriptionsService.findAllSubscriptions(
       accessTokenPayload.id,
       page,
       limit,
+      subscriptionStatus,
+      planId,
     );
   }
 

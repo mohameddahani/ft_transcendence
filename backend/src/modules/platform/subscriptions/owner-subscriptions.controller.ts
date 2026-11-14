@@ -1,11 +1,12 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { Role, SubscriptionStatus } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Body,
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -40,15 +41,28 @@ export class OwnerSubscriptionsController {
     return this.subscriptionsService.cancelSubscription(body.adminId);
   }
 
-  // * Get all Subscriptions
+  // * Get all subscriptions.
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query(
+      'subscriptionStatus',
+      new ParseEnumPipe(SubscriptionStatus, { optional: true }),
+    )
+    subscriptionStatus?: SubscriptionStatus,
+    @Query('planId', new ParseUUIDPipe({ optional: true }))
+    planId?: string,
   ) {
-    return this.subscriptionsService.findAll(page, limit, search);
+    return this.subscriptionsService.findAll(
+      page,
+      limit,
+      search,
+      subscriptionStatus,
+      planId,
+    );
   }
 
   // * Get All Stats of subscriptions (Owner)
