@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseDatePipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -31,12 +32,18 @@ export class AdminPaymentsController {
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query('from', new ParseDatePipe({ optional: true }))
+    from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true }))
+    to?: Date,
   ) {
     return this.paymentsService.findAllPayments(
       accessTokenPayload,
       page,
       limit,
       search,
+      from,
+      to,
     );
   }
 
