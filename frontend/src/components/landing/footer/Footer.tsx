@@ -22,7 +22,7 @@ export default function Footer() {
               <BrandMark />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              A multi-tenant management platform for fitness clubs, martial arts dojos, swimming clubs, yoga studios, and running organizations.
+              A multi-tenant management platform for fitness clubs, martial arts dojos, swimming clubs, football clubs, and running organizations.
             </p>
             <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
               <Mail size={16} aria-hidden="true" className="text-primary" />

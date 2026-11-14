@@ -174,7 +174,7 @@ const audiences = [
       "Respond to and resolve member feedback",
     ],
     image: "/martialArts.jpg",
-    alt: "Martial arts students practicing in a dojo",
+    alt: "Two karate practitioners in white uniforms training outdoors",
     snippet: <CheckInSnippet />,
   },
   {
@@ -192,7 +192,7 @@ const audiences = [
       "Share feedback and like other members' posts",
     ],
     image: "/runClub.jpg",
-    alt: "Running club members on a group run",
+    alt: "A runner in a hoodie and joggers on a forest trail",
     snippet: <BookingSnippet />,
   },
 ];
