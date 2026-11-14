@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseDatePipe,
   ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -37,12 +38,18 @@ export class MemberAttendancesController {
       new ParseEnumPipe(AttendanceMethod, { optional: true }),
     )
     attendanceMethod?: AttendanceMethod,
+    @Query('from', new ParseDatePipe({ optional: true }))
+    from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true }))
+    to?: Date,
   ) {
     return this.attendancesService.findAllAttendanceByMember(
       accessTokenPayload.id,
       page,
       limit,
       attendanceMethod,
+      from,
+      to,
     );
   }
 

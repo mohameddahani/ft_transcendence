@@ -2,6 +2,7 @@ import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { PrismaService } from '@/infrastructure/database/prisma.service';
 import { MembershipWithPlan } from '@/core/types/membership-with-plan.type';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -109,6 +110,8 @@ export class AttendancesService {
     page: number,
     limit: number,
     attendanceMethod?: AttendanceMethod,
+    from?: Date,
+    to?: Date,
   ) {
     // * Get Admin id
     const adminId =
@@ -123,6 +126,13 @@ export class AttendancesService {
       adminId,
     );
 
+    // * check date and time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const attendances = await this.prisma.attendance.findMany({
       where: {
         adminId: adminId,
@@ -130,6 +140,16 @@ export class AttendancesService {
 
         // * Filter attendance by attendance status
         ...(attendanceMethod !== undefined ? { attendanceMethod } : {}),
+
+        // * Apply both date boundaries to the same field.
+        ...(from || to
+          ? {
+              checkedInAt: {
+                ...(from !== undefined ? { gte: from } : {}),
+                ...(to !== undefined ? { lte: to } : {}),
+              },
+            }
+          : {}),
       },
       skip: (page - 1) * limit,
       take: limit,
