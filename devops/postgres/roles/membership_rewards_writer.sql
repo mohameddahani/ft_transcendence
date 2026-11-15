@@ -14,7 +14,7 @@ REVOKE ALL ON SCHEMA public FROM :"rewards_user";
 GRANT CONNECT ON DATABASE :"DBNAME" TO :"rewards_user";
 GRANT USAGE ON SCHEMA public TO :"rewards_user";
 
-GRANT SELECT, INSERT, UPDATE ON membership_plans TO :"rewards_user";
+GRANT SELECT, INSERT, UPDATE ON membership_rewards TO :"rewards_user";
 
 -- tables created later stay unreadable until they are granted here
 ALTER DEFAULT PRIVILEGES FOR ROLE :"USER" IN SCHEMA public
