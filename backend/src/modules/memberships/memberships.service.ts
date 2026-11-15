@@ -17,6 +17,9 @@ export class MembershipsService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    _search?: string,
+    membershipStatus?: MembershipStatus,
+    membershipPlanId?: string,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -24,10 +27,33 @@ export class MembershipsService {
         accessTokenPayload,
       );
 
+    // * remove spaces
+    const search = _search?.trim();
+
     const memberships = await this.prisma.membership.findMany({
       where: {
         adminId: adminId,
+
+        // * Search the member's name or username.
+        ...(search
+          ? {
+              member: {
+                OR: [
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                  { userName: { contains: search, mode: 'insensitive' } },
+                ],
+              },
+            }
+          : {}),
+
+        // * Filter by membership status.
+        ...(membershipStatus !== undefined ? { membershipStatus } : {}),
+
+        // * Filter by membership plan.
+        ...(membershipPlanId !== undefined ? { membershipPlanId } : {}),
       },
+      orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
       select: {
@@ -164,7 +190,13 @@ export class MembershipsService {
   }
 
   // * Get All Memberships of Member
-  async findAllMemberships(memberId: string, page: number, limit: number) {
+  async findAllMemberships(
+    memberId: string,
+    page: number,
+    limit: number,
+    membershipStatus?: MembershipStatus,
+    membershipPlanId?: string,
+  ) {
     // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
@@ -181,7 +213,15 @@ export class MembershipsService {
     const memberships = await this.prisma.membership.findMany({
       where: {
         memberId: memberId,
+        adminId,
+
+        // * Filter by membership status.
+        ...(membershipStatus !== undefined ? { membershipStatus } : {}),
+
+        // * Filter by membership plan.
+        ...(membershipPlanId !== undefined ? { membershipPlanId } : {}),
       },
+      orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
       select: {

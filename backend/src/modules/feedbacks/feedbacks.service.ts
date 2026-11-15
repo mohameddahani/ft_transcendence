@@ -66,13 +66,47 @@ export class FeedbacksService {
     memberId: string,
     page: number,
     limit: number,
+    _search?: string,
+    feedbackStatus?: FeedbackStatus,
+    sentimentType?: SentimentType,
+    rating?: number,
   ) {
     // * Check If The Member Has Permissions
     const adminId = await this.checkIfTheMemberHasPermissions(memberId);
 
+    // * Remove Space
+    const search = _search?.trim();
+
     const feedbacks = await this.prisma.feedback.findMany({
       where: {
         adminId,
+
+        // * Search
+        ...(search
+          ? {
+              OR: [
+                { content: { contains: search, mode: 'insensitive' } },
+                {
+                  member: {
+                    OR: [
+                      { firstName: { contains: search, mode: 'insensitive' } },
+                      { lastName: { contains: search, mode: 'insensitive' } },
+                      { userName: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
+                },
+              ],
+            }
+          : {}),
+
+        // * Filter by feedback status.
+        ...(feedbackStatus !== undefined ? { feedbackStatus } : {}),
+
+        // * Filter by sentiment type.
+        ...(sentimentType !== undefined ? { sentimentType } : {}),
+
+        // * Filter by rating.
+        ...(rating !== undefined ? { rating } : {}),
       },
 
       skip: (page - 1) * limit,
@@ -383,6 +417,10 @@ export class FeedbacksService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    _search?: string,
+    feedbackStatus?: FeedbackStatus,
+    sentimentType?: SentimentType,
+    rating?: number,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -390,9 +428,39 @@ export class FeedbacksService {
         accessTokenPayload,
       );
 
+    // * Remove Space
+    const search = _search?.trim();
+
     const feedbacks = await this.prisma.feedback.findMany({
       where: {
         adminId,
+
+        // * Search
+        ...(search
+          ? {
+              OR: [
+                { content: { contains: search, mode: 'insensitive' } },
+                {
+                  member: {
+                    OR: [
+                      { firstName: { contains: search, mode: 'insensitive' } },
+                      { lastName: { contains: search, mode: 'insensitive' } },
+                      { userName: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
+                },
+              ],
+            }
+          : {}),
+
+        // * Filter by feedback status.
+        ...(feedbackStatus !== undefined ? { feedbackStatus } : {}),
+
+        // * Filter by sentiment type.
+        ...(sentimentType !== undefined ? { sentimentType } : {}),
+
+        // * Filter by rating.
+        ...(rating !== undefined ? { rating } : {}),
       },
 
       skip: (page - 1) * limit,

@@ -13,7 +13,7 @@ import {
 import { ProfilesService } from './profiles.service';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
 import { MemberAccessTokenAuthGuard } from '../auth/guards/member-access-token-auth.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
@@ -37,8 +37,8 @@ export class MemberProfilesController {
 
   // * Get current member
   @Get('me')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   // * @UseGuards applies a guard to a route/controller to control access before execution. Used for authentication, authorization, and permission checks.
-  @SkipThrottle() // * Skip Rate Limiting
   // * @GetAccessTokenPayload(): this is Custom parameter decorator
   findMeMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,

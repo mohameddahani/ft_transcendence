@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -35,7 +36,7 @@ export class AdminMembershipPlansController {
 
   // * Add Membership plan
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   addMembershipPlan(
     @Body() body: AddMembershipPlanDto,
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
@@ -48,7 +49,7 @@ export class AdminMembershipPlansController {
 
   // * Add Membership Duration
   @Post('durations')
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   addMembershipPlanDuration(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Body() body: AddMembershipPlanDurationDto,
@@ -118,12 +119,25 @@ export class AdminMembershipPlansController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'isActive',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isActive?: string,
   ) {
-    return this.membershipPlansService.findAll(accessTokenPayload, page, limit);
+    return this.membershipPlansService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      search,
+      isActive === undefined ? undefined : isActive === 'true',
+    );
   }
 
   // * Get All Stats of Memebership plan (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipPlanStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

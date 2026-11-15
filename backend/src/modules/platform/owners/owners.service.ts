@@ -12,7 +12,13 @@ export class OwnersService {
   constructor(private readonly prisma: PrismaService) {}
 
   // * Get all users
-  async findAll(page: number, limit: number, _search?: string) {
+  async findAll(
+    page: number,
+    limit: number,
+    _search?: string,
+    accountStatus?: AccountStatus,
+    isAccountVerified?: boolean,
+  ) {
     // * remove spaces
     const search = _search?.trim();
 
@@ -20,16 +26,29 @@ export class OwnersService {
       where: {
         role: { notIn: [Role.OWNER, Role.MEMBER] },
 
-        // * Search Filter
+        // * Filter by account status.
+        ...(accountStatus !== undefined ? { accountStatus } : {}),
+
+        // * Filter by account verification.
+        ...(isAccountVerified !== undefined ? { isAccountVerified } : {}),
+
+        // * Search identity, contact, or company details.
         ...(search
           ? {
               OR: [
                 { firstName: { contains: search, mode: 'insensitive' } },
                 { lastName: { contains: search, mode: 'insensitive' } },
+                { userName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { phoneNumber: { contains: search } },
+                { companyName: { contains: search, mode: 'insensitive' } },
               ],
             }
           : {}),
       },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       select: {

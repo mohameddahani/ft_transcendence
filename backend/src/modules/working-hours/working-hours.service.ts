@@ -144,6 +144,8 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    dayOfWeek?: number,
+    isClosed?: boolean,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -151,9 +153,30 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check Day of Week
+    if (
+      dayOfWeek !== undefined &&
+      (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7)
+    ) {
+      throw new BadRequestException(
+        'dayOfWeek must be an integer between 1 and 7.',
+      );
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
+
+        // * Filter by day of the week.
+        ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
+
+        // * Filter by open or closed days.
+        ...(isClosed !== undefined ? { isClosed } : {}),
+      },
+
+      // * Monday first, Sunday last.
+      orderBy: {
+        dayOfWeek: 'asc',
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -205,6 +228,8 @@ export class WorkingHoursService {
     memberId: string,
     page: number,
     limit: number,
+    dayOfWeek?: number,
+    isClosed?: boolean,
   ) {
     // * Get Admin Id from member
     const adminId =
@@ -219,9 +244,30 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check Day of Week
+    if (
+      dayOfWeek !== undefined &&
+      (!Number.isInteger(dayOfWeek) || dayOfWeek < 1 || dayOfWeek > 7)
+    ) {
+      throw new BadRequestException(
+        'dayOfWeek must be an integer between 1 and 7.',
+      );
+    }
+
     const workingHours = await this.prisma.workingHour.findMany({
       where: {
         adminId: adminId,
+
+        // * Filter by day of the week.
+        ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
+
+        // * Filter by open or closed days.
+        ...(isClosed !== undefined ? { isClosed } : {}),
+      },
+
+      // * Monday first, Sunday last.
+      orderBy: {
+        dayOfWeek: 'asc',
       },
       skip: (page - 1) * limit,
       take: limit,
@@ -757,6 +803,8 @@ export class WorkingHoursService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    from?: Date,
+    to?: Date,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -764,10 +812,26 @@ export class WorkingHoursService {
         accessTokenPayload,
       );
 
+    // * Check Date and Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
+
+        // * The record must end on or after the requested start date.
+        ...(from !== undefined ? { endDate: { gte: from } } : {}),
+
+        // * The record must start on or before the requested end date.
+        ...(to !== undefined ? { startDate: { lte: to } } : {}),
       },
+
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -818,6 +882,8 @@ export class WorkingHoursService {
     memberId: string,
     page: number,
     limit: number,
+    from?: Date,
+    to?: Date,
   ) {
     // * Get Admin Id from member
     const adminId =
@@ -832,10 +898,26 @@ export class WorkingHoursService {
       adminId,
     );
 
+    // * Check Date and Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const specialHours = await this.prisma.specialHour.findMany({
       where: {
         adminId: adminId,
+
+        // * The record must end on or after the requested start date.
+        ...(from !== undefined ? { endDate: { gte: from } } : {}),
+
+        // * The record must start on or before the requested end date.
+        ...(to !== undefined ? { startDate: { lte: to } } : {}),
       },
+
+      orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+
       skip: (page - 1) * limit,
       take: limit,
     });

@@ -8,6 +8,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -28,7 +29,7 @@ export class PlansController {
 
   // * Add Plan
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.OWNER])
   addPlan(@Body() body: AddPlanDto) {
@@ -37,7 +38,7 @@ export class PlansController {
 
   // * Add Plan Duration
   @Post('durations')
-  @Throttle({ default: { limit: 10, ttl: 600_000 } })
+  @Throttle({ default: { limit: 20, ttl: 600_000 } })
   @UseGuards(OwnerAccessTokenAuthGuard, AuthRolesGuard)
   @Roles([Role.OWNER])
   addPlanDuration(@Body() body: AddPlanDurationDto) {
@@ -83,18 +84,30 @@ export class PlansController {
     return this.plansService.removePlan(id);
   }
 
-  // * Get all Plan
+  // * Get all plans.
   @Get()
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAll(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'isActive',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isActive?: string,
   ) {
-    return this.plansService.findAll(page, limit);
+    return this.plansService.findAll(
+      page,
+      limit,
+      search,
+      isActive === undefined ? undefined : isActive === 'true',
+    );
   }
 
   // * Get All Stats of plans (public)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   planStats() {
     return this.plansService.planStats();
   }

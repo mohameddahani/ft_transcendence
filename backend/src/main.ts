@@ -47,15 +47,16 @@ async function bootstrap() {
   // ? is a middleware used to extract and parse incoming cookies from the client's request header, converting the raw string into a usable JavaScript object automatically.
   app.use(helmet(), cookieParser());
 
-  // todo: Cors
+  // * Get Config Module
+  const config = app.get(ConfigService);
 
   // * Swagger
   // ? Swagger is a tool that automatically creates API documentation + testing UI for your backend.
 
   // * Get domain of server
-  const domain = new ConfigService().getOrThrow<string>('FRONTEND_URL');
+  const domain = config.getOrThrow<string>('FRONTEND_URL');
 
-  if (process.env.NODE_ENV === 'development') {
+  if (config.getOrThrow<string>('NODE_ENV') === 'development') {
     // * Config of document
     const swagger = new DocumentBuilder()
       .setTitle('ft_transcendence')
@@ -82,13 +83,19 @@ async function bootstrap() {
 
   // * CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL, // * Controls which websites are allowed to access your API or to see Response Your API.
+    origin: [
+      config.getOrThrow<string>('FRONTEND_URL'), // * Controls which websites are allowed to access your API or to see Response Your API
+      'http://localhost:3002',
+    ],
     credentials: true, // * Allows cookies and HTTP authentication.
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // * Allowed HTTP methods.
     allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'], // * Which request headers the browser may send
     maxAge: 86400, // * How long the browser caches the CORS preflight (OPTIONS) response. / 86400 = 24 hours.
   });
 
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  // * Convert the configured port to a number; default to 3000 if missing.
+  const port = Number(config.get<string>('PORT') ?? '3000');
+
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

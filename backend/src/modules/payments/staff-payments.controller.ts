@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseDatePipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -25,23 +26,30 @@ export class StaffPaymentsController {
 
   // * Get all Payments (Staff)
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query('from', new ParseDatePipe({ optional: true }))
+    from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true }))
+    to?: Date,
   ) {
     return this.paymentsService.findAllPayments(
       accessTokenPayload,
       page,
       limit,
       search,
+      from,
+      to,
     );
   }
 
   // * Get All Stats of payments (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   paymentStatsOfStaff(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

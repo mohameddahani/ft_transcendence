@@ -291,8 +291,33 @@ export class PlansService {
   }
 
   // * Get all Plans
-  async findAll(page: number, limit: number) {
+  async findAll(
+    page: number,
+    limit: number,
+    _search?: string,
+    isActive?: boolean,
+  ) {
+    // * Remove Spaces
+    const search = _search?.trim();
+
     const plans = await this.prisma.plan.findMany({
+      where: {
+        // * Filter by active or inactive status.
+        ...(isActive !== undefined ? { isActive } : {}),
+
+        // * Search plan name or description.
+        ...(search
+          ? {
+              OR: [
+                { planName: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       include: {

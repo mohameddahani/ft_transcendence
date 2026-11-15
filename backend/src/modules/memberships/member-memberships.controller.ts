@@ -1,14 +1,16 @@
 import {
   Controller,
   Get,
+  ParseEnumPipe,
   ParseIntPipe,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { Role } from '@/generated/prisma/enums';
+import { MembershipStatus, Role } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import type { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -23,7 +25,7 @@ export class MemberMembershipsController {
 
   // * Get Membership of Member
   @Get('me')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findMyMembership(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -32,21 +34,31 @@ export class MemberMembershipsController {
 
   // * Get All Membership of Member
   @Get('all')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllMemberships(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'membershipStatus',
+      new ParseEnumPipe(MembershipStatus, { optional: true }),
+    )
+    membershipStatus?: MembershipStatus,
+    @Query('membershipPlanId', new ParseUUIDPipe({ optional: true }))
+    membershipPlanId?: string,
   ) {
     return this.membershipsService.findAllMemberships(
       accessTokenPayload.id,
       page,
       limit,
+      membershipStatus,
+      membershipPlanId,
     );
   }
 
   // * Get All Stats of Memebership (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

@@ -498,7 +498,7 @@ export class AuthProvider {
     });
 
     if (!staff) {
-      throw new UnauthorizedException('Invalid User Name or Password');
+      throw new UnauthorizedException('Invalid username or Password');
     }
 
     // * Check the member if he set a password
@@ -792,7 +792,9 @@ export class AuthProvider {
       where: { userName: username },
     });
     if (!staff) {
-      throw new NotFoundException('Staff Not Found');
+      throw new NotFoundException(
+        'If this account exists, a password reset link will be sent.',
+      );
     }
 
     // * Check whether a valid verification token already exists.
@@ -1067,7 +1069,7 @@ export class AuthProvider {
     });
 
     if (!member) {
-      throw new UnauthorizedException('Invalid User Name or Password');
+      throw new UnauthorizedException('Invalid username or Password');
     }
 
     // * Check the member if he set a password
@@ -1759,7 +1761,9 @@ export class AuthProvider {
       where: { email },
     });
     if (!user) {
-      throw new UnauthorizedException('Invalid Email');
+      throw new UnauthorizedException(
+        'If this account exists, a password reset link will be sent.',
+      );
     }
 
     // * Check whether a valid verification token already exists.
@@ -2011,7 +2015,9 @@ export class AuthProvider {
       where: { userName: username },
     });
     if (!member) {
-      throw new NotFoundException('Member Not Found');
+      throw new NotFoundException(
+        'If this account exists, a password reset link will be sent.',
+      );
     }
 
     // * Check whether a valid verification token already exists.

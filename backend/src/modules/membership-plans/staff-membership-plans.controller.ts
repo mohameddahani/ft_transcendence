@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -32,12 +33,25 @@ export class StaffMembershipPlansController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'isActive',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isActive?: string,
   ) {
-    return this.membershipPlansService.findAll(accessTokenPayload, page, limit);
+    return this.membershipPlansService.findAll(
+      accessTokenPayload,
+      page,
+      limit,
+      search,
+      isActive === undefined ? undefined : isActive === 'true',
+    );
   }
 
   // * Get All Stats of Memebership plan (Staff)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   membershipPlanStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

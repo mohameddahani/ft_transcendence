@@ -86,7 +86,7 @@ export class StaffMembersController {
 
   // * Get all Members
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
@@ -115,6 +115,7 @@ export class StaffMembersController {
 
   // * Get All Stats of Memebers (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   memberStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.membersService.memberStats(accessTokenPayload);
   }

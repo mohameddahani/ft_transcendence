@@ -8,6 +8,7 @@ import {
   UseGuards,
   Patch,
   Body,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import { FeedbacksService } from './feedbacks.service';
 import { type AccessTokenPayload } from '@/core/types/jwt-payload.type';
@@ -15,7 +16,7 @@ import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payloa
 import { Throttle } from '@nestjs/throttler';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { FeedbackStatus, Role, SentimentType } from '@/generated/prisma/enums';
 import { AdminAccessTokenAuthGuard } from '../auth/guards/admin-access-token-auth.guard';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
 
@@ -28,21 +29,39 @@ export class AdminFeedbacksController {
 
   // * Get all Feedbacks (Admin)
   @Get()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findAllFeedbacks(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('search') search?: string,
+    @Query(
+      'feedbackStatus',
+      new ParseEnumPipe(FeedbackStatus, { optional: true }),
+    )
+    feedbackStatus?: FeedbackStatus,
+    @Query(
+      'sentimentType',
+      new ParseEnumPipe(SentimentType, { optional: true }),
+    )
+    sentimentType?: SentimentType,
+    @Query('rating', new ParseIntPipe({ optional: true }))
+    rating?: number,
   ) {
     return this.feedbacksService.findAllFeedbacks(
       accessTokenPayload,
       page,
       limit,
+      search,
+      feedbackStatus,
+      sentimentType,
+      rating,
     );
   }
 
   // * Get All Stats of Feedbacks (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   feedbackStats(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -51,7 +70,7 @@ export class AdminFeedbacksController {
 
   // * Get One Feedback (Admin)
   @Get(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   findOneFeedback(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -61,7 +80,7 @@ export class AdminFeedbacksController {
 
   // * Change Feedback Status (Admin)
   @Patch(':id')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   changeFeedbackStatus(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Param('id', ParseUUIDPipe) id: string,

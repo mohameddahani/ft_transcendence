@@ -1,5 +1,9 @@
 import { PrismaService } from '@/infrastructure/database/prisma.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AccessTokenPayload } from '@/core/types/jwt-payload.type';
 import { AccessesService } from '@/core/access/access.service';
 import { publicMemberSelect } from '@/core/types/safe-selects.type';
@@ -17,6 +21,8 @@ export class PaymentsService {
     page: number,
     limit: number,
     _search?: string,
+    from?: Date,
+    to?: Date,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -27,22 +33,44 @@ export class PaymentsService {
     // * remove spaces
     const search = _search?.trim();
 
+    // * Check Date And Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const payments = await this.prisma.payment.findMany({
       where: {
         adminId: adminId,
 
-        // * Search Filter
+        // * Search the member's name or username.
         ...(search
           ? {
               member: {
                 OR: [
                   { firstName: { contains: search, mode: 'insensitive' } },
                   { lastName: { contains: search, mode: 'insensitive' } },
+                  { userName: { contains: search, mode: 'insensitive' } },
                 ],
               },
             }
           : {}),
+
+        // * Filter by payment date and time.
+        ...(from || to
+          ? {
+              paidAt: {
+                ...(from !== undefined ? { gte: from } : {}),
+                ...(to !== undefined ? { lte: to } : {}),
+              },
+            }
+          : {}),
       },
+
+      // * Most recent payment first.
+      orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       select: {
@@ -142,7 +170,13 @@ export class PaymentsService {
   }
 
   // * Get all Payments (Member)
-  async findAllPaymentsMember(memberId: string, page: number, limit: number) {
+  async findAllPaymentsMember(
+    memberId: string,
+    page: number,
+    limit: number,
+    from?: Date,
+    to?: Date,
+  ) {
     // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
@@ -156,10 +190,32 @@ export class PaymentsService {
       adminId,
     );
 
+    // * Check Date And Time
+    if (from && to && from.getTime() > to.getTime()) {
+      throw new BadRequestException(
+        'The start date must be before or equal to the end date.',
+      );
+    }
+
     const payments = await this.prisma.payment.findMany({
       where: {
         memberId: memberId,
+        adminId: adminId,
+
+        // * Filter by payment date and time.
+        ...(from || to
+          ? {
+              paidAt: {
+                ...(from !== undefined ? { gte: from } : {}),
+                ...(to !== undefined ? { lte: to } : {}),
+              },
+            }
+          : {}),
       },
+
+      // * Most recent payment first.
+      orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
+
       skip: (page - 1) * limit,
       take: limit,
       select: {

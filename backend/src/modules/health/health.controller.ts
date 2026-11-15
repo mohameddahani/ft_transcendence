@@ -6,7 +6,7 @@ export class HealthController {
   constructor() {}
 
   @Get()
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 30051, ttl: 60_000 } })
   @Header('Cache-Control', 'no-store') // * don't save this response in cache
   check() {
     return { status: 'ok' };

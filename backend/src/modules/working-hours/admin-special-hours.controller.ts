@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseDatePipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Patch,
@@ -61,11 +62,17 @@ export class AdminSpecialHoursController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('from', new ParseDatePipe({ optional: true }))
+    from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true }))
+    to?: Date,
   ) {
     return this.workingHoursService.findAllSpecialHours(
       accessTokenPayload,
       page,
       limit,
+      from,
+      to,
     );
   }
 

@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
@@ -31,16 +32,26 @@ export class MemberWorkingHoursController {
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query('dayOfWeek', new ParseIntPipe({ optional: true }))
+    dayOfWeek?: number,
+    @Query(
+      'isClosed',
+      new ParseEnumPipe({ TRUE: 'true', FALSE: 'false' }, { optional: true }),
+    )
+    isClosed?: string,
   ) {
     return this.workingHoursService.findAllWorkingHoursByMember(
       accessTokenPayload.id,
       page,
       limit,
+      dayOfWeek,
+      isClosed === undefined ? undefined : isClosed === 'true',
     );
   }
 
   // * Get All Stats of Working Hours (Member)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   workingHourStatsOfMember(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {

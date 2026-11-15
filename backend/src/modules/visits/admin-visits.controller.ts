@@ -2,13 +2,14 @@ import {
   Controller,
   Get,
   Param,
+  ParseEnumPipe,
   ParseIntPipe,
   ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
-import { Role } from '@/generated/prisma/enums';
+import { Role, VisitStatus } from '@/generated/prisma/enums';
 import { Roles } from '@/core/decorators/user-role.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -25,18 +26,21 @@ export class AdminVisitsController {
 
   // * Get all visits of Today (Admin)
   @Get('today')
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAll(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
     @Query('search') search?: string,
+    @Query('visitStatus', new ParseEnumPipe(VisitStatus, { optional: true }))
+    visitStatus?: VisitStatus,
   ) {
     return this.visitsService.findAllVisitsToday(
       accessTokenPayload,
       page,
       limit,
       search,
+      visitStatus,
     );
   }
 
@@ -52,6 +56,7 @@ export class AdminVisitsController {
 
   // * Get All Stats of Visits (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   visitStats(@GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload) {
     return this.visitsService.visitStats(accessTokenPayload);
   }

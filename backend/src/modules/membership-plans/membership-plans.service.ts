@@ -335,6 +335,8 @@ export class MembershipPlansService {
     accessTokenPayload: AccessTokenPayload,
     page: number,
     limit: number,
+    _search?: string,
+    isActive?: boolean,
   ) {
     // * Check Authorize Admin or Staff Access
     const { adminId } =
@@ -342,10 +344,27 @@ export class MembershipPlansService {
         accessTokenPayload,
       );
 
+    // * remove spaces
+    const search = _search?.trim();
+
     const membershipPlan = await this.prisma.membershipPlan.findMany({
       where: {
         adminId,
+
+        // * Filter by active or inactive status.
+        ...(isActive !== undefined ? { isActive } : {}),
+
+        // * Search plan name or description.
+        ...(search
+          ? {
+              OR: [
+                { planName: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
       include: {
@@ -433,7 +452,13 @@ export class MembershipPlansService {
   }
 
   // * Get all membership Plans (Member)
-  async findAllByMember(memberId: string, page: number, limit: number) {
+  async findAllByMember(
+    memberId: string,
+    page: number,
+    limit: number,
+    _search?: string,
+    isActive?: boolean,
+  ) {
     // * Get Admin Id from member
     const adminId =
       await this.accessesService.resolveAdminIdFromMemberId(memberId);
@@ -447,10 +472,27 @@ export class MembershipPlansService {
       adminId,
     );
 
+    // * remove spaces
+    const search = _search?.trim();
+
     const membershipPlan = await this.prisma.membershipPlan.findMany({
       where: {
         adminId,
+
+        // * Filter by active or inactive status.
+        ...(isActive !== undefined ? { isActive } : {}),
+
+        // * Search plan name or description.
+        ...(search
+          ? {
+              OR: [
+                { planName: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
       },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip: (page - 1) * limit,
       take: limit,
       include: {

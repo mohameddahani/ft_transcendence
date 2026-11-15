@@ -301,6 +301,7 @@ export class VisitsService {
     page: number,
     limit: number,
     _search?: string,
+    visitStatus?: VisitStatus,
   ) {
     const now = new Date();
     const startOfToday = startOfDay(now);
@@ -323,13 +324,17 @@ export class VisitsService {
           lte: endOfToday,
         },
 
-        // * Search Filter
+        // * Filter by visit status.
+        ...(visitStatus !== undefined ? { visitStatus } : {}),
+
+        // * Search the member's name or username.
         ...(search
           ? {
               member: {
                 OR: [
                   { firstName: { contains: search, mode: 'insensitive' } },
                   { lastName: { contains: search, mode: 'insensitive' } },
+                  { userName: { contains: search, mode: 'insensitive' } },
                 ],
               },
             }

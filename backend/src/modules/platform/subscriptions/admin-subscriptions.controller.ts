@@ -1,14 +1,16 @@
 import { Roles } from '@/core/decorators/user-role.decorator';
-import { Role } from '@/generated/prisma/enums';
+import { Role, SubscriptionStatus } from '@/generated/prisma/enums';
 import { AuthRolesGuard } from '@/core/guards/roles.guard';
 import {
   Controller,
   Get,
+  ParseEnumPipe,
   ParseIntPipe,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { SubscriptionsService } from './subscriptions.service';
 import { AdminAccessTokenAuthGuard } from '@/modules/auth/guards/admin-access-token-auth.guard';
 import { GetAccessTokenPayload } from '@/core/decorators/get-access-token-payload.decorator';
@@ -23,7 +25,7 @@ export class AdminSubscriptionsController {
 
   // * Get Subscription of Admin
   @Get('me')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findMySubscription(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
@@ -32,21 +34,31 @@ export class AdminSubscriptionsController {
 
   // * Get All Subscriptions of Admin
   @Get('all')
-  @SkipThrottle() // * Skip Rate Limiting
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   findAllSubscriptions(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
+    @Query(
+      'subscriptionStatus',
+      new ParseEnumPipe(SubscriptionStatus, { optional: true }),
+    )
+    subscriptionStatus?: SubscriptionStatus,
+    @Query('planId', new ParseUUIDPipe({ optional: true }))
+    planId?: string,
   ) {
     return this.subscriptionsService.findAllSubscriptions(
       accessTokenPayload.id,
       page,
       limit,
+      subscriptionStatus,
+      planId,
     );
   }
 
   // * Get All Stats of subscriptions (Admin)
   @Get('stats')
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   subscriptionStatsOfAdmin(
     @GetAccessTokenPayload() accessTokenPayload: AccessTokenPayload,
   ) {
