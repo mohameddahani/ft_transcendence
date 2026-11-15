@@ -1,6 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import axios from "axios";
-import { getAuthenticatedSession, attachSessionCookies } from "@/lib/server-auth";
+import {
+  getAuthenticatedSession,
+  createGracefulProxyResponse,
+  createProxyResponse,
+} from "@/lib/server-auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -8,6 +12,7 @@ const API_URL = process.env.API_URL || "http://localhost:3000";
  * Creates a Next.js Route Handler for statistics endpoints.
  * Automatically handles HttpOnly cookie extraction, JWT Bearer header injection,
  * automatic Admin vs. Staff role resolution, and session token rotation.
+ * Gracefully returns 200 with null if subscription/membership is inactive or 404.
  */
 export function createStatsProxyHandler(adminPath: string, staffPath?: string) {
   return async function GET(req: NextRequest) {
@@ -20,22 +25,17 @@ export function createStatsProxyHandler(adminPath: string, staffPath?: string) {
         validateStatus: () => true,
       });
 
-      const res = NextResponse.json(backendRes.data, {
-        status: backendRes.status,
-      });
-      return attachSessionCookies(res, newAccessToken);
+      return createGracefulProxyResponse(backendRes.data, backendRes.status, null, newAccessToken);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error connecting to backend";
-      return NextResponse.json(
-        { message: `Proxy error: ${message}` },
-        { status: 502 }
-      );
+      return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
     }
   };
 }
 
 /**
  * Creates a Next.js Route Handler for member, staff-only, or owner statistics endpoints.
+ * Gracefully returns 200 with null if subscription/membership is inactive or 404.
  */
 export function createDirectStatsProxyHandler(targetPath: string) {
   return async function GET(req: NextRequest) {
@@ -47,16 +47,10 @@ export function createDirectStatsProxyHandler(targetPath: string) {
         validateStatus: () => true,
       });
 
-      const res = NextResponse.json(backendRes.data, {
-        status: backendRes.status,
-      });
-      return attachSessionCookies(res, newAccessToken);
+      return createGracefulProxyResponse(backendRes.data, backendRes.status, null, newAccessToken);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error connecting to backend";
-      return NextResponse.json(
-        { message: `Proxy error: ${message}` },
-        { status: 502 }
-      );
+      return createProxyResponse({ message: `Proxy error: ${message}` }, 502);
     }
   };
 }
