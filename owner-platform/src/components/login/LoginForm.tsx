@@ -75,7 +75,7 @@ export default function LoginForm() {
         localStorage.setItem("access_token", response.data.accessToken);
       }
 
-      router.push("/admins");
+      router.push("admins");
       router.refresh();
     } catch (err: unknown) {
       let message = "Network error. Is the API running?";

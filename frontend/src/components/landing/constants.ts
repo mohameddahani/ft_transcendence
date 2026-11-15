@@ -1,5 +1,5 @@
 export const saasName = "Sportium";
-export const saasEmail = "sportium@gmail.com";
+export const saasEmail = "support@spotrium.com";
 export const saasWhatsapp = "0606060606";
 
 /** Authentication entry points defined in the frontend specification. */
