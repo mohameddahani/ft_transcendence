@@ -35,8 +35,8 @@ jobs:
             dockerfile: AI/Dockerfile
 
           - name: backup
-            context: devops/backup-service
-            dockerfile: devops/backup-service/Dockerfile
+            context: devops/backup
+            dockerfile: devops/backup/Dockerfile
 
     steps:
       - uses: actions/checkout@v4.2.2

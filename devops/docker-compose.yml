@@ -57,9 +57,12 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD}
       - AI_DB_USER
       - AI_DB_USER_PASSWORD
+      - REWARDS_DB_USER
+      - REWARDS_DB_PASSWORD
     volumes:
-      - ../AI/scripts/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
-      - ../AI/seeder/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
+      - ./postgres/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
+      - ./postgres/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
+      - ./postgres/roles/membership_rewards_writer.sql:/roles/membership_rewards_writer.sql:ro
     networks: [internal]
     depends_on:
       backend:
@@ -335,7 +338,7 @@ services:
   # ============================================================================
 
   backup:
-    build: ./backup-service
+    build: ./backup
     image: backup:latest
     container_name: backup
     restart: unless-stopped

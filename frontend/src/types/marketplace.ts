@@ -65,7 +65,7 @@ export type RawProductItem = {
     description: string;
     stok: bigint;
     price: bigint;
-    productImage: string[];
+    productImages: string[];
   };
 };
 
