@@ -340,7 +340,12 @@ export class ProfilesService {
     const user = await this.findOne(id);
 
     // * Check user if already set image
-    if (user.profileImagePublicId === DEFAULT_AVATARS_ID.ADMIN) {
+    if (
+      (user.profileImagePublicId === DEFAULT_AVATARS_ID.ADMIN &&
+        user.role === Role.ADMIN) ||
+      (user.profileImagePublicId === DEFAULT_AVATARS_ID.OWNER &&
+        user.role === Role.OWNER)
+    ) {
       throw new BadRequestException('There is No Profile Image');
     }
 
@@ -367,8 +372,14 @@ export class ProfilesService {
       await this.prisma.user.update({
         where: { id },
         data: {
-          profileImageUrl: DEFAULT_AVATARS.ADMIN,
-          profileImagePublicId: DEFAULT_AVATARS_ID.ADMIN,
+          profileImageUrl:
+            user.role === Role.ADMIN
+              ? DEFAULT_AVATARS.ADMIN
+              : DEFAULT_AVATARS.OWNER,
+          profileImagePublicId:
+            user.role === Role.ADMIN
+              ? DEFAULT_AVATARS_ID.ADMIN
+              : DEFAULT_AVATARS_ID.OWNER,
         },
       });
     } catch {
