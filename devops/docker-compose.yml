@@ -37,6 +37,9 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       REWARD_INTERNAL_SECRET: ${REWARD_INTERNAL_SECRET}
+      JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
+      JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
+      JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
     networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
@@ -133,6 +136,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
+      JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
+      JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
     networks: [internal]
     volumes:
       - ai_data:/data
