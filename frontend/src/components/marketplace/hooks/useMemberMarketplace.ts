@@ -89,7 +89,7 @@ export function useMemberMarketplace() {
               description: p.product.description,
               stock: p.product.stok,
               price: p.product.price,
-              images: p.product.productImages,
+              images: Array.from(p.product.productImages),
               merchant,
             })),
           );
