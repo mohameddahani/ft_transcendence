@@ -210,33 +210,38 @@ export default function DurationModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="pt-5 space-y-5">
-          {/* Quick Presets */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("quickPresets", { defaultValue: "Quick Presets" })}
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {presets.map((preset) => {
-                const isSelected = durationDays === preset.days;
-                return (
-                  <button
-                    key={preset.days}
-                    type="button"
-                    onClick={() => {
-                      setValue("durationDays", preset.days, { shouldValidate: true });
-                    }}
-                    className={`h-8 rounded-lg text-xs font-medium cursor-pointer transition-all border ${
-                      isSelected
-                        ? "bg-toota-side text-white border-toota-side font-semibold"
-                        : "bg-toota-inner text-toota-muted border-border/50 hover:text-toota-ink"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                );
-              })}
+            {/* Quick Presets */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-toota-muted">
+                {t("quickPresets", { defaultValue: "Quick Presets" })}
+              </label>
+              <div
+                role="group"
+                aria-label={t("quickPresets", { defaultValue: "Quick Presets" })}
+                className="grid grid-cols-4 gap-2"
+              >
+                {presets.map((preset) => {
+                  const isSelected = durationDays === preset.days;
+                  return (
+                    <button
+                      key={preset.days}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setValue("durationDays", preset.days, { shouldValidate: true });
+                      }}
+                      className={`h-8 rounded-lg text-xs font-medium cursor-pointer transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
+                        isSelected
+                          ? "bg-toota-lime text-black border-toota-lime font-semibold shadow-xs"
+                          : "bg-toota-inner text-toota-muted border-border/50 hover:border-toota-lime hover:bg-toota-lime/10 hover:text-toota-ink"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
           {/* Duration in Days */}
           <div className="space-y-1.5">

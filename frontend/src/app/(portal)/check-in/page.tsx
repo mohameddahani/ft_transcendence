@@ -69,6 +69,7 @@ export default function CheckInPage() {
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [visitStatusFilter, setVisitStatusFilter] = useState<string>("ALL");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -187,7 +188,12 @@ export default function CheckInPage() {
         role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
       const [statsData, initialPage, plansData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchTodayVisits(1, pageSize, activeSearch),
+        fetchTodayVisits({
+          page: 1,
+          limit: pageSize,
+          search: activeSearch || undefined,
+          visitStatus: visitStatusFilter !== "ALL" ? visitStatusFilter : undefined,
+        }),
         fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       const loadedPlans = Array.isArray(plansData) ? plansData : [];
@@ -206,11 +212,23 @@ export default function CheckInPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pageSize, t, enrichVisitWithPlan, role, activeSearch]);
+  }, [pageSize, t, enrichVisitWithPlan, role, activeSearch, visitStatusFilter]);
 
   useEffect(() => {
     loadVisits();
   }, [loadVisits]);
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (trimmed !== activeSearch) {
+        setActiveSearch(trimmed);
+        setCurrentPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, activeSearch]);
 
   // Handle Search Submission (click button or press Enter)
   const handleSearchSubmit = async (e?: React.FormEvent) => {
@@ -220,7 +238,12 @@ export default function CheckInPage() {
     setCurrentPage(1);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchTodayVisits(1, pageSize, query);
+      const pageData = await fetchTodayVisits({
+        page: 1,
+        limit: pageSize,
+        search: query || undefined,
+        visitStatus: visitStatusFilter !== "ALL" ? visitStatusFilter : undefined,
+      });
       const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
       setVisits(enriched);
     } catch (err: unknown) {
@@ -234,10 +257,11 @@ export default function CheckInPage() {
     }
   };
 
-  // Handle Clear Search
+  // Handle Clear Search and Filters
   const handleClearSearch = async () => {
     setSearchInput("");
     setActiveSearch("");
+    setVisitStatusFilter("ALL");
     setCurrentPage(1);
     setIsPageLoading(true);
     try {
@@ -262,7 +286,12 @@ export default function CheckInPage() {
         role === "Staff" ? fetchStaffVisitStats() : fetchAdminVisitStats();
       const [statsData, pageData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchTodayVisits(currentPage, pageSize, activeSearch),
+        fetchTodayVisits({
+          page: currentPage,
+          limit: pageSize,
+          search: activeSearch || undefined,
+          visitStatus: visitStatusFilter !== "ALL" ? visitStatusFilter : undefined,
+        }),
       ]);
       setVisitStats(statsData);
       const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
@@ -282,7 +311,12 @@ export default function CheckInPage() {
     setCurrentPage(newPage);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchTodayVisits(newPage, pageSize, activeSearch);
+      const pageData = await fetchTodayVisits({
+        page: newPage,
+        limit: pageSize,
+        search: activeSearch || undefined,
+        visitStatus: visitStatusFilter !== "ALL" ? visitStatusFilter : undefined,
+      });
       const enriched = pageData.map((v) => enrichVisitWithPlan(v, plans));
       setVisits(enriched);
     } catch (err: unknown) {
@@ -305,7 +339,7 @@ export default function CheckInPage() {
     };
   }, [visitStats, visits]);
 
-  const isFiltering = Boolean(activeSearch);
+  const isFiltering = Boolean(activeSearch || visitStatusFilter !== "ALL");
   const totalItems = useMemo(() => {
     if (isFiltering) {
       if (visits.length < pageSize) {
@@ -617,10 +651,52 @@ export default function CheckInPage() {
       </div>
 
       {/* Filter & Search Bar Card */}
-      <Card className="toota-card border-none p-4 sm:p-5">
+      <Card className="toota-card border-none p-4 sm:p-5 space-y-3">
+        {/* Visit Status Filter Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-toota-inner overflow-x-auto flex-wrap">
+          {[
+            { key: "ALL", label: t("all", "All"), count: stats.total },
+            { key: "READY", label: t("readyForCheckIn", "Ready"), count: stats.ready },
+            { key: "CHECKED_IN", label: t("checkedIn", "Checked In"), count: stats.checkedIn },
+            { key: "CANCELLED", label: t("cancelled", "Cancelled"), count: undefined },
+            { key: "EXPIRED", label: t("expired", "Expired"), count: undefined },
+          ].map((tab) => {
+            const isSelected = visitStatusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setVisitStatusFilter(tab.key);
+                  setCurrentPage(1);
+                }}
+                aria-pressed={isSelected}
+                className={`toota-pill h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-toota-ink text-toota-main shadow-xs"
+                    : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                      isSelected
+                        ? "bg-toota-main/20 text-toota-main"
+                        : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         <form
           onSubmit={handleSearchSubmit}
-          className="flex flex-col sm:flex-row items-center gap-3"
+          className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-border/30"
         >
           {/* Search Input */}
           <div className="relative flex-1 w-full min-w-[240px]">

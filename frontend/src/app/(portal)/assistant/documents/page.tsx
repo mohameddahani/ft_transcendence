@@ -75,7 +75,7 @@ export default function AssistantDocumentsPage() {
         if (err.status === 403) {
           setForbidden(true);
           setForbiddenMessage(
-            err.detail || t("forbiddenStaffNotice") || "Only the gym owner can manage documents."
+            err.detail || t("forbiddenStaffNotice") || "Only the club administrator can manage documents."
           );
           return;
         }
@@ -192,7 +192,7 @@ export default function AssistantDocumentsPage() {
             <Shield className="size-6" />
           </div>
           <h2 className="font-semibold text-lg text-toota-ink">
-            Access Restricted
+            {t("accessRestricted", "Access Restricted")}
           </h2>
           <p className="text-xs text-toota-muted leading-relaxed">
             {forbiddenMessage}
@@ -200,7 +200,7 @@ export default function AssistantDocumentsPage() {
           <div className="pt-2">
             <Link
               href="/assistant"
-              className="toota-pill inline-flex items-center justify-center h-9 px-4 text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+              className="toota-pill active inline-flex items-center justify-center h-9 px-4 text-xs font-semibold transition-colors cursor-pointer"
             >
               <ArrowLeft className="size-3.5 me-1.5 rtl:rotate-180" />
               <span suppressHydrationWarning>{t("backToAssistant", "Back to Assistant")}</span>
@@ -219,28 +219,28 @@ export default function AssistantDocumentsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/assistant"
-              className="toota-pill size-10 border border-border/50 text-toota-ink hover:bg-toota-inner shrink-0 inline-flex items-center justify-center rounded-full transition-colors cursor-pointer"
+              className="toota-pill size-10 !p-0 text-toota-ink shrink-0 inline-flex items-center justify-center rounded-full transition-shadow cursor-pointer hover:ring-2 hover:ring-[#a3e635] focus-visible:ring-2 focus-visible:ring-[#a3e635]"
               title={t("backToAssistant", "Back to Assistant")}
             >
               <ArrowLeft className="size-4 rtl:rotate-180" />
             </Link>
 
             <div>
-              <div className="flex items-baseline gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1
                   suppressHydrationWarning
-                  className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100"
+                  className="font-headline text-lg font-semibold tracking-tight text-toota-ink"
                 >
                   {t("documentsTitle", "Gym Knowledge Base")}
                 </h1>
-                <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                  / Owner Admin
+                <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
+                  {t("docsOwnerAdmin", "Owner Admin")}
                 </span>
                 <span
                   suppressHydrationWarning
-                  className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums"
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]"
                 >
-                  / {documents.length} {t("documents", "documents")}
+                  {documents.length} {t("documents", "documents")}
                 </span>
               </div>
               <p
@@ -263,9 +263,9 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Total Documents
+              {t("docsTotal", "Total Documents")}
             </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+            <div className="size-10 rounded-full bg-[#1b1f23] flex items-center justify-center text-[#a3e635] dark:bg-white/10">
               <BookOpen className="size-5" />
             </div>
           </CardHeader>
@@ -275,11 +275,11 @@ export default function AssistantDocumentsPage() {
                 {documents.length}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / total files
+                / {t("docsTotalFiles", "total files")}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Active knowledge source documents
+              {t("docsTotalHint", "Active knowledge source documents")}
             </p>
           </CardContent>
         </Card>
@@ -288,9 +288,9 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Members & Staff
+              {t("docsMembersAndStaff", "Members & Staff")}
             </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+            <div className="size-10 rounded-full bg-[#a3e635] flex items-center justify-center text-[#1a2e05]">
               <Users className="size-5" />
             </div>
           </CardHeader>
@@ -299,13 +299,13 @@ export default function AssistantDocumentsPage() {
               <span className="text-2xl font-bold tracking-tight text-toota-ink">
                 {memberDocsCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Public</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#65a30d] dark:bg-[#a3e635] shrink-0" />
+                <span>{t("docsPublic", "Public")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Accessible to all members and staff
+              {t("docsMembersAndStaffHint", "Accessible to all members and staff")}
             </p>
           </CardContent>
         </Card>
@@ -314,9 +314,9 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Staff Only
+              {t("visibilityStaff", "Staff Only")}
             </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+            <div className="size-10 rounded-full bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <ShieldAlert className="size-5" />
             </div>
           </CardHeader>
@@ -325,13 +325,13 @@ export default function AssistantDocumentsPage() {
               <span className="text-2xl font-bold tracking-tight text-toota-ink">
                 {staffDocsCount}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span>Restricted</span>
+                <span>{t("docsRestricted", "Restricted")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Concealed strictly from member queries
+              {t("docsStaffOnlyHint", "Concealed strictly from member queries")}
             </p>
           </CardContent>
         </Card>
@@ -340,9 +340,9 @@ export default function AssistantDocumentsPage() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              Vector Chunks
+              {t("docsChunks", "Vector Chunks")}
             </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
+            <div className="size-10 rounded-full bg-[#1b1f23] flex items-center justify-center text-[#a3e635] dark:bg-white/10">
               <Layers className="size-5" />
             </div>
           </CardHeader>
@@ -352,11 +352,11 @@ export default function AssistantDocumentsPage() {
                 {totalChunks}
               </span>
               <span className="font-mono text-xs text-toota-muted tabular-nums">
-                / embeddings
+                / {t("docsEmbeddings", "embeddings")}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Indexed passages available for semantic lookup
+              {t("docsChunksHint", "Indexed passages available for semantic lookup")}
             </p>
           </CardContent>
         </Card>
@@ -366,8 +366,8 @@ export default function AssistantDocumentsPage() {
       <Card className="toota-card border-none space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <CardTitle className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <UploadCloud className="size-4 text-toota-ink" />
+            <CardTitle className="font-headline text-sm font-semibold tracking-tight text-toota-ink flex items-center gap-2">
+              <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05] shrink-0"><UploadCloud className="size-3.5" /></span>
               <span>{t("uploadDocument") || "Upload New Knowledge Document"}</span>
             </CardTitle>
           </div>
@@ -388,10 +388,10 @@ export default function AssistantDocumentsPage() {
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all cursor-pointer ${
               isDragOver
-                ? "border-toota-green bg-toota-green/5 ring-2 ring-toota-green/20"
+                ? "border-[#a3e635] bg-[#a3e635]/10 ring-4 ring-[#a3e635]/20"
                 : selectedFile
-                ? "border-emerald-500/60 bg-emerald-500/5"
-                : "border-border/60 hover:border-border bg-toota-inner"
+                ? "border-[#a3e635] bg-[#a3e635]/5"
+                : "border-border/60 hover:border-[#a3e635] bg-toota-inner"
             }`}
           >
             <input
@@ -408,7 +408,7 @@ export default function AssistantDocumentsPage() {
 
             {selectedFile ? (
               <div className="flex flex-col items-center gap-2">
-                <div className="size-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <div className="size-10 rounded-2xl bg-[#a3e635] text-[#1a2e05] flex items-center justify-center">
                   <FileText className="size-5" />
                 </div>
                 <div className="font-semibold text-xs sm:text-sm text-toota-ink">
@@ -420,7 +420,7 @@ export default function AssistantDocumentsPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <div className="size-10 rounded-2xl bg-card border border-border/40 text-toota-muted flex items-center justify-center">
+                <div className="size-10 rounded-2xl bg-[#1b1f23] text-[#a3e635] flex items-center justify-center dark:bg-white/10">
                   <UploadCloud className="size-5" />
                 </div>
                 <div className="text-xs sm:text-sm font-semibold text-toota-ink">
@@ -439,13 +439,13 @@ export default function AssistantDocumentsPage() {
               <span className="text-xs font-semibold text-toota-muted">
                 {t("visibility") || "Visibility"}:
               </span>
-              <div className="inline-flex p-1 rounded-xl bg-toota-inner border border-border/40">
+              <div className="inline-flex p-1 rounded-full bg-toota-inner ring-1 ring-black/5 dark:ring-white/10">
                 <button
                   type="button"
                   onClick={() => setVisibility("member")}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     visibility === "member"
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs"
+                      ? "bg-[#1b1f23] text-white dark:bg-white dark:text-[#0f1115] shadow-sm"
                       : "text-toota-muted hover:text-toota-ink"
                   }`}
                 >
@@ -454,9 +454,9 @@ export default function AssistantDocumentsPage() {
                 <button
                   type="button"
                   onClick={() => setVisibility("staff")}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                     visibility === "staff"
-                      ? "bg-amber-500 text-white shadow-2xs"
+                      ? "bg-[#1b1f23] text-white dark:bg-white dark:text-[#0f1115] shadow-sm"
                       : "text-toota-muted hover:text-toota-ink"
                   }`}
                 >
@@ -468,7 +468,7 @@ export default function AssistantDocumentsPage() {
             <Button
               type="submit"
               disabled={!selectedFile || isUploading}
-              className="toota-pill h-9 px-5 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+              className="toota-pill active h-9 ps-2 pe-5 text-xs font-semibold cursor-pointer disabled:opacity-40"
             >
               {isUploading ? (
                 <>
@@ -477,7 +477,7 @@ export default function AssistantDocumentsPage() {
                 </>
               ) : (
                 <>
-                  <UploadCloud className="size-3.5 me-1.5" />
+                  <span className="grid size-6 place-items-center rounded-full bg-[#a3e635] text-[#1a2e05] shrink-0"><UploadCloud className="size-3.5" /></span>
                   <span>{t("uploadDocument") || "Upload to Knowledge Base"}</span>
                 </>
               )}
@@ -491,15 +491,15 @@ export default function AssistantDocumentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Document Knowledge Library
+              <h2 className="font-headline text-sm font-semibold tracking-tight text-toota-ink">
+                {t("docsLibrary", "Document Knowledge Library")}
               </h2>
-              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {filteredDocs.length} of {documents.length}
+              <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
+                {t("countOfTotal", "{{shown}} of {{total}}", { shown: filteredDocs.length, total: documents.length })}
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-0.5">
-              Active documents referenced by Gemini when responding to queries
+              {t("docsLibraryHint", "Active documents referenced by Gemini when responding to queries")}
             </p>
           </div>
 
@@ -538,7 +538,7 @@ export default function AssistantDocumentsPage() {
               : "No documents matching your search criteria."}
           </div>
         ) : (
-          <div className="divide-y divide-border/40 border border-border/40 rounded-2xl overflow-hidden bg-card">
+          <div className="divide-y divide-border/40 rounded-2xl overflow-hidden bg-toota-pill ring-1 ring-black/5 dark:ring-white/10">
             {filteredDocs.map((doc) => {
               const isStaffOnly = doc.visibility === "staff";
               return (
@@ -547,7 +547,7 @@ export default function AssistantDocumentsPage() {
                   className="flex items-center justify-between gap-3 p-3.5 hover:bg-toota-inner/60 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="size-9 rounded-xl bg-toota-inner border border-border/40 flex items-center justify-center text-toota-ink shrink-0">
+                    <div className="size-9 rounded-xl bg-[#1b1f23] flex items-center justify-center text-[#a3e635] shrink-0 dark:bg-white/10">
                       <FileText className="size-4" />
                     </div>
                     <div className="min-w-0">
@@ -556,10 +556,10 @@ export default function AssistantDocumentsPage() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {/* Crisp Outlined Micro-Badge */}
-                        <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                        <span className={isStaffOnly ? "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400" : "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ring-[#a3e635]/50 bg-[#a3e635]/15 text-[#3f6212] dark:text-[#a3e635]"}>
                           <span
                             className={`size-1.5 rounded-full shrink-0 ${
-                              isStaffOnly ? "bg-amber-500" : "bg-emerald-500"
+                              isStaffOnly ? "bg-amber-500" : "bg-[#65a30d] dark:bg-[#a3e635]"
                             }`}
                           />
                           <span>

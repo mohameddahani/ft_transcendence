@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   User,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
@@ -19,11 +21,17 @@ import { useTranslation } from "react-i18next";
 interface TopBarProps {
   onToggleMobileSidebar: () => void;
   isMobileSidebarOpen: boolean;
+  isAdmin?: boolean;
+  isDesktopSidebarCollapsed?: boolean;
+  onToggleDesktopSidebar?: () => void;
 }
 
 export default function TopBar({
   onToggleMobileSidebar,
   isMobileSidebarOpen,
+  isAdmin,
+  isDesktopSidebarCollapsed,
+  onToggleDesktopSidebar,
 }: TopBarProps) {
   const pathname = usePathname();
   const { t } = useTranslation();
@@ -64,6 +72,15 @@ export default function TopBar({
       return {
         section: t("frontDesk") || "Front desk",
         title: t("navCheckIn") || "Check-in",
+      };
+    }
+    if (pathname.startsWith("/memberships")) {
+      return {
+        section:
+          role === "Member"
+            ? t("memberPortal") || "Member portal"
+            : t("frontDesk") || "Front desk",
+        title: t("navMemberships") || "Memberships",
       };
     }
     if (pathname.startsWith("/members")) {
@@ -185,6 +202,31 @@ export default function TopBar({
         {/* Heading & Subtitle */}
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
+            {isAdmin && onToggleDesktopSidebar && (
+              <button
+                type="button"
+                onClick={onToggleDesktopSidebar}
+                aria-controls="desktop-sidebar"
+                aria-expanded={!isDesktopSidebarCollapsed}
+                aria-label={
+                  isDesktopSidebarCollapsed
+                    ? t("showSidebar", "Show sidebar")
+                    : t("hideSidebar", "Hide sidebar")
+                }
+                title={
+                  isDesktopSidebarCollapsed
+                    ? t("showSidebar", "Show sidebar")
+                    : t("hideSidebar", "Hide sidebar")
+                }
+                className="hidden lg:inline-flex items-center justify-center p-2 rounded-lg text-toota-muted hover:text-toota-ink hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime"
+              >
+                {isDesktopSidebarCollapsed ? (
+                  <PanelLeftOpen className="w-5 h-5 rtl:scale-x-[-1]" />
+                ) : (
+                  <PanelLeftClose className="w-5 h-5 rtl:scale-x-[-1]" />
+                )}
+              </button>
+            )}
             {breadcrumb.section && !isDashboard && (
               <>
                 <span className="text-xs font-medium text-toota-muted hidden sm:inline">

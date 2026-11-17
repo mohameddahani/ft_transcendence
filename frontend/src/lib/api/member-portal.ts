@@ -76,13 +76,49 @@ export async function fetchAllMyMemberships(
    Member Working & Special Hours APIs
 ========================================================================= */
 
+export interface FetchMemberWorkingHoursParams {
+  page?: number;
+  limit?: number;
+  dayOfWeek?: number;
+  isClosed?: boolean;
+}
+
 export async function fetchMemberWorkingHours(
-  page: number = 1,
-  limit: number = 50
+  pageOrParams: number | FetchMemberWorkingHoursParams = 1,
+  limit: number = 50,
+  dayOfWeek?: number,
+  isClosed?: boolean
 ): Promise<WorkingHour[]> {
   try {
+    let page = 1;
+    let pageLimit = 50;
+    let queryDayOfWeek: number | undefined;
+    let queryIsClosed: boolean | undefined;
+
+    if (typeof pageOrParams === "object") {
+      page = pageOrParams.page ?? 1;
+      pageLimit = pageOrParams.limit ?? 50;
+      queryDayOfWeek = pageOrParams.dayOfWeek;
+      queryIsClosed = pageOrParams.isClosed;
+    } else {
+      page = pageOrParams;
+      pageLimit = limit;
+      queryDayOfWeek = dayOfWeek;
+      queryIsClosed = isClosed;
+    }
+
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("limit", String(pageLimit));
+    if (queryDayOfWeek !== undefined) {
+      query.set("dayOfWeek", String(queryDayOfWeek));
+    }
+    if (queryIsClosed !== undefined) {
+      query.set("isClosed", String(queryIsClosed));
+    }
+
     const response = await axios.get<WorkingHour[]>(
-      `/api/members/working-hours?page=${page}&limit=${limit}`
+      `/api/members/working-hours?${query.toString()}`
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch {
@@ -95,13 +131,49 @@ export async function fetchMemberWorkingHourById(id: string): Promise<WorkingHou
   return response.data;
 }
 
+export interface FetchMemberSpecialHoursParams {
+  page?: number;
+  limit?: number;
+  from?: string; // YYYY-MM-DD
+  to?: string;   // YYYY-MM-DD
+}
+
 export async function fetchMemberSpecialHours(
-  page: number = 1,
-  limit: number = 50
+  pageOrParams: number | FetchMemberSpecialHoursParams = 1,
+  limit: number = 50,
+  from?: string,
+  to?: string
 ): Promise<SpecialHour[]> {
   try {
+    let page = 1;
+    let pageLimit = 50;
+    let queryFrom: string | undefined;
+    let queryTo: string | undefined;
+
+    if (typeof pageOrParams === "object") {
+      page = pageOrParams.page ?? 1;
+      pageLimit = pageOrParams.limit ?? 50;
+      queryFrom = pageOrParams.from;
+      queryTo = pageOrParams.to;
+    } else {
+      page = pageOrParams;
+      pageLimit = limit;
+      queryFrom = from;
+      queryTo = to;
+    }
+
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("limit", String(pageLimit));
+    if (queryFrom && queryFrom.trim().length > 0) {
+      query.set("from", queryFrom.trim());
+    }
+    if (queryTo && queryTo.trim().length > 0) {
+      query.set("to", queryTo.trim());
+    }
+
     const response = await axios.get<SpecialHour[]>(
-      `/api/members/special-hours?page=${page}&limit=${limit}`
+      `/api/members/special-hours?${query.toString()}`
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch {
@@ -170,13 +242,58 @@ export async function fetchTodayVisitById(id: string): Promise<MemberVisit> {
    Member Attendances APIs
 ========================================================================= */
 
+export interface FetchMemberAttendancesParams {
+  page?: number;
+  limit?: number;
+  attendanceMethod?: "QR_CODE" | "MANUAL" | string;
+  from?: string; // ISO timestamp
+  to?: string;   // ISO timestamp
+}
+
 export async function fetchMemberAttendances(
-  page: number = 1,
-  limit: number = 30
+  pageOrParams: number | FetchMemberAttendancesParams = 1,
+  limit: number = 30,
+  attendanceMethod?: string,
+  from?: string,
+  to?: string
 ): Promise<MemberAttendance[]> {
   try {
+    let page = 1;
+    let pageLimit = 30;
+    let queryMethod: string | undefined;
+    let queryFrom: string | undefined;
+    let queryTo: string | undefined;
+
+    if (typeof pageOrParams === "object") {
+      page = pageOrParams.page ?? 1;
+      pageLimit = pageOrParams.limit ?? 30;
+      queryMethod = pageOrParams.attendanceMethod;
+      queryFrom = pageOrParams.from;
+      queryTo = pageOrParams.to;
+    } else {
+      page = pageOrParams;
+      pageLimit = limit;
+      queryMethod = attendanceMethod;
+      queryFrom = from;
+      queryTo = to;
+    }
+
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("limit", String(pageLimit));
+
+    if (queryMethod && queryMethod !== "ALL") {
+      query.set("attendanceMethod", queryMethod);
+    }
+    if (queryFrom && queryFrom.trim().length > 0) {
+      query.set("from", queryFrom.trim());
+    }
+    if (queryTo && queryTo.trim().length > 0) {
+      query.set("to", queryTo.trim());
+    }
+
     const response = await axios.get<MemberAttendance[]>(
-      `/api/members/attendances?page=${page}&limit=${limit}`
+      `/api/members/attendances?${query.toString()}`
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch {
@@ -193,13 +310,58 @@ export async function fetchMemberAttendanceById(id: string): Promise<MemberAtten
    Member Notifications APIs
 ========================================================================= */
 
+export interface FetchMemberNotificationsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  notificationType?: string;
+  isRead?: boolean;
+}
+
 export async function fetchMemberNotifications(
-  page: number = 1,
-  limit: number = 30
+  pageOrParams: number | FetchMemberNotificationsParams = 1,
+  limit: number = 30,
+  search?: string,
+  notificationType?: string,
+  isRead?: boolean
 ): Promise<AdminNotification[]> {
   try {
+    let page = 1;
+    let pageLimit = 30;
+    let querySearch: string | undefined;
+    let queryType: string | undefined;
+    let queryIsRead: boolean | undefined;
+
+    if (typeof pageOrParams === "object") {
+      page = pageOrParams.page ?? 1;
+      pageLimit = pageOrParams.limit ?? 30;
+      querySearch = pageOrParams.search;
+      queryType = pageOrParams.notificationType;
+      queryIsRead = pageOrParams.isRead;
+    } else {
+      page = pageOrParams;
+      pageLimit = limit;
+      querySearch = search;
+      queryType = notificationType;
+      queryIsRead = isRead;
+    }
+
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("limit", String(pageLimit));
+
+    if (querySearch && querySearch.trim().length > 0) {
+      query.set("search", querySearch.trim());
+    }
+    if (queryType && queryType !== "ALL") {
+      query.set("notificationType", queryType);
+    }
+    if (queryIsRead !== undefined) {
+      query.set("isRead", String(queryIsRead));
+    }
+
     const response = await axios.get<AdminNotification[]>(
-      `/api/members/notifications?page=${page}&limit=${limit}`
+      `/api/members/notifications?${query.toString()}`
     );
     return Array.isArray(response.data) ? response.data : [];
   } catch {
@@ -226,13 +388,66 @@ export async function markMemberNotificationRead(id: string): Promise<void> {
    Member Feedbacks APIs
 ========================================================================= */
 
+export interface FetchMemberFeedbacksParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  feedbackStatus?: string;
+  sentimentType?: string;
+  rating?: number;
+}
+
 export async function fetchMemberFeedbacks(
-  page: number = 1,
-  limit: number = 50
+  pageOrParams: number | FetchMemberFeedbacksParams = 1,
+  limit: number = 50,
+  search?: string,
+  feedbackStatus?: string,
+  sentimentType?: string,
+  rating?: number
 ): Promise<FeedbackItem[]> {
   try {
+    let page = 1;
+    let pageLimit = 50;
+    let querySearch: string | undefined;
+    let queryStatus: string | undefined;
+    let querySentiment: string | undefined;
+    let queryRating: number | undefined;
+
+    if (typeof pageOrParams === "object") {
+      page = pageOrParams.page ?? 1;
+      pageLimit = pageOrParams.limit ?? 50;
+      querySearch = pageOrParams.search;
+      queryStatus = pageOrParams.feedbackStatus;
+      querySentiment = pageOrParams.sentimentType;
+      queryRating = pageOrParams.rating;
+    } else {
+      page = pageOrParams;
+      pageLimit = limit;
+      querySearch = search;
+      queryStatus = feedbackStatus;
+      querySentiment = sentimentType;
+      queryRating = rating;
+    }
+
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("limit", String(pageLimit));
+
+    if (querySearch && querySearch.trim().length > 0) {
+      query.set("search", querySearch.trim());
+    }
+    if (queryStatus && queryStatus !== "ALL") {
+      query.set("feedbackStatus", queryStatus);
+    }
+    if (querySentiment && querySentiment !== "ALL") {
+      query.set("sentimentType", querySentiment);
+    }
+    if (typeof queryRating === "number" && !isNaN(queryRating)) {
+      query.set("rating", String(queryRating));
+    }
+
     const response = await axios.get<RawMemberFeedbackResponse[]>(
-      `/api/members/feedbacks?page=${page}&limit=${limit}`
+      `/api/members/feedbacks?${query.toString()}`
     );
     const rawList = Array.isArray(response.data) ? response.data : [];
     return rawList.map((item: RawMemberFeedbackResponse) => {

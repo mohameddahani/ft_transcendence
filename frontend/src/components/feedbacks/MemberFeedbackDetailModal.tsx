@@ -92,11 +92,11 @@ export default function MemberFeedbackDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="feedback-detail-title"
-        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-[512px] max-h-[80vh] bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-border/40 shrink-0">
           <div className="flex items-center gap-3">
             <Avatar className="size-10 ring-1 ring-border/40 shrink-0">
               {photo && <AvatarImage src={photo} alt={memberName} />}
@@ -137,7 +137,7 @@ export default function MemberFeedbackDetailModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-3.5 overflow-y-auto custom-scrollbar flex-1">
           {isLoading && (
             <div className="flex items-center gap-2 text-xs text-toota-muted">
               <Loader2 className="size-3.5 animate-spin" />
@@ -182,8 +182,8 @@ export default function MemberFeedbackDetailModal({
             <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
               {t("review") || "Review"}
             </span>
-            <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40">
-              <p className="text-xs text-toota-ink leading-relaxed">
+            <div className="p-3 rounded-xl bg-toota-inner border border-border/40">
+              <p className="text-[13px] text-toota-ink leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-line">
                 &ldquo;{detail.content}&rdquo;
               </p>
             </div>
@@ -195,7 +195,7 @@ export default function MemberFeedbackDetailModal({
               <span className="text-[11px] font-semibold text-toota-muted uppercase tracking-wider">
                 {t("managementResponse") || "Management Response"}
               </span>
-              <div className="p-3.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+              <div className="p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="size-3.5 shrink-0" />
                   <span>Gym Management</span>
@@ -205,7 +205,7 @@ export default function MemberFeedbackDetailModal({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-toota-ink/90 leading-relaxed">
+                <p className="text-[13px] text-toota-ink/90 leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-line">
                   {detail.resolutionNote}
                 </p>
               </div>

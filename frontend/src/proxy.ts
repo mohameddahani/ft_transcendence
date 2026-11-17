@@ -11,6 +11,7 @@ import {
 const protectedRoutes = [
   "/dashboard",
   "/members",
+  "/memberships",
   "/membership-plans",
   "/subscriptions",
   "/payments",

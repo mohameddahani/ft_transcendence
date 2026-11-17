@@ -12,7 +12,7 @@ const audiences = [
   "gyms.",
   "dojos.",
   "swim clubs.",
-  "yoga studios.",
+  "football clubs.",
   "run clubs.",
 ];
 
@@ -95,7 +95,7 @@ const Hero = () => {
           <span className="block">Run your club with clarity.</span>
           <span className="block text-muted-foreground">
             <span className="sr-only">
-              Built for gyms, dojos, swim clubs, yoga studios, and run clubs.
+              Built for gyms, dojos, swim clubs, football clubs, and run clubs.
             </span>
             <span aria-hidden="true" className="block md:inline">
               Built for{" "}

@@ -8,6 +8,7 @@ import {
   CreditCard,
   AlertTriangle,
   Clock,
+  Search,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AdminNotification } from "@/types/notification";
@@ -36,6 +37,19 @@ export default function NotificationDropdown() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
 
+  // Filters
+  const [isReadFilter, setIsReadFilter] = useState<boolean | undefined>(undefined);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch notifications
@@ -44,8 +58,18 @@ export default function NotificationDropdown() {
       if (showLoading) setIsLoading(true);
       try {
         const data = forMember
-          ? await fetchMemberNotifications(1, 30)
-          : await fetchAdminNotifications(1, 30);
+          ? await fetchMemberNotifications({
+              page: 1,
+              limit: 30,
+              search: debouncedSearch || undefined,
+              isRead: isReadFilter,
+            })
+          : await fetchAdminNotifications({
+              page: 1,
+              limit: 30,
+              search: debouncedSearch || undefined,
+              isRead: isReadFilter,
+            });
         setNotifications(data);
       } catch {
         // Fail silently if unauthorized or offline
@@ -53,7 +77,7 @@ export default function NotificationDropdown() {
         if (showLoading) setIsLoading(false);
       }
     },
-    [isMember]
+    [isMember, debouncedSearch, isReadFilter]
   );
 
   // Initial fetch and periodic polling every 45s (only after role is known)
@@ -187,7 +211,7 @@ export default function NotificationDropdown() {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <Card className="toota-card border border-border/40 shadow-2xl p-0 overflow-hidden w-80 sm:w-96 flex flex-col z-50 absolute right-0 rtl:right-auto rtl:left-0 mt-2 animate-in fade-in-0 zoom-in-95 duration-150">
+          <Card className="toota-card border border-border/40 shadow-2xl p-0 overflow-hidden w-80 sm:w-96 flex flex-col z-50 absolute right-0 rtl:right-auto rtl:left-0 mt-2 animate-in fade-in-0 zoom-in-95 duration-150 bg-card text-card-foreground">
             {/* Header */}
             <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between bg-toota-inner/40">
               <div className="flex items-center gap-2">
@@ -205,7 +229,35 @@ export default function NotificationDropdown() {
                 ) : null}
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                {/* Filter toggle: All / Unread */}
+                <div className="flex items-center bg-toota-inner p-0.5 rounded-full text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setIsReadFilter(undefined)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full font-medium transition-all cursor-pointer",
+                      isReadFilter === undefined
+                        ? "bg-toota-ink text-toota-canvas shadow-2xs font-semibold"
+                        : "text-toota-muted hover:text-toota-ink"
+                    )}
+                  >
+                    {t("all") || "All"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsReadFilter(false)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full font-medium transition-all cursor-pointer",
+                      isReadFilter === false
+                        ? "bg-toota-ink text-toota-canvas shadow-2xs font-semibold"
+                        : "text-toota-muted hover:text-toota-ink"
+                    )}
+                  >
+                    {t("unread") || "Unread"}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => loadNotifications(true)}
@@ -231,6 +283,20 @@ export default function NotificationDropdown() {
               </div>
             </div>
 
+            {/* Search Input Bar */}
+            <div className="p-2 border-b border-border/30 bg-toota-inner/20">
+              <div className="relative">
+                <Search className="size-3.5 text-toota-muted absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder={t("searchNotificationsPlaceholder") || "Search alerts..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-8 ps-8 pe-3 rounded-full bg-toota-inner border border-border/40 text-[11px] text-toota-ink placeholder:text-toota-muted focus:outline-none focus:border-toota-lime transition-all"
+                />
+              </div>
+            </div>
+
             {/* Notifications List */}
             <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-border/20">
               {notifications.length === 0 ? (
@@ -250,11 +316,12 @@ export default function NotificationDropdown() {
                   const isItemUnread = !item.isRead;
 
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={item.id}
                       onClick={() => handleItemClick(item)}
                       className={cn(
-                        "p-3.5 transition-colors cursor-pointer flex items-start gap-3 hover:bg-toota-inner/60",
+                        "w-full text-start p-3.5 transition-colors cursor-pointer flex items-start gap-3 hover:bg-toota-inner/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime",
                         isItemUnread
                           ? "bg-primary/[0.04] dark:bg-primary/[0.08]"
                           : "bg-transparent"
@@ -291,7 +358,7 @@ export default function NotificationDropdown() {
                       {isItemUnread && (
                         <span className="size-2 rounded-full bg-primary shrink-0 mt-2 shadow-xs" />
                       )}
-                    </div>
+                    </button>
                   );
                 })
               )}

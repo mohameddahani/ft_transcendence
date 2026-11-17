@@ -16,7 +16,8 @@ import {
 import { Reveal, Stagger, StaggerItem } from "@/components/landing/motion";
 import { cn } from "@/components/landing/cn";
 
-const platformPlans = [
+// also shown in the popup for owners without an active subscription
+export const platformPlans = [
   {
     name: "Basic",
     badge: "Essential club operations",

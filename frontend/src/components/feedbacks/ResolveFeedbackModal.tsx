@@ -110,11 +110,11 @@ export default function ResolveFeedbackModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="resolve-feedback-title"
-        className="w-full max-w-lg bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-150"
+        className="w-full max-w-[512px] max-h-[80vh] bg-card text-card-foreground rounded-2xl border border-border/60 shadow-xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-border/40 shrink-0">
           <div>
             <div className="flex items-baseline gap-2">
               <h3
@@ -143,7 +143,7 @@ export default function ResolveFeedbackModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-3.5 overflow-y-auto custom-scrollbar flex-1">
           {/* Member & Review Snapshot */}
           <div className="p-3.5 rounded-xl bg-toota-inner border border-border/40 space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -183,7 +183,7 @@ export default function ResolveFeedbackModal({
             </div>
 
             {/* Quoted Content */}
-            <div className="p-3 rounded-lg bg-background border border-border/40 text-xs text-toota-ink leading-relaxed">
+            <div className="p-3 rounded-lg bg-background border border-border/40 text-[13px] text-toota-ink leading-relaxed max-h-36 overflow-y-auto custom-scrollbar break-words [overflow-wrap:anywhere]">
               <p className="italic">&ldquo;{feedback.content}&rdquo;</p>
             </div>
 
@@ -229,11 +229,12 @@ export default function ResolveFeedbackModal({
                     <button
                       key={option.value}
                       type="button"
+                      aria-pressed={isSelected}
                       onClick={() => setSelectedStatus(option.value)}
-                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium cursor-pointer transition-all ${
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
                         isSelected
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-2xs ring-1 ring-zinc-900 dark:ring-zinc-100"
-                          : "bg-toota-inner text-toota-ink hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40"
+                          ? "bg-toota-ink text-toota-main shadow-2xs font-semibold"
+                          : "bg-toota-inner text-toota-ink hover:bg-toota-card border border-border/40"
                       }`}
                     >
                       <span className={`size-1.5 rounded-full ${option.dotClass} shrink-0`} />
@@ -281,7 +282,7 @@ export default function ResolveFeedbackModal({
                 variant="outline"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="toota-pill h-9 px-4 text-xs font-semibold border-border/50 text-toota-ink cursor-pointer"
+                className="toota-pill h-9 px-4 text-xs font-semibold border-border/60 hover:bg-toota-inner text-toota-ink cursor-pointer"
               >
                 {t("cancel") || "Cancel"}
               </Button>
@@ -289,7 +290,7 @@ export default function ResolveFeedbackModal({
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
+                className="toota-pill h-9 px-4 text-xs font-semibold cursor-pointer bg-toota-ink text-toota-main hover:bg-toota-ink/90"
               >
                 {isSubmitting ? (
                   <>

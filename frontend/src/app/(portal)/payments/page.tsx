@@ -98,21 +98,43 @@ export default function PaymentsPage() {
 
   // Filters
   const [searchInput, setSearchInput] = useState("");
-  const [activeSearch, setActiveSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Selected payment for side-panel detail view
   const [selectedPayment, setSelectedPayment] = useState<BackendPayment | null>(null);
 
   const loadPayments = useCallback(async () => {
+    if (fromDate && toDate && fromDate > toDate) {
+      toast.error(t("dateRangeError") || "From date cannot be after To date");
+      return;
+    }
     setIsLoading(true);
     try {
       const statsPromise =
         role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
+      const fromParam = fromDate ? `${fromDate}T00:00:00.000Z` : undefined;
+      const toParam = toDate ? `${toDate}T23:59:59.999Z` : undefined;
       const [stats, initialPage] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchPayments(1, pageSize, activeSearch),
+        fetchPayments({
+          page: 1,
+          limit: pageSize,
+          search: debouncedSearch,
+          from: fromParam,
+          to: toParam,
+        }),
       ]);
       setPaymentStats(stats);
       setPayments(initialPage);
@@ -126,47 +148,18 @@ export default function PaymentsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [role, pageSize, activeSearch]);
+  }, [role, pageSize, debouncedSearch, fromDate, toDate, t]);
 
   useEffect(() => {
     loadPayments();
   }, [loadPayments]);
 
-  const handleSearchSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const query = searchInput.trim();
-    setActiveSearch(query);
-    setCurrentPage(1);
-    setIsPageLoading(true);
-    try {
-      const pageData = await fetchPayments(1, pageSize, query);
-      setPayments(pageData);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      } else {
-        toast.error("Failed to search payments");
-      }
-    } finally {
-      setIsPageLoading(false);
-    }
-  };
-
-  const handleClearSearch = async () => {
+  const handleClearAllFilters = () => {
     setSearchInput("");
-    setActiveSearch("");
+    setDebouncedSearch("");
+    setFromDate("");
+    setToDate("");
     setCurrentPage(1);
-    setIsPageLoading(true);
-    try {
-      const pageData = await fetchPayments(1, pageSize, "");
-      setPayments(pageData);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        toast.error(err.response.data.message);
-      }
-    } finally {
-      setIsPageLoading(false);
-    }
   };
 
   const handleRefresh = async () => {
@@ -174,9 +167,17 @@ export default function PaymentsPage() {
     try {
       const statsPromise =
         role === "Staff" ? fetchStaffPaymentStats() : fetchAdminPaymentStats();
+      const fromParam = fromDate ? `${fromDate}T00:00:00.000Z` : undefined;
+      const toParam = toDate ? `${toDate}T23:59:59.999Z` : undefined;
       const [statsData, pageData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchPayments(currentPage, pageSize, activeSearch),
+        fetchPayments({
+          page: currentPage,
+          limit: pageSize,
+          search: debouncedSearch,
+          from: fromParam,
+          to: toParam,
+        }),
       ]);
       setPaymentStats(statsData);
       setPayments(pageData);
@@ -196,7 +197,15 @@ export default function PaymentsPage() {
     setCurrentPage(newPage);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchPayments(newPage, pageSize, activeSearch);
+      const fromParam = fromDate ? `${fromDate}T00:00:00.000Z` : undefined;
+      const toParam = toDate ? `${toDate}T23:59:59.999Z` : undefined;
+      const pageData = await fetchPayments({
+        page: newPage,
+        limit: pageSize,
+        search: debouncedSearch,
+        from: fromParam,
+        to: toParam,
+      });
       setPayments(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -220,7 +229,7 @@ export default function PaymentsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const isFiltering = Boolean(activeSearch);
+  const isFiltering = Boolean(debouncedSearch || fromDate || toDate);
   const totalItems = useMemo(() => {
     if (isFiltering) {
       if (payments.length < pageSize) {
@@ -602,53 +611,58 @@ Thank you for training with ${companyName || "us"}!
         </Card>
       </div>
 
-      {/* Search Input & Button Card */}
+      {/* Search Input & Date Filters Card */}
       <Card className="toota-card border-none p-4 sm:p-5">
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex flex-col sm:flex-row items-center gap-3"
-        >
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
           {/* Search Input */}
-          <div className="relative flex-1 w-full min-w-[240px]">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               type="text"
-              placeholder={t("searchPaymentsPlaceholder") || "Search by first or last name..."}
+              placeholder={t("searchPaymentsPlaceholder") || "Search by first name, last name, or username..."}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
             />
           </div>
 
-          {/* Search Button and optional Clear Button */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-            <Button
-              type="submit"
-              disabled={isLoading || isPageLoading}
-              className="toota-pill h-10 px-5 text-xs font-semibold cursor-pointer w-full sm:w-auto"
-            >
-              {isPageLoading ? (
-                <Loader2 className="size-3.5 animate-spin me-1.5" />
-              ) : (
-                <Search className="size-3.5 me-1.5" />
-              )}
-              <span>{t("search") || "Search"}</span>
-            </Button>
+          {/* Date Range: From & To */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-toota-inner px-3 py-1.5 rounded-full border border-border/40 text-xs">
+              <Calendar className="size-3.5 text-toota-muted shrink-0" />
+              <span className="text-[11px] text-toota-muted uppercase font-medium">{t("from") || "From"}</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="bg-transparent text-xs text-toota-ink focus:outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 bg-toota-inner px-3 py-1.5 rounded-full border border-border/40 text-xs">
+              <Calendar className="size-3.5 text-toota-muted shrink-0" />
+              <span className="text-[11px] text-toota-muted uppercase font-medium">{t("to") || "To"}</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="bg-transparent text-xs text-toota-ink focus:outline-none cursor-pointer"
+              />
+            </div>
 
-            {Boolean(activeSearch || searchInput) && (
+            {Boolean(searchInput || fromDate || toDate) && (
               <Button
                 type="button"
                 variant="outline"
                 disabled={isLoading || isPageLoading}
-                onClick={handleClearSearch}
-                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+                onClick={handleClearAllFilters}
+                className="toota-pill h-10 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
               >
                 <X className="size-3.5 me-1.5" />
                 <span>{t("clear") || "Clear"}</span>
               </Button>
             )}
           </div>
-        </form>
+        </div>
       </Card>
 
       {/* Payments Ledger Table Card */}
@@ -690,7 +704,7 @@ Thank you for training with ${companyName || "us"}!
                 {t("noPaymentsRecorded") || "No payment records found"}
               </h4>
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 leading-relaxed">
-                {activeSearch
+                {isFiltering
                   ? t("noMatchingSearchPayments") || "No payments match your search criteria."
                   : t("noPaymentsYet") || "No payments have been recorded yet."}
               </p>

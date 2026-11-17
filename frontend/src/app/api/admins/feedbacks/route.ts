@@ -16,8 +16,18 @@ export async function GET(req: NextRequest) {
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "50";
 
+    const query = new URLSearchParams();
+    query.set("page", page);
+    query.set("limit", limit);
+
+    searchParams.forEach((value, key) => {
+      if (key !== "page" && key !== "limit") {
+        query.set(key, value);
+      }
+    });
+
     const endpoint = isStaff ? "/api/staffs/feedbacks" : "/api/admins/feedbacks";
-    const backendPath = `${endpoint}?page=${page}&limit=${limit}`;
+    const backendPath = `${endpoint}?${query.toString()}`;
 
     const backendRes = await axios.get(`${API_URL}${backendPath}`, {
       headers,
