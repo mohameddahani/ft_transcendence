@@ -1,13 +1,12 @@
 #!/bin/sh
-
 # Creates every service's .env from its .env.example, generates secrets, and
-# reports required values that are still empty. Safe to re-run: it never
-# overwrites a value that is already set and never adds missing variables.
+# reports values that are still empty. Safe to re-run: it never overwrites a
+# value that is already set and never adds missing variables to an existing .env.
 #
-# Markers, placed on the line(s) right before a variable in a .env.example:
+# Markers, placed on the line right before a variable in a .env.example:
 #   # @generate [hex|base64url]   fill with a random secret if the value is empty
-#   # @required                   the user must set it, reported if empty
-
+#   # @required                   must be set by the user, the script fails if empty
+#   # @optional                   a feature works only when set, the script just warns
 set -e
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
@@ -28,6 +27,7 @@ markers() {
   awk '
     /^# @generate/ { kind = "generate"; type = $3; next }
     /^# @required/ { kind = "required"; type = "";  next }
+    /^# @optional/ { kind = "optional"; type = "";  next }
     /^[[:space:]]*$/ { kind = ""; type = ""; next }
     /^[[:space:]]*#/ { next }
     /^[A-Za-z_][A-Za-z0-9_]*=/ {
@@ -42,6 +42,7 @@ trap 'rm -f "$list"' EXIT
 find "$ROOT" -name .env.example -not -path '*/node_modules/*' | sort > "$list"
 
 missing=""
+optional=""
 while read -r example; do
   env="${example%.example}"
   rel="${env#"$ROOT"/}"
@@ -52,7 +53,7 @@ while read -r example; do
     echo "created   $rel"
   fi
 
-  # 2. generate empty secrets, and collect required values that are empty
+  # 2. generate empty secrets, and collect values the user still has to set
   while read -r kind key type; do
     [ -n "$kind" ] || continue
     case "$kind" in
@@ -68,15 +69,27 @@ while read -r example; do
   ${rel}: ${key}"
         fi
         ;;
+      optional)
+        if ! has_key "$env" "$key" || is_empty "$env" "$key"; then
+          optional="${optional}
+  ${rel}: ${key}"
+        fi
+        ;;
     esac
   done <<MARKERS
 $(markers "$example")
 MARKERS
 done < "$list"
 
+if [ -n "$optional" ]; then
+  echo
+  echo "Optional values not set (the related features stay disabled):$optional"
+fi
+
 if [ -n "$missing" ]; then
   echo
   echo "These required values are still empty. Fill them in, then run make up:$missing"
   exit 1
 fi
+echo
 echo "Environment ready."
