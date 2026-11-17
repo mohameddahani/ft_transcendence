@@ -58,7 +58,7 @@ export function ManageProductsTab({
               >
                 <div className="flex items-center gap-4">
                   <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-800">
-                    {product.images?.[0] ? (
+                    {product.images.length > 0 && product.images[0] ? (
                       <img
                         src={product.images[0]}
                         alt={product.name}

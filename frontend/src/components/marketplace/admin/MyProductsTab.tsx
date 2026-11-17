@@ -85,9 +85,7 @@ function ProductCard({
   return (
     <Card className="group overflow-hidden rounded-3xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs hover:shadow-md transition-all duration-200">
       <div className="relative aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800/60">
-        {product &&
-        JSON.stringify(product?.images) !== "[]" &&
-        product.images?.[0] ? (
+        {product.images.length > 0 && product.images?.[0] ? (
           <img
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             src={product.images[0]}

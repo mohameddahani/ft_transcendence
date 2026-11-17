@@ -31,8 +31,15 @@ services:
     image: backend:latest
     container_name: backend
     restart: unless-stopped
-    env_file:
-      - ../backend/.env
+    env_file: [../backend/.env]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      REWARD_INTERNAL_SECRET: ${REWARD_INTERNAL_SECRET}
+      JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
+      JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
+      JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
     networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
@@ -122,8 +129,16 @@ services:
     image: ai:latest
     container_name: ai
     restart: unless-stopped
-    env_file:
-      - ../AI/.env
+    env_file: [../AI/.env]
+    environment:
+      AI_DATABASE_URL: postgresql://${AI_DB_USER}:${AI_DB_USER_PASSWORD}@db:5432/${POSTGRES_DB}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
+      JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
+      JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
     networks: [internal]
     volumes:
       - ai_data:/data
@@ -138,8 +153,10 @@ services:
     image: blockchain-api:latest
     container_name: blockchain-api
     restart: unless-stopped
-    env_file:
-      - ../blockchain/api/.env
+    env_file: [../blockchain/api/.env]
+    environment:
+      REWARDS_DATABASE_URL: postgresql://${REWARDS_DB_USER}:${REWARDS_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      REWARD_INTERNAL_SECRET: ${REWARD_INTERNAL_SECRET}
     networks: [internal]
     depends_on:
       backend:
