@@ -157,9 +157,9 @@ export default function NotificationDetailModal({
       />
 
       {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-lg toota-card border border-border/40 p-6 sm:p-7 shadow-2xl rounded-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 space-y-5 bg-card text-toota-ink">
+      <div className="relative w-full max-w-lg toota-card border border-border/40 p-6 sm:p-7 shadow-2xl rounded-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh] space-y-5 bg-card text-toota-ink">
         {/* Header - Baseline Metric style */}
-        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40">
+        <div className="flex items-start justify-between gap-4 pb-3 border-b border-border/40 shrink-0">
           <div className="space-y-1.5 min-w-0">
             <div className="flex items-baseline gap-2 flex-wrap">
               <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -187,7 +187,7 @@ export default function NotificationDetailModal({
         </div>
 
         {/* Content Body */}
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto custom-scrollbar flex-1 pr-1">
           {isLoading && (
             <div className="py-12 flex flex-col items-center justify-center text-toota-muted gap-2.5">
               <Loader2 className="size-6 animate-spin text-primary" />

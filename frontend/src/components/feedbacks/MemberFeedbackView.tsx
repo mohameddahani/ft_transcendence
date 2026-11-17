@@ -61,8 +61,17 @@ export default function MemberFeedbackView() {
   // Filters
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [ratingFilter, setRatingFilter] = useState<number | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "RESOLVED" | "OPEN">("ALL");
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
@@ -87,20 +96,28 @@ export default function MemberFeedbackView() {
   }, [likedStorageKey]);
 
   // Load Feedbacks from server
-  const loadFeedbacks = useCallback(async (showLoading = true) => {
+  const loadFeedbacks = useCallback(async (showLoading = true, pageToLoad = currentPage) => {
     if (showLoading) setIsLoading(true);
     try {
-      const [statsData, allData] = await Promise.all([
+      const statusParam = statusFilter !== "ALL" ? statusFilter : undefined;
+      const ratingParam = ratingFilter !== "ALL" ? Number(ratingFilter) : undefined;
+      const [statsData, pageData] = await Promise.all([
         fetchMemberFeedbackStats().catch(() => null),
-        fetchMemberFeedbacks(1, 1000).catch(() => []),
+        fetchMemberFeedbacks({
+          page: pageToLoad,
+          limit: pageSize,
+          search: debouncedSearch,
+          feedbackStatus: statusParam,
+          rating: ratingParam,
+        }).catch(() => []),
       ]);
 
       setMemberFeedbackStats(statsData);
-      setFeedbacks(allData);
+      setFeedbacks(pageData);
 
       // Track liked IDs
       const liked = new Set<string>();
-      allData.forEach((item) => {
+      pageData.forEach((item) => {
         if (item.isLiked && item.id) {
           liked.add(item.id);
         }
@@ -113,7 +130,7 @@ export default function MemberFeedbackView() {
     } finally {
       if (showLoading) setIsLoading(false);
     }
-  }, [t]);
+  }, [t, currentPage, pageSize, debouncedSearch, statusFilter, ratingFilter]);
 
   useEffect(() => {
     loadFeedbacks();
@@ -261,72 +278,39 @@ export default function MemberFeedbackView() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, searchTerm, ratingFilter, statusFilter]);
-
-  // Filtered List
-  const filteredFeedbacks = useMemo(() => {
-    return feedbacks.filter((f) => {
-      if (activeTab === "mine" && (!user?.id || f.member?.id !== user.id)) {
-        return false;
-      }
-
-      if (searchTerm) {
-        const query = searchTerm.toLowerCase();
-        const memberName = `${f.member?.firstName || ""} ${f.member?.lastName || ""}`.toLowerCase();
-        const username = (f.member?.userName || "").toLowerCase();
-        const content = (f.content || "").toLowerCase();
-        const resolutionNote = (f.resolutionNote || "").toLowerCase();
-        if (
-          !memberName.includes(query) &&
-          !username.includes(query) &&
-          !content.includes(query) &&
-          !resolutionNote.includes(query)
-        ) {
-          return false;
-        }
-      }
-
-      if (ratingFilter !== "ALL" && f.rating !== ratingFilter) {
-        return false;
-      }
-
-      if (statusFilter === "RESOLVED" && f.feedbackStatus !== "RESOLVED") {
-        return false;
-      }
-      if (statusFilter === "OPEN" && f.feedbackStatus === "RESOLVED") {
-        return false;
-      }
-
-      return true;
-    });
-  }, [feedbacks, activeTab, searchTerm, ratingFilter, statusFilter, user?.id]);
+  }, [activeTab, debouncedSearch, ratingFilter, statusFilter]);
 
   const isFiltering = Boolean(
     activeTab !== "all" ||
-    searchTerm ||
+    debouncedSearch ||
     ratingFilter !== "ALL" ||
     statusFilter !== "ALL"
   );
 
-  const totalItems = filteredFeedbacks.length;
+  const totalItems = useMemo(() => {
+    if (isFiltering) {
+      if (feedbacks.length < pageSize) {
+        return (currentPage - 1) * pageSize + feedbacks.length;
+      }
+      return currentPage * pageSize + 1;
+    }
+    return memberFeedbackStats?.total ?? feedbacks.length;
+  }, [isFiltering, feedbacks.length, currentPage, pageSize, memberFeedbackStats?.total]);
+
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
-  // Safely clamp currentPage if out of bounds
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(Math.max(1, totalPages));
-    }
-  }, [currentPage, totalPages]);
-
-  // Display only 10 elements on the page
+  // Display elements for current view
   const displayFeedbacks = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredFeedbacks.slice(start, start + pageSize);
-  }, [filteredFeedbacks, currentPage, pageSize]);
+    if (activeTab === "mine") {
+      return feedbacks.filter((f) => user?.id && f.member?.id === user.id);
+    }
+    return feedbacks;
+  }, [feedbacks, activeTab, user?.id]);
 
   // Handle page change
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+    loadFeedbacks(true, newPage);
   };
 
   // Crisp Outlined Micro-Badge Renderer
@@ -349,7 +333,7 @@ export default function MemberFeedbackView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 @container/feedbacks">
       {/* 1. Header Card (shadcn Card with Baseline Metric) */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -467,7 +451,7 @@ export default function MemberFeedbackView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Published</span>
+                <span>{t("published", "Published")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
@@ -493,11 +477,11 @@ export default function MemberFeedbackView() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Positive</span>
+                <span>{t("positiveSentimentPercent", "Positive")}</span>
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Rated 4 or 5 stars by members
+              {t("ratedFourOrFive", "Rated 4 or 5 stars by members")}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div
@@ -519,30 +503,44 @@ export default function MemberFeedbackView() {
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
-                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                aria-pressed={activeTab === "all"}
+                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
                   activeTab === "all"
-                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
-                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                    ? "bg-toota-ink text-toota-main shadow-xs"
+                    : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
                 }`}
               >
                 <span>{t("allFeedbacks") || "All Reviews"}</span>
-                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
-                  ({stats.total})
+                <span
+                  className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    activeTab === "all"
+                      ? "bg-toota-main/20 text-toota-main"
+                      : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+                  }`}
+                >
+                  {stats.total}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab("mine")}
-                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all ${
+                aria-pressed={activeTab === "mine"}
+                className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
                   activeTab === "mine"
-                    ? "bg-toota-ink text-background dark:bg-white dark:text-black font-semibold shadow-xs"
-                    : "bg-transparent text-toota-muted hover:text-toota-ink"
+                    ? "bg-toota-ink text-toota-main shadow-xs"
+                    : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
                 }`}
               >
                 <span>{t("myFeedbacks") || "My Reviews"}</span>
-                <span className="font-mono text-[11px] tabular-nums ms-1.5 opacity-70">
-                  ({stats.myCount})
+                <span
+                  className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    activeTab === "mine"
+                      ? "bg-toota-main/20 text-toota-main"
+                      : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+                  }`}
+                >
+                  {stats.myCount}
                 </span>
               </button>
             </div>
@@ -682,7 +680,7 @@ export default function MemberFeedbackView() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 @min-[48rem]/feedbacks:grid-cols-2 @min-[78rem]/feedbacks:grid-cols-3 gap-4 items-start">
           {displayFeedbacks.map((item, idx) => {
             const isOwn = Boolean(user?.id && item.member?.id === user.id);
             const memberName =
@@ -714,7 +712,7 @@ export default function MemberFeedbackView() {
             return (
               <Card
                 key={item.id || `feedback-${idx}`}
-                className="toota-card border-none flex flex-col justify-between"
+                className="toota-card border-none p-4 flex flex-col justify-between bg-card text-toota-ink min-w-0"
               >
                 <CardHeader className="p-0 pb-3 flex flex-row items-start justify-between gap-3 space-y-0">
                   <div className="flex items-center gap-3 min-w-0">
@@ -727,7 +725,7 @@ export default function MemberFeedbackView() {
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-toota-ink truncate">
+                        <p className="text-[13px] font-semibold text-toota-ink truncate">
                           {memberName}
                         </p>
                         {isOwn && (
@@ -764,13 +762,13 @@ export default function MemberFeedbackView() {
                   </div>
 
                   {/* Quoted Feedback Text */}
-                  <p className="text-xs text-toota-ink italic leading-relaxed line-clamp-3">
+                  <p className="text-[13px] text-toota-ink italic leading-relaxed line-clamp-3">
                     &ldquo;{item.content}&rdquo;
                   </p>
 
                   {/* Management Response Snippet if resolved */}
                   {item.resolutionNote && (
-                    <div className="p-3 rounded-xl bg-toota-inner border border-emerald-500/20 space-y-1">
+                    <div className="p-2.5 rounded-xl bg-toota-inner border border-emerald-500/20 space-y-1 text-xs">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                         <ShieldCheck className="size-3.5 shrink-0" />
                         <span>{t("managementResponse") || "Management Response"}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Layers,
   Plus,
@@ -34,6 +34,7 @@ import EditPlanModal from "@/components/membership-plans/EditPlanModal";
 import DurationModal from "@/components/membership-plans/DurationModal";
 import DeletePlanModal from "@/components/membership-plans/DeletePlanModal";
 import DeleteDurationModal from "@/components/membership-plans/DeleteDurationModal";
+import { fetchAdminPlanStats, PlanStats } from "@/lib/api/stats";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +42,10 @@ import { Input } from "@/components/ui/input";
 export default function MembershipPlansPage() {
   const { t } = useTranslation();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
+  const [planStats, setPlanStats] = useState<PlanStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
 
   // Modals state
@@ -64,11 +67,35 @@ export default function MembershipPlansPage() {
   const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
   const [togglingDurationId, setTogglingDurationId] = useState<string | null>(null);
 
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const loadPlans = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchMembershipPlans();
-      setPlans(data);
+      const activeParam =
+        statusFilter === "ACTIVE" ? true : statusFilter === "INACTIVE" ? false : undefined;
+
+      const [statsData, plansData] = await Promise.all([
+        fetchAdminPlanStats(true).catch(() => null),
+        fetchMembershipPlans(
+          {
+            page: 1,
+            limit: 100,
+            search: debouncedSearch || undefined,
+            isActive: activeParam,
+          },
+          100,
+          true
+        ),
+      ]);
+      if (statsData) setPlanStats(statsData);
+      setPlans(plansData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         toast.error(err.response.data.message);
@@ -82,7 +109,7 @@ export default function MembershipPlansPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
+  }, [t, debouncedSearch, statusFilter]);
 
   useEffect(() => {
     loadPlans();
@@ -229,26 +256,13 @@ export default function MembershipPlansPage() {
     }
   };
 
-  // Filtered plans
-  const filteredPlans = useMemo(() => {
-    return plans.filter((plan) => {
-      const matchesSearch =
-        plan.planName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (plan.description || "").toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ACTIVE" && plan.isActive) ||
-        (statusFilter === "INACTIVE" && !plan.isActive);
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [plans, searchTerm, statusFilter]);
+  // Filtered plans directly from server response
+  const filteredPlans = plans;
 
   // Statistics calculation
-  const totalPlans = plans.length;
-  const activePlansCount = plans.filter((p) => p.isActive).length;
-  const inactivePlansCount = totalPlans - activePlansCount;
+  const totalPlans = planStats?.total ?? plans.length;
+  const activePlansCount = planStats?.activeCount ?? plans.filter((p) => p.isActive).length;
+  const inactivePlansCount = planStats?.inactiveCount ?? (totalPlans - activePlansCount);
   const totalDurationsCount = plans.reduce(
     (acc, p) => acc + (p.membershipPlanDurations?.length || 0),
     0
@@ -260,7 +274,7 @@ export default function MembershipPlansPage() {
     totalPlans > 0 ? Math.round((inactivePlansCount / totalPlans) * 100) : 0;
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 @container/plans">
       {/* Overview & Action Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -390,10 +404,10 @@ export default function MembershipPlansPage() {
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
                     isSelected
-                      ? "bg-white/20 text-white dark:bg-black/20 dark:text-black font-bold"
-                      : "bg-toota-inner text-toota-muted"
+                      ? "bg-white/20 text-white"
+                      : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
                   }`}
                 >
                   {tab.count}
@@ -418,7 +432,7 @@ export default function MembershipPlansPage() {
 
       {/* Loading Skeleton */}
       {isLoading && plans.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
           {[1, 2, 3].map((n) => (
             <Card key={n} className="toota-card border-none h-72 animate-pulse" />
           ))}
@@ -474,7 +488,7 @@ export default function MembershipPlansPage() {
 
       {/* Plan Cards Grid */}
       {!isLoading && filteredPlans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
           {filteredPlans.map((plan) => {
             const isToggling = togglingPlanId === plan.id;
             const durations = plan.membershipPlanDurations || [];
@@ -482,21 +496,21 @@ export default function MembershipPlansPage() {
             return (
               <Card
                 key={plan.id}
-                className="toota-card border-none flex flex-col justify-between"
+                className="toota-card border-none flex flex-col justify-between min-w-0"
               >
                 <div>
                   {/* Card Header: Plan Title & Professional Status Button */}
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <div className="size-8 rounded-lg bg-toota-inner flex items-center justify-center text-toota-ink shrink-0">
                           <Layers className="size-4" />
                         </div>
-                        <h3 className="text-base font-semibold text-toota-ink truncate">
+                        <h3 className="text-base font-semibold text-toota-ink break-words [overflow-wrap:anywhere]">
                           {plan.planName}
                         </h3>
                       </div>
-                      <p className="text-xs text-toota-muted line-clamp-2 min-h-[32px]">
+                      <p className="text-xs text-toota-muted line-clamp-2 min-h-[32px] break-words [overflow-wrap:anywhere]">
                         {plan.description || "—"}
                       </p>
                     </div>
@@ -556,7 +570,7 @@ export default function MembershipPlansPage() {
 
                   {/* Durations & Pricing Container */}
                   <div className="mt-4 pt-4 border-t border-border/40">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                       <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
                         {t("durationsAndPricing") || "Durations & Pricing"}
                       </span>
@@ -566,7 +580,7 @@ export default function MembershipPlansPage() {
                           setDurationPlan(plan);
                           setEditingDuration(null);
                         }}
-                        className="text-xs font-semibold text-toota-ink hover:text-toota-green transition-colors cursor-pointer inline-flex items-center gap-1"
+                        className="text-xs font-semibold text-toota-ink hover:text-toota-green transition-colors cursor-pointer inline-flex items-center gap-1 shrink-0"
                       >
                         <Plus className="size-3.5" />
                         <span>{t("addDuration") || "Add Duration"}</span>
@@ -599,13 +613,13 @@ export default function MembershipPlansPage() {
                           return (
                             <div
                               key={dur.id}
-                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors"
+                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-toota-inner border border-border/40 transition-colors flex-wrap gap-2"
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
                                 <div className="size-6 rounded-md bg-toota-card flex items-center justify-center text-toota-muted shrink-0">
                                   <Calendar className="size-3.5" />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 break-words [overflow-wrap:anywhere]">
                                   <span className="text-xs font-medium text-toota-ink block">
                                     {dur.durationDays} {t("days") || "Days"}
                                   </span>
@@ -642,13 +656,13 @@ export default function MembershipPlansPage() {
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                <div className="text-end">
-                                  <span className="text-sm font-semibold text-toota-ink block leading-tight">
+                              <div className="flex items-center gap-2 shrink-0 ms-auto rtl:ms-0 rtl:me-auto flex-wrap">
+                                <div className="text-end rtl:text-start">
+                                  <span className="text-sm font-semibold text-toota-ink block leading-tight break-all">
                                     {Number(dur.price).toFixed(2)} MAD
                                   </span>
                                   {dur.priceByG ? (
-                                    <span className="text-[10px] font-medium text-toota-muted block leading-tight">
+                                    <span className="text-[10px] font-medium text-toota-muted block leading-tight break-all">
                                       {dur.priceByG} G
                                     </span>
                                   ) : null}
@@ -690,12 +704,12 @@ export default function MembershipPlansPage() {
                 </div>
 
                 {/* Card Footer: ID & Edit / Delete Plan Buttons */}
-                <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between gap-2">
+                <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-[11px] text-toota-muted font-mono truncate">
                     ID: {plan.id.slice(0, 8)}...
                   </span>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0 ms-auto sm:ms-0">
                     <Button
                       type="button"
                       variant="outline"

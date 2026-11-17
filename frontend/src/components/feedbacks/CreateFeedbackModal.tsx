@@ -175,7 +175,7 @@ export default function CreateFeedbackModal({
               {t("overallRating") || "Your Experience Rating"}
             </label>
 
-            <div className="p-4 rounded-xl bg-toota-inner border border-border/40 flex flex-col items-center gap-2 text-center">
+            <div className="p-4 rounded-xl bg-toota-inner border border-border/40 flex flex-col items-center gap-3 text-center">
               {/* Stars */}
               <div
                 className="flex items-center gap-2"
@@ -205,6 +205,33 @@ export default function CreateFeedbackModal({
                 })}
               </div>
 
+              {/* Numbered rating tiles 1 to 5 */}
+              <div
+                role="group"
+                aria-label={t("overallRating") || "Your Experience Rating"}
+                className="grid grid-cols-5 gap-2 w-full max-w-xs"
+              >
+                {[1, 2, 3, 4, 5].map((val) => {
+                  const isSelected = rating === val;
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setRating(val)}
+                      className={`h-8 rounded-lg text-xs font-semibold cursor-pointer transition-all border flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
+                        isSelected
+                          ? "bg-toota-lime text-black border-toota-lime font-bold shadow-xs"
+                          : "bg-background text-toota-muted border-border/40 hover:border-toota-lime hover:bg-toota-lime/10 hover:text-toota-ink"
+                      }`}
+                    >
+                      <Star className={`size-3 ${isSelected ? "fill-black text-black" : "text-amber-400 fill-amber-400"}`} />
+                      <span>{val}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Dynamic Rating Label */}
               <div className="flex flex-col items-center gap-0.5">
                 <span className="text-xs font-semibold text-toota-ink">
@@ -224,16 +251,28 @@ export default function CreateFeedbackModal({
               {t("suggestedTopics") || "Tap to mention specific topics:"}
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {SUGGESTED_TOPICS.map((topic) => (
-                <button
-                  key={topic}
-                  type="button"
-                  onClick={() => handleTopicClick(topic)}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-toota-inner hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border border-border/40 text-toota-muted hover:text-toota-ink transition-all cursor-pointer active:scale-95"
-                >
-                  + {topic}
-                </button>
-              ))}
+              {SUGGESTED_TOPICS.map((topic) => {
+                const isAdded = content.toLowerCase().includes(topic.toLowerCase());
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => handleTopicClick(topic)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer active:scale-95 border flex items-center gap-1 ${
+                      isAdded
+                        ? "bg-toota-lime/20 text-toota-ink border-toota-lime/50 font-semibold"
+                        : "bg-toota-inner hover:bg-zinc-200/60 dark:hover:bg-zinc-800 border-border/40 text-toota-muted hover:text-toota-ink"
+                    }`}
+                  >
+                    {isAdded ? (
+                      <CheckCircle2 className="size-3 text-toota-ink" />
+                    ) : (
+                      <span>+</span>
+                    )}
+                    <span>{topic}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

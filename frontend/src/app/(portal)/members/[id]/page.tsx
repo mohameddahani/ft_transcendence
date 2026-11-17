@@ -553,7 +553,7 @@ export default function MemberDetailPage() {
                 {t("membershipPlan", "Membership Plan")}
               </h3>
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
-                / {membershipStatus ? (membershipStatus.charAt(0).toUpperCase() + membershipStatus.slice(1).toLowerCase()) : (status.charAt(0).toUpperCase() + status.slice(1).toLowerCase())}
+                / {t(String(membershipStatus || status).toLowerCase(), { defaultValue: membershipStatus ? (membershipStatus.charAt(0).toUpperCase() + membershipStatus.slice(1).toLowerCase()) : (status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()) })}
               </span>
             </div>
 

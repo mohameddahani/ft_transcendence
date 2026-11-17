@@ -16,7 +16,7 @@ const faqItems = [
   {
     value: "who-is-it-for",
     question: `Which sports organizations can use ${saasName}?`,
-    answer: `${saasName} serves gyms, martial arts schools, swimming clubs, yoga studios, running clubs, and other sports facilities. It brings together member management, membership plans, schedules, QR check-ins, payment records, staff access, and an AI assistant in one platform.`,
+    answer: `${saasName} serves gyms, martial arts schools, swimming clubs, football clubs, running clubs, and other sports facilities. It brings together member management, membership plans, schedules, QR check-ins, payment records, staff access, and an AI assistant in one platform.`,
   },
   {
     value: "qr-checkin",

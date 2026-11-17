@@ -75,6 +75,8 @@ export default function MembersPage() {
   // Filters & Search
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [accountStatusFilter, setAccountStatusFilter] = useState<string>("ALL");
+  const [membershipStatusFilter, setMembershipStatusFilter] = useState<string>("ALL");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,7 +108,13 @@ export default function MembersPage() {
         role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
       const [statsData, membersData, plansData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchMembers(1, pageSize, activeSearch),
+        fetchMembers({
+          page: 1,
+          limit: pageSize,
+          search: activeSearch || undefined,
+          accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+          membershipStatus: membershipStatusFilter !== "ALL" ? membershipStatusFilter : undefined,
+        }),
         fetchMembershipPlans(1, 50).catch(() => []),
       ]);
       setMemberStats(statsData);
@@ -122,11 +130,23 @@ export default function MembersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [role, pageSize, activeSearch]);
+  }, [role, pageSize, activeSearch, accountStatusFilter, membershipStatusFilter]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (trimmed !== activeSearch) {
+        setActiveSearch(trimmed);
+        setCurrentPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, activeSearch]);
 
   // Handle Search Submission (click button or press Enter)
   const handleSearchSubmit = async (e?: React.FormEvent) => {
@@ -136,7 +156,13 @@ export default function MembersPage() {
     setCurrentPage(1);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchMembers(1, pageSize, query);
+      const pageData = await fetchMembers({
+        page: 1,
+        limit: pageSize,
+        search: query || undefined,
+        accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+        membershipStatus: membershipStatusFilter !== "ALL" ? membershipStatusFilter : undefined,
+      });
       setMembers(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -149,14 +175,19 @@ export default function MembersPage() {
     }
   };
 
-  // Handle Clear Search
+  // Handle Clear Search and Filters
   const handleClearSearch = async () => {
     setSearchInput("");
     setActiveSearch("");
+    setAccountStatusFilter("ALL");
+    setMembershipStatusFilter("ALL");
     setCurrentPage(1);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchMembers(1, pageSize, "");
+      const pageData = await fetchMembers({
+        page: 1,
+        limit: pageSize,
+      });
       setMembers(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -174,7 +205,13 @@ export default function MembersPage() {
         role === "Staff" ? fetchStaffMemberStats() : fetchAdminMemberStats();
       const [statsData, pageData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchMembers(currentPage, pageSize, activeSearch),
+        fetchMembers({
+          page: currentPage,
+          limit: pageSize,
+          search: activeSearch || undefined,
+          accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+          membershipStatus: membershipStatusFilter !== "ALL" ? membershipStatusFilter : undefined,
+        }),
       ]);
       setMemberStats(statsData);
       setMembers(pageData);
@@ -194,7 +231,13 @@ export default function MembersPage() {
     setCurrentPage(newPage);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchMembers(newPage, pageSize, activeSearch);
+      const pageData = await fetchMembers({
+        page: newPage,
+        limit: pageSize,
+        search: activeSearch || undefined,
+        accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+        membershipStatus: membershipStatusFilter !== "ALL" ? membershipStatusFilter : undefined,
+      });
       setMembers(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -238,7 +281,11 @@ export default function MembersPage() {
     };
   }, [menuAnchor]);
 
-  const isFiltering = Boolean(activeSearch);
+  const isFiltering = Boolean(
+    activeSearch ||
+    accountStatusFilter !== "ALL" ||
+    membershipStatusFilter !== "ALL"
+  );
   const totalItems = useMemo(() => {
     if (isFiltering) {
       if (members.length < pageSize) {
@@ -649,11 +696,74 @@ export default function MembersPage() {
         </Card>
       </div>
 
-      {/* Search Input & Button Card */}
-      <Card className="toota-card border-none p-4 sm:p-5">
+      {/* Search Input & Filters Card */}
+      <Card className="toota-card border-none p-4 sm:p-5 space-y-4">
+        {/* Account Status Filter Tabs & Membership Status Filter */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Account Status Tabs */}
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-toota-inner overflow-x-auto flex-wrap">
+            {[
+              { key: "ALL", label: t("all", "All"), count: totalCount },
+              { key: "ACTIVE", label: t("active", "Active"), count: activeCount },
+              { key: "PENDING", label: t("pending", "Pending"), count: pendingCount },
+              { key: "BANNED", label: t("banned", "Banned"), count: bannedCount },
+            ].map((tab) => {
+              const isSelected = accountStatusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setAccountStatusFilter(tab.key);
+                    setCurrentPage(1);
+                  }}
+                  aria-pressed={isSelected}
+                  className={`toota-pill h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                    isSelected
+                      ? "bg-toota-ink text-toota-main shadow-xs"
+                      : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                      isSelected
+                        ? "bg-toota-main/20 text-toota-main"
+                        : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Membership Status Select Filter */}
+          <div className="flex items-center gap-2">
+            <label htmlFor="membership-status-filter" className="text-xs font-semibold text-toota-muted shrink-0">
+              {t("membershipStatus", "Membership")}:
+            </label>
+            <select
+              id="membership-status-filter"
+              value={membershipStatusFilter}
+              onChange={(e) => {
+                setMembershipStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 px-3 rounded-full bg-toota-inner border border-border/40 text-xs font-semibold text-toota-ink focus:outline-none focus:ring-1 focus:ring-toota-lime cursor-pointer"
+            >
+              <option value="ALL">{t("allMemberships", "All Memberships")}</option>
+              <option value="ACTIVE">{t("activeMembership", "Active Membership")}</option>
+              <option value="EXPIRED">{t("expiredMembership", "Expired Membership")}</option>
+              <option value="CANCELLED">{t("cancelledMembership", "Cancelled Membership")}</option>
+            </select>
+          </div>
+        </div>
+
         <form
           onSubmit={handleSearchSubmit}
-          className="flex flex-col sm:flex-row items-center gap-3"
+          className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-border/30"
         >
           {/* Search Input */}
           <div className="relative flex-1 w-full min-w-[240px]">
@@ -682,7 +792,7 @@ export default function MembersPage() {
               <span>{t("search") || "Search"}</span>
             </Button>
 
-            {Boolean(activeSearch || searchInput) && (
+            {Boolean(activeSearch || searchInput || accountStatusFilter !== "ALL" || membershipStatusFilter !== "ALL") && (
               <Button
                 type="button"
                 variant="outline"
@@ -826,7 +936,7 @@ export default function MembersPage() {
                   }
 
                   const durationLabel = durationDays
-                    ? `${durationDays} Days`
+                    ? t("daysCount", { count: durationDays })
                     : activeMembership?.membershipPlanDuration?.duration ||
                       "—";
 

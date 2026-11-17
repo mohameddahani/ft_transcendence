@@ -17,8 +17,18 @@ export async function GET(req: NextRequest) {
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "30";
 
+    const query = new URLSearchParams();
+    query.set("page", page);
+    query.set("limit", limit);
+
+    searchParams.forEach((value, key) => {
+      if (key !== "page" && key !== "limit") {
+        query.set(key, value);
+      }
+    });
+
     const backendRes = await axios.get(
-      `${API_URL}/api/members/notifications?page=${page}&limit=${limit}`,
+      `${API_URL}/api/members/notifications?${query.toString()}`,
       {
         headers,
         validateStatus: () => true,
