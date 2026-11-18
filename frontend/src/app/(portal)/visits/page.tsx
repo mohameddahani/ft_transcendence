@@ -271,7 +271,7 @@ export default function MemberVisitsPage() {
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 shrink-0" />
-                  <span>None</span>
+                  <span>{t("none", "None")}</span>
                 </span>
               )}
             </div>
@@ -296,36 +296,50 @@ export default function MemberVisitsPage() {
       </div>
 
       {/* 3. Segmented Navigation Tabs */}
-      <div className="p-1 rounded-2xl bg-toota-inner border border-border/40 inline-flex items-center gap-1 max-w-full overflow-x-auto">
+      <div className="p-1 rounded-2xl bg-toota-inner border border-border/40 inline-flex items-center gap-1 max-w-full overflow-x-auto flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab("upcoming")}
+          aria-pressed={activeTab === "upcoming"}
           className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "upcoming"
-              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
-              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
+              ? "bg-toota-ink text-toota-main shadow-xs"
+              : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
           }`}
         >
           <Calendar className="size-3.5" />
           <span suppressHydrationWarning>{t("upcomingVisits", "Upcoming Visits")}</span>
-          <span className="font-mono text-[11px] tabular-nums opacity-75">
-            ({upcomingVisits.length})
+          <span
+            className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+              activeTab === "upcoming"
+                ? "bg-toota-main/20 text-toota-main"
+                : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+            }`}
+          >
+            {upcomingVisits.length}
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("today")}
+          aria-pressed={activeTab === "today"}
           className={`toota-pill flex items-center gap-2 px-4 py-2 text-xs font-semibold transition-all cursor-pointer ${
             activeTab === "today"
-              ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-2xs font-bold"
-              : "text-toota-muted hover:text-toota-ink hover:bg-white/40 dark:hover:bg-zinc-800/40"
+              ? "bg-toota-ink text-toota-main shadow-xs"
+              : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
           }`}
         >
           <Clock className="size-3.5" />
           <span suppressHydrationWarning>{t("todaysVisits", "Today's Schedule")}</span>
-          <span className="font-mono text-[11px] tabular-nums opacity-75">
-            ({todayVisits.length})
+          <span
+            className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+              activeTab === "today"
+                ? "bg-toota-main/20 text-toota-main"
+                : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+            }`}
+          >
+            {todayVisits.length}
           </span>
         </button>
       </div>
@@ -405,13 +419,13 @@ export default function MemberVisitsPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => handleInspectVisit(visit.id)}
-                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                        className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                       >
                         <Eye className="size-3.5 me-1 text-toota-muted" />
                         <span suppressHydrationWarning>{t("details", "Details")}</span>
@@ -424,7 +438,7 @@ export default function MemberVisitsPage() {
                           size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
+                          className="toota-pill h-9 px-3.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
                             <Loader2 className="size-3.5 animate-spin me-1" />
@@ -518,13 +532,13 @@ export default function MemberVisitsPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                    <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => handleInspectVisit(visit.id)}
-                        className="toota-pill h-8 px-3 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                        className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
                       >
                         <Eye className="size-3.5 me-1 text-toota-muted" />
                         <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
@@ -537,7 +551,7 @@ export default function MemberVisitsPage() {
                           size="sm"
                           onClick={() => handleCancelVisit(visit.id)}
                           disabled={isCancelling}
-                          className="toota-pill h-8 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 border-destructive/30 cursor-pointer disabled:opacity-50"
+                          className="toota-pill h-9 px-3.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 cursor-pointer disabled:opacity-50"
                         >
                           {isCancelling ? (
                             <Loader2 className="size-3.5 animate-spin me-1" />

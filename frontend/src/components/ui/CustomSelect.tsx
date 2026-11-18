@@ -210,6 +210,7 @@ export default function CustomSelect({
               left: `${coords.left}px`,
               width: `${coords.width}px`,
               zIndex: 9999,
+              background: "var(--popover)",
             }}
             className={cn(
               "toota-card bg-popover text-popover-foreground border border-border/60 shadow-2xl rounded-2xl p-1.5 space-y-0.5 text-xs z-50 max-h-60 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-100",

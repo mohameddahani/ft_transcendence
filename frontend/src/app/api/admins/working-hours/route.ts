@@ -16,7 +16,17 @@ export async function GET(req: NextRequest) {
     const page = searchParams.get("page") || "1";
     const limit = searchParams.get("limit") || "50";
 
-    const queryString = `?page=${page}&limit=${limit}`;
+    const query = new URLSearchParams();
+    query.set("page", page);
+    query.set("limit", limit);
+
+    searchParams.forEach((value, key) => {
+      if (key !== "page" && key !== "limit") {
+        query.set(key, value);
+      }
+    });
+
+    const queryString = `?${query.toString()}`;
     const basePath = isMember
       ? "/api/members/working-hours"
       : isStaff

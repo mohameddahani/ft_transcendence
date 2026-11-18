@@ -2,15 +2,55 @@ import api from "@/lib/axios";
 import { BackendMember, AddMemberInput, UpdateMemberInput } from "@/types/member";
 import { getApiEndpoint } from "@/lib/api/config";
 
+export interface FetchMembersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  accountStatus?: string;
+  membershipStatus?: string;
+}
+
 export async function fetchMembers(
-  page = 1,
+  pageOrParams: number | FetchMembersParams = 1,
   limit = 20,
-  search?: string
+  search?: string,
+  accountStatus?: string,
+  membershipStatus?: string
 ): Promise<BackendMember[]> {
-  let endpoint = `/api/admins/members?page=${page}&limit=${limit}`;
-  if (search && search.trim().length > 0) {
-    endpoint += `&search=${encodeURIComponent(search.trim())}`;
+  let page = 1;
+  let pageLimit = 20;
+  let querySearch: string | undefined;
+  let queryAccountStatus: string | undefined;
+  let queryMembershipStatus: string | undefined;
+
+  if (typeof pageOrParams === "object") {
+    page = pageOrParams.page ?? 1;
+    pageLimit = pageOrParams.limit ?? 20;
+    querySearch = pageOrParams.search;
+    queryAccountStatus = pageOrParams.accountStatus;
+    queryMembershipStatus = pageOrParams.membershipStatus;
+  } else {
+    page = pageOrParams;
+    pageLimit = limit;
+    querySearch = search;
+    queryAccountStatus = accountStatus;
+    queryMembershipStatus = membershipStatus;
   }
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(pageLimit));
+  if (querySearch && querySearch.trim()) {
+    query.set("search", querySearch.trim());
+  }
+  if (queryAccountStatus && queryAccountStatus !== "ALL") {
+    query.set("accountStatus", queryAccountStatus);
+  }
+  if (queryMembershipStatus && queryMembershipStatus !== "ALL") {
+    query.set("membershipStatus", queryMembershipStatus);
+  }
+
+  const endpoint = `/api/admins/members?${query.toString()}`;
   const url = getApiEndpoint(endpoint);
   const response = await api.get<BackendMember[]>(url);
   const payload = response.data;

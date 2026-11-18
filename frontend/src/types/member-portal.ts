@@ -1,3 +1,6 @@
+// the duration labels follow the app language through the shared i18n instance (no hook here)
+import i18n from "@/lib/i18n";
+
 export interface MemberProfile {
   firstName: string;
   lastName: string;
@@ -47,19 +50,19 @@ export interface MemberMembership {
 export function formatMembershipDuration(
   duration?: MemberMembershipDuration | string | null
 ): string {
-  if (!duration) return "Standard Duration";
+  if (!duration) return i18n.t("standardDuration", "Standard Duration");
   if (typeof duration === "string") return duration;
   if (typeof duration === "object") {
     if (typeof duration.durationDays === "number") {
-      if (duration.durationDays === 30) return "1 Month (30 Days)";
-      if (duration.durationDays === 90) return "3 Months (90 Days)";
-      if (duration.durationDays === 180) return "6 Months (180 Days)";
-      if (duration.durationDays === 365) return "1 Year (365 Days)";
-      return `${duration.durationDays} Days`;
+      if (duration.durationDays === 30) return i18n.t("duration30", "1 Month (30 Days)");
+      if (duration.durationDays === 90) return i18n.t("duration90", "3 Months (90 Days)");
+      if (duration.durationDays === 180) return i18n.t("duration180", "6 Months (180 Days)");
+      if (duration.durationDays === 365) return i18n.t("duration365", "1 Year (365 Days)");
+      return i18n.t("daysCount", { count: duration.durationDays });
     }
     if (duration.duration) return duration.duration;
   }
-  return "Standard Duration";
+  return i18n.t("standardDuration", "Standard Duration");
 }
 
 export type VisitStatusType = "READY" | "CHECKED_IN" | "CANCELLED" | "EXPIRED" | string;

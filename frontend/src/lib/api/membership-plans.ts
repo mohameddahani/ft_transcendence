@@ -16,16 +16,49 @@ export function invalidatePlansCache() {
   invalidateCache("plans:");
 }
 
+export interface FetchMembershipPlansParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+}
+
 export async function fetchMembershipPlans(
-  page = 1,
+  pageOrParams: number | FetchMembershipPlansParams = 1,
   limit = 50,
   forceRefresh = false
 ): Promise<MembershipPlan[]> {
-  const cacheKey = `plans:${page}:${limit}`;
+  let page = 1;
+  let pageLimit = 50;
+  let search: string | undefined;
+  let isActive: boolean | undefined;
+  const shouldForce = forceRefresh;
+
+  if (typeof pageOrParams === "object") {
+    page = pageOrParams.page ?? 1;
+    pageLimit = pageOrParams.limit ?? 50;
+    search = pageOrParams.search;
+    isActive = pageOrParams.isActive;
+  } else {
+    page = pageOrParams;
+    pageLimit = limit;
+  }
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(pageLimit));
+  if (search && search.trim()) {
+    query.set("search", search.trim());
+  }
+  if (typeof isActive === "boolean") {
+    query.set("isActive", String(isActive));
+  }
+
+  const cacheKey = `plans:${query.toString()}`;
   return getCachedOrFetch(
     cacheKey,
     async () => {
-      const url = getApiEndpoint(`/api/membership-plans?page=${page}&limit=${limit}`);
+      const url = getApiEndpoint(`/api/membership-plans?${query.toString()}`);
       const response = await api.get<MembershipPlan[] | { data?: MembershipPlan[] }>(url);
       const data = response.data;
       let result: MembershipPlan[] = [];
@@ -36,7 +69,7 @@ export async function fetchMembershipPlans(
       return result;
     },
     CACHE_TTL_MS,
-    forceRefresh
+    shouldForce
   );
 }
 

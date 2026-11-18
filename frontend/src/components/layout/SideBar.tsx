@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ScanLine,
   Users,
+  IdCard,
   CreditCard,
   Layers,
   Clock,
@@ -33,12 +34,14 @@ interface SideBarProps {
   isMobileOpen: boolean;
   onCloseMobile: () => void;
   onQuickAction?: () => void;
+  isCollapsed?: boolean;
 }
 
 export default function SideBar({
   isMobileOpen,
   onCloseMobile,
   onQuickAction,
+  isCollapsed = false,
 }: SideBarProps) {
   const pathname = usePathname();
   const { logout, role, companyName, isLoading } = useCurrentUser();
@@ -192,6 +195,16 @@ export default function SideBar({
             </Link>
 
             <Link
+              href="/memberships"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/memberships") ? "page" : undefined}
+              className={getPillClasses(isRouteActive("/memberships"))}
+            >
+              <IdCard className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t("navMemberships") || "Memberships"}</span>
+            </Link>
+
+            <Link
               href="/operating-hours"
               onClick={onCloseMobile}
               aria-current={isRouteActive("/operating-hours") ? "page" : undefined}
@@ -271,6 +284,16 @@ export default function SideBar({
             >
               <Users className="w-4 h-4 shrink-0" />
               <span className="truncate">{t("navMembers") || "Members"}</span>
+            </Link>
+
+            <Link
+              href="/memberships"
+              onClick={onCloseMobile}
+              aria-current={isRouteActive("/memberships") ? "page" : undefined}
+              className={getPillClasses(isRouteActive("/memberships"))}
+            >
+              <IdCard className="w-4 h-4 shrink-0" />
+              <span className="truncate">{t("navMemberships") || "Memberships"}</span>
             </Link>
 
             <Link
@@ -392,7 +415,7 @@ export default function SideBar({
 
         {/* Quick Add Member Pill Action (Admin/Staff only) */}
         {!isLoading && !isMember && (
-          <div className="pt-2">
+          <div className="pt-2 pb-4">
             <button
               type="button"
               onClick={() => {
@@ -467,7 +490,12 @@ export default function SideBar({
   return (
     <>
       {/* Desktop Fixed SideBar: Width 256px (w-64) */}
-      <aside className="fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 bg-toota-side hidden lg:flex flex-col z-40 shadow-xl">
+      <aside
+        id="desktop-sidebar"
+        className={`fixed left-0 rtl:left-auto rtl:right-0 top-0 h-screen w-64 bg-toota-side ${
+          isCollapsed ? "hidden" : "hidden lg:flex"
+        } flex-col z-40 shadow-xl`}
+      >
         {renderContent()}
       </aside>
 

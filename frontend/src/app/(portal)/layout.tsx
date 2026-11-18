@@ -8,10 +8,14 @@ import { Plus } from "lucide-react";
 import { UserProvider } from "@/contexts/UserContext";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { triggerOpenAddMemberModal } from "@/lib/events/modal-events";
+import SubscriptionRequired from "@/components/subscription/SubscriptionRequired";
 
 function PortalLayoutInner({ children }: { children: React.ReactNode }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
   const { role, isLoading } = useCurrentUser();
+  const isAdmin = role === "Admin";
+  const isCollapsed = isAdmin && isDesktopSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-toota-side flex text-toota-ink antialiased selection:bg-[#a3e635] selection:text-black">
@@ -20,18 +24,32 @@ function PortalLayoutInner({ children }: { children: React.ReactNode }) {
         isMobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onQuickAction={triggerOpenAddMemberModal}
+        isCollapsed={isCollapsed}
       />
 
       {/* Dynamic Content Column (Offset on desktop for fixed sidebar) */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ms-64 min-h-screen bg-toota-side">
+      <div
+        className={`flex-1 flex flex-col min-w-0 ${
+          isCollapsed ? "" : "lg:ms-64"
+        } min-h-screen bg-toota-side transition-[margin] duration-200`}
+      >
         {/* Dynamic Main Workspace Area with rounded left corners on desktop */}
-        <div className="flex-1 flex flex-col min-w-0 bg-toota-main text-toota-ink lg:rounded-s-[32px] overflow-hidden min-h-screen transition-colors">
+        <div
+          className={`flex-1 flex flex-col min-w-0 bg-toota-main text-toota-ink ${
+            isCollapsed ? "" : "lg:rounded-s-[32px]"
+          } overflow-hidden min-h-screen transition-colors`}
+        >
           {/* Global Sticky Top Navigation Bar */}
           <TopBar
             onToggleMobileSidebar={() =>
               setIsMobileSidebarOpen(!isMobileSidebarOpen)
             }
             isMobileSidebarOpen={isMobileSidebarOpen}
+            isAdmin={isAdmin}
+            isDesktopSidebarCollapsed={isDesktopSidebarCollapsed}
+            onToggleDesktopSidebar={() =>
+              setIsDesktopSidebarCollapsed((prev) => !prev)
+            }
           />
 
           {/* Dynamic Main Workspace Area */}
@@ -55,6 +73,9 @@ function PortalLayoutInner({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       )}
+
+      {/* Plans popup and floating button for an owner whose platform subscription has ended */}
+      {!isLoading && role === "Admin" && <SubscriptionRequired />}
 
       {/* Quick Add Member Modal (Admin/Staff only) */}
       {!isLoading && role !== "Member" && (
