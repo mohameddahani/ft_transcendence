@@ -21,16 +21,52 @@ export function invalidateWorkingHoursCache() {
 // Working Hours (Weekly Schedule)
 // ==========================================
 
+export interface FetchWorkingHoursParams {
+  page?: number;
+  limit?: number;
+  dayOfWeek?: number;
+  isClosed?: boolean;
+}
+
 export async function fetchWorkingHours(
-  page = 1,
+  pageOrParams: number | FetchWorkingHoursParams = 1,
   limit = 50,
+  dayOfWeek?: number,
+  isClosed?: boolean,
   forceRefresh = false
 ): Promise<WorkingHour[]> {
-  const cacheKey = `working-hours:${page}:${limit}`;
+  let page = 1;
+  let pageLimit = 50;
+  let queryDayOfWeek: number | undefined;
+  let queryIsClosed: boolean | undefined;
+
+  if (typeof pageOrParams === "object") {
+    page = pageOrParams.page ?? 1;
+    pageLimit = pageOrParams.limit ?? 50;
+    queryDayOfWeek = pageOrParams.dayOfWeek;
+    queryIsClosed = pageOrParams.isClosed;
+  } else {
+    page = pageOrParams;
+    pageLimit = limit;
+    queryDayOfWeek = dayOfWeek;
+    queryIsClosed = isClosed;
+  }
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(pageLimit));
+  if (queryDayOfWeek !== undefined) {
+    query.set("dayOfWeek", String(queryDayOfWeek));
+  }
+  if (queryIsClosed !== undefined) {
+    query.set("isClosed", String(queryIsClosed));
+  }
+
+  const cacheKey = `working-hours:${query.toString()}`;
   return getCachedOrFetch(
     cacheKey,
     async () => {
-      const url = getApiEndpoint(`/api/admins/working-hours?page=${page}&limit=${limit}`);
+      const url = getApiEndpoint(`/api/admins/working-hours?${query.toString()}`);
       const response = await api.get<WorkingHour[] | { workingHours?: WorkingHour[]; data?: WorkingHour[] }>(url);
 
       const payload = response.data;
@@ -85,16 +121,52 @@ export async function deleteWorkingHour(id: string): Promise<void> {
 // Special Hours (Holidays / Exceptional Closures)
 // ==========================================
 
+export interface FetchSpecialHoursParams {
+  page?: number;
+  limit?: number;
+  from?: string; // YYYY-MM-DD
+  to?: string;   // YYYY-MM-DD
+}
+
 export async function fetchSpecialHours(
-  page = 1,
+  pageOrParams: number | FetchSpecialHoursParams = 1,
   limit = 50,
+  from?: string,
+  to?: string,
   forceRefresh = false
 ): Promise<SpecialHour[]> {
-  const cacheKey = `special-hours:${page}:${limit}`;
+  let page = 1;
+  let pageLimit = 50;
+  let queryFrom: string | undefined;
+  let queryTo: string | undefined;
+
+  if (typeof pageOrParams === "object") {
+    page = pageOrParams.page ?? 1;
+    pageLimit = pageOrParams.limit ?? 50;
+    queryFrom = pageOrParams.from;
+    queryTo = pageOrParams.to;
+  } else {
+    page = pageOrParams;
+    pageLimit = limit;
+    queryFrom = from;
+    queryTo = to;
+  }
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(pageLimit));
+  if (queryFrom && queryFrom.trim().length > 0) {
+    query.set("from", queryFrom.trim());
+  }
+  if (queryTo && queryTo.trim().length > 0) {
+    query.set("to", queryTo.trim());
+  }
+
+  const cacheKey = `special-hours:${query.toString()}`;
   return getCachedOrFetch(
     cacheKey,
     async () => {
-      const url = getApiEndpoint(`/api/admins/special-hours?page=${page}&limit=${limit}`);
+      const url = getApiEndpoint(`/api/admins/special-hours?${query.toString()}`);
       const response = await api.get<SpecialHour[] | { specialHours?: SpecialHour[]; data?: SpecialHour[] }>(url);
 
       const payload = response.data;

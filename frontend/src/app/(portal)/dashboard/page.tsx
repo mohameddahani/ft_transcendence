@@ -484,7 +484,7 @@ function AdminStaffDashboardView() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              Available gym membership plans
+              {t("availablePlansHint", "Available gym membership plans")}
             </p>
           </CardContent>
         </Card>

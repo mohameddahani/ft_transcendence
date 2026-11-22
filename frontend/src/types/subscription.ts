@@ -15,8 +15,14 @@ export interface PlatformPlanDuration {
   durationDays: number;
   price: string | number;
   planId: string;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// a platform plan as GET /api/plans returns it, with its durations and prices
+export interface PlatformPlanWithDurations extends PlatformPlan {
+  durations: PlatformPlanDuration[];
 }
 
 export interface SportiumSubscription {

@@ -37,10 +37,10 @@ interface WorkingHourModalProps {
 }
 
 const PRESET_HOURS = [
-  { label: "Standard (06:00 - 22:00)", start: "06:00", end: "22:00" },
-  { label: "Extended (06:00 - 23:30)", start: "06:00", end: "23:30" },
-  { label: "Morning (07:00 - 15:00)", start: "07:00", end: "15:00" },
-  { label: "Weekend (08:00 - 20:00)", start: "08:00", end: "20:00" },
+  { key: "hoursPresetStandard", label: "Standard", start: "06:00", end: "22:00" },
+  { key: "hoursPresetExtended", label: "Extended", start: "06:00", end: "23:30" },
+  { key: "hoursPresetMorning", label: "Morning", start: "07:00", end: "15:00" },
+  { key: "hoursPresetWeekend", label: "Weekend", start: "08:00", end: "20:00" },
 ];
 
 export default function WorkingHourModal({
@@ -231,7 +231,11 @@ export default function WorkingHourModal({
             </label>
 
             {/* Quick Day Chips */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+            <div
+              role="group"
+              aria-label={t("dayOfWeek", "Day of Week")}
+              className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2"
+            >
               {daysList.map((day) => {
                 const isSelected = watchedDayOfWeek === day.value;
                 const isConfigured =
@@ -241,14 +245,17 @@ export default function WorkingHourModal({
                   <button
                     key={day.value}
                     type="button"
+                    aria-pressed={isSelected}
+                    title={day.label}
+                    aria-label={day.label}
                     disabled={isConfigured || isEditing}
-                    onClick={() => setValue("dayOfWeek", day.value)}
-                    className={`py-2 px-1 text-xs font-semibold rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                    onClick={() => setValue("dayOfWeek", day.value, { shouldValidate: true })}
+                    className={`py-2 px-1 text-xs font-semibold rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
                       isSelected
-                        ? "bg-toota-inner text-toota-ink border-border/80 shadow-2xs ring-1 ring-border"
+                        ? "bg-toota-lime text-black border-toota-lime font-semibold shadow-xs"
                         : isConfigured
                         ? "opacity-40 line-through bg-toota-inner/40 text-toota-muted border-transparent cursor-not-allowed"
-                        : "toota-inner border-border/40 text-toota-muted hover:text-toota-ink hover:bg-toota-card"
+                        : "bg-toota-inner border-border/40 text-toota-muted hover:border-toota-lime hover:bg-toota-lime/10 hover:text-toota-ink"
                     }`}
                   >
                     <span>{day.label.slice(0, 3)}</span>
@@ -295,10 +302,11 @@ export default function WorkingHourModal({
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                aria-label={t("markFacilityClosed", "Mark Facility as Closed all day")}
                 {...register("isClosed")}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-border/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500" />
+              <div className="w-11 h-6 bg-border/60 peer-focus-visible:ring-2 peer-focus-visible:ring-toota-lime rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500" />
             </label>
           </div>
 
@@ -306,23 +314,38 @@ export default function WorkingHourModal({
           {!watchedClosed && (
             <div className="space-y-4 animate-in fade-in-0 duration-150">
               {/* Presets */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="space-y-1.5">
                 <span className="text-[11px] font-mono text-toota-muted uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="size-3 text-toota-ink" /> Presets:
+                  <Sparkles className="size-3 text-toota-ink" /> {t("quickPresets", "Presets")}:
                 </span>
-                {PRESET_HOURS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => {
-                      setValue("startTime", preset.start);
-                      setValue("endTime", preset.end);
-                    }}
-                    className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+                <div
+                  role="group"
+                  aria-label={t("quickPresets", "Presets")}
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                >
+                  {PRESET_HOURS.map((preset) => {
+                    const isSelected = watchedStartTime === preset.start && watchedEndTime === preset.end;
+                    return (
+                      <button
+                        key={preset.key}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => {
+                          setValue("startTime", preset.start, { shouldValidate: true });
+                          setValue("endTime", preset.end, { shouldValidate: true });
+                        }}
+                        className={`p-2.5 rounded-xl text-start transition-all border flex flex-col justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
+                          isSelected
+                            ? "bg-toota-lime text-black border-toota-lime font-semibold shadow-xs"
+                            : "bg-toota-inner text-toota-muted border-border/50 hover:border-toota-lime hover:bg-toota-lime/10 hover:text-toota-ink"
+                        }`}
+                      >
+                        <span className="text-xs font-semibold block">{t(preset.key, preset.label)}</span>
+                        <span className="text-[10px] font-mono block opacity-80 mt-0.5">{preset.start} - {preset.end}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Start & End Times */}
@@ -332,11 +355,11 @@ export default function WorkingHourModal({
                     {t("openTime", "Opening Time")} (HH:mm) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock className="size-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                    <Clock className="size-3.5 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                     <input
                       type="time"
                       {...register("startTime")}
-                      className={`w-full h-10 pl-10 pr-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
+                      className={`w-full h-10 ps-10 pe-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
                         errors.startTime
                           ? "border-rose-500 focus:ring-1 focus:ring-rose-500"
                           : "border-border/40 focus:ring-1 focus:ring-ring"
@@ -355,11 +378,11 @@ export default function WorkingHourModal({
                     {t("closeTime", "Closing Time")} (HH:mm) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock className="size-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
+                    <Clock className="size-3.5 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />
                     <input
                       type="time"
                       {...register("endTime")}
-                      className={`w-full h-10 pl-10 pr-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
+                      className={`w-full h-10 ps-10 pe-3.5 rounded-xl bg-card border text-xs font-mono font-medium text-toota-ink outline-none transition-all cursor-pointer ${
                         errors.endTime
                           ? "border-rose-500 focus:ring-1 focus:ring-rose-500"
                           : "border-border/40 focus:ring-1 focus:ring-ring"
@@ -387,7 +410,7 @@ export default function WorkingHourModal({
           )}
 
           {/* Form Actions (Unified Toota Pill Outline Buttons) */}
-          <div className="flex items-center gap-3 pt-3 border-t border-border/40">
+          <div className="flex flex-col-reverse sm:flex-row items-center gap-3 pt-3 border-t border-border/40">
             <Button
               type="button"
               variant="outline"

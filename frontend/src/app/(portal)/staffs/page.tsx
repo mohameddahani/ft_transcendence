@@ -67,6 +67,7 @@ export default function StaffsPage() {
   // Filters & Search
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [accountStatusFilter, setAccountStatusFilter] = useState<string>("ALL");
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,12 +91,29 @@ export default function StaffsPage() {
     setMounted(true);
   }, []);
 
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      if (trimmed !== activeSearch) {
+        setActiveSearch(trimmed);
+        setCurrentPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, activeSearch]);
+
   const loadData = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     try {
       const [statsData, data] = await Promise.all([
-        fetchAdminStaffStats().catch(() => null),
-        fetchStaffs(1, pageSize, activeSearch, forceRefresh),
+        fetchAdminStaffStats(forceRefresh).catch(() => null),
+        fetchStaffs({
+          page: 1,
+          limit: pageSize,
+          search: activeSearch || undefined,
+          accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+        }, pageSize, undefined, undefined, forceRefresh),
       ]);
       setStaffStats(statsData);
       setStaffs(data);
@@ -109,7 +127,7 @@ export default function StaffsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [t, pageSize, activeSearch]);
+  }, [t, pageSize, activeSearch, accountStatusFilter]);
 
   useEffect(() => {
     loadData();
@@ -166,7 +184,7 @@ export default function StaffsPage() {
     totalCount > 0 ? Math.round((bannedCount / totalCount) * 100) : 0;
 
   // Filter & Pagination state
-  const isFiltering = Boolean(activeSearch);
+  const isFiltering = Boolean(activeSearch || accountStatusFilter !== "ALL");
   const totalItems = isFiltering ? staffs.length : (staffStats?.total ?? staffs.length);
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
@@ -174,7 +192,12 @@ export default function StaffsPage() {
     setCurrentPage(newPage);
     setIsPageLoading(true);
     try {
-      const data = await fetchStaffs(newPage, pageSize, activeSearch);
+      const data = await fetchStaffs({
+        page: newPage,
+        limit: pageSize,
+        search: activeSearch || undefined,
+        accountStatus: accountStatusFilter !== "ALL" ? accountStatusFilter : undefined,
+      });
       setStaffs(data);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -190,11 +213,14 @@ export default function StaffsPage() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSearch(searchInput.trim());
+    setCurrentPage(1);
   };
 
   const handleClearSearch = () => {
     setSearchInput("");
     setActiveSearch("");
+    setAccountStatusFilter("ALL");
+    setCurrentPage(1);
   };
 
   // Status Action Handlers
@@ -601,11 +627,50 @@ export default function StaffsPage() {
         </Card>
       </div>
 
-      {/* Search Bar */}
-      <Card className="toota-card border-none p-4">
+      {/* Search Bar & Status Filters */}
+      <Card className="toota-card border-none p-4 space-y-3">
+        {/* Account Status Tabs */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-toota-inner overflow-x-auto flex-wrap">
+          {[
+            { key: "ALL", label: t("all", "All"), count: totalCount },
+            { key: "ACTIVE", label: t("active", "Active"), count: activeCount },
+            { key: "PENDING", label: t("pending", "Pending"), count: pendingCount },
+            { key: "BANNED", label: t("banned", "Banned"), count: bannedCount },
+          ].map((tab) => {
+            const isSelected = accountStatusFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setAccountStatusFilter(tab.key);
+                  setCurrentPage(1);
+                }}
+                aria-pressed={isSelected}
+                className={`toota-pill h-8 px-3 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-toota-ink text-toota-main shadow-xs"
+                    : "text-toota-muted hover:text-toota-ink hover:bg-toota-card/50"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    isSelected
+                      ? "bg-toota-main/20 text-toota-main"
+                      : "bg-toota-inner text-toota-muted dark:bg-white/10 dark:text-toota-ink"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <form
           onSubmit={handleSearchSubmit}
-          className="flex flex-col sm:flex-row items-center gap-3"
+          className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-border/30"
         >
           <div className="relative flex-1 w-full">
             <Search className="size-4 absolute start-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />

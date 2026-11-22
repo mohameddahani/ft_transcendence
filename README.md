@@ -33,24 +33,27 @@
 
 ## Description
 
-**Sportium** is a multi-tenant platform for managing sports facilities such as gyms and swimming pools. A facility's owner, staff, and members all work in one place, and the Sportium team (the *platform owners*) manages the businesses that use it.
+**Sportium** is a multi-tenant SaaS platform for managing sports clubs, including gyms, swimming clubs, and other sports organizations.
 
-**Goal:** give every facility one system for memberships, attendance, payments, and member feedback, with an AI assistant on top and a blockchain-powered rewards marketplace for members.
+Each club manages its own members, staff, memberships, schedules, and payments through dedicated Admin, Staff, and Member portals. A separate Owner platform manages the SaaS platform, its plans, and club subscriptions.
 
-### Key features
+**Goal:** bring daily club operations into one system, supported by activity dashboards, an AI assistant, and a blockchain rewards marketplace for members.
 
-- Role-based access with an advanced permissions system for four roles: platform owner, admin (the facility), staff, and member
-- Member, staff, plan, and membership management for each facility
-- QR-code check-in and attendance tracking
-- Payments with due-date tracking
-- Notifications for create, update, and delete actions
-- Advanced search with filters, sorting, and pagination
-- Activity analytics and a data visualization dashboard
-- Member feedback with sentiment analysis
-- AI assistant: chatbot, recommendations, and member information lookups
-- Blockchain marketplace on the Ethereum Sepolia testnet: members earn the **G** reward token when they pay for a subscription and spend it on products, with gasless transactions
-- Multiple languages, including right-to-left support
-- Full monitoring, status page, and automated database backups
+### Key Features
+
+- **Role-based access:** four roles with dedicated permissions and interfaces — Owner (SaaS operator), Admin (club administrator), Staff, and Member.
+- **Club management:** manage members, staff, membership plans, duration options, and membership history.
+- **Visits and attendance:** visit booking, QR-code check-in, and attendance tracking.
+- **Schedules:** regular weekly working hours and special schedules for specific dates or date ranges.
+- **Payments:** record member payments and view payment history.
+- **Notifications:** in-app notifications, including membership and subscription expiry reminders.
+- **Search and filtering:** searchable lists with filters, sorting, and pagination.
+- **Dashboards:** statistics and visualizations for monitoring club activity.
+- **Member feedback:** ratings, likes, feedback resolution, and sentiment analysis.
+- **AI assistant:** admins, staff, and members ask questions about their club in plain language (English, French, Arabic, or Darija) and get answers from the club's data and documents, limited to what their role may see.
+- **Blockchain rewards marketplace:** members earn **G** tokens when purchasing or renewing club memberships and spend them on marketplace products. The integration runs on the Ethereum Sepolia testnet and supports gasless transactions for members.
+- **Localization:** multiple languages with right-to-left layout support.
+- **Operations:** monitoring, a status page, and automated database backups.
 
 ## Instructions
 
@@ -65,9 +68,14 @@
 1. Clone the repository and go to its root.
 2. Prepare the environment files:
    ```bash
-   ./setup-env
+   ./setup-env.sh
    ```
-   Each service has its own `.env`. This script copies each service's `.env.example` to `.env` when the `.env` does not exist yet. It never overwrites an existing `.env` and does not add missing variables to it. Open the created files and fill in any missing values before the next step. After pulling updates, compare your `.env` files with the `.env.example` files for new variables.
+   **You must run this script manually before `make up`.** Each service has its own `.env`. The script does three things:
+   - **Creates** each service's `.env` from its `.env.example` when the `.env` does not exist yet.
+   - **Generates secrets** (JWT secrets, cookie secret, database, Redis, and Grafana passwords, internal API keys) with random values, only where the value is empty.
+   - **Checks the values you must provide yourself.** It stops with an error and lists the required values that are still empty (for example the owner password, the Discord webhook URL, and the blockchain private keys). It only warns about optional values (for example the Gemini, email, and Cloudinary credentials), because the related features simply stay disabled until they are set.
+
+   The script never overwrites a value that is already set and does not add missing variables to an existing `.env`. It is safe to run again at any time. Even after the script has run, you are free to edit any value in the `.env` files. After pulling updates, compare your `.env` files with the `.env.example` files for new variables. Values shared between services (such as the database credentials) are defined once in `devops/.env`, and the connection URLs are built from them in `docker-compose.yml`.
 3. Start everything:
    ```bash
    make up
@@ -109,19 +117,20 @@ The database is backed up automatically on a schedule, and backups are saved to 
 
 ## Technical Stack
 
-| Layer | Technology | Why |
+| Layer | Technology | Purpose and rationale |
 |---|---|---|
-| Frontend (`frontend`, `owner-platform`) | **Next.js** | Server-side rendering, file-based routing, and one framework for both the facility app and the platform owner dashboard |
-| Backend | **NestJS** | A structured, modular architecture that suits a large API with many roles and features |
-| Smart contracts | **Solidity** on **Ethereum Sepolia** | The token, marketplace, purchases, subscriptions, and transfers run on-chain. Sepolia is a free testnet suited to development |
-| Blockchain API (relayer) | **NestJS** | Same framework as the backend. Submits signed transactions to the blockchain and pays the network fees |
-| Wallet and blockchain access | **MetaMask**, **Ethers.js** | MetaMask connects wallets and signs requests. Ethers.js talks to the blockchain through an Ethereum RPC provider |
-| Gasless transactions | **EIP-712**, **ERC-2771** | Signed structured requests and a trusted forwarder let users act without paying gas fees |
-| AI service | **Python**, run as an independent microservice | Python has the strongest ecosystem for AI work, and a separate service can be built, secured, and scaled on its own |
-| Database | **PostgreSQL** | Relational data with many linked entities (members, memberships, payments, attendance) needs strong integrity and transactions |
-| ORM | **Prisma** | Type-safe queries, versioned migrations, and a schema that serves as documentation |
-| Cache | **Redis** | Fast in-memory storage for data that is read often, secured with protected mode and a password |
-| Reverse proxy | **nginx** | Single HTTPS entry point in front of all services |
+| Frontend (`frontend`, `owner-platform`) | **Next.js** | React-based interfaces, file-based routing, and rendering options for the club portals and separate Owner platform. |
+| Backend API | **NestJS** | Modular architecture with dependency injection, validation, authentication, and role-based authorization. |
+| Smart contracts | **Solidity**, **Ethereum Sepolia** | Implements the G reward token and blockchain marketplace logic. Sepolia provides a public testing environment using test ETH. |
+| Blockchain API and relayer | **NestJS** | Connects application workflows to smart contracts, submits transactions, and pays gas fees through the relayer wallet. |
+| Wallet and blockchain integration | **MetaMask**, **Ethers.js** | MetaMask provides wallet connections and signatures. Ethers.js handles contract interactions and blockchain access through an Ethereum RPC provider. |
+| Gasless user interactions | **EIP-712**, **ERC-2771** | Typed-message signatures and a trusted forwarder support user-authorized actions, with the relayer paying transaction gas fees. |
+| AI service | **Python**, **FastAPI**, **Google Gemini**, **ChromaDB** | FastAPI serves the assistant and streams answers; Gemini answers, classifies sentiment, and embeds documents; ChromaDB stores the document embeddings for search. A separate service so it can be deployed and scaled independently. |
+| Database | **PostgreSQL** | Relational storage with foreign-key constraints and transactions for accounts, subscriptions, memberships, payments, and attendance. |
+| ORM | **Prisma** | Type-safe database queries, centralized data models, and migration tooling. |
+| Cache | **Redis** | Caches frequently requested data to reduce repeated database work. |
+| Reverse proxy | **Nginx** | Provides a central HTTPS entry point and routes requests to the application services. |
+| Containers | **Docker**, **Docker Compose** | Packages services into containers and manages the multi-service environment. |
 
 ### Infrastructure and DevOps
 
@@ -162,7 +171,9 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 - **Role-based access control** for members, staff, and facility admins (and platform owners), enforced by the backend on every request.
 - **Security best practices across the backend, the AI service, and DevOps.** Passwords and refresh tokens are stored hashed, and refresh tokens can be revoked. Secrets live in per-service `.env` files that are never committed. Internal services are not published to the host, and configuration files are mounted read-only.
-- **The AI service uses a read-only database role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
+- **Least-privilege database roles.** Besides the main database user, two dedicated roles exist, created automatically at startup by a one-shot container that runs the role scripts after the migrations:
+  - **The AI service has a read-only role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
+  - **The blockchain part has its own role** limited to the rewards table. It can read, create, and update rows in `membership_rewards`, but cannot delete anything and cannot access any other table.
 
 **Containers**
 
@@ -186,8 +197,10 @@ flowchart LR
 	backend --> redis[(Redis)]
 	backend --> blockchain[Blockchain API and relayer<br/>NestJS]
 	blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
-	backend --> ai[AI service<br/>Python]
-	ai --> postgres
+	frontend --> ai[AI service<br/>Python]
+	backend -->|sentiment| ai
+	ai -->|read-only| postgres
+	ai --> gemini[Google Gemini API]
 	nginx --> grafana[Grafana]
 	nginx --> gatus[Gatus status page]
 	prometheus[Prometheus] --> grafana
@@ -199,139 +212,214 @@ flowchart LR
 
 ## Project Structure
 
-```bash
+The repository contains the club application, a separate Owner platform, the backend API, AI and blockchain services, and deployment infrastructure. The overview below highlights the main directories.
+
+```text
 .
 ├── .github/
-│   └── workflows/          # CI: lint, build, and Docker image builds
-├── AI/                     # AI service (Python)
-│   ├── app/
+│   └── workflows/
+│       ├── ci.yml                      # Continuous integration workflow
+│       └── docker-build.yml            # Docker image build workflow
+│
+├── AI/                                 # Python AI service
+│   ├── app/                            # API, agent, retrieval, and sentiment modules
+│   ├── scripts/                        # Database-role script
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── backend/                            # Main NestJS REST API
+│   ├── docs/                           # Backend documentation and legal text
+│   ├── prisma/
+│   │   ├── migrations/                 # Versioned database migrations
+│   │   └── schema.prisma               # Main application database schema
 │   ├── scripts/
-│   ├── seeder/             # Seed data and the read-only database role
-│   └── Dockerfile
-├── backend/                # Backend API (NestJS)
-│   ├── helpers/
-│   ├── prisma/             # Schema and migrations
+│   │   └── entrypoint.sh               # Container startup script
 │   ├── src/
-│   └── Dockerfile
-├── block-chain/
-│   └── api/                # Blockchain API (NestJS)
+│   │   ├── core/                       # Access control, guards, decorators, and utilities
+│   │   ├── infrastructure/             # Database, Redis, email, Cloudinary, and API clients
+│   │   ├── jobs/                       # Scheduled background jobs
+│   │   ├── modules/                    # Authentication and business feature modules
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   ├── Dockerfile
+│   ├── docker-compose.dev.yml
+│   └── prisma.config.ts
+│
+├── blockchain/                         # Smart contracts and blockchain integration
+│   ├── GymToken-contracts/
+│   │   ├── GymForwarder.sol            # Forwarder smart contract
+│   │   └── GymToken.sol                # Token and marketplace smart contract
+│   └── api/                            # NestJS blockchain API and relayer
+│       ├── docs/                       # Membership reward documentation
+│       ├── prisma/
+│       │   └── shema.prisma             # Blockchain service database schema
 │       ├── src/
-│       └── Dockerfile
-├── devops/
-│   ├── backup/             # Scheduled backups and restore scripts
-│   ├── backups/            # Backup files (not committed)
+│       │   ├── health/                 # Health endpoint
+│       │   ├── lib/                    # Contract and gasless transaction utilities
+│       │   ├── prisma/                 # Database integration
+│       │   ├── relayer/                # Transaction relay endpoints and services
+│       │   └── reward-token-sub/       # Membership reward integration
+│       ├── test/                       # Reward integration tests
+│       ├── Dockerfile
+│       └── prisma.config.ts
+│
+├── devops/                             # Deployment and infrastructure configuration
+│   ├── backup/                         # Database backup and restore scripts
+│   ├── backups/                        # Backup output directory
 │   ├── monitoring/
-│   │   ├── alertmanager/
-│   │   ├── gatus/
-│   │   ├── grafana/        # Provisioned datasource and dashboards
-│   │   └── prometheus/     # Scrape config and alert rules
-│   ├── nginx/              # Reverse proxy and TLS
-│   │   ├── conf.d/
+│   │   ├── alertmanager/               # Alert routing configuration
+│   │   ├── gatus/                      # Service health and status-page configuration
+│   │   ├── grafana/                    # Dashboards and provisioning
+│   │   └── prometheus/                 # Metrics collection and alert rules
+│   ├── nginx/                          # Reverse proxy configuration
+│   │   ├── conf.d/                     # Server configuration templates
 │   │   └── nginx.conf
-│   ├── redis/              # Redis configuration
-│   └── docker-compose.yml
-├── frontend/               # Main web application (Next.js)
-│   ├── public/
+│   ├── postgres/
+│   │   ├── roles/                      # AI read-only and reward-writer database roles
+│   │   └── apply-roles.sh
+│   ├── redis/
+│   │   └── redis.conf
+│   └── docker-compose.yml              # Multi-service deployment configuration
+│
+├── docs/                               # Shared project documentation
+│   ├── assets/                         # Project logo and database diagram
+│   ├── db-disaster-simulation.md
+│   └── monitoring-stack.md
+│
+├── frontend/                           # Next.js landing page and Admin/Staff/Member portals
+│   ├── docs/                           # Frontend integration documentation
+│   ├── public/                         # Images, icons, and preview assets
 │   ├── src/
+│   │   ├── app/                        # Pages, layouts, and API route handlers
+│   │   ├── components/                 # Shared and feature-specific UI components
+│   │   ├── contexts/                   # Shared application context
+│   │   ├── hooks/                      # React hooks
+│   │   ├── lib/                        # API clients, authentication, and integrations
+│   │   ├── schemas/                    # Input validation schemas
+│   │   ├── types/                      # TypeScript types
+│   │   └── proxy.ts
+│   ├── test/                           # Token-transfer test script
 │   └── Dockerfile
-├── owner-platform/         # Platform owner dashboard (Next.js)
-│   ├── public/
+│
+├── owner-platform/                     # Separate Next.js portal for the SaaS Owner
+│   ├── public/                         # Static assets
 │   ├── src/
+│   │   ├── app/                        # Owner pages, layouts, and API route handlers
+│   │   ├── components/                 # Admin, plan, subscription, and profile interfaces
+│   │   ├── hooks/                      # React hooks
+│   │   ├── lib/                        # API and authentication utilities
+│   │   ├── schemas/                    # Input validation schemas
+│   │   ├── types/                      # TypeScript types
+│   │   └── proxy.ts
 │   └── Dockerfile
+│
 ├── .gitignore
-├── Makefile
-├── setup-env               # Creates each service's .env from .env.example
+├── Makefile                            # Project management commands
+├── setup-env.sh                        # Environment setup script
 └── README.md
 ```
 
 ## Database Schema
 
-The database is PostgreSQL, managed through Prisma. The core relationships are shown below. The sections after the diagram list every table.
+The database is PostgreSQL, managed through Prisma.
 
-```mermaid
-erDiagram
-	User ||--o{ Staff : employs
-	User ||--o{ Member : manages
-	Staff ||--o{ Member : registers
-	User ||--o{ Subscription : subscribes
-	Plan ||--o{ PlanDuration : has
-	Plan ||--o{ Subscription : covers
-	User ||--o{ MembershipPlan : offers
-	MembershipPlan ||--o{ MembershipPlanDuration : has
-	Member ||--o{ Membership : holds
-	MembershipPlan ||--o{ Membership : defines
-	Member ||--o{ Visit : books
-	Membership ||--o{ Attendance : records
-	Visit ||--o| Attendance : confirms
-	Member ||--o{ Payment : pays
-	Member ||--o{ Feedback : writes
-	Feedback ||--o{ FeedbackLike : receives
-	User ||--o{ WorkingHour : sets
-	User ||--o{ SpecialHour : sets
-```
+![Database schema](docs/assets/vibeschema-diagram.svg)
 
 ### Tables
 
-**People and access**
+The schema contains 26 tables. Names below refer to Prisma models; PostgreSQL table names are defined by their `@@map` mappings.
+
+#### People and access
 
 | Table | Purpose | Key fields |
 |---|---|---|
-| `User` | Platform owner and facility admins | `id`, `email`, `password`, `role`, `companyName`, `walletAddress`, `accountStatus`, `isAccountVerified` |
-| `Staff` | Employees of a facility | `id`, `adminId`, `email`, `password`, `role`, `accountStatus` |
-| `Member` | Facility customers | `id`, `adminId`, `staffId`, `email`, `password`, `walletAddress`, `accountStatus` |
-| `UserRefreshToken`, `StaffRefreshToken`, `MemberRefreshToken` | Refresh tokens for each account type | `jti`, `hash`, `expiresAt`, `revokedAt`, `ip`, `device` |
-| `UserActionToken`, `StaffActionToken`, `MemberActionToken` | One-time tokens (email verification, password reset, set password) | `tokenHash`, `type`, `expiresAt`, `usedAt` |
+| `User` | SaaS owner and sports club administrator accounts | `id`, `userName`, `email`, `password`, `role`, `companyName`, `walletAddress`, `accountStatus`, `isAccountVerified`, `termsAccepted` |
+| `Staff` | Staff accounts belonging to a club administrator | `id`, `adminId`, `userName`, `email`, `password`, `phoneNumber`, `role`, `accountStatus` |
+| `Member` | Sports club member accounts | `id`, `adminId`, `staffId`, `userName`, `email`, `password`, `walletAddress`, `accountStatus` |
+| `UserRefreshToken`, `StaffRefreshToken`, `MemberRefreshToken` | Refresh-token storage for each account type | `id`, `jti`, `hash`, `expiresAt`, `revokedAt`, `ip`, `userAgent`, `device`, and the corresponding account ID |
+| `UserActionToken`, `StaffActionToken`, `MemberActionToken` | One-time tokens for email verification, password reset, password setup, and email changes | `id`, `tokenHash`, `actionTokenType`, `pendingEmail`, `expiresAt`, `usedAt`, and the corresponding account ID |
 
-**Platform plans (what facilities subscribe to)**
+Refresh-token account fields are `userId`, `staffId`, and `memberId`, respectively.
 
-| Table | Purpose | Key fields |
-|---|---|---|
-| `Plan` | Plans offered by the platform | `planName`, `maxMembers`, `isActive` |
-| `PlanDuration` | Durations and prices of a plan | `planId`, `durationDays`, `price` (Decimal) |
-| `Subscription` | A facility's subscription | `userId`, `planId`, `planDurationId`, `subscriptionStatus`, `startedAt`, `expiresAt`, `amount` |
+Action-token account fields are `userId`, `StaffId`, and `memberId`, respectively. `StaffId` uses a capital `S` in the current Prisma schema.
 
-**Facility operations**
+#### Platform plans and subscriptions
 
 | Table | Purpose | Key fields |
 |---|---|---|
-| `MembershipPlan` | A plan a facility sells to members | `adminId`, `planName`, `weeklyVisitLimit`, `isActive` |
-| `MembershipPlanDuration` | Durations and prices of a membership plan (`priceByG` is the price in G tokens) | `membershipPlanId`, `durationDays`, `price` (Decimal), `priceByG` |
-| `Membership` | A member's active plan | `memberId`, `membershipPlanId`, `membershipStatus`, `startDate`, `expiresAt` |
-| `Visit` | A booked visit with a QR token | `memberId`, `membershipId`, `visitDateAndTime`, `visitStatus`, `qrTokenHash` |
-| `Attendance` | A recorded check-in | `memberId`, `membershipId`, `visitId`, `attendanceMethod`, `checkedInAt` |
-| `Payment` | Member payments | `memberId`, `amount` (Decimal), `dueDate`, `paidAt`, `paymentStatus` |
-| `WorkingHour`, `SpecialHour` | Regular and exceptional opening hours | `adminId`, `dayOfWeek`, `startTime`, `endTime`, `isClosed` |
+| `Plan` | SaaS plans offered to sports clubs | `id`, `planName`, `maxMembers`, `description`, `isActive` |
+| `PlanDuration` | Duration and price options for a platform plan | `id`, `planId`, `durationDays`, `price`, `isActive` |
+| `Subscription` | A user's platform subscription and its history | `id`, `userId`, `planId`, `planDurationId`, `subscriptionStatus`, `startedAt`, `expiresAt`, `amount`, `expirationNotifiedAt` |
 
-**Feedback and notifications**
+#### Club operations
 
 | Table | Purpose | Key fields |
 |---|---|---|
-| `Feedback` | Member feedback | `memberId`, `content`, `rating`, `sentiment`, `sentimentScore`, `feedbackStatus`, `resolvedBy` |
-| `FeedbackLike` | Likes on feedback | `feedbackId`, `memberId` |
-| `AdminNotification`, `StaffNotification`, `MemberNotification` | In-app notifications | `notificationType`, `title`, `message`, `isRead` |
+| `MembershipPlan` | Membership plans a sports club offers to its members | `id`, `adminId`, `planName`, `description`, `weeklyVisitLimit`, `isActive` |
+| `MembershipPlanDuration` | Duration, monetary price, and G-token price options for a membership plan | `id`, `membershipPlanId`, `durationDays`, `price`, `priceByG`, `isActive` |
+| `Membership` | Member membership records, including active, expired, and cancelled memberships | `id`, `adminId`, `staffId`, `memberId`, `membershipPlanId`, `membershipPlanDurationId`, `membershipStatus`, `startDate`, `expiresAt`, `expirationNotifiedAt` |
+| `Visit` | Scheduled member visits with a QR-token hash | `id`, `adminId`, `memberId`, `membershipId`, `visitDateAndTime`, `visitDateAndTimeExpiresAt`, `visitStatus`, `qrTokenHash` |
+| `Attendance` | Recorded member check-ins | `id`, `adminId`, `memberId`, `membershipId`, `staffId`, `visitId`, `attendanceMethod`, `checkedInAt` |
+| `Payment` | Member payments recorded by the club | `id`, `adminId`, `memberId`, `staffId`, `amount`, `paidAt` |
+| `WorkingHour` | Regular weekly opening hours; one record per club administrator and weekday | `id`, `adminId`, `dayOfWeek`, `startTime`, `endTime`, `isClosed` |
+| `SpecialHour` | Special opening-hour records covering a date or date range | `id`, `adminId`, `startDate`, `endDate`, `startTime`, `endTime` |
 
-All tables use a string `id` primary key and have `createdAt` and `updatedAt` timestamps. Money uses `Decimal`, and statuses use enums (for example `Role`: OWNER, ADMIN, STAFF, MEMBER).
+`WorkingHour.dayOfWeek` represents Monday through Sunday using values `1` through `7`.
+
+Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate` use PostgreSQL `date`; its `startTime` and `endTime` fields are nullable.
+
+`Payment` has no `dueDate` or `paymentStatus` field. `SpecialHour` has no `isClosed` field.
+
+#### Feedback and notifications
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `Feedback` | Member feedback, ratings, sentiment analysis, and resolution details | `id`, `adminId`, `memberId`, `staffId`, `content`, `rating`, `sentimentType`, `sentimentScore`, `feedbackStatus`, `resolvedAt`, `resolvedBy`, `resolutionNote` |
+| `FeedbackLike` | Member likes on feedback; one like per member per feedback | `id`, `feedbackId`, `memberId`, `createdAt` |
+| `AdminNotification` | In-app notifications for a club administrator | `id`, `adminId`, `notificationType`, `title`, `message`, `isRead`, `createdAt` |
+| `StaffNotification` | In-app notifications for a staff account | `id`, `staffId`, `notificationType`, `title`, `message`, `isRead`, `createdAt` |
+| `MemberNotification` | In-app notifications for a member account | `id`, `memberId`, `notificationType`, `title`, `message`, `isRead`, `createdAt` |
+
+`Feedback.resolvedBy` is an optional string, not a declared foreign-key relationship.
+
+#### Membership rewards
+
+| Table | Purpose | Key fields |
+|---|---|---|
+| `MembershipReward` | Tracks whether a membership has been rewarded | `membershipId`, `rewarded` |
+
+`MembershipReward` uses `membershipId` as its primary key, stored as a native PostgreSQL UUID. The schema does not declare a foreign-key relationship to `Membership`.
+
+#### Identifiers, timestamps, and types
+
+- Every model except `MembershipReward` has a string `id` with a UUID default and a `createdAt` timestamp.
+- `FeedbackLike`, `AdminNotification`, `StaffNotification`, and `MemberNotification` do not have `updatedAt`.
+- `MembershipReward` has neither `createdAt` nor `updatedAt`.
+- All remaining models have both `createdAt` and `updatedAt`.
+- Monetary prices and amounts use `Decimal(10, 2)`.
+- `sentimentScore` uses `Decimal(3, 2)`; `priceByG` is an integer.
+- Roles, account statuses, subscription statuses, membership statuses, notification types, action-token types, attendance methods, visit statuses, feedback statuses, sentiment types, and gender use enums.
 
 ## Features List
 
 | Feature | Description | Team members |
 |---|---|---|
-| **Authentication and user management** | JWT login with access and refresh tokens, email verification, and password reset. Roles: owner, admin, staff, member. | mdahani (backend), ael-jama (frontend) |
-| **Advanced permissions** | Each role can only see and do what its permissions allow. | mdahani (backend), ael-jama (frontend) |
-| **Platform owner dashboard** (`owner-platform`) | Manage client businesses (gyms, pools) and their admins. | ael-jama (frontend), mdahani (backend) |
-| **Member management** | Create and edit members and manage account status. | ael-jama (frontend), mdahani (backend) |
-| **Memberships and plans** | Plans, durations, and payments. | ael-jama (frontend), mdahani (backend) |
-| **Attendance / check-in** | QR-based visits and attendance records. | ael-jama (frontend), mdahani (backend) |
-| **Feedback with sentiment analysis** | Members submit feedback, and each message is analyzed for sentiment. | ael-jama (frontend), mdahani (backend), oboussel (AI) |
-| **Notifications** | Notifications for create, update, and delete actions. | mdahani |
-| **Advanced search** | Search with filters, sorting, and pagination. | mdahani (backend), ael-jama (frontend) |
-| **Analytics dashboards** | User activity insights and a dashboard with data visualization. | mdahani (backend), ael-jama (frontend) |
-| **Design system** | Reusable components with a shared color palette, typography, and icons. | ael-jama |
-| **Languages and RTL** | Multiple languages, including right-to-left layout. | ael-jama |
-| **Server-side rendering and browser support** | Pages rendered on the server, and the interface works on additional browsers. | ael-jama |
-| **AI assistant** | Chatbot that gives recommendations and looks up member information. | oboussel |
-| **Blockchain marketplace** | Members earn G tokens when paying subscriptions and use them to buy products, transfer to other wallets, or pay subscriptions. Facility admins manage products, receive payments, and update delivery status. Actions are signed with MetaMask and are gasless through a relayer. | obarais |
-| **Infrastructure, monitoring, status page, backups** | nginx configuration, Prometheus, Grafana, Alertmanager, Gatus, and automated `pg_dump` backups. | mait-all |
+| **Authentication and account management** | JWT authentication with access tokens, refresh-token rotation, email verification, password setup, password reset, and email changes. | `mdahani` (backend), `ael-jama` (frontend) |
+| **Role-based permissions** | Access control for Owner, Admin, Staff, and Member roles, with club-scoped access for club users. | `mdahani` (backend), `ael-jama` (frontend) |
+| **Owner platform** (`owner-platform`) | Separate portal for the SaaS operator to manage club administrators, platform plans, duration options, and subscriptions. | `ael-jama` (frontend), `mdahani` (backend) |
+| **Member management** | Create and update member profiles, manage account status, and view membership history. | `ael-jama` (frontend), `mdahani` (backend) |
+| **Memberships, plans, and payments** | Manage club membership plans, duration options, memberships, and recorded member payments. | `ael-jama` (frontend), `mdahani` (backend) |
+| **Visits and attendance** | Visit booking, QR-code and manual check-in, visit-status tracking, and attendance history. | `ael-jama` (frontend), `mdahani` (backend) |
+| **Feedback and sentiment analysis** | Member feedback with ratings, likes, resolution tracking, and AI sentiment analysis. | `ael-jama` (frontend), `mdahani` (backend), `oboussel` (AI) |
+| **Notifications** | In-app notifications with read/unread status, including membership and subscription expiry reminders. | `mdahani` (backend) |
+| **Search and filtering** | Resource-specific search and filters, sorting, and pagination across application lists. | `mdahani` (backend), `ael-jama` (frontend) |
+| **Analytics dashboards** | Club and platform statistics presented through dashboards and data visualizations. | `mdahani` (backend), `ael-jama` (frontend) |
+| **Design system** | Reusable interface components with shared colors, typography, and icons. | `ael-jama` (frontend) |
+| **Languages and RTL** | Multilingual interfaces with right-to-left layout support. | `ael-jama` (frontend) |
+| **Rendering and browser support** | Next.js rendering and interactive React interfaces, with support for the project's target browsers. | `ael-jama` (frontend) |
+| **AI assistant** | Chat for admins, staff, and members: live answers in the user's language from the club's data (members, memberships, revenue for admins, feedback, opening hours, a member's own data) and from the club's documents. | `oboussel` (AI), `ael-jama` (assistant pages) |
+| **Blockchain rewards and marketplace** | G-token rewards for club membership purchases and renewals, marketplace purchases, and wallet transfers. Club admins manage products, sales, and delivery status. Users sign requests through MetaMask, while a relayer pays gas fees. | `obarais` (blockchain) |
+| **Infrastructure and operations** | Nginx routing, Prometheus metrics, Grafana dashboards, Alertmanager alerts, a Gatus status page, and automated PostgreSQL backups with restore scripts. | `mait-all` (DevOps) |
 
 ## Modules
 
@@ -358,8 +446,9 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 | 17 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
 | 18 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
 | 19 | Decentralized Web3 marketplace with gasless transactions (module of choice) | **Major** | 2 | obarais |
+| 20 | A complete RAG (retrieval-augmented generation) system | **Major** | 2 | oboussel |
 
-**Point calculation:** 13 Minor modules × 1 point + 6 Major modules × 2 points = 13 + 12 = **25 points**.
+**Point calculation:** 13 Minor modules × 1 point + 7 Major modules × 2 points = 13 + 14 = **27 points**.
 
 ### Justification and implementation
 
@@ -390,8 +479,9 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 
 **AI**
 
-- **LLM system interface (module 14):** a chatbot that works as an assistant for facility staff. It answers questions, gives recommendations, and looks up member information. It reads data through a read-only database role limited to the columns it needs.
-- **Sentiment analysis (module 15):** feedback written by members is analyzed, and a sentiment and a score are stored with each feedback entry so admins can spot problems quickly.
+- **LLM system interface (module 14):** admins, staff, and members chat with an assistant about their club. Answers are streamed live (server-sent events); the model calls data tools that each run one fixed, read-only SQL query filtered by the user's club and role, with conversation history, rate limiting (20 questions per minute), and error handling.
+- **RAG system (module 20):** admins upload the club's documents (rules, procedures). They are split into chunks, embedded with Gemini, and stored in a vector database (Chroma). The assistant searches only the user's club documents (members never see "staff only" ones), answers from them, and names the file.
+- **Sentiment analysis (module 15):** the backend sends each new feedback to the AI service, which classifies it as POSITIVE, NEUTRAL, or NEGATIVE with a confidence score; the backend stores the result so admins can spot problems quickly.
 
 **Blockchain**
 
@@ -409,8 +499,12 @@ All tables use a string `id` primary key and have `createdAt` and `updatedAt` ti
 ## Individual Contributions
 
 ### oboussel (Product Owner)
-- Defined and prioritized the product backlog.
-- Built the AI service: the LLM chatbot interface, recommendations, member information lookups, and the sentiment analysis of feedback.
+- Defined and prioritized the product backlog, made product decisions (for example, staff do not see revenue), and tested the platform role by role to report problems to each owner.
+- Built the AI service: the assistant (streamed answers, data tools per role), document search (RAG), and the sentiment analysis of feedback.
+
+**Challenges and how they were solved**
+
+- *Revenue that changed by itself.* It was first computed from plan prices, but an admin can edit a price, which changed past months. It is now the sum of the recorded payments, the same number as the Payments page.
 
 ### mdahani (Project Manager)
 - Planned and coordinated the team's work.

@@ -9,20 +9,53 @@ export function invalidateStaffsCache() {
   invalidateCache("staffs:");
 }
 
+export interface FetchStaffsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  accountStatus?: string;
+}
+
 export async function fetchStaffs(
-  page = 1,
+  pageOrParams: number | FetchStaffsParams = 1,
   limit = 20,
   search?: string,
+  accountStatus?: string,
   forceRefresh = false
 ): Promise<BackendStaff[]> {
-  const cacheKey = `staffs:${page}:${limit}:${search || ""}`;
+  let page = 1;
+  let pageLimit = 20;
+  let querySearch: string | undefined;
+  let queryStatus: string | undefined;
+  const shouldForce = forceRefresh;
+
+  if (typeof pageOrParams === "object") {
+    page = pageOrParams.page ?? 1;
+    pageLimit = pageOrParams.limit ?? 20;
+    querySearch = pageOrParams.search;
+    queryStatus = pageOrParams.accountStatus;
+  } else {
+    page = pageOrParams;
+    pageLimit = limit;
+    querySearch = search;
+    queryStatus = accountStatus;
+  }
+
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(pageLimit));
+  if (querySearch && querySearch.trim()) {
+    query.set("search", querySearch.trim());
+  }
+  if (queryStatus && queryStatus !== "ALL") {
+    query.set("accountStatus", queryStatus);
+  }
+
+  const cacheKey = `staffs:${query.toString()}`;
   return getCachedOrFetch(
     cacheKey,
     async () => {
-      let endpoint = `/api/admins/staffs?page=${page}&limit=${limit}`;
-      if (search && search.trim().length > 0) {
-        endpoint += `&search=${encodeURIComponent(search.trim())}`;
-      }
+      const endpoint = `/api/admins/staffs?${query.toString()}`;
       const url = getApiEndpoint(endpoint);
       const response = await api.get<BackendStaff[] | { staffs?: BackendStaff[]; data?: BackendStaff[] }>(url);
 
@@ -39,7 +72,7 @@ export async function fetchStaffs(
       return [];
     },
     CACHE_TTL_MS,
-    forceRefresh
+    shouldForce
   );
 }
 

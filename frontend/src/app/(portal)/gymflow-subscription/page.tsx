@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ShieldCheck,
   Zap,
@@ -43,6 +43,7 @@ export default function SportiumSubscriptionPage() {
   // Data state
   const [activeSubscription, setActiveSubscription] = useState<SportiumSubscription | null>(null);
   const [allSubscriptions, setAllSubscriptions] = useState<SportiumSubscription[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [memberCount, setMemberCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCopied, setIsCopied] = useState<string | null>(null);
@@ -50,12 +51,16 @@ export default function SportiumSubscriptionPage() {
   // Upgrade / Support Modal state
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [currentSub, allSubs, memberStats] = await Promise.all([
         fetchMySubscription().catch(() => null),
-        fetchAllSubscriptions(1, 50).catch(() => []),
+        fetchAllSubscriptions({
+          page: 1,
+          limit: 50,
+          subscriptionStatus: statusFilter !== "ALL" ? statusFilter : undefined,
+        }).catch(() => []),
         fetchAdminMemberStats().catch(() => null),
       ]);
 
@@ -80,11 +85,11 @@ export default function SportiumSubscriptionPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Copy receipt / reference ID helper
   const handleCopyReceipt = (refId: string) => {
@@ -564,12 +569,39 @@ export default function SportiumSubscriptionPage() {
               </span>
             </div>
 
-            {isLoading && (
-              <div className="flex items-center gap-2 text-xs text-toota-muted">
-                <Loader2 className="size-3.5 animate-spin" />
-                <span>{t("loading") || "Updating..."}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 bg-toota-inner p-0.5 rounded-full text-xs">
+                {[
+                  { id: "ALL", label: t("all") || "All" },
+                  { id: "ACTIVE", label: t("active") || "Active" },
+                  { id: "EXPIRED", label: t("expired") || "Expired" },
+                  { id: "CANCELLED", label: t("cancelled") || "Cancelled" },
+                ].map((tab) => {
+                  const isSelected = statusFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setStatusFilter(tab.id)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                        isSelected
+                          ? "bg-toota-ink text-toota-canvas shadow-xs"
+                          : "text-toota-muted hover:text-toota-ink"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
-            )}
+
+              {isLoading && (
+                <div className="flex items-center gap-2 text-xs text-toota-muted">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  <span>{t("loading") || "Updating..."}</span>
+                </div>
+              )}
+            </div>
           </CardHeader>
 
           <CardContent className="p-0">

@@ -99,7 +99,7 @@ export default function SpecialHourModal({
   if (!isOpen) return null;
 
   // Preset Date Helper
-  const setDatePreset = (daysOffset: number, durationDays: number = 1) => {
+  const getDatePreset = (daysOffset: number, durationDays: number = 1) => {
     const start = new Date();
     start.setDate(start.getDate() + daysOffset);
     const startISO = start.toISOString().split("T")[0];
@@ -108,9 +108,15 @@ export default function SpecialHourModal({
     end.setDate(end.getDate() + (durationDays - 1));
     const endISO = end.toISOString().split("T")[0];
 
-    setValue("startDate", startISO);
-    setValue("endDate", endISO);
+    return { start: startISO, end: endISO };
   };
+
+  const DATE_PRESETS = [
+    { key: "today", label: "Today", offset: 0, duration: 1 },
+    { key: "tomorrow", label: "Tomorrow", offset: 1, duration: 1 },
+    { key: "closurePresetWeek", label: "In 1 Week", offset: 7, duration: 1 },
+    { key: "closurePresetHoliday", label: "3-Day Holiday", offset: 0, duration: 3 },
+  ];
 
   const onSubmit = async (values: AddSpecialHourFormValues) => {
     setIsSubmitting(true);
@@ -197,39 +203,43 @@ export default function SpecialHourModal({
           className="space-y-6 overflow-y-auto custom-scrollbar pr-1"
         >
           {/* Quick Date Presets */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-4">
+            <div className="space-y-2">
               <span className="text-[11px] font-mono text-toota-muted uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="size-3 text-toota-ink" /> Presets:
+                <Sparkles className="size-3 text-toota-ink" /> {t("quickPresets", "Presets")}:
               </span>
-              <button
-                type="button"
-                onClick={() => setDatePreset(0, 1)}
-                className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
+              <div
+                role="group"
+                aria-label={t("quickPresets", "Presets")}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-2"
               >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={() => setDatePreset(1, 1)}
-                className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
-              >
-                Tomorrow
-              </button>
-              <button
-                type="button"
-                onClick={() => setDatePreset(7, 1)}
-                className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
-              >
-                In 1 Week
-              </button>
-              <button
-                type="button"
-                onClick={() => setDatePreset(0, 3)}
-                className="toota-pill h-7 px-2.5 text-[11px] font-mono border border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer transition-colors"
-              >
-                3-Day Holiday
-              </button>
+                {DATE_PRESETS.map((preset) => {
+                  const range = getDatePreset(preset.offset, preset.duration);
+                  const isSelected = watchedStartDate === range.start && watchedEndDate === range.end;
+
+                  return (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        setValue("startDate", range.start, { shouldValidate: true });
+                        setValue("endDate", range.end, { shouldValidate: true });
+                      }}
+                      className={`p-2.5 rounded-xl text-start transition-all border flex flex-col justify-between cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-toota-lime ${
+                        isSelected
+                          ? "bg-toota-lime text-black border-toota-lime font-semibold shadow-xs"
+                          : "bg-toota-inner text-toota-muted border-border/50 hover:border-toota-lime hover:bg-toota-lime/10 hover:text-toota-ink"
+                      }`}
+                    >
+                      <span className="text-xs font-semibold block">{t(preset.key, preset.label)}</span>
+                      <span className="text-[10px] font-mono block opacity-80 mt-0.5 truncate">
+                        {range.start === range.end ? range.start : `${range.start} → ${range.end}`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Date Range Inputs */}
@@ -305,10 +315,11 @@ export default function SpecialHourModal({
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
+                aria-label={t("fullDayClosure", "Full-Day Closure")}
                 {...register("isFullDay")}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-border/60 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
+              <div className="w-11 h-6 bg-border/60 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500" />
             </label>
           </div>
 
@@ -378,7 +389,7 @@ export default function SpecialHourModal({
           </div>
 
           {/* Form Actions (Unified Toota Pill Outline Buttons) */}
-          <div className="flex items-center gap-3 pt-3 border-t border-border/40">
+          <div className="flex flex-col-reverse sm:flex-row items-center gap-3 pt-3 border-t border-border/40">
             <Button
               type="button"
               variant="outline"

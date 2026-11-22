@@ -455,7 +455,7 @@ function AdminStaffProfileView() {
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                    <span>{staffProfile.accountStatus}</span>
+                    <span>{t(String(staffProfile.accountStatus).toLowerCase(), { defaultValue: staffProfile.accountStatus })}</span>
                   </span>
                 )}
               </div>
@@ -627,7 +627,7 @@ function AdminStaffProfileView() {
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span>{staffProfile.accountStatus || "Active"}</span>
+                    <span>{t(String(staffProfile.accountStatus || "active").toLowerCase(), { defaultValue: staffProfile.accountStatus || "Active" })}</span>
                   </span>
                 </div>
               </div>

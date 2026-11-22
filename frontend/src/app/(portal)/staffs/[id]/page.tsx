@@ -325,9 +325,10 @@ export default function StaffDetailPage() {
             {status !== "ACTIVE" && (
               <Button
                 type="button"
+                variant="outline"
                 disabled={isActionLoading}
                 onClick={handleMakeActive}
-                className="toota-pill h-10 px-4 text-xs font-semibold cursor-pointer"
+                className="toota-pill h-10 px-4 text-xs font-semibold border-emerald-200 dark:border-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 focus-visible:ring-emerald-500 cursor-pointer"
               >
                 <ShieldCheck className="size-3.5 me-2" />
                 <span>{t("activateStaff") || "Activate"}</span>
@@ -340,7 +341,7 @@ export default function StaffDetailPage() {
                 variant="outline"
                 disabled={isActionLoading}
                 onClick={handleMakePending}
-                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-amber-600 dark:text-amber-400 cursor-pointer"
+                className="toota-pill h-10 px-4 text-xs font-semibold border-amber-200 dark:border-amber-900/40 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 focus-visible:ring-amber-500 cursor-pointer"
               >
                 <Clock className="size-3.5 me-2" />
                 <span>{t("setToPending") || "Pending"}</span>
@@ -353,7 +354,7 @@ export default function StaffDetailPage() {
                 variant="outline"
                 disabled={isActionLoading}
                 onClick={handleBan}
-                className="toota-pill h-10 px-4 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 cursor-pointer"
+                className="toota-pill h-10 px-4 text-xs font-semibold border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 focus-visible:ring-rose-500 cursor-pointer"
               >
                 <Ban className="size-3.5 me-2" />
                 <span>{t("banStaff") || "Ban Staff"}</span>

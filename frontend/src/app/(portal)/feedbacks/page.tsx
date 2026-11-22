@@ -8,11 +8,12 @@ import {
   Clock,
   Download,
   Lock,
-  ChevronRight,
   TrendingUp,
   Loader2,
   AlertTriangle,
   Inbox,
+  Search,
+  X,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -28,6 +29,8 @@ import ResolveFeedbackModal from "@/components/feedbacks/ResolveFeedbackModal";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import MemberFeedbackView from "@/components/feedbacks/MemberFeedbackView";
 import Pagination from "@/components/ui/Pagination";
+import { Input } from "@/components/ui/input";
+import CustomSelect from "@/components/ui/CustomSelect";
 import {
   Card,
   CardHeader,
@@ -69,6 +72,21 @@ function AdminStaffFeedbackView() {
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filter states
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [sentimentFilter, setSentimentFilter] = useState<string>("ALL");
+  const [ratingFilter, setRatingFilter] = useState<string>("ALL");
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // Load Feedbacks from server
   const loadFeedbacks = useCallback(async () => {
     setIsLoading(true);
@@ -77,7 +95,14 @@ function AdminStaffFeedbackView() {
         role === "Staff" ? fetchStaffFeedbackStats() : fetchAdminFeedbackStats();
       const [statsData, pageData] = await Promise.all([
         statsPromise.catch(() => null),
-        fetchAllFeedbacks(1, pageSize),
+        fetchAllFeedbacks({
+          page: 1,
+          limit: pageSize,
+          search: debouncedSearch,
+          feedbackStatus: statusFilter !== "ALL" ? statusFilter : undefined,
+          sentimentType: sentimentFilter !== "ALL" ? sentimentFilter : undefined,
+          rating: ratingFilter !== "ALL" ? Number(ratingFilter) : undefined,
+        }),
       ]);
       setFeedbackStats(statsData);
       setFeedbacks(pageData);
@@ -91,7 +116,7 @@ function AdminStaffFeedbackView() {
     } finally {
       setIsLoading(false);
     }
-  }, [t, pageSize, role]);
+  }, [t, pageSize, role, debouncedSearch, statusFilter, sentimentFilter, ratingFilter]);
 
   useEffect(() => {
     loadFeedbacks();
@@ -163,8 +188,23 @@ function AdminStaffFeedbackView() {
     };
   }, [feedbackStats, feedbacks]);
 
-  // Pagination
-  const totalItems = feedbackStats?.total ?? feedbacks.length;
+  const isFiltering = Boolean(
+    debouncedSearch ||
+    statusFilter !== "ALL" ||
+    sentimentFilter !== "ALL" ||
+    ratingFilter !== "ALL"
+  );
+
+  const totalItems = useMemo(() => {
+    if (isFiltering) {
+      if (feedbacks.length < pageSize) {
+        return (currentPage - 1) * pageSize + feedbacks.length;
+      }
+      return currentPage * pageSize + 1;
+    }
+    return feedbackStats?.total ?? feedbacks.length;
+  }, [isFiltering, feedbacks.length, currentPage, pageSize, feedbackStats?.total]);
+
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Handle page changes
@@ -172,7 +212,14 @@ function AdminStaffFeedbackView() {
     setCurrentPage(newPage);
     setIsPageLoading(true);
     try {
-      const pageData = await fetchAllFeedbacks(newPage, pageSize);
+      const pageData = await fetchAllFeedbacks({
+        page: newPage,
+        limit: pageSize,
+        search: debouncedSearch,
+        feedbackStatus: statusFilter !== "ALL" ? statusFilter : undefined,
+        sentimentType: sentimentFilter !== "ALL" ? sentimentFilter : undefined,
+        rating: ratingFilter !== "ALL" ? Number(ratingFilter) : undefined,
+      });
       setFeedbacks(pageData);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
@@ -183,6 +230,15 @@ function AdminStaffFeedbackView() {
     } finally {
       setIsPageLoading(false);
     }
+  };
+
+  const handleClearAllFilters = () => {
+    setSearchInput("");
+    setDebouncedSearch("");
+    setStatusFilter("ALL");
+    setSentimentFilter("ALL");
+    setRatingFilter("ALL");
+    setCurrentPage(1);
   };
 
   // Handle Update Status & Resolution Note
@@ -353,7 +409,7 @@ function AdminStaffFeedbackView() {
   };
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 @container/feedbacks">
       {/* Top Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -544,17 +600,130 @@ function AdminStaffFeedbackView() {
         </Card>
       </div>
 
+      {/* Search & Filter Controls Card */}
+      <Card className="toota-card border-none p-4 sm:p-5">
+        <div className="flex flex-col gap-4">
+          {/* Top row: Status Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: "ALL", label: t("allFeedbacks") || "All Feedback", count: feedbackStats?.total },
+              { id: "OPEN", label: t("open") || "Open", count: feedbackStats?.openCount },
+              { id: "IN_REVIEW", label: t("inReview") || "In Review", count: feedbackStats?.inReviewCount },
+              { id: "RESOLVED", label: t("resolved") || "Resolved", count: feedbackStats?.resolvedCount },
+              { id: "DISMISSED", label: t("dismissed") || "Dismissed", count: feedbackStats?.dismissedCount },
+            ].map((tab) => {
+              const isSelected = statusFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(tab.id);
+                    setCurrentPage(1);
+                  }}
+                  className={`toota-pill h-9 px-4 text-xs font-semibold cursor-pointer shrink-0 transition-all flex items-center gap-2 ${
+                    isSelected
+                      ? "bg-toota-ink text-toota-canvas shadow-xs"
+                      : "bg-toota-inner text-toota-muted hover:text-toota-ink"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && tab.count !== null && (
+                    <span
+                      className={`font-mono text-[11px] px-1.5 py-0.5 rounded-full ${
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : "bg-black/5 dark:bg-white/10 text-toota-muted"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom row: Search input + Sentiment select + Rating select + Clear */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="size-4 text-toota-muted absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={t("searchFeedbackPlaceholder") || "Search feedback content or author name..."}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="h-10 rounded-full bg-toota-inner border-border/40 ps-10 pe-4 text-xs text-toota-ink placeholder:text-toota-muted focus-visible:ring-1 focus-visible:ring-[#a3e635] focus-visible:border-[#a3e635] transition-all"
+              />
+            </div>
+
+            {/* Sentiment Filter */}
+            <div className="w-full md:w-44 shrink-0">
+              <CustomSelect
+                value={sentimentFilter}
+                onChange={(val) => {
+                  setSentimentFilter(String(val));
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "ALL", label: t("allSentiments") || "All Sentiments" },
+                  { value: "POSITIVE", label: t("sentiment_POSITIVE") || "Positive" },
+                  { value: "NEUTRAL", label: t("sentiment_NEUTRAL") || "Neutral" },
+                  { value: "NEGATIVE", label: t("sentiment_NEGATIVE") || "Negative" },
+                ]}
+                className="h-10 rounded-full bg-toota-inner border-border/40 text-xs"
+              />
+            </div>
+
+            {/* Rating Filter */}
+            <div className="w-full md:w-36 shrink-0">
+              <CustomSelect
+                value={ratingFilter}
+                onChange={(val) => {
+                  setRatingFilter(String(val));
+                  setCurrentPage(1);
+                }}
+                options={[
+                  { value: "ALL", label: t("allRatings") || "All Ratings" },
+                  { value: "5", label: "★★★★★ (5)" },
+                  { value: "4", label: "★★★★☆ (4)" },
+                  { value: "3", label: "★★★☆☆ (3)" },
+                  { value: "2", label: "★★☆☆☆ (2)" },
+                  { value: "1", label: "★☆☆☆☆ (1)" },
+                ]}
+                className="h-10 rounded-full bg-toota-inner border-border/40 text-xs"
+              />
+            </div>
+
+            {/* Clear Filters */}
+            {isFiltering && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading || isPageLoading}
+                onClick={handleClearAllFilters}
+                className="toota-pill h-10 px-4 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer shrink-0"
+              >
+                <X className="size-3.5 me-1.5" />
+                <span>{t("clear") || "Clear"}</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
       {/* Feedback Feed Cards List */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 @min-[48rem]/feedbacks:grid-cols-2 @min-[78rem]/feedbacks:grid-cols-3 gap-4 items-start">
         {isLoading ? (
-          <Card className="toota-card border-none p-16 text-center">
+          <Card className="toota-card border-none p-16 text-center col-span-full">
             <Loader2 className="size-8 animate-spin text-toota-ink mx-auto mb-3" />
             <p className="font-medium text-toota-ink text-sm">
               {t("loadingFeedback") || "Loading member feedback roster..."}
             </p>
           </Card>
         ) : feedbacks.length === 0 ? (
-          <Card className="toota-card border-none p-16 text-center space-y-3">
+          <Card className="toota-card border-none p-16 text-center space-y-3 col-span-full">
             <div className="size-14 rounded-2xl bg-toota-inner flex items-center justify-center mx-auto text-toota-muted">
               <Inbox className="size-7 opacity-50" />
             </div>
@@ -599,7 +768,7 @@ function AdminStaffFeedbackView() {
             return (
               <Card
                 key={item.id}
-                className="toota-card border-none p-5 space-y-4 hover:border-border/80 transition-all group"
+                className="toota-card border-none p-4 space-y-3.5 hover:border-border/80 transition-all group bg-card text-toota-ink min-w-0"
               >
                 {/* Card Top Row: Member info, Rating, Mismatch, Sentiment & Status */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -614,7 +783,7 @@ function AdminStaffFeedbackView() {
                     </Avatar>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-toota-ink">
+                        <span className="font-semibold text-[13px] text-toota-ink">
                           {fullName}
                         </span>
                         <span className="text-[11px] text-toota-muted font-normal">
@@ -672,15 +841,15 @@ function AdminStaffFeedbackView() {
                 </div>
 
                 {/* Member Review Body (Immutable) */}
-                <div className="p-3.5 rounded-xl bg-toota-inner text-xs text-toota-ink leading-relaxed border border-border/40">
-                  <p className="font-normal">
+                <div className="p-3 rounded-xl bg-toota-inner text-[13px] text-toota-ink leading-relaxed border border-border/40">
+                  <p className="font-normal line-clamp-3">
                     &quot;{item.content}&quot;
                   </p>
                 </div>
 
                 {/* Resolution Note Callout (If resolved or note exists) */}
                 {item.resolutionNote && (
-                  <div className="p-3.5 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1 text-xs">
+                  <div className="p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1 text-xs">
                     <div className="flex items-center justify-between font-semibold text-emerald-700 dark:text-emerald-300">
                       <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide">
                         <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
@@ -692,7 +861,7 @@ function AdminStaffFeedbackView() {
                         </span>
                       )}
                     </div>
-                    <p className="text-toota-ink/90 leading-relaxed text-[11px]">
+                    <p className="text-toota-ink/90 leading-relaxed text-xs line-clamp-2">
                       {item.resolutionNote}
                     </p>
                   </div>
@@ -714,8 +883,8 @@ function AdminStaffFeedbackView() {
                     }}
                     className={`toota-pill h-8 px-3.5 text-xs font-semibold cursor-pointer ${
                       isResolved
-                        ? "border-border/50 hover:bg-toota-inner text-toota-ink"
-                        : ""
+                        ? "border-border/60 hover:bg-toota-inner text-toota-ink"
+                        : "bg-toota-ink text-toota-main hover:bg-toota-ink/90"
                     }`}
                   >
                     <span>
@@ -723,7 +892,6 @@ function AdminStaffFeedbackView() {
                         ? t("editResolutionNote") || "Edit Resolution Note"
                         : t("reviewAndResolve") || "Review & Resolve"}
                     </span>
-                    <ChevronRight className="size-3.5 ms-1 rtl:rotate-180" />
                   </Button>
                 </div>
               </Card>
