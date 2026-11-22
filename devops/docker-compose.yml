@@ -16,7 +16,7 @@ services:
       - .env
     volumes:
       - db_data:/var/lib/postgresql/data
-    networks: [internal]
+    networks: [data, backup]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -40,7 +40,7 @@ services:
       JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
       JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
       JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
-    networks: [internal]
+    networks: [app, data]
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/api/health"]
       interval: 10s
@@ -70,7 +70,7 @@ services:
       - ./postgres/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
       - ./postgres/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
       - ./postgres/roles/membership_rewards_writer.sql:/roles/membership_rewards_writer.sql:ro
-    networks: [internal]
+    networks: [data]
     depends_on:
       backend:
         condition: service_healthy
@@ -87,7 +87,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../frontend/.env
-    networks: [internal]
+    networks: [proxy, app]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
       interval: 10s
@@ -111,7 +111,7 @@ services:
     restart: unless-stopped
     env_file:
       - ../owner-platform/.env
-    networks: [internal]
+    networks: [proxy, app]
     healthcheck:
       test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/owner-portal/"]
       interval: 10s
@@ -139,7 +139,7 @@ services:
       JWT_ADMIN_ACCESS_SECRET: ${JWT_ADMIN_ACCESS_SECRET}
       JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
       JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
-    networks: [internal]
+    networks: [app, data]
     volumes:
       - ai_data:/data
     depends_on:
@@ -157,7 +157,7 @@ services:
     environment:
       REWARDS_DATABASE_URL: postgresql://${REWARDS_DB_USER}:${REWARDS_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       REWARD_INTERNAL_SECRET: ${REWARD_INTERNAL_SECRET}
-    networks: [internal]
+    networks: [app, data]
     depends_on:
       backend:
         condition: service_healthy
@@ -173,7 +173,7 @@ services:
     volumes:
       - ./redis/redis.conf:/etc/redis/redis.conf:ro
       - redis_data:/data
-    networks: [internal]
+    networks: [data]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
@@ -191,13 +191,12 @@ services:
       -addext "subjectAltName=DNS:localhost,DNS:status.localhost"
     volumes:
       - certs:/certs
+    network_mode: none
 
   nginx:
     image: nginx:1.30-alpine
     container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
+    ports: ["80:80", "443:443"]
     restart: unless-stopped
     environment:
       - DOMAIN=${DOMAIN:-localhost}
@@ -205,7 +204,7 @@ services:
       - certs:/etc/nginx/ssl:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/templates:ro
-    networks: [internal]
+    networks: [proxy]
     depends_on:
       frontend:
         condition: service_healthy
@@ -230,7 +229,7 @@ services:
       - prometheus_data:/prometheus
     expose:
       - "9090"
-    networks: [internal]
+    networks: [monitoring]
 
   alertmanager:
     image: prom/alertmanager:v0.30.0
@@ -244,7 +243,7 @@ services:
       - ./monitoring/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
     expose:
       - "9093"
-    networks: [internal]
+    networks: [monitoring]
 
   grafana:
     image: grafana/grafana:10.4.0
@@ -272,7 +271,7 @@ services:
       - GF_USERS_AUTO_ASSIGN_ORG_ROLE=Viewer             # new users get Viewer, not Editor
       - GF_AUTH_DISABLE_LOGIN_FORM=false                 # keep the login form (local auth)
       - GF_AUTH_ANONYMOUS_ENABLED=false                  # disable anonymous login
-    networks: [internal]
+    networks: [proxy, monitoring]
     depends_on: [prometheus]
 
   # ============================================================================
@@ -294,7 +293,7 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     expose:
       - "9100"
-    networks: [internal]
+    networks: [monitoring]
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.5.1
@@ -304,7 +303,7 @@ services:
       - '--nginx.scrape-uri=http://nginx:80/nginx_status'
     expose:
       - "9113"
-    networks: [internal]
+    networks: [proxy, monitoring]
     depends_on: [nginx]
 
   postgres-exporter:
@@ -315,7 +314,7 @@ services:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"
     expose:
       - "9187"
-    networks: [internal]
+    networks: [data, monitoring]
     depends_on:
       db:
         condition: service_healthy
@@ -329,7 +328,7 @@ services:
       REDIS_PASSWORD: "${REDIS_PASSWORD}"
     expose:
       - "9121"
-    networks: [internal]
+    networks: [data, monitoring]
     depends_on:
       redis:
         condition: service_healthy
@@ -348,7 +347,7 @@ services:
       - "8080"
     volumes:
       - ./monitoring/gatus/gatus.yml:/config/config.yaml:ro
-    networks: [internal]
+    networks: [proxy, app, data, monitoring]
 
   # ============================================================================
   #                             Backup & Recovery
@@ -366,7 +365,7 @@ services:
       - BACKUP_SCHEDULE
     volumes:
       - ./backups:/backups
-    networks: [internal]
+    networks: [backup]
     depends_on:
       db:
         condition: service_healthy
@@ -394,5 +393,10 @@ volumes:
 # ==============================================================================
 
 networks:
-  internal:
-    driver: bridge
+  proxy:
+  app:
+  data:
+    internal: true
+  backup:
+    internal: true
+  monitoring:
