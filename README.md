@@ -50,7 +50,7 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 - **Search and filtering:** searchable lists with filters, sorting, and pagination.
 - **Dashboards:** statistics and visualizations for monitoring club activity.
 - **Member feedback:** ratings, likes, feedback resolution, and sentiment analysis.
-- **AI assistant:** chatbot support, recommendations, and member information lookups.
+- **AI assistant:** admins, staff, and members ask questions about their club in plain language (English, French, Arabic, or Darija) and get answers from the club's data and documents, limited to what their role may see.
 - **Blockchain rewards marketplace:** members earn **G** tokens when purchasing or renewing club memberships and spend them on marketplace products. The integration runs on the Ethereum Sepolia testnet and supports gasless transactions for members.
 - **Localization:** multiple languages with right-to-left layout support.
 - **Operations:** monitoring, a status page, and automated database backups.
@@ -68,7 +68,7 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 1. Clone the repository and go to its root.
 2. Prepare the environment files:
    ```bash
-   ./setup-env
+   ./setup-env.sh
    ```
    **You must run this script manually before `make up`.** Each service has its own `.env`. The script does three things:
    - **Creates** each service's `.env` from its `.env.example` when the `.env` does not exist yet.
@@ -125,7 +125,7 @@ The database is backed up automatically on a schedule, and backups are saved to 
 | Blockchain API and relayer | **NestJS** | Connects application workflows to smart contracts, submits transactions, and pays gas fees through the relayer wallet. |
 | Wallet and blockchain integration | **MetaMask**, **Ethers.js** | MetaMask provides wallet connections and signatures. Ethers.js handles contract interactions and blockchain access through an Ethereum RPC provider. |
 | Gasless user interactions | **EIP-712**, **ERC-2771** | Typed-message signatures and a trusted forwarder support user-authorized actions, with the relayer paying transaction gas fees. |
-| AI service | **Python** | Provides access to AI libraries in a separate service that can be deployed and scaled independently. |
+| AI service | **Python**, **FastAPI**, **Google Gemini**, **ChromaDB** | FastAPI serves the assistant and streams answers; Gemini answers, classifies sentiment, and embeds documents; ChromaDB stores the document embeddings for search. A separate service so it can be deployed and scaled independently. |
 | Database | **PostgreSQL** | Relational storage with foreign-key constraints and transactions for accounts, subscriptions, memberships, payments, and attendance. |
 | ORM | **Prisma** | Type-safe database queries, centralized data models, and migration tooling. |
 | Cache | **Redis** | Caches frequently requested data to reduce repeated database work. |
@@ -190,22 +190,24 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 ```mermaid
 flowchart LR
-    Browser --> nginx
-    nginx --> frontend[Frontend / Owner platform<br/>Next.js]
-    frontend --> backend[Backend<br/>NestJS]
-    backend --> postgres[(PostgreSQL)]
-    backend --> redis[(Redis)]
-    backend --> blockchain[Blockchain API and relayer<br/>NestJS]
-    blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
-    backend --> ai[AI service<br/>Python]
-    ai --> postgres
-    nginx --> grafana[Grafana]
-    nginx --> gatus[Gatus status page]
-    prometheus[Prometheus] --> grafana
-    prometheus --> alertmanager[Alertmanager] --> discord[Discord]
-    gatus -->|alerts| discord
-    gatus -.->|health checks| nginx
-    backup[Backup service] --> postgres
+	Browser --> nginx
+	nginx --> frontend[Frontend / Owner platform<br/>Next.js]
+	frontend --> backend[Backend<br/>NestJS]
+	backend --> postgres[(PostgreSQL)]
+	backend --> redis[(Redis)]
+	backend --> blockchain[Blockchain API and relayer<br/>NestJS]
+	blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
+	frontend --> ai[AI service<br/>Python]
+	backend -->|sentiment| ai
+	ai -->|read-only| postgres
+	ai --> gemini[Google Gemini API]
+	nginx --> grafana[Grafana]
+	nginx --> gatus[Gatus status page]
+	prometheus[Prometheus] --> grafana
+	prometheus --> alertmanager[Alertmanager] --> discord[Discord]
+	gatus -->|alerts| discord
+	gatus -.->|health checks| nginx
+	backup[Backup service] --> postgres
 ```
 
 ## Project Structure
@@ -221,11 +223,7 @@ The repository contains the club application, a separate Owner platform, the bac
 │
 ├── AI/                                 # Python AI service
 │   ├── app/                            # API, agent, retrieval, and sentiment modules
-│   ├── scripts/                        # Service utilities and database-role scripts
-│   ├── seeder/
-│   │   ├── documents/                  # Club documents used by the AI service
-│   │   ├── fixtures/                   # SQL seed fixtures
-│   │   └── roles/                      # Read-only database-role definition
+│   ├── scripts/                        # Database-role script
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -419,7 +417,7 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 | **Design system** | Reusable interface components with shared colors, typography, and icons. | `ael-jama` (frontend) |
 | **Languages and RTL** | Multilingual interfaces with right-to-left layout support. | `ael-jama` (frontend) |
 | **Rendering and browser support** | Next.js rendering and interactive React interfaces, with support for the project's target browsers. | `ael-jama` (frontend) |
-| **AI assistant** | Conversational assistance, recommendations, and member information lookups. | `oboussel` (AI) |
+| **AI assistant** | Chat for admins, staff, and members: live answers in the user's language from the club's data (members, memberships, revenue for admins, feedback, opening hours, a member's own data) and from the club's documents. | `oboussel` (AI), `ael-jama` (assistant pages) |
 | **Blockchain rewards and marketplace** | G-token rewards for club membership purchases and renewals, marketplace purchases, and wallet transfers. Club admins manage products, sales, and delivery status. Users sign requests through MetaMask, while a relayer pays gas fees. | `obarais` (blockchain) |
 | **Infrastructure and operations** | Nginx routing, Prometheus metrics, Grafana dashboards, Alertmanager alerts, a Gatus status page, and automated PostgreSQL backups with restore scripts. | `mait-all` (DevOps) |
 
@@ -448,8 +446,9 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 | 17 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
 | 18 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
 | 19 | Decentralized Web3 marketplace with gasless transactions (module of choice) | **Major** | 2 | obarais |
+| 20 | A complete RAG (retrieval-augmented generation) system | **Major** | 2 | oboussel |
 
-**Point calculation:** 13 Minor modules × 1 point + 6 Major modules × 2 points = 13 + 12 = **25 points**.
+**Point calculation:** 13 Minor modules × 1 point + 7 Major modules × 2 points = 13 + 14 = **27 points**.
 
 ### Justification and implementation
 
@@ -480,8 +479,9 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 
 **AI**
 
-- **LLM system interface (module 14):** a chatbot that works as an assistant for facility staff. It answers questions, gives recommendations, and looks up member information. It reads data through a read-only database role limited to the columns it needs.
-- **Sentiment analysis (module 15):** feedback written by members is analyzed, and a sentiment and a score are stored with each feedback entry so admins can spot problems quickly.
+- **LLM system interface (module 14):** admins, staff, and members chat with an assistant about their club. Answers are streamed live (server-sent events); the model calls data tools that each run one fixed, read-only SQL query filtered by the user's club and role, with conversation history, rate limiting (20 questions per minute), and error handling.
+- **RAG system (module 20):** admins upload the club's documents (rules, procedures). They are split into chunks, embedded with Gemini, and stored in a vector database (Chroma). The assistant searches only the user's club documents (members never see "staff only" ones), answers from them, and names the file.
+- **Sentiment analysis (module 15):** the backend sends each new feedback to the AI service, which classifies it as POSITIVE, NEUTRAL, or NEGATIVE with a confidence score; the backend stores the result so admins can spot problems quickly.
 
 **Blockchain**
 
@@ -499,8 +499,12 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 ## Individual Contributions
 
 ### oboussel (Product Owner)
-- Defined and prioritized the product backlog.
-- Built the AI service: the LLM chatbot interface, recommendations, member information lookups, and the sentiment analysis of feedback.
+- Defined and prioritized the product backlog, made product decisions (for example, staff do not see revenue), and tested the platform role by role to report problems to each owner.
+- Built the AI service: the assistant (streamed answers, data tools per role), document search (RAG), and the sentiment analysis of feedback.
+
+**Challenges and how they were solved**
+
+- *Revenue that changed by itself.* It was first computed from plan prices, but an admin can edit a price, which changed past months. It is now the sum of the recorded payments, the same number as the Payments page.
 
 ### mdahani (Project Manager)
 - Planned and coordinated the team's work.

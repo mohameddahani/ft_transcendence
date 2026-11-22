@@ -86,16 +86,18 @@ def _period(period: str) -> tuple[date, date]:
     return first_of_month, today + timedelta(days=1)
 
 
-# returns the revenue in MAD for a period: total, number sold, and per plan
+# returns the money paid in a period (MAD): total, number of payments, and per plan
 def get_revenue(user: User, period: str = "this_month") -> dict:
     start, end = _period(period)
     rows = db.fetch_all("""
-        SELECT p.plan_name AS plan, count(*) AS sold, sum(d.price) AS revenue_mad
-        FROM memberships ms
-        JOIN membership_plan_durations d ON d.id = ms.membership_plan_duration_id
-        JOIN membership_plans p ON p.id = ms.membership_plan_id
-        WHERE ms.admin_id = %s AND ms.start_date >= %s AND ms.start_date < %s
-        GROUP BY p.plan_name
+        SELECT coalesce((SELECT p.plan_name FROM memberships ms
+                         JOIN membership_plans p ON p.id = ms.membership_plan_id
+                         WHERE ms.member_id = pay.member_id AND ms.start_date = pay.paid_at
+                         LIMIT 1), 'other') AS plan,
+               count(*) AS sold, sum(pay.amount) AS revenue_mad
+        FROM payments pay
+        WHERE pay.admin_id = %s AND pay.paid_at >= %s AND pay.paid_at < %s
+        GROUP BY 1
         ORDER BY revenue_mad DESC""", (user.admin_id, start, end))
     return {"period": period, "from": start, "until": end - timedelta(days=1),
             "total_mad": sum(r["revenue_mad"] for r in rows),
@@ -242,7 +244,7 @@ TOOLS = {
         "roles": OWNER_AND_STAFF,
     },
     "get_revenue": {
-        "description": "Revenue in MAD from memberships sold in a period, with a breakdown by plan.",
+        "description": "Revenue in MAD: the money members paid in a period, with a breakdown by plan.",
         "parameters": {"type": "object",
                        "properties": {"period": {"type": "string",
                                                  "enum": ["this_month", "last_month", "this_year"]}},

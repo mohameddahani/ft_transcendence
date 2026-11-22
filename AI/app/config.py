@@ -11,7 +11,7 @@ JWT_SECRETS = {
 INTERNAL_API_KEY = os.environ["INTERNAL_API_KEY"]
 
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
-CHAT_MODEL = os.environ.get("GEMINI_CHAT_MODEL", "gemini-2.5-flash")
+CHAT_MODEL = os.environ.get("GEMINI_CHAT_MODEL", "gemini-3.5-flash-lite")
 EMBED_MODEL = os.environ.get("GEMINI_EMBED_MODEL", "gemini-embedding-001")
 
 # files on the /data volume

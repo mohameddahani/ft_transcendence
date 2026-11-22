@@ -86,32 +86,33 @@ def run(user: User, gym_name: str, question: str, history: list[dict]):
         system_instruction=PROMPT.format(gym=gym_name, who=WHO[user.role],
                                          today=date.today().strftime("%A %d %B %Y")),
         tools=[types.Tool(function_declarations=tools.tools_for(user.role))],
-        # a short think first: without it, long chats made the model copy old answers instead of calling a tool
-        thinking_config=types.ThinkingConfig(thinking_budget=512),
+        # think before answering: without it, long chats made the model copy old answers instead of calling a tool
+        thinking_config=types.ThinkingConfig(thinking_level="medium"),
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
 
     for _ in range(MAX_ROUNDS):
-        calls = []
+        turn = []  # the model's parts, kept as they are: they carry its thought signature
         for chunk in client.models.generate_content_stream(
                 model=config.CHAT_MODEL, contents=contents, config=settings):
-            if chunk.function_calls:  # the model asks for tools
-                calls += chunk.function_calls
-            elif chunk.text:          # the model writes its answer send each piece right away
-                yield {"type": "token", "text": chunk.text}
+            content = chunk.candidates[0].content if chunk.candidates else None
+            for part in (content.parts if content and content.parts else []):
+                turn.append(part)
+                if part.text and not part.thought:  # the model writes its answer: send each piece right away
+                    yield {"type": "token", "text": part.text}
 
+        calls = [part.function_call for part in turn if part.function_call]
         if not calls:
-            return  # the model wrote its answer done
+            return  # the model wrote its answer: done
 
-        # the model asked for tools: run each one
-        asked, answers = [], []
+        # the model asked for tools: run each one, and answer with the call's id and name
+        answers = []
         for call in calls:
             yield {"type": "tool", "name": call.name}
             result = tools.run_tool(call.name, dict(call.args or {}), user)
-            asked.append(types.Part(function_call=call))
-            answers.append(types.Part.from_function_response(
-                name=call.name, response={"result": json.dumps(result, default=str)}))
-        contents.append(types.Content(role="model", parts=asked))   # what the model asked
+            answers.append(types.Part(function_response=types.FunctionResponse(
+                id=call.id, name=call.name, response={"result": json.dumps(result, default=str)})))
+        contents.append(types.Content(role="model", parts=turn))    # what the model asked
         contents.append(types.Content(role="user", parts=answers))  # what the tools answered
 
     yield {"type": "token", "text": "Sorry, that needed too many steps. Please ask a simpler question."}
