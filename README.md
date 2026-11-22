@@ -70,7 +70,12 @@ Each club manages its own members, staff, memberships, schedules, and payments t
    ```bash
    ./setup-env
    ```
-   Each service has its own `.env`. This script copies each service's `.env.example` to `.env` when the `.env` does not exist yet. It never overwrites an existing `.env` and does not add missing variables to it. Open the created files and fill in any missing values before the next step. After pulling updates, compare your `.env` files with the `.env.example` files for new variables.
+   **You must run this script manually before `make up`.** Each service has its own `.env`. The script does three things:
+   - **Creates** each service's `.env` from its `.env.example` when the `.env` does not exist yet.
+   - **Generates secrets** (JWT secrets, cookie secret, database, Redis, and Grafana passwords, internal API keys) with random values, only where the value is empty.
+   - **Checks the values you must provide yourself.** It stops with an error and lists the required values that are still empty (for example the owner password, the Discord webhook URL, and the blockchain private keys). It only warns about optional values (for example the Gemini, email, and Cloudinary credentials), because the related features simply stay disabled until they are set.
+
+   The script never overwrites a value that is already set and does not add missing variables to an existing `.env`. It is safe to run again at any time. Even after the script has run, you are free to edit any value in the `.env` files. After pulling updates, compare your `.env` files with the `.env.example` files for new variables. Values shared between services (such as the database credentials) are defined once in `devops/.env`, and the connection URLs are built from them in `docker-compose.yml`.
 3. Start everything:
    ```bash
    make up
@@ -166,7 +171,9 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 - **Role-based access control** for members, staff, and facility admins (and platform owners), enforced by the backend on every request.
 - **Security best practices across the backend, the AI service, and DevOps.** Passwords and refresh tokens are stored hashed, and refresh tokens can be revoked. Secrets live in per-service `.env` files that are never committed. Internal services are not published to the host, and configuration files are mounted read-only.
-- **The AI service uses a read-only database role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
+- **Least-privilege database roles.** Besides the main database user, two dedicated roles exist, created automatically at startup by a one-shot container that runs the role scripts after the migrations:
+  - **The AI service has a read-only role** that can only select the tables and columns it needs. Password columns and QR token hashes are never exposed to it.
+  - **The blockchain part has its own role** limited to the rewards table. It can read, create, and update rows in `membership_rewards`, but cannot delete anything and cannot access any other table.
 
 **Containers**
 
@@ -183,22 +190,22 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 ```mermaid
 flowchart LR
-	Browser --> nginx
-	nginx --> frontend[Frontend / Owner platform<br/>Next.js]
-	frontend --> backend[Backend<br/>NestJS]
-	backend --> postgres[(PostgreSQL)]
-	backend --> redis[(Redis)]
-	backend --> blockchain[Blockchain API and relayer<br/>NestJS]
-	blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
-	backend --> ai[AI service<br/>Python]
-	ai --> postgres
-	nginx --> grafana[Grafana]
-	nginx --> gatus[Gatus status page]
-	prometheus[Prometheus] --> grafana
-	prometheus --> alertmanager[Alertmanager] --> discord[Discord]
-	gatus -->|alerts| discord
-	gatus -.->|health checks| nginx
-	backup[Backup service] --> postgres
+    Browser --> nginx
+    nginx --> frontend[Frontend / Owner platform<br/>Next.js]
+    frontend --> backend[Backend<br/>NestJS]
+    backend --> postgres[(PostgreSQL)]
+    backend --> redis[(Redis)]
+    backend --> blockchain[Blockchain API and relayer<br/>NestJS]
+    blockchain --> sepolia[Ethereum Sepolia<br/>smart contracts]
+    backend --> ai[AI service<br/>Python]
+    ai --> postgres
+    nginx --> grafana[Grafana]
+    nginx --> gatus[Gatus status page]
+    prometheus[Prometheus] --> grafana
+    prometheus --> alertmanager[Alertmanager] --> discord[Discord]
+    gatus -->|alerts| discord
+    gatus -.->|health checks| nginx
+    backup[Backup service] --> postgres
 ```
 
 ## Project Structure
@@ -319,8 +326,6 @@ The repository contains the club application, a separate Owner platform, the bac
 The database is PostgreSQL, managed through Prisma.
 
 ![Database schema](docs/assets/vibeschema-diagram.svg)
-
-[View the full-size diagram](docs/assets/vibeschema-diagram.svg)
 
 ### Tables
 
