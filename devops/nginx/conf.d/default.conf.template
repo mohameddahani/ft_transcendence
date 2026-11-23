@@ -16,10 +16,10 @@ server {
 	}
 
 	location /status {
-		return 302 https://status.${DOMAIN};
+		return 302 https://status.${DOMAIN}:${HTTPS_PORT};
 	}
 
 	location / {
-		return 301 https://$host$request_uri;
+		return 301 https://$host:${HTTPS_PORT}$request_uri;
 	}
 }
