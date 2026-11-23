@@ -61,7 +61,7 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 
 - Docker **28.5.2** (with Docker Compose v2)
 - `make`
-- Free ports 80 and 443 on your machine
+- Free ports 8080 and 8443 on your machine
 
 ### Setup and run
 
@@ -183,7 +183,7 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 **Network and caching**
 
-- **HTTP is redirected to HTTPS.** nginx redirects all traffic arriving on port 80 to port 443.
+- **HTTP is redirected to HTTPS.** nginx redirects all traffic arriving on port 8080 to port 8443.
 - **Redis is used as a cache** and is secured with `protected-mode yes` and a password.
 
 ## Architecture
