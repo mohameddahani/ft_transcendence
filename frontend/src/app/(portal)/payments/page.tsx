@@ -435,7 +435,7 @@ Thank you for training with ${companyName || "us"}!
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("paymentsSubtitle") ||
-                "Manage gym finances, transaction logs, and billing invoices."}
+                "Manage club finances, transaction logs, and billing invoices."}
             </p>
           </div>
 
@@ -466,150 +466,152 @@ Thank you for training with ${companyName || "us"}!
         </div>
       </Card>
 
-      {/* 3 Existing Stat Cards (Redesigned in Toota Dashboard Bento Style) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Card 1: Total Revenue (Collected) with Framer Motion Animated Counter */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("totalRevenue") || "Total Revenue"}
-            </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
-              <Wallet className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-green" />
-              ) : (
-                <div className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  <AnimatedRevenue value={totalCollected} />
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-toota-muted mt-2 flex items-center gap-1.5">
-              <TrendingUp className="size-3.5 text-toota-green" />
-              <span>{t("successfulTransactions") || "Successful transactions"}</span>
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-toota-green transition-all"
-                style={{ width: "100%" }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 2: Pending / Outstanding Total */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("pendingPayments") || "Pending Payments"}
-            </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
-              <Clock className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-amber-500" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} MAD
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span>
-                  {pendingCount} {t("pending") || "Pending"}
-                </span>
+      {/* 3 Existing Stat Cards (Redesigned in Toota Dashboard Bento Style) - Hidden for Staff */}
+      {role !== "Staff" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: Total Revenue (Collected) with Framer Motion Animated Counter */}
+          <Card className="toota-card border-none flex flex-col justify-between">
+            <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+                {t("totalRevenue") || "Total Revenue"}
               </span>
-            </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {pendingCount} {t("pending") || "pending invoices"}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-amber-500 transition-all"
-                style={{
-                  width: `${
-                    totalCollected + outstandingTotal > 0
-                      ? Math.min(
-                          100,
-                          Math.round(
-                            (outstandingTotal / (totalCollected + outstandingTotal)) * 100
-                          )
-                        )
-                      : 0
-                  }%`,
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card 3: Overdue / Failed Payments */}
-        <Card className="toota-card border-none flex flex-col justify-between">
-          <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
-            <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("failedPayments") || "Failed / Overdue"}
-            </span>
-            <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
-              <AlertTriangle className="size-5" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="flex items-baseline justify-between">
-              {isLoading ? (
-                <Loader2 className="size-7 animate-spin text-toota-red" />
-              ) : (
-                <span className="text-4xl font-semibold tracking-tight text-toota-ink">
-                  {overdueCount}
-                </span>
-              )}
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 ${
-                  overdueCount > 0
-                    ? "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400"
-                    : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs"
-                }`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full shrink-0 ${
-                    overdueCount > 0 ? "bg-rose-500" : "bg-emerald-500"
-                  }`}
+              <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-green">
+                <Wallet className="size-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="flex items-baseline justify-between">
+                {isLoading ? (
+                  <Loader2 className="size-7 animate-spin text-toota-green" />
+                ) : (
+                  <div className="text-4xl font-semibold tracking-tight text-toota-ink">
+                    <AnimatedRevenue value={totalCollected} />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-toota-muted mt-2 flex items-center gap-1.5">
+                <TrendingUp className="size-3.5 text-toota-green" />
+                <span>{t("successfulTransactions") || "Successful transactions"}</span>
+              </p>
+              <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-toota-green transition-all"
+                  style={{ width: "100%" }}
                 />
-                <span>
-                  {overdueCount > 0
-                    ? t("requiresAttention") || "Action needed"
-                    : t("allSettled") || "Settled"}
-                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Pending / Outstanding Total */}
+          <Card className="toota-card border-none flex flex-col justify-between">
+            <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+                {t("pendingPayments") || "Pending Payments"}
               </span>
-            </div>
-            <p className="text-xs text-toota-muted mt-2">
-              {overdueCount > 0
-                ? t("requiresAttention") || "Requires immediate attention"
-                : t("allSettled") || "All accounts settled"}
-            </p>
-            <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  overdueCount > 0 ? "bg-toota-red" : "bg-toota-muted"
-                }`}
-                style={{
-                  width: `${
-                    totalItems > 0
-                      ? Math.min(100, Math.round((overdueCount / totalItems) * 100))
-                      : 0
-                  }%`,
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-amber-500">
+                <Clock className="size-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="flex items-baseline justify-between">
+                {isLoading ? (
+                  <Loader2 className="size-7 animate-spin text-amber-500" />
+                ) : (
+                  <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                    {outstandingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} MAD
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span>
+                    {pendingCount} {t("pending") || "Pending"}
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-2">
+                {pendingCount} {t("pending") || "pending invoices"}
+              </p>
+              <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-500 transition-all"
+                  style={{
+                    width: `${
+                      totalCollected + outstandingTotal > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (outstandingTotal / (totalCollected + outstandingTotal)) * 100
+                            )
+                          )
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 3: Overdue / Failed Payments */}
+          <Card className="toota-card border-none flex flex-col justify-between">
+            <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
+                {t("failedPayments") || "Failed / Overdue"}
+              </span>
+              <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-red">
+                <AlertTriangle className="size-5" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="flex items-baseline justify-between">
+                {isLoading ? (
+                  <Loader2 className="size-7 animate-spin text-toota-red" />
+                ) : (
+                  <span className="text-4xl font-semibold tracking-tight text-toota-ink">
+                    {overdueCount}
+                  </span>
+                )}
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-mono font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 ${
+                    overdueCount > 0
+                      ? "bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400"
+                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                      overdueCount > 0 ? "bg-rose-500" : "bg-emerald-500"
+                    }`}
+                  />
+                  <span>
+                    {overdueCount > 0
+                      ? t("requiresAttention") || "Action needed"
+                      : t("allSettled") || "Settled"}
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-toota-muted mt-2">
+                {overdueCount > 0
+                  ? t("requiresAttention") || "Requires immediate attention"
+                  : t("allSettled") || "All accounts settled"}
+              </p>
+              <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    overdueCount > 0 ? "bg-toota-red" : "bg-toota-muted"
+                  }`}
+                  style={{
+                    width: `${
+                      totalItems > 0
+                        ? Math.min(100, Math.round((overdueCount / totalItems) * 100))
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Search Input & Date Filters Card */}
       <Card className="toota-card border-none p-4 sm:p-5">

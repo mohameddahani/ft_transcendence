@@ -16,17 +16,17 @@ const faqItems = [
   {
     value: "who-is-it-for",
     question: `Which sports organizations can use ${saasName}?`,
-    answer: `${saasName} serves gyms, martial arts schools, swimming clubs, football clubs, running clubs, and other sports facilities. It brings together member management, membership plans, schedules, QR check-ins, payment records, staff access, and an AI assistant in one platform.`,
+    answer: `${saasName} serves sports clubs, fitness clubs, martial arts schools, swimming clubs, football clubs, running clubs, and other sports facilities. It brings together member management, membership plans, schedules, QR check-ins, payment records, staff access, and an AI assistant in one platform.`,
   },
   {
     value: "qr-checkin",
     question: "How do QR passes and front-desk check-ins work?",
-    answer: "Members book upcoming visits on their phone within verified gym opening hours and display their pass. At the front desk, staff scan the QR code using any camera-enabled device (phone, tablet, or laptop). If camera access is unavailable, staff can execute a manual check-in by member ID.",
+    answer: "Members book upcoming visits on their phone within verified club opening hours and display their pass. At the front desk, staff scan the QR code using any camera-enabled device (phone, tablet, or laptop). If camera access is unavailable, staff can execute a manual check-in by member ID.",
   },
   {
     value: "subscriptions-vs-memberships",
-    question: "What is the difference between platform subscriptions and gym memberships?",
-    answer: "Platform subscriptions are SaaS plans that your sports organization subscribes to, covering your software access and total member capacity. Gym memberships are the plans you create for your members (such as monthly or quarterly packages with specific weekly visit allowances).",
+    question: "What is the difference between platform subscriptions and club memberships?",
+    answer: "Platform subscriptions are SaaS plans that your sports organization subscribes to, covering your software access and total member capacity. Club memberships are the plans you create for your members (such as monthly or quarterly packages with specific weekly visit allowances).",
   },
   {
     value: "hours-and-closures",

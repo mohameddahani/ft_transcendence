@@ -142,7 +142,7 @@ export function SalesTab({
         <EmptyState
           icon={<PackageCheck className="size-6 text-zinc-500 dark:text-zinc-400" />}
           title={t("noSalesYet") || "No sales yet"}
-          body={t("noSalesYetBody") || "Customer orders for your gym products will appear here once purchases are made on-chain."}
+          body={t("noSalesYetBody") || "Customer orders for your club products will appear here once purchases are made on-chain."}
         />
       )}
     </TabsContent>

@@ -290,7 +290,7 @@ export default function SportiumSubscriptionPage() {
     <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Overview & Action Header Card */}
       <Card className="toota-card border-none">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-baseline gap-2">
               <h1 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -313,7 +313,7 @@ export default function SportiumSubscriptionPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
             <Button
               type="button"
               variant="outline"
@@ -387,49 +387,55 @@ export default function SportiumSubscriptionPage() {
             {/* Metrics Quad: 4 Real Pillars */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Metric 1: Capacity Limit */}
-              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-toota-muted">
-                  <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("memberCapacityQuota") || "Member Capacity"}
-                  </span>
-                  <Users className="size-4 text-toota-ink" />
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs text-toota-muted">
+                    <span className="font-semibold uppercase tracking-wider text-[11px]">
+                      {t("memberCapacityQuota") || "Member Capacity"}
+                    </span>
+                    <Users className="size-4 text-toota-ink" />
+                  </div>
+                  <div className="text-2xl font-bold tracking-tight text-toota-ink mt-1">
+                    {maxCapacity}
+                    <span className="text-xs font-normal text-toota-muted ms-1.5">
+                      {t("maxMembersQuota", "Max Members")}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold tracking-tight text-toota-ink">
-                  {maxCapacity}
-                  <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    {t("maxMembersQuota", "Max Members")}
-                  </span>
+                <div className="space-y-1.5 mt-2">
+                  {/* Visual meter bar */}
+                  <div className="w-full bg-border/40 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-toota-ink h-full rounded-full transition-all"
+                      style={{ width: `${capacityPercent}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-toota-muted flex items-center justify-between">
+                    <span>{t("registeredLabel", "Registered:")} <strong className="text-toota-ink font-semibold">{memberCount}</strong></span>
+                    <span className="text-toota-ink font-semibold">
+                      {slotsLeft} {t("slotsRemaining", "slots left")}
+                    </span>
+                  </p>
                 </div>
-                {/* Visual meter bar */}
-                <div className="w-full bg-border/40 h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-toota-ink h-full rounded-full transition-all"
-                    style={{ width: `${capacityPercent}%` }}
-                  />
-                </div>
-                <p className="text-[11px] text-toota-muted flex items-center justify-between">
-                  <span>{t("registeredLabel", "Registered:")} <strong className="text-toota-ink font-semibold">{memberCount}</strong></span>
-                  <span className="text-toota-ink font-semibold">
-                    {slotsLeft} {t("slotsRemaining", "slots left")}
-                  </span>
-                </p>
               </div>
 
               {/* Metric 2: Plan Price & Cycle */}
-              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-toota-muted">
-                  <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("planPrice", "Plan Investment")}
-                  </span>
-                  <CreditCard className="size-4 text-toota-green" />
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs text-toota-muted">
+                    <span className="font-semibold uppercase tracking-wider text-[11px]">
+                      {t("planPrice", "Plan Investment")}
+                    </span>
+                    <CreditCard className="size-4 text-toota-green" />
+                  </div>
+                  <div className="text-2xl font-bold tracking-tight text-toota-ink mt-1">
+                    {subAmount.toFixed(2)} MAD
+                    <span className="text-xs font-normal text-toota-muted ms-1.5">
+                      / {cycleDays} {t("days", "days")}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold tracking-tight text-toota-ink">
-                  {subAmount.toFixed(2)} MAD
-                  <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    / {cycleDays} {t("days", "days")}
-                  </span>
-                </div>
-                <div className="text-[11px] text-toota-muted flex items-center gap-1.5">
+                <div className="text-[11px] text-toota-muted flex items-center gap-1.5 mt-2">
                   <span className="size-1.5 rounded-full bg-toota-green" />
                   <span>
                     ≈ {dailyRate} MAD/{t("dayLicense", "day license")}
@@ -438,24 +444,26 @@ export default function SportiumSubscriptionPage() {
               </div>
 
               {/* Metric 3: Active Window */}
-              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2">
-                <div className="flex items-center justify-between text-xs text-toota-muted">
-                  <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("billingPeriod", "Billing Window")}
-                  </span>
-                  <Calendar className="size-4 text-toota-ink" />
+              <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs text-toota-muted">
+                    <span className="font-semibold uppercase tracking-wider text-[11px]">
+                      {t("billingPeriod", "Billing Window")}
+                    </span>
+                    <Calendar className="size-4 text-toota-ink" />
+                  </div>
+                  <div className="text-sm font-semibold text-toota-ink mt-1 break-words">
+                    {expiryAnalysis?.startDate} → {expiryAnalysis?.formattedExpiry}
+                  </div>
                 </div>
-                <div className="text-sm font-semibold text-toota-ink">
-                  {expiryAnalysis?.startDate} → {expiryAnalysis?.formattedExpiry}
-                </div>
-                <div className="text-[11px] text-toota-muted">
+                <div className="text-[11px] text-toota-muted mt-2">
                   {t("durationCycle", "Duration: {{days}} Days Cycle", { days: cycleDays })}
                 </div>
               </div>
 
               {/* Metric 4: Days Remaining / Renewal Countdown */}
               <div
-                className={`p-4 rounded-2xl border space-y-2 ${
+                className={`p-4 rounded-2xl border space-y-2 flex flex-col justify-between ${
                   expiryAnalysis?.isExpired
                     ? "bg-toota-red/10 border-toota-red/30"
                     : expiryAnalysis?.isExpiringSoon
@@ -463,27 +471,29 @@ export default function SportiumSubscriptionPage() {
                     : "bg-toota-inner border-border/40"
                 }`}
               >
-                <div className="flex items-center justify-between text-xs text-toota-muted">
-                  <span className="font-semibold uppercase tracking-wider text-[11px]">
-                    {t("renewingIn") || "Renewal Timeline"}
-                  </span>
-                  <Clock
-                    className={`size-4 ${
-                      expiryAnalysis?.isExpired
-                        ? "text-toota-red"
-                        : expiryAnalysis?.isExpiringSoon
-                        ? "text-amber-500"
-                        : "text-toota-ink"
-                    }`}
-                  />
+                <div>
+                  <div className="flex items-center justify-between text-xs text-toota-muted">
+                    <span className="font-semibold uppercase tracking-wider text-[11px]">
+                      {t("renewingIn") || "Renewal Timeline"}
+                    </span>
+                    <Clock
+                      className={`size-4 ${
+                        expiryAnalysis?.isExpired
+                          ? "text-toota-red"
+                          : expiryAnalysis?.isExpiringSoon
+                          ? "text-amber-500"
+                          : "text-toota-ink"
+                      }`}
+                    />
+                  </div>
+                  <div className="text-2xl font-bold tracking-tight text-toota-ink mt-1">
+                    {expiryAnalysis?.daysLeft ?? 0}
+                    <span className="text-xs font-normal text-toota-muted ms-1.5">
+                      {t("durationDaysCount", "Days Remaining")}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold tracking-tight text-toota-ink">
-                  {expiryAnalysis?.daysLeft ?? 0}
-                  <span className="text-xs font-normal text-toota-muted ms-1.5">
-                    {t("durationDaysCount", "Days Remaining")}
-                  </span>
-                </div>
-                <p className="text-[11px] text-toota-muted">
+                <p className="text-[11px] text-toota-muted mt-2">
                   {expiryAnalysis?.isExpired
                     ? t("licenseExpiredAlert", "⚠️ License expired. Upgrade or renew to continue full access.")
                     : expiryAnalysis?.isExpiringSoon
@@ -539,7 +549,7 @@ export default function SportiumSubscriptionPage() {
             </h2>
             <p className="text-xs sm:text-sm text-toota-muted mt-1.5 leading-relaxed">
               {t("noActiveLicenseDesc") ||
-                "Your gym currently does not have an active Sportium platform license. Contact your platform administrator to activate your plan."}
+                "Your club currently does not have an active Sportium platform license. Contact your platform administrator to activate your plan."}
             </p>
           </div>
           <Button
@@ -559,7 +569,7 @@ export default function SportiumSubscriptionPage() {
       <div className="space-y-4">
         {/* History Table Card */}
         <Card className="toota-card border-none p-0 overflow-hidden">
-          <CardHeader className="p-6 pb-4 flex flex-row items-center justify-between border-b border-border/40 flex-wrap gap-3">
+          <CardHeader className="p-4 sm:p-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/40 gap-3">
             <div className="flex items-baseline gap-2">
               <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 {t("subscriptionHistory") || "Billing & Subscription History"}
@@ -728,10 +738,10 @@ export default function SportiumSubscriptionPage() {
       {/* ========================================================================= */}
       {/* ENTERPRISE TRUST & CONTINUITY RIBBON                                      */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        <Card className="toota-card border-none p-4 space-y-1.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+        <Card className="toota-card border-none p-4 space-y-1.5 flex flex-col justify-between">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
-            <CheckCircle2 className="size-4 text-toota-green" />
+            <CheckCircle2 className="size-4 text-toota-green shrink-0" />
             <span>{t("continuousCachingTitle", "Continuous Local Caching")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
@@ -739,19 +749,19 @@ export default function SportiumSubscriptionPage() {
           </p>
         </Card>
 
-        <Card className="toota-card border-none p-4 space-y-1.5">
+        <Card className="toota-card border-none p-4 space-y-1.5 flex flex-col justify-between">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
-            <ShieldCheck className="size-4 text-toota-ink" />
+            <ShieldCheck className="size-4 text-toota-ink shrink-0" />
             <span>{t("tenantIsolationTitle", "Strict Tenant Isolation")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
-            {t("tenantIsolationDesc", "Your gym member database, financial records, and staff credentials reside in dedicated isolated data partitions.")}
+            {t("tenantIsolationDesc", "Your club member database, financial records, and staff credentials reside in dedicated isolated data partitions.")}
           </p>
         </Card>
 
-        <Card className="toota-card border-none p-4 space-y-1.5">
+        <Card className="toota-card border-none p-4 space-y-1.5 flex flex-col justify-between md:col-span-2 lg:col-span-1">
           <div className="flex items-center gap-2 text-toota-ink font-semibold text-xs uppercase tracking-wider">
-            <Headphones className="size-4 text-toota-ink" />
+            <Headphones className="size-4 text-toota-ink shrink-0" />
             <span>{t("platformConciergeTitle", "Dedicated Platform Concierge")}</span>
           </div>
           <p className="text-xs text-toota-muted leading-relaxed">
@@ -822,7 +832,7 @@ export default function SportiumSubscriptionPage() {
                 <strong>{t("needQuotaExtension", "Need immediate quota extension?")}</strong>{" "}
                 {t("reachOutSupport", "Reach out to your account executive or email")}{" "}
                 <span className="font-mono font-semibold underline">support@sportium.io</span>{" "}
-                {t("withGymId", "with your Gym ID.")}
+                {t("withGymId", "with your Club ID.")}
               </div>
             </div>
 

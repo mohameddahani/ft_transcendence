@@ -53,7 +53,7 @@ export function MarketplaceTab({
           </h2>
           <p className="text-xs text-toota-muted mt-0.5">
             {t("browseVerifiedItems", { symbol: tokenSymbol }) ||
-              `Browse verified items from gym merchants and purchase gasless with ${tokenSymbol} tokens.`}
+              `Browse verified items from club merchants and purchase gasless with ${tokenSymbol} tokens.`}
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export function MarketplaceTab({
               ? t("noProductsFoundMerchant", { address: shorten(marketAddress.trim()) }) ||
                 `No inventory items are registered on-chain for merchant ${shorten(marketAddress.trim())}. Try searching another merchant wallet address.`
               : account
-                ? t("enterMerchantAddress") || "Enter a gym merchant wallet address above to explore their products."
+                ? t("enterMerchantAddress") || "Enter a club merchant wallet address above to explore their products."
                 : t("connectWalletToExplore") || "Connect your Web3 wallet or enter a merchant address to explore available products."
           }
         />

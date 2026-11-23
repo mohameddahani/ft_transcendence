@@ -179,7 +179,7 @@ export default function MarketplaceMemberView() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("availableFromMerchant") || "Available from current gym merchant"}
+              {t("availableFromMerchant") || "Available from current club merchant"}
             </p>
           </CardContent>
         </Card>

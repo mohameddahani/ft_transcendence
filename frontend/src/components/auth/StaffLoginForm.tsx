@@ -106,7 +106,7 @@ export default function StaffLoginForm() {
       <PortalBadge icon={<UserCheck className="size-3.5" aria-hidden="true" />} label={t("staffPortal", "Staff Portal")} />
       <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">{t("staffSignIn", "Staff Sign In")}</h1>
       <p className={`mt-2 text-sm leading-6 ${muted}`}>
-        {t("staffLoginSubtitle", "Enter your staff credentials assigned by your gym administrator.")}
+        {t("staffLoginSubtitle", "Enter your staff credentials assigned by your club administrator.")}
       </p>
 
       {/* Form */}

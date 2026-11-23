@@ -450,7 +450,7 @@ export default function StaffsPage() {
             </div>
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t("staffSubtitle") ||
-                "Manage gym staff, assign operational roles, and oversee staff roster."}
+                "Manage club staff, assign operational roles, and oversee staff roster."}
             </p>
           </div>
 

@@ -211,7 +211,7 @@ export default function SideBar({
               className={getPillClasses(isRouteActive("/operating-hours"))}
             >
               <Clock className="w-4 h-4 shrink-0" />
-              <span className="truncate">{t("navOpeningHours") || "Gym hours"}</span>
+              <span className="truncate">{t("navOpeningHours") || "Club hours"}</span>
             </Link>
 
             <Link

@@ -60,7 +60,7 @@ const previewTabs = [
       "Get quick answers from your club's own data instead of digging through lists and filters.",
     image: "/preview/ai-assistant-light.png",
     imageDark: "/preview/ai-assistant-dark.png",
-    alt: "Sportium AI assistant answering how the gym is doing today",
+    alt: "Sportium AI assistant answering how the club is doing today",
     highlights: [
       "Memberships expiring soon",
       "Members who haven't visited recently",

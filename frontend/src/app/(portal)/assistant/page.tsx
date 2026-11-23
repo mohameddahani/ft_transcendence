@@ -324,7 +324,7 @@ export default function AssistantPage() {
 
   // Role initialized as null to prevent flashing
   const [role, setRole] = useState<Role | null>(null);
-  const [gymName, setGymName] = useState<string>("Gym");
+  const [gymName, setGymName] = useState<string>("Club");
   const [loadingMe, setLoadingMe] = useState(true);
   const [isAiConnected, setIsAiConnected] = useState<boolean | null>(null);
   const [accessMessage, setAccessMessage] = useState<string | null>(null);
@@ -484,7 +484,7 @@ export default function AssistantPage() {
   const getToolLabel = (toolName: string) => {
     switch (toolName) {
       case "gym_overview":
-        return t("tool_gym_overview") || "Querying gym overview";
+        return t("tool_gym_overview") || "Querying club overview";
       case "list_expiring_memberships":
         return (
           t("tool_list_expiring_memberships") || "Checking expiring memberships"
@@ -498,7 +498,7 @@ export default function AssistantPage() {
       case "list_feedback":
         return t("tool_list_feedback") || "Retrieving member feedback";
       case "search_documents":
-        return t("tool_search_documents") || "Consulting gym documents";
+        return t("tool_search_documents") || "Consulting club documents";
       case "my_membership":
         return t("tool_my_membership") || "Checking membership status";
       case "my_payments":
@@ -807,7 +807,7 @@ export default function AssistantPage() {
           icon: Activity,
           items: [
             {
-              title: t("suggestion1_admin") || "How is the gym doing today?",
+              title: t("suggestion1_admin") || "How is the club doing today?",
               subtitle: t("subHowGymDoing") || "Real-time member status and today's check-ins",
               icon: Building2,
             },
@@ -832,7 +832,7 @@ export default function AssistantPage() {
               title:
                 t("suggestion4_admin") ||
                 "How many days notice do members need to cancel?",
-              subtitle: t("subCancellationDays") || "Extracted from gym policy documents",
+              subtitle: t("subCancellationDays") || "Extracted from club policy documents",
               icon: BookOpen,
             },
           ],
@@ -927,18 +927,18 @@ export default function AssistantPage() {
     if (role === "ADMIN") {
       return (
         t("askPlaceholderAdmin") ||
-        "Ask about gym members, expiring memberships, revenue, or documents..."
+        "Ask about club members, expiring memberships, revenue, or documents..."
       );
     }
     if (role === "STAFF") {
       return (
         t("askPlaceholderStaff") ||
-        "Ask about gym members, expiring memberships, or documents..."
+        "Ask about club members, expiring memberships, or documents..."
       );
     }
     return (
       t("askPlaceholderMember") ||
-      "Ask about your membership, visits, payments, or gym rules..."
+      "Ask about your membership, visits, payments, or club rules..."
     );
   }, [role, t]);
 
@@ -1005,7 +1005,7 @@ export default function AssistantPage() {
             >
               {t(
                 "assistantSubtitle",
-                "Instant gym intelligence, operational lookups, and member support powered by Gemini."
+                "Instant club intelligence, operational lookups, and member support powered by Gemini."
               )}
             </p>
             </div>
@@ -1253,7 +1253,7 @@ export default function AssistantPage() {
                     ? "Query membership rosters, upcoming expirations, monthly revenues, or club documents."
                     : role === "STAFF"
                     ? "Lookup member check-in history, verify active memberships, or review reception desk protocols."
-                    : "Check your membership status, past visits, billing history, and gym policies."}
+                    : "Check your membership status, past visits, billing history, and club policies."}
                 </p>
 
                 {/* 2x2 Launchpad Grid */}
