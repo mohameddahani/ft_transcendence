@@ -61,7 +61,7 @@ export default function MemberFeedbackDetailModal({
   const memberName =
     `${detail.member?.firstName || ""} ${detail.member?.lastName || ""}`.trim() ||
     detail.member?.userName ||
-    "Gym Member";
+    "Club Member";
   const initials =
     ((detail.member?.firstName?.[0] || "") + (detail.member?.lastName?.[0] || "")).toUpperCase() ||
     detail.member?.userName?.slice(0, 2).toUpperCase() ||
@@ -198,7 +198,7 @@ export default function MemberFeedbackDetailModal({
               <div className="p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   <ShieldCheck className="size-3.5 shrink-0" />
-                  <span>Gym Management</span>
+                  <span>Club Management</span>
                   {detail.resolvedAt && (
                     <span className="text-[11px] text-toota-muted font-normal font-mono ms-auto">
                       {new Date(detail.resolvedAt).toLocaleDateString()}

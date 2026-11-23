@@ -160,7 +160,7 @@ function AdminStaffDashboardView() {
       const name =
         `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
         member?.userName ||
-        "Gym Member";
+        "Club Member";
       const initials =
         (member?.firstName?.[0] || "") + (member?.lastName?.[0] || "") ||
         (member?.userName?.[0] ? member.userName[0].toUpperCase() : "M");
@@ -380,7 +380,7 @@ function AdminStaffDashboardView() {
               )}
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("registeredInGym") || "Registered gym members"}
+              {t("registeredInGym") || "Registered club members"}
             </p>
           </CardContent>
         </Card>
@@ -484,7 +484,7 @@ function AdminStaffDashboardView() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("availablePlansHint", "Available gym membership plans")}
+              {t("availablePlansHint", "Available club membership plans")}
             </p>
           </CardContent>
         </Card>

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { QRCodeSVG } from "qrcode.react";
 import {
   X,
   Calendar,
@@ -11,13 +12,12 @@ import {
   AlertCircle,
   QrCode,
   CheckCircle2,
-  Copy,
-  Check,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
 import { bookVisitSchema, BookVisitFormValues } from "@/schemas/visits";
 import { createMemberVisit } from "@/lib/api/member-portal";
+import { saveVisitPass } from "@/lib/visit-pass";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -35,7 +35,6 @@ export default function BookVisitModal({
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
-  const [isCopied, setIsCopied] = useState(false);
 
   // Set default minimum date-time to now + 15 minutes in local ISO string for datetime-local
   const getMinDateTime = () => {
@@ -61,7 +60,6 @@ export default function BookVisitModal({
   const handleModalClose = () => {
     reset();
     setCreatedToken(null);
-    setIsCopied(false);
     onClose();
   };
 
@@ -70,11 +68,12 @@ export default function BookVisitModal({
     try {
       const isoDate = new Date(values.visitDateAndTime).toISOString();
       const res = await createMemberVisit(isoDate);
-      toast.success(t("visitBookedSuccessfully", "Gym visit booked successfully!"), {
+      toast.success(t("visitBookedSuccessfully", "Club visit booked successfully!"), {
         position: "top-right",
       });
       if (res?.rawToken) {
         setCreatedToken(res.rawToken);
+        saveVisitPass({ token: res.rawToken, visitDateAndTime: isoDate });
       }
       onSuccess();
       if (!res?.rawToken) {
@@ -84,23 +83,13 @@ export default function BookVisitModal({
       const msg =
         err && typeof err === "object" && "response" in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-          : "Failed to book gym visit";
+          : "Failed to book club visit";
       toast.error(msg || "Failed to book visit", {
         position: "top-right",
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleCopyToken = () => {
-    if (!createdToken) return;
-    navigator.clipboard.writeText(createdToken);
-    setIsCopied(true);
-    toast.info(t("tokenCopied", "Pass token copied to clipboard!"), {
-      position: "top-right",
-    });
-    setTimeout(() => setIsCopied(false), 2000);
   };
 
   return (
@@ -120,7 +109,7 @@ export default function BookVisitModal({
         </button>
 
         {createdToken ? (
-          /* Confirmation & Token View */
+          /* Confirmation & QR Pass View */
           <div className="space-y-6 text-center py-2">
             <div className="size-16 rounded-3xl bg-toota-inner text-toota-green flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="size-8" />
@@ -139,30 +128,37 @@ export default function BookVisitModal({
               >
                 {t(
                   "visitConfirmedHint",
-                  "Your gym visit has been reserved. You can present this code at check-in or show your active membership."
+                  "Your club visit has been reserved. Present this QR code to the front desk scanner upon arrival."
                 )}
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-toota-inner border border-border/40 space-y-3">
-              <div className="flex items-center justify-between text-xs font-semibold text-toota-muted">
-                <span className="flex items-center gap-1.5 text-toota-ink">
-                  <QrCode className="size-4 text-toota-muted" />
-                  <span suppressHydrationWarning>{t("checkInPassCode", "Check-In Pass Token")}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyToken}
-                  className="flex items-center gap-1 text-xs text-primary font-bold hover:underline cursor-pointer"
-                >
-                  {isCopied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
-                  <span suppressHydrationWarning>{isCopied ? t("copied", "Copied") : t("copy", "Copy")}</span>
-                </button>
+            {/* QR Code Pass Card */}
+            <div className="p-5 rounded-2xl bg-toota-inner border border-border/40 space-y-4">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-toota-ink">
+                <QrCode className="size-4 text-toota-muted" />
+                <span suppressHydrationWarning>{t("checkInQrPass", "Club Check-In Pass")}</span>
               </div>
 
-              <div className="p-3 bg-card rounded-xl font-mono text-xs text-toota-ink font-bold break-all select-all border border-border/40">
-                {createdToken}
+              <div className="inline-block p-4 bg-white rounded-2xl shadow-sm border border-zinc-200/80 dark:border-zinc-700/50">
+                <QRCodeSVG
+                  value={createdToken}
+                  size={192}
+                  level="H"
+                  includeMargin={false}
+                  className="w-44 h-44 sm:w-48 sm:h-48"
+                />
               </div>
+
+              <p
+                suppressHydrationWarning
+                className="text-xs text-toota-muted max-w-xs mx-auto leading-relaxed"
+              >
+                {t(
+                  "qrPassNotice",
+                  "Valid for your scheduled visit. Available until check-in."
+                )}
+              </p>
             </div>
 
             <Button
@@ -185,7 +181,7 @@ export default function BookVisitModal({
                   suppressHydrationWarning
                   className="text-lg font-bold tracking-tight text-toota-ink"
                 >
-                  {t("bookVisitTitle", "Schedule Gym Visit")}
+                  {t("bookVisitTitle", "Schedule Club Visit")}
                 </h2>
                 <p
                   suppressHydrationWarning

@@ -468,7 +468,7 @@ export default function StaffDetailPage() {
                     {t("memberManagement") || "Member Directory"}
                   </p>
                   <p className="text-[11px] text-toota-muted">
-                    {t("memberManagementDesc") || "Lookup, onboard, and assist gym members."}
+                    {t("memberManagementDesc") || "Lookup, onboard, and assist club members."}
                   </p>
                 </div>
 

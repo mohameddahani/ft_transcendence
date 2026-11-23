@@ -47,7 +47,7 @@ const RATING_DESCRIPTIONS: Record<
 };
 
 const SUGGESTED_TOPICS = [
-  "Gym Cleanliness",
+  "Club Cleanliness",
   "Equipment Availability",
   "Locker Rooms",
   "Trainer Support",
@@ -308,7 +308,7 @@ export default function CreateFeedbackModal({
               onChange={(e) => setContent(e.target.value)}
               placeholder={
                 t("feedbackPlaceholder") ||
-                "Describe what went well during your visit, cleanliness, workout equipment, or suggestions for the gym staff..."
+                "Describe what went well during your visit, cleanliness, workout equipment, or suggestions for the club staff..."
               }
               className="w-full px-3.5 py-2.5 rounded-xl bg-toota-inner border border-border/40 text-toota-ink placeholder:text-toota-muted focus:outline-hidden focus:ring-1 focus:ring-zinc-400 text-xs leading-relaxed transition-all resize-none"
             />

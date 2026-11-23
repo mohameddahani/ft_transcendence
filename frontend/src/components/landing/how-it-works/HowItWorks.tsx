@@ -18,7 +18,7 @@ const onboardingSteps = [
     badge: "Admin setup",
     title: "Register your club",
     description:
-      "Create your gym administrator account with your organization name, email, phone number, and secure password via public registration.",
+      "Create your club administrator account with your organization name, email, phone number, and secure password via public registration.",
     icon: ShieldCheck,
     details: [
       "Sets up your dedicated club workspace",

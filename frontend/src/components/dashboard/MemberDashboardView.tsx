@@ -17,6 +17,7 @@ import {
   X,
   Sparkles,
   Info,
+  QrCode,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -46,6 +47,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import BookVisitModal from "@/components/visits/BookVisitModal";
+import VisitPassModal from "@/components/visits/VisitPassModal";
+import {
+  getVisitPassToken,
+  syncVisitsWithPasses,
+  removeVisitPass,
+} from "@/lib/visit-pass";
 
 export default function MemberDashboardView() {
   const { t } = useTranslation();
@@ -59,6 +66,17 @@ export default function MemberDashboardView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [cancellingVisitId, setCancellingVisitId] = useState<string | null>(null);
+
+  // QR Pass Modal State
+  const [passModalState, setPassModalState] = useState<{
+    isOpen: boolean;
+    token: string | null;
+    visitDateAndTime?: string;
+    planName?: string;
+  }>({
+    isOpen: false,
+    token: null,
+  });
 
   const loadData = async () => {
     setIsLoading(true);
@@ -85,6 +103,7 @@ export default function MemberDashboardView() {
       setTodayVisits(tv);
       setAttendances(att);
       setWorkingHours(wh);
+      syncVisitsWithPasses([...uv, ...tv]);
     } catch {
       // Fail gracefully
     } finally {
@@ -95,6 +114,22 @@ export default function MemberDashboardView() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Open QR Code Pass
+  const handleOpenPassModal = (visit: MemberVisit) => {
+    const token = getVisitPassToken({
+      visitId: visit.id,
+      visitDateAndTime: visit.visitDateAndTime,
+    });
+    setPassModalState({
+      isOpen: true,
+      token,
+      visitDateAndTime: visit.visitDateAndTime,
+      planName:
+        visit.membership?.membershipPlan?.planName ||
+        membership?.membershipPlan?.planName,
+    });
+  };
 
   // Today's day index: 0=Sun -> 7, 1=Mon, ..., 6=Sat
   const todayDayIndex = (() => {
@@ -140,6 +175,7 @@ export default function MemberDashboardView() {
     setCancellingVisitId(visitId);
     try {
       await cancelMemberVisit(visitId);
+      removeVisitPass({ visitId });
       toast.success(t("visitCancelledSuccessfully") || "Visit successfully cancelled.", {
         position: "top-right",
       });
@@ -236,7 +272,7 @@ export default function MemberDashboardView() {
               </div>
               <p className="text-xs sm:text-sm text-toota-muted font-normal">
                 {t("memberDashboardSubtitle") ||
-                  "Here is an overview of your active membership, workout schedule, and gym hours."}
+                  "Here is an overview of your active membership, workout schedule, and club hours."}
               </p>
             </div>
           </div>
@@ -370,7 +406,7 @@ export default function MemberDashboardView() {
         <Card className="toota-card border-none flex flex-col justify-between">
           <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between space-y-0">
             <span className="text-xs font-semibold uppercase tracking-wider text-toota-muted">
-              {t("todayGymHours") || "Today's Gym Hours"}
+              {t("todayGymHours") || "Today's Club Hours"}
             </span>
             <div className="size-10 rounded-full bg-toota-inner flex items-center justify-center text-toota-ink">
               <Clock className="size-5" />
@@ -511,7 +547,7 @@ export default function MemberDashboardView() {
                   </div>
                   <p className="text-xs text-toota-muted mt-1.5">
                     {membership.membershipPlan.description ||
-                      "Full gym facility access subscription plan."}
+                      "Full club facility access subscription plan."}
                   </p>
                 </div>
 
@@ -547,7 +583,7 @@ export default function MemberDashboardView() {
                 </div>
 
                 {/* Today's Workout Alert Banner if a visit is scheduled today */}
-                {todayVisits.length > 0 && (
+                {todayVisits.length > 0 && todayVisits[0].visitStatus === "READY" && (
                   <div className="p-3.5 rounded-xl bg-toota-inner border border-emerald-500/30 flex items-center justify-between gap-3 mt-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CheckCircle2 className="size-4 text-toota-green shrink-0" />
@@ -555,9 +591,17 @@ export default function MemberDashboardView() {
                         Workout pass scheduled today for {formatFriendlyTime(todayVisits[0].visitDateAndTime)}
                       </span>
                     </div>
-                    <span className="font-mono text-xs font-semibold text-toota-green shrink-0">
-                      Ready for check-in
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleOpenPassModal(todayVisits[0])}
+                        className="toota-pill h-7 px-3 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs shrink-0"
+                      >
+                        <QrCode className="size-3 me-1" />
+                        <span suppressHydrationWarning>{t("qrPass", "QR Pass")}</span>
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -619,6 +663,18 @@ export default function MemberDashboardView() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        {visit.visitStatus === "READY" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenPassModal(visit)}
+                            className="toota-pill h-7 px-2.5 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+                          >
+                            <QrCode className="size-3 me-1" />
+                            <span suppressHydrationWarning>{t("qrPass", "QR Pass")}</span>
+                          </Button>
+                        )}
+
                         <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                           <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                           <span>Scheduled</span>
@@ -719,7 +775,7 @@ export default function MemberDashboardView() {
                 <Clock className="size-5" />
               </div>
               <h3 className="font-semibold text-sm text-toota-ink group-hover:underline">
-                {t("navOpeningHours") || "Gym Hours"}
+                {t("navOpeningHours") || "Club Hours"}
               </h3>
               <p className="text-[11px] text-toota-muted mt-0.5">
                 {todayHours && !todayHours.isClosed
@@ -766,7 +822,7 @@ export default function MemberDashboardView() {
                 {t("navFeedback") || "Feedback"}
               </h3>
               <p className="text-[11px] text-toota-muted mt-0.5">
-                {t("feedbackCardDesc") || "Share gym thoughts & suggestions"}
+                {t("feedbackCardDesc") || "Share club thoughts & suggestions"}
               </p>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-semibold text-toota-ink mt-4 pt-3 border-t border-border/30">
@@ -851,6 +907,15 @@ export default function MemberDashboardView() {
           loadData();
           setIsBookModalOpen(false);
         }}
+      />
+
+      {/* 7. QR Code Pass Modal */}
+      <VisitPassModal
+        isOpen={passModalState.isOpen}
+        onClose={() => setPassModalState((prev) => ({ ...prev, isOpen: false }))}
+        token={passModalState.token}
+        visitDateAndTime={passModalState.visitDateAndTime}
+        planName={passModalState.planName}
       />
     </div>
   );

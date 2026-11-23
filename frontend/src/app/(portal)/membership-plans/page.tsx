@@ -274,7 +274,7 @@ export default function MembershipPlansPage() {
     totalPlans > 0 ? Math.round((inactivePlansCount / totalPlans) * 100) : 0;
 
   return (
-    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12 @container/plans">
+    <div className="flex flex-col gap-7 max-w-[1440px] mx-auto pb-12">
       {/* Overview & Action Header Card */}
       <Card className="toota-card border-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -432,7 +432,7 @@ export default function MembershipPlansPage() {
 
       {/* Loading Skeleton */}
       {isLoading && plans.length === 0 && (
-        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1, 2, 3].map((n) => (
             <Card key={n} className="toota-card border-none h-72 animate-pulse" />
           ))}
@@ -488,7 +488,7 @@ export default function MembershipPlansPage() {
 
       {/* Plan Cards Grid */}
       {!isLoading && filteredPlans.length > 0 && (
-        <div className="grid grid-cols-1 @min-[48rem]/plans:grid-cols-2 @min-[78rem]/plans:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredPlans.map((plan) => {
             const isToggling = togglingPlanId === plan.id;
             const durations = plan.membershipPlanDurations || [];

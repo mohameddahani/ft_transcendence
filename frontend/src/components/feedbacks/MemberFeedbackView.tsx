@@ -686,7 +686,7 @@ export default function MemberFeedbackView() {
             const memberName =
               `${item.member?.firstName || ""} ${item.member?.lastName || ""}`.trim() ||
               item.member?.userName ||
-              "Gym Member";
+              "Club Member";
             const initials =
               ((item.member?.firstName?.[0] || "") + (item.member?.lastName?.[0] || "")).toUpperCase() ||
               item.member?.userName?.slice(0, 2).toUpperCase() ||

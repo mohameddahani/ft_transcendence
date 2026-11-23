@@ -526,7 +526,7 @@ function AdminStaffProfileView() {
           <p className="leading-relaxed">
             {t(
               "staffInfoNotice",
-              "Account details and operational assignments are managed by your Gym Administrator. Contact your facility manager to request profile updates."
+              "Account details and operational assignments are managed by your Club Administrator. Contact your club manager to request profile updates."
             )}
           </p>
         </div>
@@ -788,7 +788,7 @@ function AdminStaffProfileView() {
             <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
               {t(
                 "settingsSubtitle",
-                "Manage your profile details, operational preferences, and gym information."
+                "Manage your profile details, operational preferences, and club information."
               )}
             </p>
           </div>
@@ -1018,7 +1018,7 @@ function AdminStaffProfileView() {
           <CardHeader className="p-6 pb-4 border-b border-border/40">
             <CardTitle className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <Building className="size-4 text-toota-ink" />
-              <span>{t("contactGymDetails", "Contact & Gym Organization Details")}</span>
+              <span>{t("contactGymDetails", "Contact & Club Organization Details")}</span>
             </CardTitle>
           </CardHeader>
 
@@ -1084,10 +1084,10 @@ function AdminStaffProfileView() {
                 )}
               </div>
 
-              {/* Company / Gym Name */}
+              {/* Company / Club Name */}
               <div className="sm:col-span-2 space-y-1.5">
                 <label className="block text-xs font-medium text-toota-ink">
-                  {t("companyGymName", "Company / Gym Facility Name")} <span className="text-rose-500">*</span>
+                  {t("companyGymName", "Company / Club Name")} <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <Building className="size-4 absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-toota-muted pointer-events-none" />

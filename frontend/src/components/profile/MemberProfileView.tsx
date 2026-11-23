@@ -193,7 +193,7 @@ export default function MemberProfileView() {
   const fullName =
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() ||
     profile?.userName ||
-    "Gym Member";
+    "Club Member";
 
   const initials =
     ((profile?.firstName?.[0] || "") + (profile?.lastName?.[0] || "")).toUpperCase() ||
@@ -316,7 +316,7 @@ export default function MemberProfileView() {
               </h2>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400">
                 <UserCheck className="size-3 text-zinc-500 shrink-0" />
-                <span>{t("roleGymMember") || "Gym Member"}</span>
+                <span>{t("roleGymMember") || "Club Member"}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 shadow-2xs">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -544,7 +544,7 @@ export default function MemberProfileView() {
                     </h3>
                     <p className="text-xs text-toota-muted max-w-sm mx-auto">
                       {t("noActiveMembershipHint") ||
-                        "You currently do not have an active gym membership. Please contact the front desk or gym administrator to activate your plan."}
+                        "You currently do not have an active club membership. Please contact the front desk or club administrator to activate your plan."}
                     </p>
                   </div>
                 )}

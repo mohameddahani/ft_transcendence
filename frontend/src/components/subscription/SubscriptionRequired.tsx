@@ -184,14 +184,17 @@ export default function SubscriptionRequired() {
                 </a>
               </div>
             ) : (
-            <div className={`mt-7 grid grid-cols-1 gap-4 ${plans.length >= 3 ? "lg:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : "max-w-md"}`}>
-              {plans.map((plan) => {
+            <div className={`mt-7 grid grid-cols-1 gap-4 ${plans.length >= 3 ? "md:grid-cols-2 lg:grid-cols-3" : plans.length === 2 ? "md:grid-cols-2" : "max-w-md mx-auto"}`}>
+              {plans.map((plan, index) => {
                 const details = landingDetails(plan.planName);
                 const popular = details?.popular ?? false;
+                const isThirdOfThree = plans.length === 3 && index === 2;
                 return (
                 <article
                   key={plan.id}
                   className={`relative flex flex-col rounded-3xl bg-toota-pill p-6 shadow-sm ring-1 transition-shadow ${
+                    isThirdOfThree ? "md:col-span-2 lg:col-span-1" : ""
+                  } ${
                     popular ? "ring-2 ring-[#a3e635]" : "ring-black/5 dark:ring-white/10 hover:ring-[#a3e635]/70"
                   }`}
                 >

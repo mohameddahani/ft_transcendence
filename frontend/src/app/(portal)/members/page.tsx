@@ -582,7 +582,7 @@ export default function MembersPage() {
               )}
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {t("registeredInGym") || "Registered gym members"}
+              {t("registeredInGym") || "Registered club members"}
             </p>
           </CardContent>
         </Card>
@@ -851,7 +851,7 @@ export default function MembersPage() {
               <p className="text-xs text-toota-muted max-w-sm mx-auto mt-1 mb-4 leading-relaxed">
                 {activeSearch
                   ? t("noMatchingSearchMembers") || "No registered members found matching this name."
-                  : t("clickAddMember") || "Click 'Add New Member' to register your first gym subscriber."}
+                  : t("clickAddMember") || "Click 'Add New Member' to register your first club subscriber."}
               </p>
               {!activeSearch && (
                 <Button

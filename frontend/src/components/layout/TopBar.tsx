@@ -100,7 +100,7 @@ export default function TopBar({
       pathname.startsWith("/subscriptions")
     ) {
       return {
-        section: t("gymSetup") || "Gym setup",
+        section: t("gymSetup") || "Club setup",
         title: t("navMembershipPlans") || "Membership plans",
       };
     }
@@ -118,13 +118,13 @@ export default function TopBar({
         section:
           role === "Member"
             ? t("memberPortal") || "Member portal"
-            : t("gymSetup") || "Gym setup",
-        title: t("navOpeningHours") || "Gym hours",
+            : t("gymSetup") || "Club setup",
+        title: t("navOpeningHours") || "Club hours",
       };
     }
     if (pathname.startsWith("/staffs")) {
       return {
-        section: t("gymSetup") || "Gym setup",
+        section: t("gymSetup") || "Club setup",
         title: t("navStaff") || "Staff",
       };
     }

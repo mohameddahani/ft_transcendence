@@ -42,7 +42,7 @@ export const platformPlans = [
     badge: "Most popular for growing clubs",
     capacity: "Up to 500 members",
     description:
-      "Built for high-volume gyms, swimming clubs, and facilities with dedicated front-desk staff.",
+      "Built for high-volume sports clubs, fitness facilities, and organizations with dedicated front-desk staff.",
     features: [
       "Up to 500 enrolled members quota",
       "All Basic features included",
@@ -90,7 +90,7 @@ export default function Pricing() {
             eyebrow="Platform plans"
             icon={CreditCard}
             title="Platform subscriptions scaled to your club's capacity."
-            description="SaaS plans govern your total member capacity and operational tools. Your gym's own membership tiers and prices are configured independently inside your admin portal."
+            description="SaaS plans govern your total member capacity and operational tools. Your club's own membership tiers and prices are configured independently inside your admin portal."
           />
         </Reveal>
 
@@ -196,7 +196,7 @@ export default function Pricing() {
                 <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-foreground/80">
                   <span className="flex items-center gap-1.5">
                     <Check size={14} className="text-primary" />
-                    Separate gym memberships for members
+                    Separate club memberships for members
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Check size={14} className="text-primary" />
