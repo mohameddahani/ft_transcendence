@@ -86,10 +86,10 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 
 | Service | URL |
 |---|---|
-| Application | https://localhost |
-| Owner platform | https://localhost/owner-portal |
-| Grafana (dashboards) | https://localhost/grafana |
-| Status page (Gatus) | https://status.localhost |
+| Application | https://localhost:8443 |
+| Owner platform | https://localhost:8443/owner-portal |
+| Grafana (dashboards) | https://localhost:8443/grafana |
+| Status page (Gatus) | https://status.localhost:8443 |
 
 The TLS certificate is self-signed and generated automatically when the nginx image is built, so your browser will show a warning the first time. Accept it to continue. `status.localhost` resolves to your machine automatically on most systems. If it does not, add `127.0.0.1 status.localhost` to `/etc/hosts`.
 
