@@ -261,7 +261,7 @@ export class VisitsService {
     );
 
     // * Check the visit is already exist
-    const existVisit = await this.prisma.visit.findFirst({
+    const existVisit = await this.prisma.visit.findUnique({
       where: {
         id: visitId,
         adminId: adminId,
@@ -376,7 +376,7 @@ export class VisitsService {
         accessTokenPayload,
       );
 
-    const visitToday = await this.prisma.visit.findFirst({
+    const visitToday = await this.prisma.visit.findUnique({
       where: {
         id: visitId,
         adminId: adminId,
@@ -587,7 +587,7 @@ export class VisitsService {
       adminId,
     );
 
-    const visitToday = await this.prisma.visit.findFirst({
+    const visitToday = await this.prisma.visit.findUnique({
       where: {
         id: visitId,
         adminId: adminId,

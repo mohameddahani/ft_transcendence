@@ -72,7 +72,7 @@ export class SubscriptionsService {
     }
 
     // * Check if duration is already exist for this plan
-    const duration = await this.prisma.planDuration.findFirst({
+    const duration = await this.prisma.planDuration.findUnique({
       where: {
         id: data.planDurationId,
         planId: data.planId,
@@ -145,7 +145,7 @@ export class SubscriptionsService {
   // * Cancel Subscription
   async cancelSubscription(adminId: string) {
     // * Check User
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         id: adminId,
         role: {

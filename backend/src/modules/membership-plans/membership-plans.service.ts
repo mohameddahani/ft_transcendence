@@ -165,7 +165,7 @@ export class MembershipPlansService {
     );
 
     // * Check duration if already exist in this membership plan
-    const duration = await this.prisma.membershipPlanDuration.findFirst({
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
       where: { id: id, membershipPlanId: membershipPlan.id },
     });
     if (!duration) {
@@ -386,7 +386,7 @@ export class MembershipPlansService {
         accessTokenPayload,
       );
 
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId,
         id: membershipPlanId,
@@ -518,7 +518,7 @@ export class MembershipPlansService {
       adminId,
     );
 
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId,
         id: membershipPlanId,
@@ -537,7 +537,7 @@ export class MembershipPlansService {
   // ! Private
   // * Get one membership Plan
   private async findOneById(adminId: string, membershipPlanId: string) {
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId,
         id: membershipPlanId,

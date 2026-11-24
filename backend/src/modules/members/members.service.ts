@@ -695,7 +695,7 @@ export class MembersService {
         accessTokenPayload,
       );
 
-    const member = await this.prisma.member.findFirst({
+    const member = await this.prisma.member.findUnique({
       where: {
         adminId,
         id: memberId,
@@ -796,7 +796,7 @@ export class MembersService {
     durationId: string,
   ) {
     // * Check if the admin has this membership plan
-    const membershipPlan = await this.prisma.membershipPlan.findFirst({
+    const membershipPlan = await this.prisma.membershipPlan.findUnique({
       where: {
         adminId: adminId,
         id: membershipPlanId,
@@ -809,7 +809,7 @@ export class MembersService {
     }
 
     // * Check if duration is already exist for this membership plan
-    const duration = await this.prisma.membershipPlanDuration.findFirst({
+    const duration = await this.prisma.membershipPlanDuration.findUnique({
       where: {
         id: durationId,
         membershipPlan: { adminId: adminId },

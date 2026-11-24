@@ -82,7 +82,7 @@ export class MembershipsService {
         accessTokenPayload,
       );
 
-    const membership = await this.prisma.membership.findFirst({
+    const membership = await this.prisma.membership.findUnique({
       where: {
         id: membershipId,
         adminId: adminId,

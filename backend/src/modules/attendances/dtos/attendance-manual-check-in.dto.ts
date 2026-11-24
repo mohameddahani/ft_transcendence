@@ -9,4 +9,12 @@ export class AttendanceManualCheckInDto {
     description: 'Member id',
   }) // * Swagger Document
   memberId!: string;
+
+  // * Visit Id
+  @IsUUID()
+  @ApiProperty({
+    example: 'a32790dc-4cc2-4f3c-ae33-ec7aee5e73fb',
+    description: 'Visit id',
+  }) // * Swagger Document
+  visitId!: string;
 }

@@ -12,7 +12,7 @@ export class NotificationsService {
 
   // * Get One Notification (Member)
   async findOneNotificationMember(memberId: string, notificationId: string) {
-    const notification = await this.prisma.memberNotification.findFirst({
+    const notification = await this.prisma.memberNotification.findUnique({
       where: { id: notificationId, memberId: memberId },
     });
 
@@ -65,7 +65,7 @@ export class NotificationsService {
 
   // * Get One Notification (Admin)
   async findOneNotificationAdmin(adminId: string, notificationId: string) {
-    const notification = await this.prisma.adminNotification.findFirst({
+    const notification = await this.prisma.adminNotification.findUnique({
       where: { id: notificationId, adminId: adminId },
     });
 
