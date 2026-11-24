@@ -353,14 +353,16 @@ export default function CheckInPage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Manual Check-In action
-  const handleManualCheckIn = async (memberId: string) => {
+  const handleManualCheckIn = async (memberId: string, visitId?: string) => {
     setIsCheckingInMap((prev) => ({ ...prev, [memberId]: true }));
     try {
-      await checkInManual(memberId);
+      await checkInManual(memberId, visitId);
       toast.success(t("checkInSuccess") || "Member checked in successfully!");
 
       // Find the visit for celebration
-      const found = visits.find((v) => v.member.id === memberId);
+      const found = visits.find(
+        (v) => (visitId ? v.id === visitId : v.member.id === memberId)
+      );
       if (found) {
         const updated = enrichVisitWithPlan(
           { ...found, visitStatus: "CHECKED_IN" as const },
@@ -934,7 +936,7 @@ export default function CheckInPage() {
                               type="button"
                               size="sm"
                               disabled={isSubmitting}
-                              onClick={() => handleManualCheckIn(member.id)}
+                              onClick={() => handleManualCheckIn(member.id, visit.id)}
                               className="toota-pill h-8 px-3.5 text-xs font-semibold cursor-pointer"
                             >
                               {isSubmitting ? (
