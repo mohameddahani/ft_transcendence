@@ -437,18 +437,20 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 | 8 | Support for multiple languages (at least 3) | Minor | 1 | ael-jama |
 | 9 | Right-to-left (RTL) language support | Minor | 1 | ael-jama |
 | 10 | Support for additional browsers | Minor | 1 | ael-jama |
-| 11 | Standard user management and authentication | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
-| 12 | Advanced permissions system | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
-| 13 | User activity analytics and insights dashboard | Minor | 1 | mdahani (backend), ael-jama (frontend) |
-| 14 | A complete LLM system interface | **Major** | 2 | oboussel |
-| 15 | Sentiment analysis for user-generated content | Minor | 1 | oboussel |
-| 16 | Monitoring system with Prometheus and Grafana | **Major** | 2 | mait-all |
-| 17 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
-| 18 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
-| 19 | Decentralized Web3 marketplace with gasless transactions (module of choice) | **Major** | 2 | obarais |
-| 20 | A complete RAG (retrieval-augmented generation) system | **Major** | 2 | oboussel |
+| 11 | File Upload and Management System | Minor | 1 | oboussel , ael-jama |
+| 12 | GDPR Compliance Features| Minor | 1 | mdahani (backend), ael-jama (frontend) |
+| 13 | Organization System | **Major** | 2 |  mdahani (backend), ael-jama (frontend) |
+| 14 | Advanced permissions system | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+| 15 | User activity analytics and insights dashboard | Minor | 1 | mdahani (backend), ael-jama (frontend) |
+| 16 | A complete LLM system interface | **Major** | 2 | oboussel |
+| 17 | Sentiment analysis for user-generated content | Minor | 1 | oboussel |
+| 18 | Monitoring system with Prometheus and Grafana | **Major** | 2 | mait-all |
+| 19 | Health check and status page system with automated backups and disaster recovery procedures | Minor | 1 | mait-all |
+| 20 | Advanced analytics dashboard with data visualization | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
+| 21 | Decentralized Web3 marketplace with gasless transactions (module of choice) | **Major** | 2 | obarais |
+| 22 | A complete RAG (retrieval-augmented generation) system | **Major** | 2 | oboussel |
 
-**Point calculation:** 13 Minor modules × 1 point + 7 Major modules × 2 points = 13 + 14 = **27 points**.
+**Point calculation:** 15 Minor modules × 1 point + 7 Major modules × 2 points = 16 + 14 = **29 points**.
 
 ### Justification and implementation
 
