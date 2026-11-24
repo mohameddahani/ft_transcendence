@@ -430,7 +430,7 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 | 1 | Use a frontend framework (Next.js) | Minor | 1 | ael-jama |
 | 2 | Use a backend framework (NestJS) | Minor | 1 | mdahani |
 | 3 | Use an ORM for the database (Prisma) | Minor | 1 | mdahani |
-| 4 | A complete notification system for all creation, update, and deletion actions | Minor | 1 | mdahani |
+| 4 | A complete notification system for all creation, update, and deletion actions | Minor | 1 | ael-jama |
 | 5 | Server-Side Rendering (SSR) for improved performance and SEO | Minor | 1 | ael-jama |
 | 6 | Custom-made design system with reusable components | Minor | 1 | ael-jama |
 | 7 | Advanced search functionality with filters, sorting, and pagination | Minor | 1 | mdahani (backend), ael-jama (frontend) |
