@@ -21,7 +21,7 @@ interface VisitDetailsModalProps {
   onClose: () => void;
   visit: TodayVisit | null;
   plans?: MembershipPlan[];
-  onConfirmCheckIn: (memberId: string) => Promise<void>;
+  onConfirmCheckIn: (memberId: string, visitId?: string) => Promise<void>;
   isCheckingIn: boolean;
 }
 
@@ -267,7 +267,7 @@ export default function VisitDetailsModal({
               variant="outline"
               disabled={isCheckingIn}
               onClick={async () => {
-                await onConfirmCheckIn(member.id);
+                await onConfirmCheckIn(member.id, visit.id);
                 onClose();
               }}
               className="toota-pill flex-1 h-11 text-xs font-semibold cursor-pointer border border-border/50 hover:bg-toota-inner text-toota-ink"

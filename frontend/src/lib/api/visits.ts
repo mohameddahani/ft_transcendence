@@ -58,9 +58,13 @@ export async function fetchVisitById(id: string): Promise<TodayVisit> {
   return response.data;
 }
 
-export async function checkInManual(memberId: string): Promise<unknown> {
+export async function checkInManual(
+  memberId: string,
+  visitId?: string
+): Promise<unknown> {
   const response = await api.post("/api/admins/attendances/check-in/manual", {
     memberId,
+    ...(visitId ? { visitId } : {}),
   });
   return response.data;
 }
