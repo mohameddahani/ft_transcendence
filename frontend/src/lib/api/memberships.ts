@@ -20,7 +20,6 @@ export async function fetchAdminMemberships(
   params?: MembershipFilterParams
 ): Promise<Membership[]> {
   try {
-    console.log(`/api/admins/memberships${buildQuery(params)}`)
     const res = await axios.get<Membership[]>(
       `/api/admins/memberships${buildQuery(params)}`
     );
