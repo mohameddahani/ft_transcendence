@@ -255,7 +255,7 @@ export class StaffsService {
     // * Check that the admin account, subscription, and associated plan are active.
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
-    const staff = await this.prisma.staff.findFirst({
+    const staff = await this.prisma.staff.findUnique({
       where: {
         adminId,
         id: staffId,

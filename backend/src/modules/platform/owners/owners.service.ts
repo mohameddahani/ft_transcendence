@@ -67,7 +67,7 @@ export class OwnersService {
 
   // * Get one user
   async findOne(id: string) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         id,
         role: { notIn: [Role.OWNER, Role.MEMBER] },

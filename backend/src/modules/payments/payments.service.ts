@@ -97,7 +97,7 @@ export class PaymentsService {
         accessTokenPayload,
       );
 
-    const payment = await this.prisma.payment.findFirst({
+    const payment = await this.prisma.payment.findUnique({
       where: {
         adminId: adminId,
         id: id,
@@ -252,7 +252,7 @@ export class PaymentsService {
       adminId,
     );
 
-    const payment = await this.prisma.payment.findFirst({
+    const payment = await this.prisma.payment.findUnique({
       where: {
         id: id,
         memberId: memberId,

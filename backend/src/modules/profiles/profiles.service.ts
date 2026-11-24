@@ -1157,7 +1157,7 @@ export class ProfilesService {
   // ! Private Attributes
   // * Get one user
   private async findOne(id: string) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         id,
         role: { notIn: [Role.MEMBER] },
@@ -1183,7 +1183,7 @@ export class ProfilesService {
 
   // * Get one Member
   private async findOneMember(id: string) {
-    const member = await this.prisma.member.findFirst({
+    const member = await this.prisma.member.findUnique({
       where: {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },
@@ -1200,7 +1200,7 @@ export class ProfilesService {
 
   // * Get one Staff
   private async findOneStaff(id: string) {
-    const staff = await this.prisma.staff.findFirst({
+    const staff = await this.prisma.staff.findUnique({
       where: {
         id,
         role: { notIn: [Role.OWNER, Role.ADMIN] },

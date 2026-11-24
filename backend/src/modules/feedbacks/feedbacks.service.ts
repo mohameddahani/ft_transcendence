@@ -33,7 +33,7 @@ export class FeedbacksService {
     const adminId = await this.checkIfTheMemberHasPermissions(memberId);
 
     // * Get Satff of this member
-    const member = await this.prisma.member.findFirst({
+    const member = await this.prisma.member.findUnique({
       where: {
         id: memberId,
         adminId: adminId,
@@ -171,7 +171,7 @@ export class FeedbacksService {
     // * Check If The Member Has Permissions
     const adminId = await this.checkIfTheMemberHasPermissions(memberId);
 
-    const feedback = await this.prisma.feedback.findFirst({
+    const feedback = await this.prisma.feedback.findUnique({
       where: {
         id: feedbackId,
         adminId,
@@ -515,7 +515,7 @@ export class FeedbacksService {
         accessTokenPayload,
       );
 
-    const feedback = await this.prisma.feedback.findFirst({
+    const feedback = await this.prisma.feedback.findUnique({
       where: {
         id: feedbackId,
         adminId,

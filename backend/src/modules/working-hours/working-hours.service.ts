@@ -77,7 +77,7 @@ export class WorkingHoursService {
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check this Working Hour is exist
-    const workingHour = await this.prisma.workingHour.findFirst({
+    const workingHour = await this.prisma.workingHour.findUnique({
       where: {
         id: workingHourId,
         adminId: adminId,
@@ -207,7 +207,7 @@ export class WorkingHoursService {
       return cachedWorkingHour;
     }
 
-    const workingHour = await this.prisma.workingHour.findFirst({
+    const workingHour = await this.prisma.workingHour.findUnique({
       where: {
         id: workingHourId,
         adminId: adminId,
@@ -302,7 +302,7 @@ export class WorkingHoursService {
       return cachedWorkingHour;
     }
 
-    const workingHour = await this.prisma.workingHour.findFirst({
+    const workingHour = await this.prisma.workingHour.findUnique({
       where: {
         id: workingHourId,
         adminId: adminId,
@@ -382,7 +382,7 @@ export class WorkingHoursService {
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the working hour exists and belongs to the admin
-    const workingHour = await this.prisma.workingHour.findFirst({
+    const workingHour = await this.prisma.workingHour.findUnique({
       where: {
         id: workingHourId,
         adminId,
@@ -622,7 +622,7 @@ export class WorkingHoursService {
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the special hour exists and belongs to the admin
-    const existingSpecialHour = await this.prisma.specialHour.findFirst({
+    const existingSpecialHour = await this.prisma.specialHour.findUnique({
       where: {
         id: specialHourId,
         adminId: adminId,
@@ -861,7 +861,7 @@ export class WorkingHoursService {
       return cachedSpecialHour;
     }
 
-    const specialHour = await this.prisma.specialHour.findFirst({
+    const specialHour = await this.prisma.specialHour.findUnique({
       where: {
         id: specialHourId,
         adminId: adminId,
@@ -951,7 +951,7 @@ export class WorkingHoursService {
       return cachedSpecialgHour;
     }
 
-    const specialHour = await this.prisma.specialHour.findFirst({
+    const specialHour = await this.prisma.specialHour.findUnique({
       where: {
         id: specialHourId,
         adminId: adminId,
@@ -973,7 +973,7 @@ export class WorkingHoursService {
     await this.accessesService.validateAdminAccountAndSubscription(adminId);
 
     // * Check if the working hour exists and belongs to the admin
-    const specialHour = await this.prisma.specialHour.findFirst({
+    const specialHour = await this.prisma.specialHour.findUnique({
       where: {
         id: specialHourId,
         adminId,

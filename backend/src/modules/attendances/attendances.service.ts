@@ -57,6 +57,7 @@ export class AttendancesService {
       data.memberId,
       membership,
       AttendanceMethod.MANUAL,
+      data.visitId,
     );
   }
 
@@ -189,7 +190,7 @@ export class AttendancesService {
       adminId,
     );
 
-    const attendance = await this.prisma.attendance.findFirst({
+    const attendance = await this.prisma.attendance.findUnique({
       where: {
         id: attendanceId,
         adminId: adminId,
@@ -289,7 +290,7 @@ export class AttendancesService {
     memberId: string,
     membership: MembershipWithPlan,
     attendanceMethod: AttendanceMethod,
-    visitId?: string,
+    visitId: string,
   ) {
     // * tx is the prisma client inside a transaction
     await this.prisma.$transaction(async (tx) => {
@@ -317,31 +318,26 @@ export class AttendancesService {
       }
 
       // * Find today's visit
-      const visit = visitId
-        ? await tx.visit.findFirst({
-            where: {
-              id: visitId,
-              adminId: adminId,
-              memberId: memberId,
-              visitDateAndTime: {
-                gte: startOfToday,
-                lte: endOfToday,
-              },
-            },
-          })
-        : await tx.visit.findFirst({
-            where: {
-              adminId: adminId,
-              memberId: memberId,
-              visitDateAndTime: {
-                gte: startOfToday,
-                lte: endOfToday,
-              },
-            },
-          });
+      const visit = await tx.visit.findUnique({
+        where: {
+          id: visitId,
+          adminId: adminId,
+          memberId: memberId,
+          visitDateAndTime: {
+            gte: startOfToday,
+            lte: endOfToday,
+          },
+        },
+      });
 
       if (!visit) {
         throw new NotFoundException('No visit found for today.');
+      }
+
+      if (visit.membershipId !== membership.id) {
+        throw new ForbiddenException(
+          'This visit does not belong to the member’s current membership. Please create a new visit.',
+        );
       }
 
       // * Check visit status
@@ -350,13 +346,9 @@ export class AttendancesService {
           'The member has already checked in today.',
         );
       } else if (visit.visitStatus === VisitStatus.CANCELLED) {
-        throw new ForbiddenException(
-          'The member already has a cancelled visit for today.',
-        );
+        throw new ForbiddenException('The selected visit has been cancelled.');
       } else if (visit.visitStatus === VisitStatus.EXPIRED) {
-        throw new ForbiddenException(
-          'The member already has an expired visit for today.',
-        );
+        throw new ForbiddenException('The selected visit has expired.');
       }
 
       // * Calculate current week
