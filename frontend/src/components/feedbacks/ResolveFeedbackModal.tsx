@@ -60,7 +60,7 @@ export default function ResolveFeedbackModal({
   const fullName =
     `${member?.firstName || ""} ${member?.lastName || ""}`.trim() ||
     member?.userName ||
-    "Gym Member";
+    "Club Member";
   const initials =
     ((member?.firstName?.[0] || "") + (member?.lastName?.[0] || "")).toUpperCase() ||
     member?.userName?.slice(0, 2).toUpperCase() ||

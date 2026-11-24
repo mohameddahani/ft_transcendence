@@ -105,7 +105,7 @@ export default function LoginForm() {
       <PortalBadge icon={<ShieldCheck className="size-3.5" aria-hidden="true" />} label={t("adminPortal", "Administrator Portal")} />
       <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">{t("adminSignIn", "Admin Sign In")}</h1>
       <p className={`mt-2 text-sm leading-6 ${muted}`}>
-        {t("adminLoginSubtitle", "Sign in to access your administrative workspace and gym management tools.")}
+        {t("adminLoginSubtitle", "Sign in to access your administrative workspace and club management tools.")}
       </p>
 
       {/* Form */}

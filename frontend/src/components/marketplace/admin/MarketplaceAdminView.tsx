@@ -82,7 +82,7 @@ export default function MarketplaceAdminView() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-toota-muted mt-1 font-normal">
-                {t("marketplaceManagementSubtitle") || "Decentralized Token-Powered Gym Commerce & Inventory on Ethereum Sepolia"}
+                {t("marketplaceManagementSubtitle") || "Decentralized Token-Powered Club Commerce & Inventory on Ethereum Sepolia"}
               </p>
             </div>
           </div>

@@ -196,10 +196,14 @@ services:
   nginx:
     image: nginx:1.30-alpine
     container_name: nginx
-    ports: ["80:80", "443:443"]
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
     restart: unless-stopped
     environment:
       - DOMAIN=${DOMAIN:-localhost}
+      - HTTP_PORT=${HTTP_PORT}
+      - HTTPS_PORT=${HTTPS_PORT}
     volumes:
       - certs:/etc/nginx/ssl:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro

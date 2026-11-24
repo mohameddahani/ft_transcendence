@@ -9,7 +9,7 @@ import { Container, LinkButton, Pill } from "@/components/landing/primitives";
 import { EASE_OUT } from "@/components/landing/motion";
 
 const audiences = [
-  "gyms.",
+  "sports clubs.",
   "dojos.",
   "swim clubs.",
   "football clubs.",
@@ -95,7 +95,7 @@ const Hero = () => {
           <span className="block">Run your club with clarity.</span>
           <span className="block text-muted-foreground">
             <span className="sr-only">
-              Built for gyms, dojos, swim clubs, football clubs, and run clubs.
+              Built for clubs, fitness centers, dojos, swim clubs, football clubs, and run clubs.
             </span>
             <span aria-hidden="true" className="block md:inline">
               Built for{" "}

@@ -286,7 +286,7 @@ export default function RegisterForm() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder={t("enterEmail", "admin@yourgym.com")}
+                placeholder={t("enterEmail", "admin@yourclub.com")}
                 aria-invalid={errors.email ? true : undefined}
                 {...register("email")}
                 className={`${inputBase} ${inputRing(!!errors.email)}`}

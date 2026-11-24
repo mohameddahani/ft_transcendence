@@ -11,6 +11,7 @@ import {
   Ban,
   Eye,
   X,
+  QrCode,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BookVisitModal from "@/components/visits/BookVisitModal";
+import VisitPassModal from "@/components/visits/VisitPassModal";
+import {
+  getVisitPassToken,
+  removeVisitPass,
+  syncVisitsWithPasses,
+} from "@/lib/visit-pass";
 
 export default function MemberVisitsPage() {
   const { t } = useTranslation();
@@ -43,6 +50,17 @@ export default function MemberVisitsPage() {
   // Single Item View Detail Modals
   const [selectedVisit, setSelectedVisit] = useState<MemberVisit | null>(null);
 
+  // QR Pass Modal State
+  const [passModalState, setPassModalState] = useState<{
+    isOpen: boolean;
+    token: string | null;
+    visitDateAndTime?: string;
+    planName?: string;
+  }>({
+    isOpen: false,
+    token: null,
+  });
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -52,6 +70,7 @@ export default function MemberVisitsPage() {
       ]);
       setUpcomingVisits(upcoming);
       setTodayVisits(today);
+      syncVisitsWithPasses([...upcoming, ...today]);
     } catch {
       toast.error(t("failedToLoadVisits", "Failed to load visits data"), {
         position: "top-right",
@@ -70,6 +89,7 @@ export default function MemberVisitsPage() {
     setCancellingId(visitId);
     try {
       await cancelMemberVisit(visitId);
+      removeVisitPass({ visitId });
       toast.success(t("visitCancelledSuccessfully", "Visit successfully cancelled."), {
         position: "top-right",
       });
@@ -97,6 +117,20 @@ export default function MemberVisitsPage() {
       const found = todayVisits.find((v) => v.id === visitId) || upcomingVisits.find((v) => v.id === visitId);
       if (found) setSelectedVisit(found);
     }
+  };
+
+  // Open QR Code Pass
+  const handleOpenPassModal = (visit: MemberVisit) => {
+    const token = getVisitPassToken({
+      visitId: visit.id,
+      visitDateAndTime: visit.visitDateAndTime,
+    });
+    setPassModalState({
+      isOpen: true,
+      token,
+      visitDateAndTime: visit.visitDateAndTime,
+      planName: visit.membership?.membershipPlan?.planName,
+    });
   };
 
   // Crisp Outlined Micro-Badges
@@ -364,7 +398,7 @@ export default function MemberVisitsPage() {
               >
                 {t(
                   "noUpcomingVisitsHint",
-                  "You have no upcoming workout visits. Schedule one now to guarantee your gym slot!"
+                  "You have no upcoming workout visits. Schedule one now to guarantee your club slot!"
                 )}
               </p>
               <div className="pt-2">
@@ -420,16 +454,30 @@ export default function MemberVisitsPage() {
                     </div>
 
                     <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleInspectVisit(visit.id)}
-                        className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
-                      >
-                        <Eye className="size-3.5 me-1 text-toota-muted" />
-                        <span suppressHydrationWarning>{t("details", "Details")}</span>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleInspectVisit(visit.id)}
+                          className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                        >
+                          <Eye className="size-3.5 me-1 text-toota-muted" />
+                          <span suppressHydrationWarning>{t("details", "Details")}</span>
+                        </Button>
+
+                        {visit.visitStatus === "READY" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenPassModal(visit)}
+                            className="toota-pill h-9 px-3.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+                          >
+                            <QrCode className="size-3.5 me-1" />
+                            <span suppressHydrationWarning>{t("qrPass", "QR Pass")}</span>
+                          </Button>
+                        )}
+                      </div>
 
                       {visit.visitStatus === "READY" && (
                         <Button
@@ -533,16 +581,30 @@ export default function MemberVisitsPage() {
                     </div>
 
                     <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-2 flex-wrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleInspectVisit(visit.id)}
-                        className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
-                      >
-                        <Eye className="size-3.5 me-1 text-toota-muted" />
-                        <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleInspectVisit(visit.id)}
+                          className="toota-pill h-9 px-3.5 text-xs font-semibold border-border/50 hover:bg-toota-inner text-toota-ink cursor-pointer"
+                        >
+                          <Eye className="size-3.5 me-1 text-toota-muted" />
+                          <span suppressHydrationWarning>{t("viewDetails", "Details")}</span>
+                        </Button>
+
+                        {visit.visitStatus === "READY" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenPassModal(visit)}
+                            className="toota-pill h-9 px-3.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs"
+                          >
+                            <QrCode className="size-3.5 me-1" />
+                            <span suppressHydrationWarning>{t("qrPass", "QR Pass")}</span>
+                          </Button>
+                        )}
+                      </div>
 
                       {visit.visitStatus === "READY" && (
                         <Button
@@ -631,6 +693,21 @@ export default function MemberVisitsPage() {
               )}
             </div>
 
+            {selectedVisit.visitStatus === "READY" && (
+              <Button
+                type="button"
+                onClick={() => {
+                  const v = selectedVisit;
+                  setSelectedVisit(null);
+                  handleOpenPassModal(v);
+                }}
+                className="toota-pill w-full h-10 text-xs font-semibold cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              >
+                <QrCode className="size-4 me-1.5" />
+                <span suppressHydrationWarning>{t("viewQrPass", "View QR Pass")}</span>
+              </Button>
+            )}
+
             <Button
               type="button"
               onClick={() => setSelectedVisit(null)}
@@ -642,6 +719,15 @@ export default function MemberVisitsPage() {
           </Card>
         </div>
       )}
+
+      {/* QR Code Pass Modal */}
+      <VisitPassModal
+        isOpen={passModalState.isOpen}
+        onClose={() => setPassModalState((prev) => ({ ...prev, isOpen: false }))}
+        token={passModalState.token}
+        visitDateAndTime={passModalState.visitDateAndTime}
+        planName={passModalState.planName}
+      />
     </div>
   );
 }

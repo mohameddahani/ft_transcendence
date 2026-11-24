@@ -61,7 +61,7 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 
 - Docker **28.5.2** (with Docker Compose v2)
 - `make`
-- Free ports 80 and 443 on your machine
+- Free ports 8080 and 8443 on your machine
 
 ### Setup and run
 
@@ -73,7 +73,7 @@ Each club manages its own members, staff, memberships, schedules, and payments t
    **You must run this script manually before `make up`.** Each service has its own `.env`. The script does three things:
    - **Creates** each service's `.env` from its `.env.example` when the `.env` does not exist yet.
    - **Generates secrets** (JWT secrets, cookie secret, database, Redis, and Grafana passwords, internal API keys) with random values, only where the value is empty.
-   - **Checks the values you must provide yourself.** It stops with an error and lists the required values that are still empty (for example the owner password, the Discord webhook URL, and the blockchain private keys). It only warns about optional values (for example the Gemini, email, and Cloudinary credentials), because the related features simply stay disabled until they are set.
+   - **Checks the values you must provide yourself.** It stops with an error and lists the required values that are still empty (for example the Gemini API Key, owner password, the Discord webhook URL, and the blockchain private keys). It only warns about optional values (for example the email, and Cloudinary credentials), because the related features simply stay disabled until they are set.
 
    The script never overwrites a value that is already set and does not add missing variables to an existing `.env`. It is safe to run again at any time. Even after the script has run, you are free to edit any value in the `.env` files. After pulling updates, compare your `.env` files with the `.env.example` files for new variables. Values shared between services (such as the database credentials) are defined once in `devops/.env`, and the connection URLs are built from them in `docker-compose.yml`.
 3. Start everything:
@@ -86,10 +86,10 @@ Each club manages its own members, staff, memberships, schedules, and payments t
 
 | Service | URL |
 |---|---|
-| Application | https://localhost |
-| Owner platform | https://localhost/owner-portal |
-| Grafana (dashboards) | https://localhost/grafana |
-| Status page (Gatus) | https://status.localhost |
+| Application | https://localhost:8443 |
+| Owner platform | https://localhost:8443/owner-portal |
+| Grafana (dashboards) | https://localhost:8443/grafana |
+| Status page (Gatus) | https://status.localhost:8443 |
 
 The TLS certificate is self-signed and generated automatically when the nginx image is built, so your browser will show a warning the first time. Accept it to continue. `status.localhost` resolves to your machine automatically on most systems. If it does not, add `127.0.0.1 status.localhost` to `/etc/hosts`.
 
@@ -183,7 +183,7 @@ When a member pays for a subscription, they receive G tokens as a reward. They c
 
 **Network and caching**
 
-- **HTTP is redirected to HTTPS.** nginx redirects all traffic arriving on port 80 to port 443.
+- **HTTP is redirected to HTTPS.** nginx redirects all traffic arriving on port 8080 to port 8443.
 - **Redis is used as a cache** and is secured with `protected-mode yes` and a password.
 
 ## Architecture

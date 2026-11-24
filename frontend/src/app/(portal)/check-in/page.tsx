@@ -636,7 +636,7 @@ export default function CheckInPage() {
               </span>
             </div>
             <p className="text-xs text-toota-muted mt-2">
-              {stats.checkedIn} {t("activeOnFloor") || "admitted & active on gym floor"}
+              {stats.checkedIn} {t("activeOnFloor") || "admitted & active in club"}
             </p>
             <div className="w-full h-1.5 rounded-full bg-toota-inner mt-3 overflow-hidden">
               <div

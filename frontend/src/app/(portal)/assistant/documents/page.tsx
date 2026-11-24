@@ -231,7 +231,7 @@ export default function AssistantDocumentsPage() {
                   suppressHydrationWarning
                   className="font-headline text-lg font-semibold tracking-tight text-toota-ink"
                 >
-                  {t("documentsTitle", "Gym Knowledge Base")}
+                  {t("documentsTitle", "Club Knowledge Base")}
                 </h1>
                 <span className="rounded-full bg-toota-pill px-2.5 py-0.5 text-[11px] font-medium text-toota-muted ring-1 ring-black/5 dark:ring-white/10">
                   {t("docsOwnerAdmin", "Owner Admin")}

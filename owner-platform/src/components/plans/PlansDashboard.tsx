@@ -257,7 +257,7 @@ export default function PlansDashboard() {
   return (
     <div className="space-y-layout-margin pb-12">
       {/* Top Banner / Actions Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-low border border-outline-variant p-layout-margin rounded-xl">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-surface-container-low border border-outline-variant p-4 sm:p-5 md:p-layout-margin rounded-xl">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-headline-lg text-title-lg sm:text-headline-lg text-on-surface font-bold tracking-tight">
@@ -272,22 +272,22 @@ export default function PlansDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto self-stretch lg:self-auto shrink-0">
           <button
             type="button"
             onClick={() => void fetchPlans()}
             disabled={loading}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface rounded-lg transition-colors font-body-sm text-body-sm font-medium cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface rounded-lg transition-colors font-body-sm text-body-sm font-medium cursor-pointer"
             title="Refresh plans list"
           >
             <RefreshCw className={cn("size-4", loading && "animate-spin text-primary")} />
-            <span className="hidden sm:inline">Refresh</span>
+            <span>Refresh</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsAddPlanOpen(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary rounded-lg transition-colors font-body-sm text-body-sm font-semibold cursor-pointer shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-on-primary rounded-lg transition-colors font-body-sm text-body-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap"
           >
             <Plus className="size-4" />
             <span>Create Plan</span>
@@ -296,9 +296,9 @@ export default function PlansDashboard() {
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 w-full lg:max-w-md">
           <Search className="size-4 text-on-surface-variant absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
@@ -310,7 +310,7 @@ export default function PlansDashboard() {
         </div>
 
         {/* Filter & Sort Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-start">
           {/* Status Tabs */}
           <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-1">
             {(["ALL", "ACTIVE", "INACTIVE"] as const).map((status) => (
@@ -331,13 +331,13 @@ export default function PlansDashboard() {
           </div>
 
           {/* Sort By Dropdown */}
-          <div className="flex items-center gap-1.5 bg-surface-container-low border border-outline-variant rounded-lg px-2.5 py-1">
-            <Filter className="size-3.5 text-on-surface-variant" />
+          <div className="flex items-center gap-1.5 bg-surface-container-low border border-outline-variant rounded-lg px-2.5 py-1 shrink-0">
+            <Filter className="size-3.5 text-on-surface-variant shrink-0" />
             <span className="text-[11px] text-on-surface-variant font-medium">Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-body-xs font-semibold text-on-surface focus:outline-none cursor-pointer"
+              className="bg-transparent text-body-xs font-semibold text-on-surface focus:outline-none cursor-pointer pr-1"
             >
               <option value="NAME" className="bg-surface-container text-on-surface">
                 Name (A-Z)
@@ -372,7 +372,7 @@ export default function PlansDashboard() {
 
       {/* Loading Skeleton */}
       {loading && plans.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-container-padding">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-container-padding">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
@@ -426,7 +426,7 @@ export default function PlansDashboard() {
 
       {/* Plans Grid */}
       {!loading && filteredPlans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-container-padding">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-container-padding">
           {filteredPlans.map((plan) => {
             const durations = plan.durations || [];
 
@@ -441,7 +441,7 @@ export default function PlansDashboard() {
                 )}
               >
                 {/* Card Header */}
-                <div className="p-container-padding border-b border-outline-variant/60">
+                <div className="p-4 sm:p-container-padding border-b border-outline-variant/60">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -494,7 +494,7 @@ export default function PlansDashboard() {
                 </div>
 
                 {/* Card Body */}
-                <div className="p-container-padding flex-1 space-y-container-padding">
+                <div className="p-4 sm:p-container-padding flex-1 space-y-container-padding">
                   <p className="font-body-md text-body-md text-on-surface-variant min-h-[36px]">
                     {plan.description || "No specific tier description provided."}
                   </p>
@@ -528,13 +528,13 @@ export default function PlansDashboard() {
                           return (
                             <div
                               key={duration.id}
-                              className="group bg-surface-container-high border border-outline-variant hover:border-primary/50 transition-colors px-2.5 py-1 rounded flex items-center gap-2 shadow-xs"
+                              className="group bg-surface-container-high border border-outline-variant hover:border-primary/50 transition-colors px-2.5 py-1.5 rounded flex items-center flex-wrap sm:flex-nowrap gap-1.5 sm:gap-2 shadow-xs max-w-full"
                             >
-                              <span className="font-mono-data text-body-sm text-primary font-bold">
+                              <span className="font-mono-data text-body-sm text-primary font-bold whitespace-nowrap">
                                 {duration.durationDays} Days
                               </span>
-                              <span className="w-[1px] h-3 bg-outline-variant" />
-                              <span className="font-mono-data text-body-sm text-on-surface font-semibold">
+                              <span className="w-[1px] h-3 bg-outline-variant hidden sm:inline-block" />
+                              <span className="font-mono-data text-body-sm text-on-surface font-semibold whitespace-nowrap">
                                 ${Number(duration.price).toFixed(2)}
                               </span>
 
@@ -544,7 +544,7 @@ export default function PlansDashboard() {
                                 onClick={() => handleToggleDurationStatus(plan, duration)}
                                 disabled={isTogglingDur}
                                 className={cn(
-                                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ml-0.5",
+                                  "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ml-0.5 shrink-0",
                                   isDurActive
                                     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                                     : "bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20"
@@ -556,22 +556,22 @@ export default function PlansDashboard() {
                                 }
                               >
                                 {isTogglingDur ? (
-                                  <Loader2 className="size-2.5 animate-spin" />
+                                  <Loader2 className="size-2.5 animate-spin shrink-0" />
                                 ) : (
                                   <span
                                     className={cn(
-                                      "size-1.5 rounded-full",
+                                      "size-1.5 rounded-full shrink-0",
                                       isDurActive ? "bg-emerald-400" : "bg-rose-400"
                                     )}
                                   />
                                 )}
-                                <span>{isDurActive ? "Active" : "Inactive"}</span>
+                                <span className="whitespace-nowrap">{isDurActive ? "Active" : "Inactive"}</span>
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => setEditDurationState({ plan, duration })}
-                                className="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer ml-0.5"
+                                className="text-on-surface-variant hover:text-primary transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer shrink-0 ml-0.5"
                                 title="Edit duration & price"
                                 aria-label={`Edit duration ${duration.durationDays} days`}
                               >
@@ -583,7 +583,7 @@ export default function PlansDashboard() {
                                 onClick={() =>
                                   setDurationToDelete({ plan, duration })
                                 }
-                                className="text-on-surface-variant hover:text-rose-400 transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer"
+                                className="text-on-surface-variant hover:text-rose-400 transition-colors p-0.5 rounded hover:bg-surface-container-highest cursor-pointer shrink-0"
                                 title="Delete duration"
                                 aria-label={`Delete duration ${duration.durationDays} days`}
                               >
@@ -598,30 +598,31 @@ export default function PlansDashboard() {
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-1.5 bg-surface-container-low border-t border-outline-variant grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-1">
+                <div className="p-1.5 sm:p-2 bg-surface-container-low border-t border-outline-variant grid grid-cols-2 xl:grid-cols-4 gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => setEditPlanModalPlan(plan)}
-                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent font-medium"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-on-surface rounded cursor-pointer border border-transparent font-medium"
                     title="Edit Plan Details"
                   >
-                    <Edit2 className="size-3.5 text-primary" />
-                    <span>Edit Plan</span>
+                    <Edit2 className="size-3.5 text-primary shrink-0" />
+                    <span className="truncate">Edit Plan</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDurationModalPlan(plan)}
-                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 min-h-[38px] hover:bg-surface-container-high transition-colors font-body-sm text-body-sm text-primary rounded cursor-pointer border border-transparent font-medium"
+                    title="Add Duration"
                   >
-                    <Clock className="size-3.5" />
-                    <span>+ Duration</span>
+                    <Clock className="size-3.5 shrink-0" />
+                    <span className="truncate">+ Duration</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => handleToggleStatus(plan)}
                     disabled={togglingPlanId === plan.id}
                     className={cn(
-                      "flex items-center justify-center gap-1.5 py-2 min-h-[38px] transition-all font-body-sm text-body-sm font-semibold rounded cursor-pointer border disabled:opacity-50",
+                      "flex items-center justify-center gap-1.5 px-2 py-2 min-h-[38px] transition-all font-body-sm text-body-sm font-semibold rounded cursor-pointer border disabled:opacity-50",
                       plan.isActive
                         ? "text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50"
                         : "text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50"
@@ -629,22 +630,22 @@ export default function PlansDashboard() {
                     title={plan.isActive ? "Deactivate plan" : "Activate plan"}
                   >
                     {togglingPlanId === plan.id ? (
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin shrink-0" />
                     ) : plan.isActive ? (
-                      <XCircle className="size-3.5 text-rose-400" />
+                      <XCircle className="size-3.5 text-rose-400 shrink-0" />
                     ) : (
-                      <CheckCircle2 className="size-3.5 text-emerald-400" />
+                      <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
                     )}
-                    <span>{plan.isActive ? "Deactivate" : "Activate"}</span>
+                    <span className="truncate">{plan.isActive ? "Deactivate" : "Activate"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPlanToDelete(plan)}
-                    className="flex items-center justify-center gap-1.5 py-2 min-h-[38px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors font-body-sm text-body-sm font-semibold rounded cursor-pointer border border-transparent"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 min-h-[38px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors font-body-sm text-body-sm font-semibold rounded cursor-pointer border border-transparent"
                     title="Delete Plan"
                   >
-                    <Trash2 className="size-3.5" />
-                    <span>Delete</span>
+                    <Trash2 className="size-3.5 shrink-0" />
+                    <span className="truncate">Delete</span>
                   </button>
                 </div>
               </div>
@@ -655,8 +656,8 @@ export default function PlansDashboard() {
 
       {/* System Stats Bar */}
       <div className="mt-layout-margin grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-container-padding">
-        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
-          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg min-w-0">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider truncate">
             TOTAL ACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-primary font-mono-data font-bold">
@@ -664,8 +665,8 @@ export default function PlansDashboard() {
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
-          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg min-w-0">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider truncate">
             INACTIVE PLANS
           </div>
           <div className="font-headline-md text-headline-md text-amber-400 font-mono-data font-bold">
@@ -673,8 +674,8 @@ export default function PlansDashboard() {
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
-          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg min-w-0">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider truncate">
             TOP CAPACITY TIER
           </div>
           <div className="font-headline-md text-headline-md text-on-surface font-bold truncate">
@@ -682,8 +683,8 @@ export default function PlansDashboard() {
           </div>
         </div>
 
-        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg">
-          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider">
+        <div className="bg-surface-container-low border border-outline-variant p-3 sm:p-container-padding rounded-lg min-w-0">
+          <div className="font-label-caps text-[10px] sm:text-label-caps text-on-surface-variant opacity-70 mb-1 uppercase font-bold tracking-wider truncate">
             CONFIGURED DURATIONS
           </div>
           <div className="font-headline-md text-headline-md text-on-surface font-mono-data font-bold">

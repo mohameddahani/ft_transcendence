@@ -133,7 +133,7 @@ export function ManageProductsTab({
         <EmptyState
           icon={<Package className="size-6 text-zinc-500 dark:text-zinc-400" />}
           title={t("noProductsYet") || "No products yet"}
-          body={t("noProductsYetBody") || "Start selling by listing your first product on the decentralized gym store."}
+          body={t("noProductsYetBody") || "Start selling by listing your first product on the decentralized club store."}
           action={
             <Button
               variant="default"

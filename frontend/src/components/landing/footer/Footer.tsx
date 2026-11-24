@@ -122,7 +122,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-xs text-muted-foreground/80 block mt-2">
-                  Multi-tenant isolation enforced by gym workspace.
+                  Multi-tenant isolation enforced by club workspace.
                 </span>
               </li>
             </ul>

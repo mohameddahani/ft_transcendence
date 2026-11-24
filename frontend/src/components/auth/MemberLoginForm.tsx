@@ -110,7 +110,7 @@ export default function MemberLoginForm() {
       <PortalBadge icon={<IdCard className="size-3.5" aria-hidden="true" />} label={t("memberPortal", "Member Portal")} />
       <h1 className="mt-5 font-headline text-3xl font-semibold tracking-[-0.03em]">{t("memberSignInTitle", "Welcome, Athlete!")}</h1>
       <p className={`mt-2 text-sm leading-6 ${muted}`}>
-        {t("memberSignInSubtitle", "Enter your member username and password provided during gym registration.")}
+        {t("memberSignInSubtitle", "Enter your member username and password provided during club registration.")}
       </p>
 
       {/* Form */}
