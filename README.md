@@ -437,7 +437,6 @@ Clock times are stored as `HH:mm` strings. `SpecialHour.startDate` and `endDate`
 | 8 | Support for multiple languages (at least 3) | Minor | 1 | ael-jama |
 | 9 | Right-to-left (RTL) language support | Minor | 1 | ael-jama |
 | 10 | Support for additional browsers | Minor | 1 | ael-jama |
-| 11 | Standard user management and authentication | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
 | 12 | Advanced permissions system | **Major** | 2 | mdahani (backend), ael-jama (frontend) |
 | 13 | User activity analytics and insights dashboard | Minor | 1 | mdahani (backend), ael-jama (frontend) |
 | 14 | A complete LLM system interface | **Major** | 2 | oboussel |
