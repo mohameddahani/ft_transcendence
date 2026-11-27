@@ -7,7 +7,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { authRoutes, saasEmail } from "@/components/landing/constants";
+import { authRoutes } from "@/components/landing/constants";
+import { whatsappLink } from "@/components/landing/whatsapp";
 import {
   Container,
   LinkButton,
@@ -71,8 +72,8 @@ export const platformPlans = [
     ],
     durationNote: "Terms and capacity structured with platform operator",
     popular: false,
-    ctaText: "Contact platform operator",
-    ctaHref: `mailto:${saasEmail}?subject=Enterprise%20Platform%20Plan%20Inquiry`,
+    ctaText: "Contact us on WhatsApp",
+    ctaHref: whatsappLink("Hello Sportium, I'd like to know more about the Enterprise plan for my organization."),
   },
 ];
 
