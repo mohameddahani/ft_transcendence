@@ -6,6 +6,8 @@ set -e
 : "${PGPASSWORD:?PGPASSWORD is not set}"
 : "${AI_DB_USER:?AI_DB_USER is not set}"
 : "${AI_DB_USER_PASSWORD:?AI_DB_USER_PASSWORD is not set}"
+: "${AI_WRITER_USER:?AI_WRITER_USER is not set}"
+: "${AI_WRITER_PASSWORD:?AI_WRITER_PASSWORD is not set}"
 : "${REWARDS_DB_USER:?REWARDS_DB_USER is not set}"
 : "${REWARDS_DB_PASSWORD:?REWARDS_DB_PASSWORD is not set}"
 
@@ -17,6 +19,13 @@ psql -v ON_ERROR_STOP=1 \
   -v ai_user="$AI_DB_USER" \
   -v ai_password="$AI_DB_USER_PASSWORD" \
   -f /roles/ai_readonly.sql
+
+psql -v ON_ERROR_STOP=1 \
+  -h db -U "$POSTGRES_USER" \
+  -d "$POSTGRES_DB" \
+  -v writer_user="$AI_WRITER_USER" \
+  -v writer_password="$AI_WRITER_PASSWORD" \
+  -f /roles/ai_writer.sql
 
 psql -v ON_ERROR_STOP=1 \
   -h db -U "$POSTGRES_USER" \

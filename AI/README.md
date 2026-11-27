@@ -8,7 +8,8 @@ by word, from the club's own data and documents. The service also classifies mem
 negative for the backend.
 
 It is a Python (FastAPI) service. It reads the backend's PostgreSQL database through a **read-only** role, uses Google
-Gemini for answers and embeddings, and stores its own conversation memory and document index on a Docker volume.
+Gemini for answers and embeddings, and keeps its own conversation history and document index in the same database,
+in a separate `ai` schema written by a second role, `ai_writer`.
 
 ## Contents
 
@@ -48,7 +49,7 @@ flowchart LR
 	backend[Backend<br/>NestJS] -->|"/internal/sentiment + API key"| ai
 	ai -->|"read-only role ai_readonly"| postgres[(PostgreSQL)]
 	ai --> gemini[Google Gemini API]
-	ai --> volume[("/data: memory.db + vectors/")]
+	ai -->|"role ai_writer: schema ai only"| aischema[("ai.messages<br/>ai.documents, ai.chunks")]
 ```
 
 The browser never talks to the AI service directly: the frontend's server route forwards `/api/ai/*` to it with the
@@ -61,8 +62,9 @@ network.
 |---|---|---|
 | Language and framework | **Python 3.12**, **FastAPI** | the AI libraries are Python-first; FastAPI validates requests and streams responses with little code |
 | Models | **Google Gemini**: `gemini-3.5-flash-lite` (answers and sentiment), `gemini-embedding-001` (document search, 768 dimensions), through the official `google-genai` SDK | one provider for tool calling, structured output, streaming, and embeddings, good in Arabic and Darija, and cheap |
-| Document search | **ChromaDB**, embedded (no separate server), cosine distance | stores each chunk with its club and visibility, and filters on them during the search |
-| Conversation memory | **SQLite** (`/data/memory.db`) | the service may not write to PostgreSQL, and it needs only a small store of its own; SQLite needs no server |
+| Document search | **pgvector** in PostgreSQL (`ai.documents` + `ai.chunks`, a `vector(768)` column), cosine distance `<=>` | the club and visibility filter is a plain SQL `WHERE` on the same query; no extra server, and one backup covers everything |
+| Conversation memory | **PostgreSQL**, table `ai.messages` | shared by every copy of the service, so it can run more than one container; nothing to keep on a volume |
+| Database roles | `ai_readonly` (reads chosen columns of the gym tables) and `ai_writer` (reads and writes only the `ai` schema: no UPDATE, no DDL) | each role can do only what its part needs |
 
 ## How a question is answered
 
@@ -103,10 +105,11 @@ now()`. Lists return a total and at most 25 rows.
   staff") or `staff` ("staff only").
 - **Indexing:** the text is split at its Markdown headings, then into windows of 1,000 characters with 150 shared with
   the previous chunk (so a sentence cut in two is still found). The heading is repeated in each chunk. Each chunk is
-  embedded with `gemini-embedding-001` (task type `RETRIEVAL_DOCUMENT`) and stored in the Chroma collection
-  `documents` with `admin_id`, `filename`, and `visibility`. A new upload with the same name replaces the old one.
+  embedded with `gemini-embedding-001` (task type `RETRIEVAL_DOCUMENT`) and stored in `ai.chunks`; the document's
+  `admin_id`, `filename`, and `visibility` are one row of `ai.documents`. A new upload with the same name replaces the
+  old one in one transaction.
 - **Search:** the model calls `search_documents` with a complete question in English. The question is embedded
-  (`RETRIEVAL_QUERY`), and Chroma returns the 5 closest chunks **filtered on the user's club, and for members also on
+  (`RETRIEVAL_QUERY`), and PostgreSQL returns the 5 closest chunks **filtered on the user's club, and for members also on
   `visibility = member`**. Chunks further than **0.35** (cosine distance) are dropped, so the assistant says "it isn't
   in the documents" instead of guessing.
 
@@ -132,8 +135,9 @@ now()`. Lists return a total and at most 25 rows.
 | `GEMINI_EMBED_MODEL` | `gemini-embedding-001` (changing it means uploading every document again) |
 
 The team stack (`devops/docker-compose.yml`) adds the rest from `devops/.env`: `AI_DATABASE_URL` (the `ai_readonly` role,
-user `AI_DB_USER` with `AI_DB_USER_PASSWORD`), the three `JWT_*_ACCESS_SECRET` values (the backend's), and
-`INTERNAL_API_KEY` (shared with the backend). Memory and documents live in the `ai_data` volume.
+user `AI_DB_USER` with `AI_DB_USER_PASSWORD`), `AI_STORE_DATABASE_URL` (the `ai_writer` role, user `AI_WRITER_USER` with
+`AI_WRITER_PASSWORD`), the three `JWT_*_ACCESS_SECRET` values (the backend's), and `INTERNAL_API_KEY` (shared with the
+backend). The database image must include pgvector (`pgvector/pgvector:0.8.1-pg16`).
 
 ## Run it
 
@@ -144,7 +148,8 @@ From the repository root:
 make up             # builds and starts the whole stack, the AI service included
 ```
 
-The `db-roles` service creates the `ai_readonly` role at startup. Check that the AI service is up:
+The `db-roles` service creates the `ai_readonly` role, and runs `AI/db/ai_writer.sql`, which creates the `ai` schema,
+the pgvector extension, the three tables and the `ai_writer` role (safe to re-run). Check that the AI service is up:
 
 ```bash
 docker ps --filter name=^ai$ --format '{{.Names}} {{.Status}}'            # ai   Up ... 
