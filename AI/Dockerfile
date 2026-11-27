@@ -8,14 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Create non-root user
-RUN adduser --disabled-password --gecos "" appuser \
-    && mkdir -p /data \
-    && chown appuser:appuser /data
+RUN adduser --disabled-password --gecos "" appuser
 
 # install needed packages 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip uninstall -y onnxruntime kubernetes
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Code owned by root so the app can't modify itself at runtime
 COPY --chown=root:root app/ ./app/
@@ -25,4 +22,5 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# the host may give the port in $PORT (Hostless does); 8000 otherwise
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

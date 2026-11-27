@@ -9,7 +9,8 @@ services:
   # ============================================================================
 
   db:
-    image: postgres:16-alpine
+    # Postgres 16 with pgvector (the AI service's document search)
+    image: pgvector/pgvector:0.8.1-pg16
     container_name: db
     restart: unless-stopped
     env_file:
@@ -64,11 +65,14 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD}
       - AI_DB_USER
       - AI_DB_USER_PASSWORD
+      - AI_WRITER_USER
+      - AI_WRITER_PASSWORD
       - REWARDS_DB_USER
       - REWARDS_DB_PASSWORD
     volumes:
       - ./postgres/apply-roles.sh:/usr/local/bin/apply-roles.sh:ro
       - ./postgres/roles/ai_readonly.sql:/roles/ai_readonly.sql:ro
+      - ../AI/db/ai_writer.sql:/roles/ai_writer.sql:ro
       - ./postgres/roles/membership_rewards_writer.sql:/roles/membership_rewards_writer.sql:ro
     networks: [data]
     depends_on:
@@ -132,6 +136,7 @@ services:
     env_file: [../AI/.env]
     environment:
       AI_DATABASE_URL: postgresql://${AI_DB_USER}:${AI_DB_USER_PASSWORD}@db:5432/${POSTGRES_DB}
+      AI_STORE_DATABASE_URL: postgresql://${AI_WRITER_USER}:${AI_WRITER_PASSWORD}@db:5432/${POSTGRES_DB}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -140,8 +145,6 @@ services:
       JWT_STAFF_ACCESS_SECRET: ${JWT_STAFF_ACCESS_SECRET}
       JWT_MEMBER_ACCESS_SECRET: ${JWT_MEMBER_ACCESS_SECRET}
     networks: [app, data]
-    volumes:
-      - ai_data:/data
     depends_on:
       db-roles:
         condition: service_completed_successfully
@@ -381,8 +384,6 @@ services:
 volumes:
   db_data:
     name: "db_data"
-  ai_data:
-    name: "ai_data"
   redis_data:
     name: "redis_data"
   certs:

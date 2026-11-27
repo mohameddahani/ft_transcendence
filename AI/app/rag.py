@@ -1,11 +1,10 @@
 import io
 
-import chromadb
 from google import genai
 from google.genai import types
 from pypdf import PdfReader
 
-from app import config
+from app import config, db
 from app.auth import User
 
 CHUNK_SIZE = 1000      # characters per chunk
@@ -14,8 +13,6 @@ MAX_DISTANCE = 0.35    # a chunk further than this from the question is not rele
 VISIBILITIES = ("member", "staff")
 
 gemini = genai.Client(api_key=config.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=30_000))
-store = chromadb.PersistentClient(path=config.VECTORS_DIR)
-collection = store.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"})
 
 
 def extract_text(data: bytes) -> str:
@@ -61,6 +58,11 @@ def embed(texts: list[str], task: str) -> list[list[float]]:
     return vectors
 
 
+# pgvector reads a vector written as text: '[0.1,0.2,...]'
+def _vector(values: list[float]) -> str:
+    return "[" + ",".join(map(str, values)) + "]"
+
+
 def add_document(admin_id: str, filename: str, visibility: str, text: str) -> int:
     if visibility not in VISIBILITIES:
         raise ValueError("Visibility must be member or staff")
@@ -68,42 +70,41 @@ def add_document(admin_id: str, filename: str, visibility: str, text: str) -> in
     if not pieces:
         raise ValueError("The document has no text")
     vectors = embed(pieces, "RETRIEVAL_DOCUMENT")
-    remove_document(admin_id, filename)
-    collection.add(
-        ids=[f"{admin_id}:{filename}:{i}" for i in range(len(pieces))],
-        documents=pieces,
-        embeddings=vectors,
-        metadatas=[{"admin_id": admin_id, "filename": filename, "visibility": visibility}] * len(pieces),
-    )
+    # one transaction: the old version is replaced only if the new one is fully saved
+    with db.store_pool.connection() as conn:
+        conn.execute("DELETE FROM ai.documents WHERE admin_id = %s AND filename = %s", (admin_id, filename))
+        doc = conn.execute("""
+            INSERT INTO ai.documents (admin_id, filename, visibility) VALUES (%s, %s, %s)
+            RETURNING id""", (admin_id, filename, visibility)).fetchone()
+        with conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO ai.chunks (document_id, position, text, embedding) VALUES (%s, %s, %s, %s::vector)",
+                [(doc["id"], i, piece, _vector(v)) for i, (piece, v) in enumerate(zip(pieces, vectors))])
     return len(pieces)
 
 
+# its chunks go with it (ON DELETE CASCADE)
 def remove_document(admin_id: str, filename: str) -> None:
-    collection.delete(where={"$and": [{"admin_id": admin_id}, {"filename": filename}]})
+    db.store("DELETE FROM ai.documents WHERE admin_id = %s AND filename = %s", (admin_id, filename))
 
 
 def list_documents(admin_id: str) -> list[dict]:
-    counts: dict[tuple, int] = {}
-    for meta in collection.get(where={"admin_id": admin_id}, include=["metadatas"])["metadatas"]:
-        key = (meta["filename"], meta["visibility"])
-        counts[key] = counts.get(key, 0) + 1
-    return [{"filename": f, "visibility": v, "chunks": n} for (f, v), n in sorted(counts.items())]
+    return db.store("""
+        SELECT d.filename, d.visibility, count(*) AS chunks
+        FROM ai.documents d JOIN ai.chunks c ON c.document_id = d.id
+        WHERE d.admin_id = %s
+        GROUP BY d.id
+        ORDER BY d.filename""", (admin_id,))
 
 
 def search(user: User, query: str, k: int = 5) -> list[dict]:
-    if user.role == "MEMBER":
-        where = {"$and": [{"admin_id": user.admin_id}, {"visibility": "member"}]}
-    else:
-        where = {"admin_id": user.admin_id}
-
-    vector = embed([query], "RETRIEVAL_QUERY")
-    result = collection.query(query_embeddings=vector, n_results=k, where=where)
-    texts = result["documents"][0]
-    files = result["metadatas"][0]
-    distances = result["distances"][0]
-
-    matches = []
-    for text, file, distance in zip(texts, files, distances):
-        if distance <= MAX_DISTANCE:
-            matches.append({"source": file["filename"], "text": text, "distance": round(distance, 3)})
-    return matches
+    vector = embed([query], "RETRIEVAL_QUERY")[0]
+    # <=> is cosine distance; the club filter is always there, members also only get member documents
+    rows = db.store("""
+        SELECT d.filename AS source, c.text, c.embedding <=> %s::vector AS distance
+        FROM ai.chunks c JOIN ai.documents d ON d.id = c.document_id
+        WHERE d.admin_id = %s AND (d.visibility = 'member' OR %s)
+        ORDER BY distance
+        LIMIT %s""", (_vector(vector), user.admin_id, user.role != "MEMBER", k))
+    return [{"source": r["source"], "text": r["text"], "distance": round(r["distance"], 3)}
+            for r in rows if r["distance"] <= MAX_DISTANCE]

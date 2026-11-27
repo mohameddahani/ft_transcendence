@@ -12,9 +12,8 @@ from app.auth import User, current_user, rate_limited_user, require_api_key
 
 log = logging.getLogger(__name__)
 
-app = FastAPI(title="Gym AI service")
-
-db.init_memory()
+# no /docs or /openapi.json: the service is reachable from the internet when hosted
+app = FastAPI(title="Gym AI service", docs_url=None, redoc_url=None, openapi_url=None)
 
 
 def _gym_name(user: User) -> str:
@@ -30,6 +29,7 @@ def _sse(event: str, data: dict) -> str:
 def health():
     try:
         db.fetch_one("SELECT 1")
+        db.store("SELECT 1")
     except Exception:  # noqa: BLE001
         return JSONResponse({"status": "database unreachable"}, status_code=503)
     return {"status": "ok"}
