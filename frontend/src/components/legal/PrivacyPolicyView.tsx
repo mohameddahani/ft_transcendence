@@ -173,7 +173,7 @@ export default function PrivacyPolicyView() {
           </p>
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
-            In this policy, "we" means the operator identified above. A platform
+            In this policy, &quot;we&quot; means the operator identified above. A platform
             owner account is an administrative role in the service; that role
             does not by itself identify the legal operator.
           </p>
@@ -337,7 +337,7 @@ export default function PrivacyPolicyView() {
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
             Some information comes directly from you. Some is entered by your
-            club's administrator or staff, generated during service use, or
+            club&apos;s administrator or staff, generated during service use, or
             returned by the sentiment analysis service. Emergency contacts may
             be people who do not hold an account.
           </p>
@@ -433,7 +433,7 @@ export default function PrivacyPolicyView() {
                     </td>
 
                     <td className="py-3.5 px-4 text-muted-foreground leading-relaxed">
-                      Can manage their club's staff and members and access club
+                      Can manage their club&apos;s staff and members and access club
                       membership, payment, visit, and feedback records and
                       statistics. They can confirm attendance and manage club
                       plans and operating hours.
@@ -452,7 +452,7 @@ export default function PrivacyPolicyView() {
                       limited to members they personally added. Staff can manage
                       member account status and memberships, view club payment
                       records, review feedback, view visits, and confirm
-                      attendance. Staff do not have the administrator's
+                      attendance. Staff do not have the administrator&apos;s
                       staff-management or club-plan editing functions.
                     </td>
                   </tr>
@@ -489,7 +489,7 @@ export default function PrivacyPolicyView() {
             <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
               Feedback is shared within the club. Eligible members can read
               feedback from other members of the same club, including the
-              author's identifier, name, username, profile image, and role.
+              author&apos;s identifier, name, username, profile image, and role.
               Related administrator and staff profile details, ratings, status,
               resolution notes, resolver identifiers, and dates are also
               returned. Members see like counts and whether they liked a post.
@@ -499,7 +499,7 @@ export default function PrivacyPolicyView() {
             </p>
 
             <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
-              The club administrator's wallet address is also returned to a
+              The club administrator&apos;s wallet address is also returned to a
               member when that member logs in.
             </p>
           </div>
@@ -587,8 +587,8 @@ export default function PrivacyPolicyView() {
                     </td>
 
                     <td className="py-3.5 px-4 text-muted-foreground leading-relaxed">
-                      When a member's membership is created or replaced, the
-                      backend sends a membership identifier and the member's
+                      When a member&apos;s membership is created or replaced, the
+                      backend sends a membership identifier and the member&apos;s
                       wallet address, if present, to the configured blockchain
                       reward service.
                     </td>
@@ -633,7 +633,7 @@ export default function PrivacyPolicyView() {
           </div>
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
-            The backend sets a cookie named "refresh_token" at login and
+            The backend sets a cookie named &quot;refresh_token&quot; at login and
             replaces it when a session is refreshed. It supports authentication.
             The cookie is configured as HttpOnly, SameSite=Strict, and
             restricted to the /api/auth path. Its Secure flag is enabled when
@@ -688,11 +688,11 @@ export default function PrivacyPolicyView() {
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
             The supported controls include removing or replacing a profile image
-            and, for an eligible member, deleting that member's own feedback or
+            and, for an eligible member, deleting that member&apos;s own feedback or
             removing a like. Deleting feedback also deletes its related likes
             from the service database. Image removal requests deletion from
             Cloudinary and restores a default avatar. These operations do not
-            establish removal from backups, logs, caches, or other providers'
+            establish removal from backups, logs, caches, or other providers&apos;
             systems.
           </p>
 

@@ -221,9 +221,9 @@ export default function TermsOfServiceView() {
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
             Use the service for authorized club administration and member
-            activities. Do not impersonate another person, access another club's
+            activities. Do not impersonate another person, access another club&apos;s
             records without authorization, bypass access restrictions, falsify
-            attendance or payment information, misuse another person's QR token,
+            attendance or payment information, misuse another person&apos;s QR token,
             disrupt the service, or submit unlawful or abusive content. Upload
             and submit only information and images you are entitled to use and
             share.
@@ -246,7 +246,7 @@ export default function TermsOfServiceView() {
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
             Platform owner accounts manage platform plans, administrator
             subscriptions, and administrator account status. Club administrators
-            manage their club's staff, members, membership plans, operating
+            manage their club&apos;s staff, members, membership plans, operating
             hours, and special closures. Staff can manage members and
             operational records within their associated club. This includes
             members added by other staff in that club.
@@ -274,11 +274,11 @@ export default function TermsOfServiceView() {
           </div>
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
-            A club administrator's platform subscription has a plan, duration,
+            A club administrator&apos;s platform subscription has a plan, duration,
             amount, start date, expiry date, and status. Plans include a maximum
             member count. An active account, subscription, and platform plan are
             required for many club operations. Subscription changes that exceed
-            the selected plan's member capacity are refused.
+            the selected plan&apos;s member capacity are refused.
           </p>
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
@@ -311,7 +311,7 @@ export default function TermsOfServiceView() {
           </div>
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
-            Club memberships are separate from the club's platform subscription.
+            Club memberships are separate from the club&apos;s platform subscription.
             Administrators and staff create memberships when adding members and
             can assign replacement memberships. Each membership uses a plan and
             duration with an expiry date. A replacement starts from the change
@@ -328,8 +328,8 @@ export default function TermsOfServiceView() {
             <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
               Visit booking requires active member and club access covering the
               requested visit date. Bookings must be in the future and fit the
-              club's recorded hours and closures. The system applies one
-              non-cancelled visit per day and the membership plan's weekly visit
+              club&apos;s recorded hours and closures. The system applies one
+              non-cancelled visit per day and the membership plan&apos;s weekly visit
               limit. Missed or expired visits can still count toward those
               booking limits.
             </p>
@@ -364,8 +364,8 @@ export default function TermsOfServiceView() {
 
           <p className="text-sm sm:text-[15px] leading-relaxed text-muted-foreground">
             The service stores plan prices and payment records. Creating or
-            replacing a member's membership automatically creates a payment
-            record using the selected duration's price and the membership start
+            replacing a member&apos;s membership automatically creates a payment
+            record using the selected duration&apos;s price and the membership start
             time. This record alone does not establish that a payment was
             independently collected or verified.
           </p>
@@ -468,7 +468,7 @@ export default function TermsOfServiceView() {
             Expiry, cancellation, inactive plans, or account restrictions can
             prevent many club and member operations, including access to some
             historical records. Losing club platform access can affect staff and
-            members even where a member's own membership has time remaining.
+            members even where a member&apos;s own membership has time remaining.
             Account restrictions do not establish immediate invalidation of
             every existing access token.
           </p>
