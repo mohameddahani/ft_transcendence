@@ -640,6 +640,45 @@ export default function AssistantPage() {
     setIsStreaming(true);
     let hasReceivedTokens = false;
 
+    // The model sends its answer in a few large pieces. They are kept in `received` and revealed a few
+    // characters at a time, faster when more text is waiting, so the answer appears as if it were being typed.
+    let received = "";
+    let shown = 0;
+    let typingTimer: ReturnType<typeof setInterval> | null = null;
+    let onTypingDone: (() => void) | null = null;
+    const renderTyped = () => {
+      const text = received.slice(0, shown);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === modelMsgId ? { ...m, text, tool: null } : m))
+      );
+    };
+    const stopTyping = () => {
+      if (typingTimer) clearInterval(typingTimer);
+      typingTimer = null;
+      onTypingDone?.();
+      onTypingDone = null;
+    };
+    const startTyping = () => {
+      if (typingTimer) return;
+      typingTimer = setInterval(() => {
+        const waiting = received.length - shown;
+        if (waiting <= 0) return stopTyping();
+        shown += Math.max(2, Math.ceil(waiting / 120));
+        renderTyped();
+      }, 25);
+    };
+    // shows everything at once (on an error, the full text must be there before the notice is added)
+    const showAllTyped = () => {
+      shown = received.length;
+      renderTyped();
+      stopTyping();
+    };
+    const typingFinished = () =>
+      new Promise<void>((resolve) => {
+        if (!typingTimer) resolve();
+        else onTypingDone = resolve;
+      });
+
     try {
       await streamChat(q, threadIdRef.current, (event, data) => {
         if (event === "start" && data.thread_id) {
@@ -679,14 +718,10 @@ export default function AssistantPage() {
           );
         } else if (event === "token" && data.text) {
           hasReceivedTokens = true;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === modelMsgId
-                ? { ...m, text: m.text + data.text, tool: null }
-                : m
-            )
-          );
+          received += data.text;
+          startTyping();
         } else if (event === "error") {
+          showAllTyped();
           const interruptedNotice =
             t("streamInterrupted") ||
             "The answer was interrupted. Please try again.";
@@ -709,17 +744,14 @@ export default function AssistantPage() {
             )
           );
         } else if (event === "done") {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === modelMsgId ? { ...m, isStreaming: false, tool: null } : m
-            )
-          );
-
           // Refresh threads from backend
           void fetchThreads();
         }
       });
+      // the message stays "streaming" (no copy button yet) until the typing has caught up
+      await typingFinished();
     } catch (err: unknown) {
+      showAllTyped();
       if (hasReceivedTokens) {
         const interruptedNotice =
           t("streamInterrupted") ||
